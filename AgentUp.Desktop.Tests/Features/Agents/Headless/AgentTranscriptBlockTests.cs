@@ -81,44 +81,49 @@ public sealed class AgentTranscriptBlockTests
     }
 
     [AvaloniaTest]
-    public void Consecutive_finished_reads_fold_into_one_row()
+    public void Consecutive_finished_edits_reads_and_thoughts_fold_into_one_count_line()
     {
-        var run = Tool("b", "bash", "execute", """{"command":"ls"}""");
+        var command = Tool("b", "bash", "execute", """{"command":"ls"}""");
+        var thought = new AgentChatItemViewModel("Thought", "Checking the port");
 
-        var entries = AgentToolGroupViewModel.Group([Tool("r1", "read", "read", """{"filePath":"a.ts"}"""), Tool("r2", "read", "read", """{"filePath":"b.ts"}"""), run, Tool("r3", "read", "read", """{"filePath":"c.ts"}""")]);
+        var entries = AgentWorkFoldViewModel.Fold([
+            Tool("r1", "read", "read", """{"filePath":"a.ts"}"""), Tool("e1", "edit", "edit", """{"filePath":"b.ts"}"""), thought,
+            Tool("r2", "read", "read", """{"filePath":"c.ts"}"""), command, Tool("r3", "read", "read", """{"filePath":"d.ts"}""")]);
 
-        var group = (AgentToolGroupViewModel)entries[0];
+        var fold = (AgentWorkFoldViewModel)entries[0];
         Assert.That(entries, Has.Count.EqualTo(3));
-        Assert.That(group.Title, Is.EqualTo("Read 2 files"));
-        Assert.That(group.Summary, Is.EqualTo("a.ts, b.ts"));
-        Assert.That(entries[1], Is.SameAs(run));
-        Assert.That(entries[2], Is.TypeOf<AgentChatItemViewModel>(), "A single read stays an ordinary row.");
+        Assert.That(fold.Title, Is.EqualTo("1 edit, 2 reads, 1 thought"));
+        Assert.That(fold.Summary, Is.EqualTo("a.ts, b.ts, c.ts"));
+        Assert.That(entries[1], Is.SameAs(command), "Another tool call stays its own line.");
+        Assert.That(entries[2], Is.TypeOf<AgentChatItemViewModel>(), "A single read stays an ordinary line.");
     }
 
     [AvaloniaTest]
-    public async Task A_folded_group_opens_to_its_calls_and_searches_read_as_searches()
+    public async Task A_fold_opens_to_its_entries_and_keeps_that_when_redrawn()
     {
-        var entries = AgentToolGroupViewModel.Group([Tool("s1", "glob", "search", """{"pattern":"*.md"}"""), Tool("s2", "grep", "search", """{"pattern":"port"}""")]);
-        var group = (AgentToolGroupViewModel)entries.Single();
+        var items = new[] { Tool("s1", "glob", "search", """{"pattern":"*.md"}"""), Tool("s2", "grep", "search", """{"pattern":"port"}""") };
+        var fold = (AgentWorkFoldViewModel)AgentWorkFoldViewModel.Fold(items).Single();
 
-        Assert.That(group.Title, Is.EqualTo("Searched 2 times"));
-        Assert.That((group.IsOpen, group.Chevron), Is.EqualTo((false, "›")));
-        Assert.That(group.AutomationId, Does.Contain("s1"));
-        await group.ToggleCommand.Execute().FirstAsync();
-        Assert.That((group.IsOpen, group.Chevron), Is.EqualTo((true, "⌄")));
-        Assert.That(group.Items.Select(item => item.Tool.Summary), Is.EqualTo(new[] { "*.md", "port" }));
+        Assert.That(fold.Title, Is.EqualTo("2 searches"));
+        Assert.That((fold.IsOpen, fold.Chevron), Is.EqualTo((false, "›")));
+        Assert.That(fold.AutomationId, Does.Contain("s1"));
+        await fold.ToggleCommand.Execute().FirstAsync();
+        Assert.That(AgentWorkFoldViewModel.Fold(items, [fold]).Single(), Is.SameAs(fold));
+        Assert.That((fold.IsOpen, fold.Items.Select(item => item.Tool.Summary)), Is.EqualTo((true, new[] { "*.md", "port" })));
     }
 
     [AvaloniaTest]
-    public void A_running_or_failed_read_is_not_folded_into_a_group()
+    public void The_entry_being_worked_on_is_never_folded_and_is_drawn_open()
     {
         var running = new AgentChatItemViewModel("Tool", "read", "pending", "r1");
         running.SetTool("read", "read", """{"filePath":"a.ts"}""", null, "in_progress");
+        running.SetLive(true);
 
-        var entries = AgentToolGroupViewModel.Group([running, Tool("r2", "read", "read", """{"filePath":"b.ts"}""")]);
+        var entries = AgentWorkFoldViewModel.Fold([Tool("r0", "read", "read", """{"filePath":"z.ts"}"""), running]);
 
-        Assert.That(entries.OfType<AgentToolGroupViewModel>(), Is.Empty);
+        Assert.That(entries.OfType<AgentWorkFoldViewModel>(), Is.Empty);
         Assert.That(entries, Has.Count.EqualTo(2));
+        Assert.That(running.IsToolOpen, Is.True, "The live call shows its detail.");
     }
 
     [AvaloniaTest]

@@ -6,7 +6,9 @@ import {
   agentEventRole,
   applyPresentedUpdate,
   groupTranscript,
-  liveRunId,
+  liveWorkId,
+  activeEntryId,
+  workCounts,
   parsePermission,
   permissionOptionLabel,
   permissionOptionTone,
@@ -14,11 +16,11 @@ import {
   resolveActivity,
   steeringStatus,
   userMessageItem,
-  runSummary,
+  workSummary,
   unwrapSessionUpdate,
   visibleText,
   mergeAgentSession,
-  groupWork,
+  foldWork,
   thoughtLabel,
   isFollowing,
   endTurn,
@@ -46,7 +48,7 @@ test('keeps session chrome out of the transcript', () => {
   assert.equal(presentSessionUpdate({ sessionUpdate: 'user_message_chunk', content: { text: 'hi' } }).kind, 'ignore');
 });
 
-test('groups agent work between user questions and summarizes sealed runs', () => {
+test('splits a turn into work sections around what the agent said, and only the newest work is live', () => {
   const items: TranscriptItem[] = [
     { id: '1', role: 'user', text: 'First' },
     { id: '2', role: 'thought', text: 'Looking' },
@@ -57,13 +59,37 @@ test('groups agent work between user questions and summarizes sealed runs', () =
   const blocks = groupTranscript(items);
   assert.equal(blocks.length, 4);
   assert.equal(blocks[0]?.type, 'user');
-  assert.equal(blocks[1]?.type, 'run');
-  assert.equal(blocks[1] && blocks[1].type === 'run' ? blocks[1].items.length : 0, 2);
-  assert.equal(blocks[2]?.type, 'reply');
+  assert.equal(blocks[1]?.type, 'work');
+  assert.equal(blocks[1] && blocks[1].type === 'work' ? blocks[1].items.length : 0, 2);
+  assert.equal(blocks[2]?.type === 'summary' && blocks[2].final, true);
   assert.equal(blocks[3]?.type, 'user');
-  assert.equal(runSummary(blocks[1] && blocks[1].type === 'run' ? blocks[1].items : []), 'Worked · 1 tool · Thought');
-  assert.equal(liveRunId(blocks), undefined);
-  assert.equal(liveRunId(blocks.slice(0, 3)), '2');
+  assert.equal(workSummary(blocks[1] && blocks[1].type === 'work' ? blocks[1].items : []), 'Worked · 1 thought, 1 tool call');
+  assert.equal(liveWorkId(blocks), undefined, 'the agent replied, so no work is live');
+  assert.equal(liveWorkId(blocks.slice(0, 2)), '2');
+});
+
+test('a summary midway stays between the sections it separates and is not the final reply', () => {
+  const blocks = groupTranscript([
+    { id: '1', role: 'user', text: 'Fix it' },
+    { id: '2', role: 'tool', text: 'read', toolKind: 'read', status: 'completed' },
+    { id: '3', role: 'agent', text: 'Found the bug.' },
+    { id: '4', role: 'tool', text: 'edit', toolKind: 'edit', status: 'in_progress' },
+  ]);
+  assert.deepEqual(blocks.map(block => block.type), ['user', 'work', 'summary', 'work']);
+  assert.equal(blocks[2]?.type === 'summary' && blocks[2].final, false);
+  assert.equal(liveWorkId(blocks), '4');
+});
+
+test('only the entry being worked on is active: a streaming thought or a running call', () => {
+  const thought: TranscriptItem = { id: 'th', role: 'thought', text: 'Hm' };
+  const running: TranscriptItem = { id: 'r', role: 'tool', text: 'bash', status: 'in_progress' };
+  const done: TranscriptItem = { id: 'd', role: 'tool', text: 'bash', status: 'completed' };
+  assert.equal(activeEntryId([done, thought], true, true), 'th');
+  assert.equal(activeEntryId([done, thought], true, false), undefined);
+  assert.equal(activeEntryId([thought, running], true, false), 'r');
+  assert.equal(activeEntryId([thought, done], true, false), undefined);
+  assert.equal(activeEntryId([running], false, false), undefined, 'a section that is not live has no active entry');
+  assert.equal(activeEntryId([], true, true), undefined);
 });
 
 test('streams thoughts and upserts tool calls', () => {
@@ -240,19 +266,22 @@ test('userMessageItem marks a message sent mid-turn as steering for the next tur
   assert.equal(userMessageItem(8, { text: 'hello' }).status, undefined);
 });
 
-test('consecutive finished reads fold into one row and a turn is timed from its prompt', () => {
+test('consecutive finished edits, reads and thoughts fold into one count line, and a turn is timed from its prompt', () => {
   const tool = (id: string, toolKind: string, path: string): TranscriptItem => ({ id, role: 'tool', toolCallId: id, toolKind, status: 'completed', text: path, rawInput: JSON.stringify({ filePath: path }) });
-  const entries = groupWork([tool('r1', 'read', 'a.ts'), tool('r2', 'read', 'b.ts'), tool('b', 'execute', 'x'), tool('r3', 'read', 'c.ts')], item => item.text);
-  assert.deepEqual(entries.map(entry => entry.type), ['group', 'item', 'item']);
-  assert.equal(entries[0]?.type === 'group' && entries[0].title, 'Read 2 files');
-  assert.equal(entries[0]?.type === 'group' && entries[0].summary, 'a.ts, b.ts');
+  const thought: TranscriptItem = { id: 'th', role: 'thought', text: 'Checking' };
+  const entries = foldWork([tool('r1', 'read', 'a.ts'), tool('e1', 'edit', 'b.ts'), thought, tool('b', 'execute', 'x'), tool('r3', 'read', 'c.ts')], item => item.text);
+  assert.deepEqual(entries.map(entry => entry.type), ['fold', 'item', 'item']);
+  assert.equal(entries[0]?.type === 'fold' && entries[0].title, '1 edit, 1 read, 1 thought');
+  assert.equal(entries[0]?.type === 'fold' && entries[0].summary, 'a.ts, b.ts');
+  assert.deepEqual(foldWork([tool('r1', 'read', 'a.ts'), tool('r2', 'read', 'b.ts')], item => item.text, 'r2').map(entry => entry.type), ['item', 'item'], 'the active entry never folds');
+  assert.equal(workCounts([tool('s', 'search', 'x'), tool('s2', 'search', 'y'), tool('m', 'delete', 'z')]), '1 edit, 2 searches');
 
   let items = [userMessageItem(1, { text: 'Go' }, '2026-01-01T00:00:00Z')];
   items = applyPresentedUpdate(items, '2', { kind: 'message', role: 'thought', text: 'Hm' }, '2026-01-01T00:00:10Z');
   items = applyPresentedUpdate(items, '3', { kind: 'message', role: 'thought', text: 'm' }, '2026-01-01T00:00:14Z');
   items = applyPresentedUpdate(items, '4', { kind: 'message', role: 'agent', text: 'Done' }, '2026-01-01T00:00:20Z');
-  const run = groupTranscript(items).find(block => block.type === 'run');
-  assert.equal(run?.type === 'run' && run.duration, '20s');
+  const work = groupTranscript(items).find(block => block.type === 'work');
+  assert.equal(work?.type === 'work' && work.duration, '14s', 'from the prompt to the last step of the work');
   assert.equal(thoughtLabel(items[1]!, false), 'Thought for 4s');
   assert.equal(thoughtLabel(items[1]!, true), 'Thinking');
 });
@@ -262,20 +291,20 @@ test('a steering turn that follows with no prompt gets its own reply instead of 
   items = applyPresentedUpdate(items, '3', { kind: 'message', role: 'agent', text: 'Edited.' }, '2026-01-01T00:00:10Z');
   items = endTurn(items, '2026-01-01T00:00:11Z');
   items = applyPresentedUpdate(items, '5', { kind: 'message', role: 'agent', text: '```ts\nconst port = 4000;\n```' }, '2026-01-01T00:00:20Z');
-  const replies = groupTranscript(items).flatMap(block => block.type === 'reply' ? [block.item.text] : []);
+  const replies = groupTranscript(items).flatMap(block => block.type === 'summary' && block.final ? [block.item.text] : []);
   assert.deepEqual(replies, ['Edited.', '```ts\nconst port = 4000;\n```']);
   assert.deepEqual(endTurn([], 'x'), []);
 });
 
-test('a collapsed run names failed tools, and no run stays open once the session stops', () => {
+test('a folded section names failed tools, and no section stays open once the session stops', () => {
   const items: TranscriptItem[] = [
     { id: 't1', role: 'tool', status: 'failed', text: 'npm run lint' },
     { id: 't2', role: 'tool', status: 'completed', text: 'edit' },
   ];
-  assert.equal(runSummary(items, '9s'), 'Worked for 9s · 2 tools · 1 failed');
+  assert.equal(workSummary(items, '9s'), 'Worked for 9s · 2 tool calls · 1 failed');
   const blocks = groupTranscript([userMessageItem(1, { text: 'Go' }), ...items]);
-  assert.equal(liveRunId(blocks), 't1');
-  assert.equal(liveRunId(blocks, false), undefined);
+  assert.equal(liveWorkId(blocks), 't1');
+  assert.equal(liveWorkId(blocks, false), undefined);
 });
 
 test('the transcript follows new output only while the reader is at the end', () => {

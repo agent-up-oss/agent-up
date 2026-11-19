@@ -113,21 +113,50 @@ public static class AgentEventPresentationProvider
         return state is "ready" or "idle" or null ? "Idle" : state;
     }
 
-    public static string RunSummary(IEnumerable<string> roles) => RunSummary(roles, null);
-
-    /// <summary>"Worked for 21s · 2 tools · Thought": how long a finished run took and what it did.</summary>
-    public static string RunSummary(IEnumerable<string> roles, string? duration) => RunSummary(roles, duration, 0);
-
-    /// <summary>A failed tool is named in the summary, because a collapsed run otherwise hides it.</summary>
-    public static string RunSummary(IEnumerable<string> roles, string? duration, int failed)
+    /// <summary>
+    /// What a step counts as in a work section: <c>thought</c>, <c>edit</c>, <c>read</c>,
+    /// <c>search</c>, another <c>tool</c>, or <c>other</c> work such as the plan.
+    /// </summary>
+    public static string WorkKind(string role, string? toolKind) => role switch
     {
-        var list = roles.ToArray();
-        var tools = list.Count(role => role == "Tool");
+        "Thought" => "thought",
+        "Tool" => toolKind switch
+        {
+            "edit" or "delete" or "move" => "edit",
+            "read" => "read",
+            "search" => "search",
+            _ => "tool"
+        },
+        _ => "other"
+    };
+
+    /// <summary>"3 edits, 2 reads, 1 thought": what a stretch of work did, in reading order, zeros left out.</summary>
+    public static string WorkCounts(IEnumerable<string> kinds)
+    {
+        var list = kinds.ToArray();
+        return string.Join(", ", new (string Kind, string One, string Many)[]
+            {
+                ("edit", "edit", "edits"),
+                ("read", "read", "reads"),
+                ("search", "search", "searches"),
+                ("thought", "thought", "thoughts"),
+                ("tool", "tool call", "tool calls")
+            }
+            .Select(entry => (entry, count: list.Count(kind => kind == entry.Kind)))
+            .Where(pair => pair.count > 0)
+            .Select(pair => $"{pair.count} {(pair.count == 1 ? pair.entry.One : pair.entry.Many)}"));
+    }
+
+    /// <summary>
+    /// "Worked for 21s · 3 edits, 2 reads · 1 failed": the line a finished work section folds
+    /// into. A failed call is named, because the folded section otherwise hides it.
+    /// </summary>
+    public static string WorkSummary(IEnumerable<string> kinds, string? duration, int failed)
+    {
         var parts = new List<string> { duration is null ? "Worked" : $"Worked for {duration}" };
-        if (tools == 1) parts.Add("1 tool");
-        else if (tools > 1) parts.Add($"{tools} tools");
+        var counts = WorkCounts(kinds);
+        if (counts.Length > 0) parts.Add(counts);
         if (failed > 0) parts.Add($"{failed} failed");
-        if (list.Contains("Thought")) parts.Add("Thought");
         return string.Join(" · ", parts);
     }
 

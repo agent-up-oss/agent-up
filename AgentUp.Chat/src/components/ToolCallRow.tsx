@@ -1,3 +1,4 @@
+import type React from 'react';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { auBox, auText } from '@agent-up/design-system/native';
@@ -22,8 +23,11 @@ export function presentToolItem(item: TranscriptItem): ToolCallView {
  * what an edit changed and how long the call took. Tapping it opens an edit's diff, or the input
  * and a formatted output that stays bounded.
  */
-export function ToolCallRow({ item }: { item: TranscriptItem }) {
-  const [open, setOpen] = useState(false);
+export function ToolCallRow({ item, active = false }: { item: TranscriptItem; active?: boolean }) {
+  // The call being worked on is drawn open; once the reader taps it, their choice stands.
+  const [chosen, setChosen] = useState<boolean | null>(null);
+  const open = chosen ?? active;
+  const setOpen = (next: (current: boolean) => boolean) => setChosen(next(open));
   const [all, setAll] = useState(false);
   const [wholeDiff, setWholeDiff] = useState(false);
   const view = presentToolItem(item);
@@ -73,17 +77,17 @@ export function ToolCallRow({ item }: { item: TranscriptItem }) {
   </View>;
 }
 
-/** Consecutive finished reads or searches as one row that opens to the calls. */
-export function ToolGroupRow({ entry }: { entry: Extract<WorkEntry, { type: 'group' }> }) {
+/** Consecutive finished edits, reads, searches and thoughts as one count line that opens to them. */
+export function WorkFoldRow({ entry, renderItem }: { entry: Extract<WorkEntry, { type: 'fold' }>; renderItem: (item: TranscriptItem) => React.ReactNode }) {
   const [open, setOpen] = useState(false);
   return <View style={styles.wrap}>
-    <Pressable testID={`agent-tool-group-${entry.id}`} accessibilityRole="button" accessibilityLabel={`${entry.title}, ${entry.summary}`} onPress={() => setOpen(current => !current)} style={styles.row}>
+    <Pressable testID={`agent-tool-group-${entry.id}`} accessibilityRole="button" accessibilityLabel={[entry.title, entry.summary].filter(Boolean).join(', ')} onPress={() => setOpen(current => !current)} style={styles.row}>
       <Text style={styles.glyph}>✓</Text>
       <Text style={styles.title}>{entry.title}</Text>
       <Text style={styles.summary} numberOfLines={1} ellipsizeMode="tail">{entry.summary}</Text>
       <Text style={styles.duration}>{open ? '⌄' : '›'}</Text>
     </Pressable>
-    {open ? <View style={[styles.detail, styles.group]}>{entry.items.map(item => <ToolCallRow key={item.id} item={item} />)}</View> : null}
+    {open ? <View style={[styles.detail, styles.group]}>{entry.items.map(renderItem)}</View> : null}
   </View>;
 }
 

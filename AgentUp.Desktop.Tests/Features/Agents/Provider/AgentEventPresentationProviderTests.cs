@@ -30,15 +30,27 @@ public sealed class AgentEventPresentationProviderTests
         Assert.That(other.RawOutput, Is.Null, "Raw output that is neither text nor an object with text says nothing.");
     }
 
-    [Test]
-    public void RunSummary_namesToolsAndThoughts()
+    [TestCase("Thought", null, "thought")]
+    [TestCase("Tool", "edit", "edit")]
+    [TestCase("Tool", "delete", "edit")]
+    [TestCase("Tool", "read", "read")]
+    [TestCase("Tool", "search", "search")]
+    [TestCase("Tool", "execute", "tool")]
+    [TestCase("Plan", null, "other")]
+    public void WorkKind_namesWhatAStepCountsAs(string role, string? toolKind, string expected)
     {
-        Assert.That(AgentEventPresentationProvider.RunSummary([]), Is.EqualTo("Worked"));
-        Assert.That(AgentEventPresentationProvider.RunSummary(["Agent"]), Is.EqualTo("Worked"));
-        Assert.That(AgentEventPresentationProvider.RunSummary(["Thought", "Tool", "Tool", "Agent"]), Is.EqualTo("Worked · 2 tools · Thought"));
-        Assert.That(AgentEventPresentationProvider.RunSummary(["Tool"]), Is.EqualTo("Worked · 1 tool"));
-        Assert.That(AgentEventPresentationProvider.RunSummary(["Tool"], "57s"), Is.EqualTo("Worked for 57s · 1 tool"));
-        Assert.That(AgentEventPresentationProvider.RunSummary(["Tool", "Tool"], "9s", 1), Is.EqualTo("Worked for 9s · 2 tools · 1 failed"));
+        Assert.That(AgentEventPresentationProvider.WorkKind(role, toolKind), Is.EqualTo(expected));
+    }
+
+    [Test]
+    public void WorkSummary_countsEachKindInReadingOrderAndNamesFailures()
+    {
+        Assert.That(AgentEventPresentationProvider.WorkSummary([], null, 0), Is.EqualTo("Worked"));
+        Assert.That(AgentEventPresentationProvider.WorkSummary(["other"], null, 0), Is.EqualTo("Worked"));
+        Assert.That(
+            AgentEventPresentationProvider.WorkSummary(["thought", "read", "edit", "read", "tool", "search", "edit", "thought"], "57s", 0),
+            Is.EqualTo("Worked for 57s · 2 edits, 2 reads, 1 search, 2 thoughts, 1 tool call"));
+        Assert.That(AgentEventPresentationProvider.WorkSummary(["tool", "tool"], "9s", 1), Is.EqualTo("Worked for 9s · 2 tool calls · 1 failed"));
     }
 
     [Test]

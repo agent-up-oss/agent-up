@@ -12,7 +12,7 @@ public sealed class AgentChatItemViewModel : ReactiveObject
     private string? _status;
     private bool? _expanded;
     private bool _live;
-    private bool _toolOpen;
+    private bool? _toolOpen;
     private bool _showAllOutput;
     private bool _showWholeDiff;
     private AgentToolCallFacts _facts = new(null, null, null, null, null, null);
@@ -30,7 +30,7 @@ public sealed class AgentChatItemViewModel : ReactiveObject
         ToolCallId = toolCallId;
         DisplayRole = displayRole;
         ToggleCommand = ReactiveCommand.Create(Toggle);
-        ToggleToolCommand = ReactiveCommand.Create(() => { _toolOpen = !_toolOpen; NotifyTool(); });
+        ToggleToolCommand = ReactiveCommand.Create(() => { _toolOpen = !IsToolOpen; NotifyTool(); });
         ShowAllOutputCommand = ReactiveCommand.Create(() => { _showAllOutput = true; NotifyTool(); });
         ShowWholeDiffCommand = ReactiveCommand.Create(() => { _showWholeDiff = true; NotifyTool(); });
     }
@@ -54,7 +54,7 @@ public sealed class AgentChatItemViewModel : ReactiveObject
     /// <summary>The ACP kind the agent gave the call, kept across updates that omit it.</summary>
     public string? ToolKind => _facts.Kind;
     public bool HasToolDiff => Tool.Diff is { Lines.Count: > 0 };
-    public bool HasToolDiffOpen => _toolOpen && HasToolDiff;
+    public bool HasToolDiffOpen => IsToolOpen && HasToolDiff;
     public string? DiffAdded => Tool.Diff is { Added: > 0 } diff ? $"+{diff.Added}" : null;
     public string? DiffRemoved => Tool.Diff is { Removed: > 0 } diff ? $"−{diff.Removed}" : null;
     public bool HasDiffAdded => DiffAdded is not null;
@@ -72,13 +72,14 @@ public sealed class AgentChatItemViewModel : ReactiveObject
     public bool IsToolFailed => Tool.State == "failed";
     public bool HasToolSource => Tool.Source is not null;
     public bool HasToolSummary => Tool.Summary is not null;
-    public bool IsToolOpen => _toolOpen;
-    public string ToolChevron => _toolOpen ? "⌄" : "›";
+    /// <summary>A call opens while it is the entry being worked on, and stays as the reader leaves it.</summary>
+    public bool IsToolOpen => _toolOpen ?? (_live && IsTool);
+    public string ToolChevron => IsToolOpen ? "⌄" : "›";
     // An edit's diff already says what its input asked for, so the raw input is not repeated under it.
-    public bool HasToolInput => _toolOpen && Tool.Input is not null && !HasToolDiff;
-    public bool HasToolOutput => _toolOpen && Tool.Output is not null && !HasToolDiff;
+    public bool HasToolInput => IsToolOpen && Tool.Input is not null && !HasToolDiff;
+    public bool HasToolOutput => IsToolOpen && Tool.Output is not null && !HasToolDiff;
     public string? ToolOutputText => _showAllOutput ? Tool.FullOutput : Tool.Output;
-    public bool CanShowAllOutput => _toolOpen && !_showAllOutput && Tool.HiddenLines > 0;
+    public bool CanShowAllOutput => IsToolOpen && !_showAllOutput && Tool.HiddenLines > 0;
     public string ShowAllOutputLabel => Tool.HiddenLines == 1 ? "Show 1 more line" : $"Show {Tool.HiddenLines} more lines";
     public string ToolAutomationId => DesktopAutomationIds.AgentToolCall(ToolCallId ?? "tool");
 
@@ -130,7 +131,7 @@ public sealed class AgentChatItemViewModel : ReactiveObject
                      nameof(ToolOutputText), nameof(CanShowAllOutput), nameof(ShowAllOutputLabel), nameof(ToolName),
                      nameof(HasToolDiff), nameof(HasToolDiffOpen), nameof(DiffAdded), nameof(DiffRemoved), nameof(HasDiffAdded),
                      nameof(HasDiffRemoved), nameof(DiffLines), nameof(CanShowWholeDiff), nameof(ShowWholeDiffLabel),
-                     nameof(ToolDuration), nameof(HasToolDuration)
+                     nameof(ToolDuration), nameof(HasToolDuration), nameof(IsLive)
                  })
             this.RaisePropertyChanged(name);
     }
@@ -165,12 +166,36 @@ public sealed class AgentChatItemViewModel : ReactiveObject
         ? (_live ? "Thinking" : AgentToolCallProvider.Duration(_firstAt, _lastAt) is { } took ? $"Thought for {took}" : "Thought")
         : DisplayRole ?? Role;
 
-    public void SetLive(bool live)
+    private bool _closing;
+
+    /// <summary>Whether this is the agent's closing reply, which is headed with the agent's name.</summary>
+    public bool IsClosing
+    {
+        get => _closing;
+        set => this.RaiseAndSetIfChanged(ref _closing, value);
+    }
+
+    /// <summary>Whether this is the entry the agent is working on now, which is the one drawn open.</summary>
+    public bool IsLive => _live;
+
+    /// <summary>When the first and the latest event for this item arrived.</summary>
+    public DateTimeOffset? StartedAt => _firstAt;
+    public DateTimeOffset? EndedAt => _lastAt;
+
+    /// <summary>
+    /// What kind of step this is in a work section's counts: <c>thought</c>, <c>edit</c>,
+    /// <c>read</c>, <c>search</c>, another <c>tool</c>, or <c>other</c> work such as the plan.
+    /// </summary>
+    public string WorkKind => AgentEventPresentationProvider.WorkKind(Role, ToolKind);
+
+    public bool SetLive(bool live)
     {
         if (_live == live)
-            return;
+            return false;
         _live = live;
         NotifyThought();
+        NotifyTool();
+        return true;
     }
 
     private void Toggle()

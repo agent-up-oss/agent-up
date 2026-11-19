@@ -205,6 +205,24 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     {
     }
 
+    private bool _followAgentTranscript = true;
+
+    /// <summary>
+    /// Keeps the agent's newest output in view while the reader is at the end of the transcript,
+    /// and leaves them where they are once they have scrolled up to read.
+    /// </summary>
+    private void OnAgentTranscriptScrolled(object? sender, ScrollChangedEventArgs args)
+    {
+        var scroll = AgentTranscriptScroll;
+        if (args.ExtentDelta.Y != 0 && _followAgentTranscript)
+        {
+            scroll.ScrollToEnd();
+            return;
+        }
+
+        _followAgentTranscript = TranscriptFollowProvider.IsFollowing(scroll.Offset.Y, scroll.Viewport.Height, scroll.Extent.Height);
+    }
+
     private static HttpClient CreateServerHttpClient() => new()
     {
         BaseAddress = new Uri(Environment.GetEnvironmentVariable("AGENTUP_SERVER_URL") ?? "http://localhost:5000")
@@ -225,6 +243,7 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         _addressPollTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
         _addressPollTimer.Tick += OnAddressPollTimerTick;
         PortPane.SizeChanged += OnPortPaneSizeChanged;
+        AgentTranscriptScroll.ScrollChanged += OnAgentTranscriptScrolled;
         _serverBaseUrl = NormalizeServerBaseUrl(serverHttp.BaseAddress)
             ?? throw new ArgumentException("The server HTTP client requires a base address.", nameof(serverHttp));
         _serverHttp = serverHttp;

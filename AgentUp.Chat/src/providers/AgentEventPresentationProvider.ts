@@ -131,55 +131,92 @@ export function presentSessionUpdate(update: unknown): PresentedUpdate {
   return { kind: 'ignore' };
 }
 
-export function runSummary(items: TranscriptItem[], duration?: string): string {
-  const tools = items.filter(item => item.role === 'tool').length;
+/** What a step counts as in a work section's tally. */
+export type WorkKind = 'thought' | 'edit' | 'read' | 'search' | 'tool' | 'other';
+
+export function workKind(item: TranscriptItem): WorkKind {
+  if (item.role === 'thought') return 'thought';
+  if (item.role !== 'tool') return 'other';
+  switch (item.toolKind) {
+    case 'edit': case 'delete': case 'move': return 'edit';
+    case 'read': return 'read';
+    case 'search': return 'search';
+    default: return 'tool';
+  }
+}
+
+const tallies: [WorkKind, string, string][] = [
+  ['edit', 'edit', 'edits'],
+  ['read', 'read', 'reads'],
+  ['search', 'search', 'searches'],
+  ['thought', 'thought', 'thoughts'],
+  ['tool', 'tool call', 'tool calls'],
+];
+
+/** "3 edits, 2 reads, 1 thought": what a stretch of work did, in reading order, zeros left out. */
+export function workCounts(items: TranscriptItem[]): string {
+  const kinds = items.map(workKind);
+  return tallies
+    .map(([kind, one, many]) => ({ count: kinds.filter(entry => entry === kind).length, one, many }))
+    .filter(entry => entry.count > 0)
+    .map(entry => `${entry.count} ${entry.count === 1 ? entry.one : entry.many}`)
+    .join(', ');
+}
+
+/**
+ * "Worked for 21s · 3 edits, 2 reads · 1 failed": the line a finished work section folds into.
+ * A failed call is named, because the folded section otherwise hides it.
+ */
+export function workSummary(items: TranscriptItem[], duration?: string): string {
   const parts = [duration ? `Worked for ${duration}` : 'Worked'];
-  if (tools === 1) parts.push('1 tool');
-  else if (tools > 1) parts.push(`${tools} tools`);
-  // A collapsed run otherwise hides that a tool failed.
+  const counts = workCounts(items);
+  if (counts) parts.push(counts);
   const failed = items.filter(item => item.role === 'tool' && item.status === 'failed').length;
   if (failed > 0) parts.push(`${failed} failed`);
-  if (items.some(item => item.role === 'thought')) parts.push('Thought');
   return parts.join(' · ');
 }
 
+/**
+ * A turn as drawn: what the agent says - summaries midway and its final reply - is always shown,
+ * and the work between those messages is a section that folds once the agent moved past it.
+ */
 export type TranscriptBlock =
   | { type: 'user'; item: TranscriptItem }
-  | { type: 'run'; id: string; items: TranscriptItem[]; duration?: string }
-  | { type: 'reply'; item: TranscriptItem };
+  | { type: 'work'; id: string; items: TranscriptItem[]; duration?: string }
+  | { type: 'summary'; item: TranscriptItem; final: boolean };
 
-/** The run still in progress, which stays open; once the session stops running every run collapses. */
-export function liveRunId(blocks: TranscriptBlock[], running = true): string | undefined {
+/** The section the agent is working in now, which is drawn open; none once the session stops running. */
+export function liveWorkId(blocks: TranscriptBlock[], running = true): string | undefined {
   if (!running) return undefined;
-  for (let i = blocks.length - 1; i >= 0; i -= 1) {
-    const block = blocks[i]!;
-    if (block.type === 'user') return undefined;
-    if (block.type === 'run') return block.id;
-  }
-  return undefined;
+  const last = blocks.at(-1);
+  return last?.type === 'work' ? last.id : undefined;
 }
 
 export function groupTranscript(items: TranscriptItem[]): TranscriptBlock[] {
   const blocks: TranscriptBlock[] = [];
-  let run: TranscriptItem[] = [];
+  let turn: TranscriptItem[] = [];
   let promptedAt: string | undefined;
   const flush = () => {
-    if (run.length === 0) return;
-    let result: TranscriptItem | undefined;
-    let work = run;
-    for (let i = run.length - 1; i >= 0; i -= 1) {
-      if (run[i]!.role !== 'agent') continue;
-      result = run[i];
-      work = run.filter((_, index) => index !== i);
-      break;
-    }
-    // A turn's time runs from the prompt, so the model's thinking before its first step counts.
-    const startedAt = promptedAt ?? run[0]!.startedAt;
-    const endedAt = run.map(item => item.endedAt).filter((value): value is string => Boolean(value)).sort().at(-1);
-    const duration = durationBetween(startedAt, endedAt);
-    if (work.length > 0) blocks.push({ type: 'run', id: work[0]!.id, items: work, ...(duration ? { duration } : {}) });
-    if (result) blocks.push({ type: 'reply', item: result });
-    run = [];
+    let work: TranscriptItem[] = [];
+    let first = true;
+    const close = () => {
+      if (work.length === 0) return;
+      // The first section's time runs from the prompt, so the model's thinking before its first step counts.
+      const startedAt = first ? promptedAt ?? work[0]!.startedAt : work[0]!.startedAt;
+      const endedAt = work.map(item => item.endedAt).filter((value): value is string => Boolean(value)).sort().at(-1);
+      const duration = durationBetween(startedAt, endedAt);
+      blocks.push({ type: 'work', id: work[0]!.id, items: work, ...(duration ? { duration } : {}) });
+      work = [];
+      first = false;
+    };
+    turn.forEach((item, index) => {
+      if (item.role !== 'agent') { work.push(item); return; }
+      close();
+      first = false;
+      blocks.push({ type: 'summary', item, final: index === turn.length - 1 });
+    });
+    close();
+    turn = [];
   };
   for (const item of items) {
     if (item.role === 'user') {
@@ -188,10 +225,10 @@ export function groupTranscript(items: TranscriptItem[]): TranscriptBlock[] {
       blocks.push({ type: 'user', item });
       continue;
     }
-    run.push(item);
+    turn.push(item);
     if (item.turnEnd) {
       // Steering queued during this turn runs next with no prompt of its own, so it starts its
-      // own run and reply, timed from when this turn ended.
+      // own sections, timed from when this turn ended.
       const endedAt = item.endedAt;
       flush();
       promptedAt = endedAt;
@@ -201,10 +238,10 @@ export function groupTranscript(items: TranscriptItem[]): TranscriptBlock[] {
   return blocks;
 }
 
-/** A run's work rows: consecutive finished reads, or searches, fold into one "Read 3 files" row. */
+/** A work section's lines: a run of finished edits, reads, searches and thoughts folds into one count line. */
 export type WorkEntry =
   | { type: 'item'; item: TranscriptItem }
-  | { type: 'group'; id: string; kind: 'read' | 'search'; title: string; summary: string; items: TranscriptItem[] };
+  | { type: 'fold'; id: string; title: string; summary: string; items: TranscriptItem[] };
 
 /** Within this many pixels of the end the reader is following along, so new output scrolls into view. */
 export const followThreshold = 80;
@@ -214,22 +251,36 @@ export function isFollowing(offset: number, viewport: number, content: number): 
   return content - (offset + viewport) <= followThreshold;
 }
 
-export function groupWork(items: TranscriptItem[], summaryOf: (item: TranscriptItem) => string | undefined): WorkEntry[] {
+/** The entry the agent is working on now - a thought still streaming or a call still running - which is drawn open. */
+export function activeEntryId(items: TranscriptItem[], live: boolean, thinking: boolean): string | undefined {
+  if (!live) return undefined;
+  const last = items.at(-1);
+  if (!last) return undefined;
+  if (last.role === 'thought') return thinking ? last.id : undefined;
+  return last.role === 'tool' && last.status !== 'completed' && last.status !== 'failed' ? last.id : undefined;
+}
+
+export function foldWork(
+  items: TranscriptItem[],
+  summaryOf: (item: TranscriptItem) => string | undefined,
+  activeId?: string,
+): WorkEntry[] {
+  const foldable = (item: TranscriptItem) => item.id !== activeId && (
+    workKind(item) === 'thought'
+    || (['edit', 'read', 'search'].includes(workKind(item)) && item.status === 'completed'));
   const entries: WorkEntry[] = [];
   let index = 0;
   while (index < items.length) {
-    const kind = groupable(items[index]!);
     let end = index;
-    while (kind && end + 1 < items.length && groupable(items[end + 1]!) === kind) end++;
-    if (kind && end > index) {
-      const group = items.slice(index, end + 1);
+    while (foldable(items[index]!) && end + 1 < items.length && foldable(items[end + 1]!)) end++;
+    if (end > index) {
+      const run = items.slice(index, end + 1);
       entries.push({
-        type: 'group',
-        id: group[0]!.toolCallId ?? group[0]!.id,
-        kind,
-        title: kind === 'read' ? `Read ${group.length} files` : `Searched ${group.length} times`,
-        summary: [...new Set(group.map(summaryOf).filter((value): value is string => Boolean(value)))].join(', '),
-        items: group,
+        type: 'fold',
+        id: run[0]!.toolCallId ?? run[0]!.id,
+        title: workCounts(run),
+        summary: [...new Set(run.filter(item => item.role === 'tool').map(summaryOf).filter((value): value is string => Boolean(value)))].join(', '),
+        items: run,
       });
     } else {
       entries.push({ type: 'item', item: items[index]! });
@@ -237,10 +288,6 @@ export function groupWork(items: TranscriptItem[], summaryOf: (item: TranscriptI
     index = end + 1;
   }
   return entries;
-}
-
-function groupable(item: TranscriptItem): 'read' | 'search' | undefined {
-  return item.role === 'tool' && item.status === 'completed' && (item.toolKind === 'read' || item.toolKind === 'search') ? item.toolKind : undefined;
 }
 
 /** "Thinking" while it streams, then "Thought for 4s" once it took long enough to say. */

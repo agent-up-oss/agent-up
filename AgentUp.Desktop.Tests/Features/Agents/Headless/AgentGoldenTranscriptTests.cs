@@ -69,11 +69,15 @@ public sealed class AgentGoldenTranscriptTests
     {
         var view = await ReplayAsync();
 
-        var summaries = Runs(view).Where(run => run.ShowHeader).Select(run => run.Summary).ToArray();
+        var summaries = Runs(view).SelectMany(run => run.Sections).Select(section => section.Summary).ToArray();
 
-        Assert.That(summaries, Is.Not.Empty);
-        Assert.That(summaries, Is.All.Match(@"^Worked for \d+s · 1 tool$"));
-        Assert.That(summaries[0], Is.EqualTo("Worked for 57s · 1 tool"), "The first turn ran from its prompt at 05:29:39 to its reply at 05:30:36.");
+        // Each stretch of work runs from the prompt to its last step, so the time the model then
+        // spends writing its answer is not counted as work.
+        Assert.That(summaries, Is.EqualTo(new[]
+        {
+            "Worked for 48s · 1 edit", "Worked for 12s · 1 read", "Worked for 17s · 1 edit",
+            "Worked for 11s · 1 tool call", "Worked for 12s · 1 search", "Worked for 14s · 1 tool call"
+        }));
     }
 
     private static IEnumerable<AgentRunViewModel> Runs(AgentChatViewModel view) => view.Transcript.OfType<AgentRunViewModel>();

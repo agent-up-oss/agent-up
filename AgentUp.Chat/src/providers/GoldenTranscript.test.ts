@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import type { AgentEvent, TranscriptItem } from '../models/AgentSession';
-import { applyPresentedUpdate, endTurn, groupTranscript, groupWork, presentSessionUpdate, runSummary, unwrapSessionUpdate, userMessageItem } from './AgentEventPresentationProvider';
+import { applyPresentedUpdate, endTurn, foldWork, groupTranscript, presentSessionUpdate, unwrapSessionUpdate, userMessageItem, workSummary } from './AgentEventPresentationProvider';
 import { parseMarkdown } from './MarkdownProvider';
 import { presentToolFacts } from './ToolCallProvider';
 
@@ -46,17 +46,19 @@ test('the write and the edit are shown as diffs', () => {
 test('the markdown answer draws its heading and table rather than a code block', () => {
   const blocks = groupTranscript(replay());
   const reply = blocks.at(-1);
-  assert.equal(reply?.type, 'reply');
-  const kinds = parseMarkdown(reply?.type === 'reply' ? reply.item.text : '').map(block => block.kind);
+  assert.equal(reply?.type === 'summary' && reply.final, true);
+  const kinds = parseMarkdown(reply?.type === 'summary' ? reply.item.text : '').map(block => block.kind);
   assert.ok(kinds.includes('heading'));
   assert.ok(kinds.includes('table'));
   assert.ok(!kinds.includes('code'));
 });
 
-test('each turn reports how long it worked, from its prompt', () => {
-  const runs = groupTranscript(replay()).flatMap(block => block.type === 'run' ? [block] : []);
-  assert.equal(runs.length, 6);
-  assert.equal(runSummary(runs[0]!.items, runs[0]!.duration), 'Worked for 57s · 1 tool');
-  assert.ok(runs.every(run => /^Worked for \d+s · 1 tool$/.test(runSummary(run.items, run.duration))));
-  assert.ok(runs.every(run => groupWork(run.items, () => undefined).every(entry => entry.type === 'item')), 'One call per turn folds nothing.');
+test('each stretch of work reports how long it took and what it did, the same as Desktop', () => {
+  const sections = groupTranscript(replay()).flatMap(block => block.type === 'work' ? [block] : []);
+  // Each stretch runs from the prompt to its last step; the time spent writing the answer is not work.
+  assert.deepEqual(sections.map(section => workSummary(section.items, section.duration)), [
+    'Worked for 48s · 1 edit', 'Worked for 12s · 1 read', 'Worked for 17s · 1 edit',
+    'Worked for 11s · 1 tool call', 'Worked for 12s · 1 search', 'Worked for 14s · 1 tool call',
+  ]);
+  assert.ok(sections.every(section => foldWork(section.items, () => undefined).every(entry => entry.type === 'item')), 'One call per section folds nothing.');
 });

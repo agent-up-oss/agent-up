@@ -786,69 +786,97 @@ public sealed class AgentChatViewModelTests
     }
 
     [Test]
-    public void Run_thatIsStillLive_showsItsWorkExpandedWithoutAHeader()
+    public void Run_drawsTheSectionBeingWorkedInOpenWithoutAHeader()
     {
-        var run = LiveRun();
+        var run = new AgentRunViewModel();
+        run.Items.Add(new AgentChatItemViewModel("Thought", "Looking"));
+        run.Items.Add(new AgentChatItemViewModel("Tool", "Search", "completed", "t1"));
+
+        var section = run.Sections.Single();
 
         Assert.Multiple(() =>
         {
-            Assert.That(run.IsLive, Is.True);
-            Assert.That(run.ShowHeader, Is.False);
-            Assert.That(run.IsExpanded, Is.True);
-            Assert.That(run.Chevron, Is.EqualTo("▾"));
-            Assert.That(run.AutomationId, Is.EqualTo(DesktopAutomationIds.AgentRun));
+            Assert.That(section.IsLive, Is.True);
+            Assert.That(section.ShowHeader, Is.False);
+            Assert.That(section.IsExpanded, Is.True);
+            Assert.That(section.Chevron, Is.EqualTo("⌄"));
+            Assert.That(section.AutomationId, Is.EqualTo(DesktopAutomationIds.AgentRun));
+            Assert.That(run.HasReply, Is.False);
         });
     }
 
     [Test]
-    public void Run_summarisesTheWorkItThoughtAndTheToolsItRan()
+    public void Run_foldsWorkTheAgentHasSpokenAfterAndShowsWhatItSaid()
     {
         var run = LiveRun();
+
+        var section = run.Sections.Single();
 
         Assert.Multiple(() =>
         {
-            Assert.That(run.WorkItems, Has.Count.EqualTo(2));
-            Assert.That(run.Summary, Is.EqualTo("Worked · 1 tool · Thought"));
-        });
-    }
-
-    [Test]
-    public void Run_treatsTheAgentsLastMessageAsItsReply()
-    {
-        var run = LiveRun();
-
-        Assert.That(run.HasReply, Is.True);
-        Assert.That(run.Reply!.Text, Is.EqualTo("Done"));
-    }
-
-    // The first seal is the next question arriving: the run collapses behind a header but
-    // keeps its reply, because that is what the transcript shows above the new question.
-    [Test]
-    public void Run_collapsesBehindAHeaderWhenTheNextQuestionSealsIt()
-    {
-        var run = LiveRun();
-
-        run.Seal();
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(run.ShowHeader, Is.True);
-            Assert.That(run.IsExpanded, Is.False);
-            Assert.That(run.Chevron, Is.EqualTo("▸"));
+            Assert.That(run.Segments, Has.Count.EqualTo(2));
+            Assert.That(section.IsExpanded, Is.False, "the agent moved on to its reply");
+            Assert.That(section.ShowHeader, Is.True);
+            Assert.That(section.Summary, Is.EqualTo("Worked · 1 thought, 1 tool call"));
             Assert.That(run.Reply!.Text, Is.EqualTo("Done"));
+            Assert.That(run.Reply.IsClosing, Is.True, "the closing reply is headed with the agent's name");
         });
     }
 
     [Test]
-    public void Run_stopsBeingLiveOnTheSecondSeal()
+    public void Run_keepsASummaryMidwayOpenBetweenTheSectionsItSeparates()
+    {
+        var run = new AgentRunViewModel();
+        run.Items.Add(new AgentChatItemViewModel("Tool", "Read", "completed", "t1"));
+        run.Items.Add(new AgentChatItemViewModel("Agent", "Found the bug.", displayRole: "Codex"));
+        run.Items.Add(new AgentChatItemViewModel("Tool", "Edit", "pending", "t2"));
+
+        var segments = run.Segments;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(segments.Select(segment => segment.GetType().Name), Is.EqualTo(new[]
+            {
+                nameof(AgentWorkSectionViewModel), nameof(AgentChatItemViewModel), nameof(AgentWorkSectionViewModel)
+            }));
+            Assert.That(((AgentWorkSectionViewModel)segments[0]).IsExpanded, Is.False);
+            Assert.That(((AgentWorkSectionViewModel)segments[2]).IsExpanded, Is.True);
+            Assert.That(run.HasReply, Is.False, "work after the summary means the agent has not finished");
+            Assert.That(((AgentChatItemViewModel)segments[1]).IsClosing, Is.False);
+        });
+    }
+
+    [Test]
+    public void Run_foldsEverySectionWhenTheTurnEnds()
+    {
+        var run = new AgentRunViewModel();
+        run.Items.Add(new AgentChatItemViewModel("Tool", "Read", "completed", "t1"));
+
+        run.Seal();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(run.IsLive, Is.False);
+            Assert.That(run.Sections.Single().IsExpanded, Is.False);
+            Assert.That(run.Sections.Single().Chevron, Is.EqualTo("›"));
+        });
+    }
+
+    [Test]
+    public void Run_keepsASectionTheReaderOpenedOpenAsTheTurnGoesOn()
     {
         var run = LiveRun();
+        var section = run.Sections.Single();
+        section.ToggleCommand.Execute().Subscribe();
+
+        run.Items.Add(new AgentChatItemViewModel("Tool", "Edit", "pending", "t9"));
         run.Seal();
 
-        run.Seal();
-
-        Assert.That(run.IsLive, Is.False);
-        Assert.That(run.ShowHeader, Is.True);
+        Assert.Multiple(() =>
+        {
+            Assert.That(run.Sections.First(), Is.SameAs(section));
+            Assert.That(section.IsExpanded, Is.True);
+        });
     }
 
     /// <summary>A run that thought, ran one tool, and replied - still open.</summary>

@@ -306,14 +306,15 @@ public sealed class AgentChatViewModelStreamTests
         await WaitUntilAsync(() => view.Messages.Count(item => item.Role == "You") == 2);
 
         var run = view.Transcript.OfType<AgentRunViewModel>().Single();
+        var section = run.Sections.Single();
         Assert.Multiple(() =>
         {
-            Assert.That(run.ShowHeader, Is.True);
-            Assert.That(run.IsExpanded, Is.False);
+            Assert.That(section.ShowHeader, Is.True);
+            Assert.That(section.IsExpanded, Is.False);
             Assert.That(run.HasReply, Is.True);
             Assert.That(run.Reply!.Text, Is.EqualTo("Done"));
-            Assert.That(run.WorkItems.Select(item => item.Role), Is.EqualTo(["Thought", "Tool"]));
-            Assert.That(run.Summary, Is.EqualTo("Worked · 1 tool · Thought"));
+            Assert.That(section.Items.Select(item => item.Role), Is.EqualTo(["Thought", "Tool"]));
+            Assert.That(section.Summary, Does.StartWith("Worked").And.EndWith("1 thought, 1 tool call"));
             Assert.That(view.Messages.Single(item => item.Role == "Agent").Text, Is.EqualTo("Done"));
         });
 

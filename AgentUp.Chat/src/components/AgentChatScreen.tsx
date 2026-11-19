@@ -11,7 +11,7 @@ import { presentAgentRow } from '../providers/AgentAvailabilityProvider';
 import { shouldShowLoopControls } from '../providers/LoopSurfaceProvider';
 import { AgentSignIn } from './AgentSignIn';
 import { MarkdownView } from './MarkdownView';
-import { presentToolItem, ToolCallRow, ToolGroupRow } from './ToolCallRow';
+import { presentToolItem, ToolCallRow, WorkFoldRow } from './ToolCallRow';
 import {
   activityHint,
   afterPermissionDecision,
@@ -19,10 +19,11 @@ import {
   userMessageItem,
   applyPresentedUpdate,
   groupTranscript,
-  groupWork,
+  foldWork,
+  activeEntryId,
   endTurn,
   thoughtLabel,
-  liveRunId,
+  liveWorkId,
   isFollowing,
   mergeAgentSession,
   mergeContext,
@@ -31,7 +32,7 @@ import {
   permissionOptionTone,
   presentSessionUpdate,
   resolveActivity,
-  runSummary,
+  workSummary,
   unwrapSessionUpdate,
   visibleText,
 } from '../providers/AgentEventPresentationProvider';
@@ -189,7 +190,7 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent, on
   const selectedAgentName = session?.agents.find(agent => agent.agent === session.agent)?.displayName ?? session?.agent ?? 'Agent';
   const waiting = busy || session?.state === 'running' || Boolean(permission) || session?.state === 'authentication_required' || session?.state === 'authenticating';
   const blocks = useMemo(() => groupTranscript(items), [items]);
-  const openRunId = liveRunId(blocks, session?.state === 'running' || Boolean(permission));
+  const openWorkId = liveWorkId(blocks, session?.state === 'running' || Boolean(permission));
   // The transcript follows new output while the reader is at the end, and stays put once they scroll up.
   const scroll = useRef<ScrollViewInstance>(null);
   const following = useRef(true);
@@ -307,20 +308,27 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent, on
                   <View style={styles.userBubble}><Text style={styles.userText}>{visibleText(block.item.text)}</Text></View>
                 </View>;
               }
-              if (block.type === 'reply') {
-                return <View key={block.item.id} style={styles.reply} testID="agent-reply"><Text style={styles.replyAgent}>{selectedAgentName}</Text><MarkdownView markdown={block.item.text} /></View>;
+              // What the agent says - midway or at the end - is prose on the canvas and never folds.
+              if (block.type === 'summary') {
+                return <View key={block.item.id} style={styles.reply} testID={block.final ? 'agent-reply' : 'agent-summary'}>
+                  {block.final ? <Text style={styles.replyAgent}>{selectedAgentName}</Text> : null}
+                  <MarkdownView markdown={block.item.text} />
+                </View>;
               }
-              const live = block.id === openRunId;
-              const open = live || Boolean(expandedRuns[block.id]);
-              return <View key={block.id} style={styles.run}>
-                {!live && <Pressable onPress={() => setExpandedRuns(current => ({ ...current, [block.id]: !open }))} style={styles.runHeader}><Text style={styles.runSummary}>{runSummary(block.items, block.duration)}</Text><Text style={styles.runSummary}>{open ? '▾' : '▸'}</Text></Pressable>}
-                {open && groupWork(block.items, item => presentToolItem(item).summary).map(entry => {
-                  if (entry.type === 'group') return <ToolGroupRow key={entry.id} entry={entry} />;
-                  const item = entry.item;
-                  const liveThought = live && item.role === 'thought' && item === block.items.at(-1) && activity.kind === 'thinking';
-                  const thoughtOpen = isExpanded(item, liveThought, expanded);
-                  return <TranscriptRow key={item.id} item={item} expanded={thoughtOpen} live={liveThought} onToggle={() => setExpanded(current => ({ ...current, [item.id]: !isExpanded(item, liveThought, current) }))} />;
-                })}
+              const live = block.id === openWorkId;
+              const open = expandedRuns[block.id] ?? live;
+              const activeId = activeEntryId(block.items, live, activity.kind === 'thinking');
+              const renderItem = (item: TranscriptItem) => {
+                const active = item.id === activeId;
+                const thoughtOpen = isExpanded(item, active, expanded);
+                return <TranscriptRow key={item.id} item={item} expanded={thoughtOpen} active={active} onToggle={() => setExpanded(current => ({ ...current, [item.id]: !isExpanded(item, active, current) }))} />;
+              };
+              return <View key={block.id} style={styles.run} testID="agent-work">
+                {!live && <Pressable accessibilityRole="button" onPress={() => setExpandedRuns(current => ({ ...current, [block.id]: !open }))} style={styles.runHeader}><Text style={styles.runSummary}>{workSummary(block.items, block.duration)}</Text><Text style={styles.runSummary}>{open ? '▾' : '▸'}</Text></Pressable>}
+                {open && foldWork(block.items, item => presentToolItem(item).summary, activeId).map(entry =>
+                  entry.type === 'fold'
+                    ? <WorkFoldRow key={entry.id} entry={entry} renderItem={renderItem} />
+                    : renderItem(entry.item))}
               </View>;
             })}
           </ScrollView>
@@ -345,14 +353,15 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent, on
   </View>;
 }
 
-function TranscriptRow({ item, expanded, live, onToggle }: { item: TranscriptItem; expanded: boolean; live: boolean; onToggle: () => void }) {
+function TranscriptRow({ item, expanded, active, onToggle }: { item: TranscriptItem; expanded: boolean; active: boolean; onToggle: () => void }) {
   if (item.role === 'thought') {
-    return <Pressable onPress={onToggle} style={styles.thought}>
-      <Text style={styles.thoughtLabel}>{thoughtLabel(item, live)}</Text>
+    // A thought is one line until it is opened, then its raw text as plain text.
+    return <Pressable accessibilityRole="button" onPress={onToggle} style={styles.thought}>
+      <Text style={styles.thoughtLabel}>{thoughtLabel(item, active)}</Text>
       {expanded ? <Text style={styles.thoughtBody}>{visibleText(item.text)}</Text> : null}
     </Pressable>;
   }
-  if (item.role === 'tool') return <ToolCallRow item={item} />;
+  if (item.role === 'tool') return <ToolCallRow item={item} active={active} />;
   if (item.role === 'plan') {
     return <View style={styles.work}><Text style={styles.role}>Plan</Text>{item.entries?.map(entry => <Text key={entry.content} style={styles.planEntry}>{statusMark(entry.status)} {entry.content}</Text>) ?? <Text style={styles.workBody}>{item.text}</Text>}</View>;
   }

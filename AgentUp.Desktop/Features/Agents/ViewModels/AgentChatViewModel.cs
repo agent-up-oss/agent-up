@@ -505,18 +505,27 @@ public sealed class AgentChatViewModel : ReactiveObject
         RefreshThoughts();
     }
 
+    /// <summary>
+    /// Marks the one entry the agent is working on now - a thought still streaming or a call
+    /// still running - so it is drawn open and everything else folds, then lets the turn re-read
+    /// its sections.
+    /// </summary>
     private void RefreshThoughts()
     {
         var run = _currentRun;
         if (run is null)
             return;
-        for (var i = 0; i < run.WorkItems.Count; i++)
+        var last = run.Items.LastOrDefault();
+        foreach (var item in run.Items)
         {
-            var item = run.WorkItems[i];
-            if (!item.IsThought)
-                continue;
-            item.SetLive(run.IsLive && i == run.WorkItems.Count - 1 && State == "running" && _hintKind == "Thought");
+            var active = ReferenceEquals(item, last)
+                         && run.IsLive
+                         && State == "running"
+                         && (item.IsThought ? _hintKind == "Thought" : item.IsTool && item.Tool.State == "running");
+            item.SetLive(active);
         }
+
+        run.Refresh();
     }
 
     /// <summary>
