@@ -38,9 +38,12 @@ public static partial class AgentMarkdownProvider
                 FlushParagraph();
                 var marker = fence.Groups["fence"].Value;
                 var language = fence.Groups["lang"].Value.Trim();
-                var code = new List<string>();
-                for (index++; index < lines.Length && !lines[index].Trim().StartsWith(marker, StringComparison.Ordinal); index++)
-                    code.Add(lines[index]);
+                // The block runs to the closing fence, or to the end of a reply still streaming.
+                var close = index + 1;
+                while (close < lines.Length && !lines[close].Trim().StartsWith(marker, StringComparison.Ordinal))
+                    close++;
+                var code = lines[(index + 1)..close];
+                index = close;
                 blocks.Add(new(AgentMarkdownBlockKind.Code, [], Code: string.Join("\n", code).TrimEnd(), Language: language.Length == 0 ? null : language));
                 continue;
             }
@@ -57,13 +60,13 @@ public static partial class AgentMarkdownProvider
                 var header = Cells(trimmed);
                 var alignments = Cells(lines[index + 1].Trim()).Select(Alignment).ToArray();
                 var rows = new List<IReadOnlyList<IReadOnlyList<AgentMarkdownInline>>> { header.Select(Inlines).ToArray() };
-                for (index += 2; index < lines.Length && lines[index].Contains('|') && lines[index].Trim().Length > 0; index++)
-                {
-                    var cells = Cells(lines[index].Trim());
-                    rows.Add(Enumerable.Range(0, header.Count).Select(column => Inlines(column < cells.Count ? cells[column] : "")).ToArray());
-                }
-
-                index--;
+                // Body rows follow the separator until a line without a pipe, or a blank one.
+                var end = index + 2;
+                while (end < lines.Length && lines[end].Contains('|') && lines[end].Trim().Length > 0)
+                    end++;
+                rows.AddRange(lines[(index + 2)..end].Select(line => Cells(line.Trim()))
+                    .Select(cells => (IReadOnlyList<IReadOnlyList<AgentMarkdownInline>>)Enumerable.Range(0, header.Count).Select(column => Inlines(column < cells.Count ? cells[column] : "")).ToArray()));
+                index = end - 1;
                 blocks.Add(new(AgentMarkdownBlockKind.Table, [], Rows: rows, Alignments: alignments.Concat(Enumerable.Repeat("left", Math.Max(0, header.Count - alignments.Length))).Take(header.Count).ToArray()));
                 continue;
             }

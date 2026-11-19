@@ -96,9 +96,9 @@ public sealed class OpencodeServerJourneyTests
                 request = next.Payload;
         }
 
-        Assert.That(request, Is.Not.Null, $"OpenCode never asked to write in {Prompts.Length} prompts. Seen: {string.Join(", ", events.Seen)}");
-        var requestId = request!["requestId"]!.GetValue<string>();
-        var options = request["request"]!["options"]!.AsArray().Select(option => option!["optionId"]!.GetValue<string>()).ToList();
+        var asked = request ?? throw new AssertionException($"OpenCode never asked to write in {Prompts.Length} prompts. Seen: {string.Join(", ", events.Seen)}");
+        var requestId = asked["requestId"]!.GetValue<string>();
+        var options = asked["request"]!["options"]!.AsArray().Select(option => option!["optionId"]!.GetValue<string>()).ToList();
         using var decide = await server.Http.PostAsJsonAsync(
             $"api/workspaces/{workspaceId}/agent/permissions",
             new { requestId, optionId = "once" });

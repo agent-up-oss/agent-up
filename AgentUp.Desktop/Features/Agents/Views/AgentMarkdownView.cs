@@ -87,7 +87,7 @@ public sealed class AgentMarkdownView : StackPanel
         Grid.SetColumn(text, 1);
         row.Children.Add(marker);
         row.Children.Add(text);
-        return new Border { Classes = { "au-md-list-item" }, Margin = new Thickness(block.Level * 18, 0, 0, 0), Child = row };
+        return new Border { Classes = { "au-md-list-item" }, Margin = new Thickness(block.Level * 18.0, 0, 0, 0), Child = row };
     }
 
     /// <summary>
