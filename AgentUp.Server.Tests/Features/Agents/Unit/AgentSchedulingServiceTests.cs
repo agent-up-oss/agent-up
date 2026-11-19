@@ -342,25 +342,23 @@ public sealed class AgentSchedulingServiceTests
     }
 
     [Test]
-    public async Task GetAsync_reportsTheCapabilityGapEvenWhenACommandOverrideResolves()
+    public async Task GetAsync_offersAnAgentWhoseCommandOverrideResolvesWhateverItsCapabilityState()
     {
-        // A configured executable is not a reason to offer an agent whose capability is off or
-        // unconfigured: the override replaces only the binary, and the Server would refuse to start it.
+        // The test agents take a vendor's slot through Agents:<id>:Command on hosts that have
+        // none of the vendor's software, so a resolving override must make the agent available.
         var command = OperatingSystem.IsWindows() ? "cmd.exe" : "/bin/sh";
+        var missing = new FakeEnabledCapabilityPackages(FakeEnabledCapabilityPackages.Codex())
+            .WithReadiness(new CapabilityReadinessDto("codex", "Codex", false, ["codex-acp"], []));
         var disabled = new FakeEnabledCapabilityPackages(FakeEnabledCapabilityPackages.Codex())
             .WithReadiness(new CapabilityReadinessDto("codex", "Codex", false, [], []));
-        var unconfigured = new FakeEnabledCapabilityPackages(FakeEnabledCapabilityPackages.Codex())
-            .WithReadiness(new CapabilityReadinessDto("codex", "Codex", true, [], ["Endpoint"]));
-        var ready = new FakeEnabledCapabilityPackages(FakeEnabledCapabilityPackages.Codex())
-            .WithReadiness(new CapabilityReadinessDto("codex", "Codex", true, [], []));
 
+        var withoutSoftware = await DescribeAsync(missing, "codex", ("Agents:Codex:Command", command));
         var off = await DescribeAsync(disabled, "codex", ("Agents:Codex:Command", command));
-        var needsSettings = await DescribeAsync(unconfigured, "codex", ("Agents:Codex:Command", command));
-        var runnable = await DescribeAsync(ready, "codex", ("Agents:Codex:Command", command));
+        var noOverride = await DescribeAsync(disabled, "codex");
 
-        Assert.That((off.Available, off.Unavailability), Is.EqualTo((false, AgentUnavailability.CapabilityNotEnabled)));
-        Assert.That((needsSettings.Available, needsSettings.Unavailability), Is.EqualTo((false, AgentUnavailability.SettingsRequired)));
-        Assert.That(runnable.Available, Is.True);
+        Assert.That(withoutSoftware.Available, Is.True);
+        Assert.That(off.Available, Is.True);
+        Assert.That((noOverride.Available, noOverride.Unavailability), Is.EqualTo((false, AgentUnavailability.CapabilityNotEnabled)));
     }
 
     private async Task<AgentDescriptor> DescribeAsync(FakeEnabledCapabilityPackages packages, string agent, params (string Key, string Value)[] settings)

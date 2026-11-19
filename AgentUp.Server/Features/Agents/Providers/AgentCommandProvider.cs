@@ -29,7 +29,31 @@ public sealed class AgentCommandProvider(
         return RawLaunchCommand(agent);
     }
 
-    public Task<AgentCommand?> ResolveAsync(string agent, CancellationToken cancellationToken)
+    public async Task<AgentCommand?> ResolveAsync(string agent, CancellationToken cancellationToken)
+    {
+        var command = await ResolveCommandAsync(agent, cancellationToken);
+        return command is null ? null : WithConfiguredEnvironment(agent, command);
+    }
+
+    /// <summary>
+    /// <c>Agents:{id}:Environment:{NAME}</c> is the environment an operator declares for an agent.
+    /// The agent inherits nothing else from the Server, so this is how a value reaches it; it is
+    /// applied over the capability's own launch environment.
+    /// </summary>
+    private AgentCommand WithConfiguredEnvironment(string agent, AgentCommand command)
+    {
+        var declared = configuration.GetSection($"Agents:{agent}:Environment").GetChildren()
+            .Where(entry => entry.Value is not null)
+            .ToArray();
+        if (declared.Length == 0)
+            return command;
+        var environment = new Dictionary<string, string>(command.Environment ?? new Dictionary<string, string>(), StringComparer.Ordinal);
+        foreach (var entry in declared)
+            environment[entry.Key] = entry.Value!;
+        return command with { Environment = environment };
+    }
+
+    private Task<AgentCommand?> ResolveCommandAsync(string agent, CancellationToken cancellationToken)
     {
         var configured = WithCapabilityLaunch(agent, ReadConfigured(agent));
         if (configured is not null && Path.IsPathRooted(configured.FileName))

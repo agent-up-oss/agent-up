@@ -5,7 +5,9 @@ namespace AgentUp.Server.Features.Agents.Providers;
 
 /// <summary>
 /// Confines an ACP agent with bubblewrap. The Server runs inside its Nix shell, which puts
-/// <c>bwrap</c> on its PATH; a host without it cannot start an agent at all.
+/// <c>bwrap</c> on its PATH; a Linux host without it cannot start an agent at all. bubblewrap is
+/// Linux only: on another host the agent still starts with only the allowlisted environment, but
+/// its filesystem is not confined.
 /// </summary>
 public sealed class BubblewrapAgentSandboxProvider : IAgentSandbox
 {
@@ -26,14 +28,17 @@ public sealed class BubblewrapAgentSandboxProvider : IAgentSandbox
     private readonly IAgentRuntimePathProvider? _runtime;
     private readonly Func<IReadOnlyDictionary<string, string>> _serverEnvironment;
     private readonly string _root;
+    private readonly bool _linux;
 
     public BubblewrapAgentSandboxProvider(
         AgentCliHomeProvider home,
         string dataDirectory,
         IAgentRuntimePathProvider? runtime = null,
         Func<IReadOnlyDictionary<string, string>>? serverEnvironment = null,
-        string root = "/")
+        string root = "/",
+        bool? linux = null)
     {
+        _linux = linux ?? OperatingSystem.IsLinux();
         _home = home;
         _capabilityShells = Path.GetFullPath(Path.Join(dataDirectory, "capabilities", "nix"));
         _runtime = runtime;
@@ -48,6 +53,12 @@ public sealed class BubblewrapAgentSandboxProvider : IAgentSandbox
         TeamMemberGrants grants)
     {
         var server = _serverEnvironment();
+        if (!_linux)
+            return new AgentSandboxLaunch(
+                command.FileName,
+                command.Arguments,
+                AgentSandboxLayout.Environment(server, environment),
+                Path.GetFullPath(worktree));
         // The agent's PATH carries the runtime prefixes the Server adds in front of its own.
         var path = environment.GetValueOrDefault("PATH") ?? server.GetValueOrDefault("PATH") ?? string.Empty;
         var bwrap = Resolve(Executable, path)

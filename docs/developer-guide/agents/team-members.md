@@ -54,7 +54,7 @@ The Server runs inside its Nix shell, which supplies bubblewrap. `BubblewrapAgen
 
 A single-user Nix install has no daemon, so there `/nix` is writable for `nix shell`. The agent also gets a private `/tmp`, its own PID, IPC, and UTS namespaces, and no capabilities. Its environment is cleared to a short allowlist (locale, proxy, certificate, and Nix variables, `PATH`, `DOTNET_ROOT`) plus what the Server sets for it, so `AGENTUP_ADMIN_PASSWORD` and other Server secrets never reach it.
 
-A host without bubblewrap fails the session start with that cause. Running the agent with the Server's own permissions instead would let a reviewer write the clone. In a container, bubblewrap needs unprivileged user namespaces; Ubuntu 24.04 hosts may need `kernel.apparmor_restrict_unprivileged_userns=0`.
+A Linux host without bubblewrap fails the session start with that cause. bubblewrap is Linux only; on macOS the agent starts with the cleared environment but its filesystem is not confined, so the clone-level guarantee holds only on a Linux Server. Running the agent with the Server's own permissions instead would let a reviewer write the clone. In a container, bubblewrap needs unprivileged user namespaces; Ubuntu 24.04 hosts may need `kernel.apparmor_restrict_unprivileged_userns=0`.
 
 ## In-process agent
 

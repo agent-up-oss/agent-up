@@ -294,6 +294,33 @@ public sealed class AgentCommandProviderTests
     }
 
     [Test]
+    public async Task ResolveAsync_addsTheEnvironmentDeclaredForTheAgentOverTheCapabilitysOwn()
+    {
+        var command = OperatingSystem.IsWindows() ? @"C:\Windows\System32\cmd.exe" : "/bin/sh";
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["Agents:opencode:Command"] = command,
+            ["Agents:opencode:Environment:AGENTUP_TEST_IDP_URL"] = "http://localhost:9000",
+            ["Agents:opencode:Environment:OPENCODE_CONFIG_CONTENT"] = "{\"declared\":true}"
+        }).Build();
+        var packages = new FakeEnabledCapabilityPackages(new StubAgentCapability
+        {
+            Identity = new("opencode", "1.0.0", "OpenCode", "agent-up"),
+            LaunchResult = new AgentUp.Sdk.Agent.AgentLaunchResult(
+                "opencode",
+                ["acp"],
+                null,
+                new Dictionary<string, string> { ["OPENCODE_CONFIG_CONTENT"] = "{}", ["KEPT"] = "yes" })
+        });
+
+        var resolved = await new AgentCommandProvider(configuration, packages).ResolveAsync("opencode", CancellationToken.None);
+
+        Assert.That(resolved!.Environment!["AGENTUP_TEST_IDP_URL"], Is.EqualTo("http://localhost:9000"));
+        Assert.That(resolved.Environment["OPENCODE_CONFIG_CONTENT"], Is.EqualTo("{\"declared\":true}"), "the declared value wins");
+        Assert.That(resolved.Environment["KEPT"], Is.EqualTo("yes"));
+    }
+
+    [Test]
     public async Task ResolveAsync_keepsTheCapabilityArgumentsAndEnvironmentWhenTheCommandIsOverridden()
     {
         var command = OperatingSystem.IsWindows() ? @"C:\Windows\System32\cmd.exe" : "/bin/sh";

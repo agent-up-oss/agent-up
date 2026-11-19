@@ -3,7 +3,7 @@ import { once } from 'node:events';
 import { mkdtemp, mkdir, rm } from 'node:fs/promises';
 import { createConnection } from 'node:net';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 
 import { createIdpControl } from './idpControl.mjs';
 import { supervise } from './supervise.mjs';
@@ -45,7 +45,10 @@ export async function startStack({ platform, codexSchema, serverDll, testAgentEx
     const server = supervise('server', spawn('dotnet', [serverDll], {
       env: {
         ...process.env,
-        PATH: `${binDir}:${process.env.PATH ?? ''}`,
+        // The test agents' directory is on the Server's PATH as well as the shims': the Server
+        // starts an agent inside a sandbox that mounts only the tools on its PATH, and a shim that
+        // execs a binary from anywhere else finds nothing there.
+        PATH: `${binDir}:${dirname(testAgentExecutable)}:${process.env.PATH ?? ''}`,
         ...serverEnvironment({
           profiles,
           binDir,

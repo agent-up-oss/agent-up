@@ -96,6 +96,21 @@ public sealed class BubblewrapAgentSandboxProviderTests
     }
 
     [Test]
+    public void Prepare_offLinuxStartsTheAgentDirectlyButStillWithoutTheServersSecrets()
+    {
+        using var host = new SandboxHost(withBubblewrap: false);
+
+        var launch = host.Prepare(TeamMemberGrants.Author, linux: false);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(launch.FileName, Is.EqualTo("opencode"), "bubblewrap is Linux only, and no other host is refused");
+            Assert.That(launch.Arguments, Is.EqualTo(new[] { "acp" }));
+            Assert.That(launch.Environment.Keys, Does.Not.Contain("AGENTUP_ADMIN_PASSWORD"));
+        });
+    }
+
+    [Test]
     public void PackageRoot_isTheOutermostNodeModulesOfAnNpmCli()
     {
         Assert.Multiple(() =>
@@ -149,7 +164,7 @@ public sealed class BubblewrapAgentSandboxProviderTests
         public string CommonGitDirectory => Path.Join(_root, "main", ".git");
         public string LinkedGitDirectory => Path.Join(CommonGitDirectory, "worktrees", "author-1");
 
-        public AgentSandboxLaunch Prepare(TeamMemberGrants grants)
+        public AgentSandboxLaunch Prepare(TeamMemberGrants grants, bool linux = true)
         {
             var server = new Dictionary<string, string>
             {
@@ -159,7 +174,8 @@ public sealed class BubblewrapAgentSandboxProviderTests
             var provider = new BubblewrapAgentSandboxProvider(
                 new AgentCliHomeProvider(Data),
                 Data,
-                serverEnvironment: () => server);
+                serverEnvironment: () => server,
+                linux: linux);
             return provider.Prepare(
                 new AgentCommand("opencode", ["acp"]),
                 new Dictionary<string, string> { ["OPENCODE_CONFIG_CONTENT"] = "{}" },
