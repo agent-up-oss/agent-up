@@ -116,13 +116,17 @@ public static class AgentEventPresentationProvider
     public static string RunSummary(IEnumerable<string> roles) => RunSummary(roles, null);
 
     /// <summary>"Worked for 21s · 2 tools · Thought": how long a finished run took and what it did.</summary>
-    public static string RunSummary(IEnumerable<string> roles, string? duration)
+    public static string RunSummary(IEnumerable<string> roles, string? duration) => RunSummary(roles, duration, 0);
+
+    /// <summary>A failed tool is named in the summary, because a collapsed run otherwise hides it.</summary>
+    public static string RunSummary(IEnumerable<string> roles, string? duration, int failed)
     {
         var list = roles.ToArray();
         var tools = list.Count(role => role == "Tool");
         var parts = new List<string> { duration is null ? "Worked" : $"Worked for {duration}" };
         if (tools == 1) parts.Add("1 tool");
         else if (tools > 1) parts.Add($"{tools} tools");
+        if (failed > 0) parts.Add($"{failed} failed");
         if (list.Contains("Thought")) parts.Add("Thought");
         return string.Join(" · ", parts);
     }

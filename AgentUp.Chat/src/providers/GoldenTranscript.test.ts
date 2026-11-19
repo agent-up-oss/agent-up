@@ -30,7 +30,8 @@ test('every tool of the real session reads as its action', () => {
   assert.ok(views.every(view => view.state === 'done'));
   assert.equal(views.at(-1)?.source, 'Agent-Up');
   assert.equal(views[3]?.summary, 'ls -la');
-  assert.match(views[1]?.fullOutput ?? '', /<path>\/workspace\/harbor-demo\/server\.ts<\/path>/);
+  assert.match(views[1]?.fullOutput ?? '', /^\(Showing lines 1-0 of 1/);
+  assert.equal(views[4]?.summary, '*.md');
 });
 
 test('the write and the edit are shown as diffs', () => {

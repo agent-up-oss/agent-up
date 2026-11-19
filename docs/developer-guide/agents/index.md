@@ -69,13 +69,13 @@ Agent-Up advertises no terminal-auth capability because the authenticated HTTP c
 Desktop and `@agent-up/chat` read the same ACP events with the same rules. Their parity is checked by replaying one recorded session through both, not by eye.
 
 - **Edits.** An edit or a new file opens to a diff in the Git file viewer's line treatment, and its row shows `+N −N`. The diff comes from the richest source the agent sent: the unified diff in OpenCode's `rawOutput.metadata.diff`, then ACP's `diff` content item, then a write's `content`. Long diffs show 40 lines with **Show all**.
-- **Names.** A tool keeps the name from its first event, because OpenCode retitles the completed call with the file path. A write reads **Write**, not Edit. When a read's visible content is empty, its `rawOutput` is shown.
+- **Names.** A tool keeps the name from its first event, because OpenCode retitles the completed call with the file path. A write reads **Write**, not Edit. When a read's visible content is empty, its `rawOutput` is shown without OpenCode's `<path>`/`<content>` tags. A summary skips a bare `.` directory and names the search pattern.
 - **Code.** Fenced code is highlighted with the design system's grammars (`SyntaxHighlightProvider` on Desktop, `@agent-up/design-system/syntax` in Chat). A fence tag resolves by grammar id, a common alias, or an extension. Unknown languages and code over 400 lines stay plain.
 - **Tables.** Pipe tables draw with a header band and per-column alignment, and scroll sideways when wide. A reply that is entirely one `markdown` or `md` fence is unwrapped and drawn as markdown.
-- **Timing.** A run is timed from the prompt's event timestamp to its last event: **Worked for 57s**. A tool or thought that took a second or more shows its own duration.
-- **Turns.** The Server's prompt result event ends the run. Steering that runs next therefore gets its own reply instead of joining the previous one.
+- **Timing.** A run is timed from the prompt's event timestamp to its last event: **Worked for 57s**. A collapsed run names failed tools: **· 1 failed**. A tool or thought that took a second or more shows its own duration.
+- **Turns.** The Server's prompt result event ends the run, and a finished run collapses. Steering that runs next therefore gets its own reply instead of joining the previous one.
 - **Grouping.** Two or more consecutive finished reads, or searches, fold into **Read N files** or **Searched N times**.
-- **Streaming.** A streaming reply rebuilds only the blocks whose content changed. Desktop compares block keys; Chat memoises each block on its key.
+- **Streaming.** A streaming reply rebuilds only the blocks whose content changed. Desktop compares block keys; Chat memoises each block on its key. Chat follows new output while the reader is at the end, and stops once they scroll up.
 
 `AgentUp.Chat/fixtures/opencode-cpu-session.jsonl` is a real seven-turn OpenCode session against the CPU model: write, read, edit, run, search, an Agent-Up MCP call, and a markdown answer. `AgentGoldenTranscriptTests` on Desktop and `GoldenTranscript.test.ts` in Chat replay it and assert what a reader sees. When OpenCode's event shapes change, capture a new session and update both tests together.
 

@@ -29,7 +29,8 @@ public sealed class AgentGoldenTranscriptTests
         Assert.That(tools.Select(item => item.Tool.State), Is.All.EqualTo("done"));
         Assert.That(tools[^1].Tool.Source, Is.EqualTo("Agent-Up"));
         Assert.That(tools[3].Tool.Summary, Is.EqualTo("ls -la"));
-        Assert.That(tools[1].Tool.FullOutput, Does.Contain("<path>/workspace/harbor-demo/server.ts</path>"), "A read shows what the tool returned, not its empty visible content.");
+        Assert.That(tools[1].Tool.FullOutput, Does.StartWith("(Showing lines 1-0 of 1"), "A read shows the file text OpenCode returned, without its tags.");
+        Assert.That(tools[4].Tool.Summary, Is.EqualTo("*.md"), "A search names its pattern, not the directory '.'.");
     }
 
     [AvaloniaTest]
@@ -60,7 +61,7 @@ public sealed class AgentGoldenTranscriptTests
 
         Assert.That(markdown.Children.OfType<Border>().Any(child => child.Classes.Contains("au-md-table")), Is.True);
         Assert.That(markdown.Children.OfType<TextBlock>().Any(child => child.Classes.Contains("au-md-heading")), Is.True);
-        Assert.That(markdown.Children.OfType<StackPanel>(), Is.Empty, "The model's ```markdown wrapper is not drawn as code.");
+        Assert.That(markdown.Children.OfType<Border>().Where(child => child.Classes.Contains("au-md-code-block")), Is.Empty, "The model's ```markdown wrapper is not drawn as code.");
     }
 
     [AvaloniaTest]

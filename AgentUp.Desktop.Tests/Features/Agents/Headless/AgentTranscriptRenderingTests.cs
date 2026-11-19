@@ -19,12 +19,12 @@ public sealed class AgentTranscriptRenderingTests
         var heading = (TextBlock)view.Children[0];
         var paragraph = (TextBlock)view.Children[1];
         var item = (Border)view.Children[2];
-        var code = (StackPanel)view.Children[3];
-        var codeLines = (StackPanel)((ScrollViewer)((Border)code.Children[1]).Child!).Content!;
+        var code = (StackPanel)((Border)view.Children[3]).Child!;
+        var codeLines = (StackPanel)((ScrollViewer)code.Children[1]).Content!;
         var tokens = ((AgentSyntaxLineView)codeLines.Children[0]).Children.OfType<TextBlock>().ToArray();
 
         Assert.That(heading.Classes, Does.Contain("au-md-heading"));
-        Assert.That(paragraph.Inlines!.OfType<Run>().Select(run => run.Text), Is.EqualTo(new[] { "Run ", " npm test ", " on ", "main", "." }));
+        Assert.That(paragraph.Inlines!.OfType<Run>().Select(run => run.Text), Is.EqualTo(new[] { "Run ", "\u202fnpm test\u202f", " on ", "main", "." }));
         Assert.That(paragraph.Inlines!.OfType<Run>().ElementAt(3).FontWeight, Is.EqualTo(FontWeight.SemiBold));
         Assert.That(item.Classes, Does.Contain("au-md-list-item"));
         var header = (Grid)code.Children[0];

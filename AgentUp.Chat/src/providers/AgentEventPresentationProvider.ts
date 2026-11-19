@@ -136,6 +136,9 @@ export function runSummary(items: TranscriptItem[], duration?: string): string {
   const parts = [duration ? `Worked for ${duration}` : 'Worked'];
   if (tools === 1) parts.push('1 tool');
   else if (tools > 1) parts.push(`${tools} tools`);
+  // A collapsed run otherwise hides that a tool failed.
+  const failed = items.filter(item => item.role === 'tool' && item.status === 'failed').length;
+  if (failed > 0) parts.push(`${failed} failed`);
   if (items.some(item => item.role === 'thought')) parts.push('Thought');
   return parts.join(' · ');
 }
@@ -145,7 +148,9 @@ export type TranscriptBlock =
   | { type: 'run'; id: string; items: TranscriptItem[]; duration?: string }
   | { type: 'reply'; item: TranscriptItem };
 
-export function liveRunId(blocks: TranscriptBlock[]): string | undefined {
+/** The run still in progress, which stays open; once the session stops running every run collapses. */
+export function liveRunId(blocks: TranscriptBlock[], running = true): string | undefined {
+  if (!running) return undefined;
   for (let i = blocks.length - 1; i >= 0; i -= 1) {
     const block = blocks[i]!;
     if (block.type === 'user') return undefined;
@@ -200,6 +205,14 @@ export function groupTranscript(items: TranscriptItem[]): TranscriptBlock[] {
 export type WorkEntry =
   | { type: 'item'; item: TranscriptItem }
   | { type: 'group'; id: string; kind: 'read' | 'search'; title: string; summary: string; items: TranscriptItem[] };
+
+/** Within this many pixels of the end the reader is following along, so new output scrolls into view. */
+export const followThreshold = 80;
+
+/** Whether the transcript should follow new output: only while the reader has not scrolled up. */
+export function isFollowing(offset: number, viewport: number, content: number): boolean {
+  return content - (offset + viewport) <= followThreshold;
+}
 
 export function groupWork(items: TranscriptItem[], summaryOf: (item: TranscriptItem) => string | undefined): WorkEntry[] {
   const entries: WorkEntry[] = [];

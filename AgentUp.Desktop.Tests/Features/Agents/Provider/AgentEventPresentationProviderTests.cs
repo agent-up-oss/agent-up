@@ -24,6 +24,7 @@ public sealed class AgentEventPresentationProviderTests
         Assert.That(AgentEventPresentationProvider.RunSummary(["Thought", "Tool", "Tool", "Agent"]), Is.EqualTo("Worked · 2 tools · Thought"));
         Assert.That(AgentEventPresentationProvider.RunSummary(["Tool"]), Is.EqualTo("Worked · 1 tool"));
         Assert.That(AgentEventPresentationProvider.RunSummary(["Tool"], "57s"), Is.EqualTo("Worked for 57s · 1 tool"));
+        Assert.That(AgentEventPresentationProvider.RunSummary(["Tool", "Tool"], "9s", 1), Is.EqualTo("Worked for 9s · 2 tools · 1 failed"));
     }
 
     [Test]

@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text.Encodings.Web;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using AgentUp.Desktop.Features.Agents.Models;
 
 namespace AgentUp.Desktop.Features.Agents.Providers;
@@ -47,7 +48,7 @@ public sealed record AgentToolCallView(
     AgentDiff? Diff = null,
     string? Duration = null);
 
-public static class AgentToolCallProvider
+public static partial class AgentToolCallProvider
 {
     /// <summary>Output lines shown before the rest is folded behind a count.</summary>
     public const int PreviewLines = 14;
@@ -80,7 +81,7 @@ public static class AgentToolCallProvider
     // The arguments that say what a call was about, most telling first.
     private static readonly string[] SummaryKeys =
     [
-        "command", "filePath", "file_path", "path", "pattern", "query", "url", "description",
+        "command", "filePath", "file_path", "pattern", "query", "path", "url", "description",
         "workspaceId", "worktreePath", "name", "id"
     ];
 
@@ -195,6 +196,9 @@ public static class AgentToolCallProvider
         if (string.IsNullOrWhiteSpace(output))
             return null;
         var trimmed = output.Trim();
+        // OpenCode wraps what a read returned in tags; the reader wants the file text.
+        if (ReadWrapperRegex().Match(trimmed) is { Success: true } read)
+            return string.IsNullOrWhiteSpace(read.Groups["body"].Value) ? null : read.Groups["body"].Value.Trim('\n');
         if (trimmed[0] is '{' or '[')
         {
             try
@@ -227,9 +231,15 @@ public static class AgentToolCallProvider
             return null;
         var named = SummaryKeys
             .Select(key => value.TryGetProperty(key, out var found) ? Scalar(found) : null)
-            .FirstOrDefault(text => text is { Length: > 0 });
+            .FirstOrDefault(IsTelling);
         return named ?? value.EnumerateObject().Select(property => Scalar(property.Value)).FirstOrDefault(text => text is { Length: > 0 });
     }
+
+    // "." or "./" says nothing about a call, so a search names its pattern instead of its directory.
+    private static bool IsTelling(string? text) => text is { Length: > 0 } and not "." and not "./";
+
+    [GeneratedRegex(@"^<path>[^<]*</path>\s*(?:<type>[^<]*</type>\s*)?<content>(?<body>[\s\S]*)</content>$")]
+    private static partial Regex ReadWrapperRegex();
 
     // An agent's own edit or read is often titled with the path it touched.
     private static string? PathLikeTitle(string? title, string? kind) =>

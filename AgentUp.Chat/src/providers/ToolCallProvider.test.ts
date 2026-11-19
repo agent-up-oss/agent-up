@@ -73,3 +73,9 @@ test('a read with empty visible content shows its raw output', () => {
   const view = presentToolFacts({ name: 'read', kind: 'read', status: 'completed', output: '', rawOutput: 'file text' });
   assert.equal(view.output, 'file text');
 });
+
+test('a read shows the file text without OpenCode tags and a search names its pattern', () => {
+  const read = presentToolFacts({ name: 'read', kind: 'read', status: 'completed', output: '', rawOutput: '<path>/repo/a.ts</path>\n<type>file</type>\n<content>\nexport const port = 4000;\n</content>' });
+  assert.equal(read.output, 'export const port = 4000;');
+  assert.equal(presentToolCall('glob', 'search', '{"pattern":"*.md","path":"."}', undefined, 'completed').summary, '*.md');
+});

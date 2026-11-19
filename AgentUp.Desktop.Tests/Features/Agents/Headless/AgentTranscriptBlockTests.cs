@@ -19,13 +19,15 @@ public sealed class AgentTranscriptBlockTests
         var view = new AgentMarkdownView { Markdown = "```ts\nconst port = 3001;\n```\n\n```\nplain words\n```" };
 
         var highlighted = (StackPanel)CodeContent(view.Children[0]);
-        var plain = CodeContent(view.Children[1]);
+        var unlabelled = (Panel)((Border)view.Children[1]).Child!;
+        var plain = ((ScrollViewer)unlabelled.Children[0]).Content!;
         var classes = ((AgentSyntaxLineView)highlighted.Children[0]).Children.SelectMany(token => token.Classes).ToArray();
 
         Assert.That(classes, Does.Contain("au-syntax-keyword"));
         Assert.That(classes, Does.Contain("au-syntax-number"));
         Assert.That(plain, Is.TypeOf<TextBlock>());
         Assert.That(((TextBlock)plain).Text, Is.EqualTo("plain words"));
+        Assert.That(((Button)unlabelled.Children[1]).Content, Is.EqualTo("Copy"), "Unlabelled code keeps Copy, in the corner.");
     }
 
     [AvaloniaTest]
@@ -101,5 +103,5 @@ public sealed class AgentTranscriptBlockTests
     }
 
     private static object CodeContent(Control block) =>
-        ((ScrollViewer)((Border)((StackPanel)block).Children[1]).Child!).Content!;
+        ((ScrollViewer)((StackPanel)((Border)block).Child!).Children[1]).Content!;
 }

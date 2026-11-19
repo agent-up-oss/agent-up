@@ -69,7 +69,7 @@ function Inlines({ inlines }: { inlines: MarkdownInline[] }) {
     switch (inline.kind) {
       case 'bold': return <Text key={index} style={styles.bold}>{inline.text}</Text>;
       case 'italic': return <Text key={index} style={styles.italic}>{inline.text}</Text>;
-      case 'code': return <Text key={index} style={styles.inlineCode}>{` ${inline.text} `}</Text>;
+      case 'code': return <Text key={index} style={styles.inlineCode}>{`\u202f${inline.text}\u202f`}</Text>;
       case 'link': return <Text key={index} style={styles.link} accessibilityRole="link" onPress={() => { if (inline.url) void Linking.openURL(inline.url); }}>{inline.text}</Text>;
       default: return <Text key={index}>{inline.text}</Text>;
     }

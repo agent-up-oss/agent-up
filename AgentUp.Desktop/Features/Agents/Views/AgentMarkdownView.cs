@@ -90,10 +90,13 @@ public sealed class AgentMarkdownView : StackPanel
         return new Border { Classes = { "au-md-list-item" }, Margin = new Thickness(block.Level * 18, 0, 0, 0), Child = row };
     }
 
+    /// <summary>
+    /// A code block is one container: a slim header with the language and Copy, then the code.
+    /// Keeping Copy inside the block ties it to the code it copies, even with no language label.
+    /// </summary>
     private static Control CodeBlock(AgentMarkdownBlock block)
     {
-        var stack = new StackPanel { Spacing = 4 };
-        var header = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
+        var header = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), Margin = new Thickness(0, 0, 0, 4) };
         header.Children.Add(new TextBlock { Classes = { "au-md-code-label" }, Text = block.Language ?? "", VerticalAlignment = VerticalAlignment.Center });
         var copy = new Button
         {
@@ -108,19 +111,22 @@ public sealed class AgentMarkdownView : StackPanel
                 await clipboard.SetTextAsync(block.Code);
         };
         header.Children.Add(copy);
-        stack.Children.Add(header);
         // Code keeps its lines: long ones scroll sideways instead of wrapping into nonsense.
-        stack.Children.Add(new Border
+        var code = new ScrollViewer
         {
-            Classes = { "au-md-code-block" },
-            Child = new ScrollViewer
-            {
-                HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto,
-                VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled,
-                Content = CodeLines(block.Code ?? "", SyntaxHighlightProvider.LanguageForFence(block.Language))
-            }
-        });
-        return stack;
+            HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto,
+            VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled,
+            Padding = new Thickness(0, 0, 0, 6),
+            Content = CodeLines(block.Code ?? "", SyntaxHighlightProvider.LanguageForFence(block.Language))
+        };
+        if (!string.IsNullOrEmpty(block.Language))
+            return new Border { Classes = { "au-md-code-block" }, Child = new StackPanel { Children = { header, code } } };
+        // With no language to label, a header row would be empty: Copy sits in the corner instead.
+        header.Children.Remove(copy);
+        copy.HorizontalAlignment = HorizontalAlignment.Right;
+        copy.VerticalAlignment = VerticalAlignment.Top;
+        copy.Margin = new Thickness(0, -4, -4, 0);
+        return new Border { Classes = { "au-md-code-block" }, Child = new Panel { Children = { code, copy } } };
     }
 
     /// <summary>One row of highlighted tokens per line, using the same syntax classes as the Git viewer.</summary>
@@ -177,6 +183,8 @@ public sealed class AgentMarkdownView : StackPanel
             {
                 HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto,
                 VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled,
+                // Room under the last row, so a wide table's scrollbar does not sit on top of it.
+                Padding = grid.ColumnDefinitions.Count > 0 ? new Thickness(0, 0, 0, 8) : default,
                 Content = grid
             }
         };
@@ -196,7 +204,8 @@ public sealed class AgentMarkdownView : StackPanel
     {
         AgentMarkdownInlineKind.Bold => new Run(inline.Text) { FontWeight = FontWeight.SemiBold },
         AgentMarkdownInlineKind.Italic => new Run(inline.Text) { FontStyle = FontStyle.Italic },
-        AgentMarkdownInlineKind.Code => new Run($" {inline.Text} ")
+        // No-break padding keeps the code's shading attached to it where a line wraps.
+        AgentMarkdownInlineKind.Code => new Run($"\u202f{inline.Text}\u202f")
         {
             FontFamily = Resource<FontFamily>("AgentUpFontMono") ?? FontFamily.Default,
             Background = Brush("AgentUpColorSurfaceRaisedBrush")

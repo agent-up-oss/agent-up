@@ -109,6 +109,16 @@ public sealed class AgentToolCallProviderTests
     }
 
     [Test]
+    public void A_read_shows_the_file_text_without_OpenCode_s_tags()
+    {
+        var read = AgentToolCallProvider.Present(new AgentToolCallFacts("read", "a.ts", "read", null, "", "completed", RawOutput: "<path>/repo/a.ts</path>\n<type>file</type>\n<content>\nexport const port = 4000;\n</content>"));
+        var search = AgentToolCallProvider.Present("glob", "search", """{"pattern":"*.md","path":"."}""", null, "completed");
+
+        Assert.That(read.Output, Is.EqualTo("export const port = 4000;"));
+        Assert.That(search.Summary, Is.EqualTo("*.md"));
+    }
+
+    [Test]
     public void Output_that_is_not_json_is_kept_as_written()
     {
         Assert.That(AgentToolCallProvider.Format("{not json"), Is.EqualTo("{not json"));

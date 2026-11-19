@@ -47,7 +47,7 @@ public sealed class AgentRunViewModel : ReactiveObject
         this.RaisePropertyChanged(nameof(Summary));
     }
     public AgentChatItemViewModel? Reply => Split().Reply;
-    public string Summary => AgentEventPresentationProvider.RunSummary(WorkItems.Select(item => item.Role), AgentToolCallProvider.Duration(_startedAt, _endedAt));
+    public string Summary => AgentEventPresentationProvider.RunSummary(WorkItems.Select(item => item.Role), AgentToolCallProvider.Duration(_startedAt, _endedAt), WorkItems.Count(item => item.IsToolFailed));
 
     public void Seal()
     {

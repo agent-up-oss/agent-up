@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type ScrollViewInstance } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { ServerSession } from '@agent-up/server-client';
@@ -23,6 +23,7 @@ import {
   endTurn,
   thoughtLabel,
   liveRunId,
+  isFollowing,
   mergeAgentSession,
   mergeContext,
   parsePermission,
@@ -188,7 +189,10 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent, on
   const selectedAgentName = session?.agents.find(agent => agent.agent === session.agent)?.displayName ?? session?.agent ?? 'Agent';
   const waiting = busy || session?.state === 'running' || Boolean(permission) || session?.state === 'authentication_required' || session?.state === 'authenticating';
   const blocks = useMemo(() => groupTranscript(items), [items]);
-  const openRunId = liveRunId(blocks);
+  const openRunId = liveRunId(blocks, session?.state === 'running' || Boolean(permission));
+  // The transcript follows new output while the reader is at the end, and stays put once they scroll up.
+  const scroll = useRef<ScrollViewInstance>(null);
+  const following = useRef(true);
   const choose = async (agent: AgentId) => {
     if (!server) return; setBusy(true); setError(null);
     try {
@@ -289,7 +293,13 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent, on
             {session.state === 'authenticating' && loginApi && <AgentSignIn challenge={session.loginChallenge} api={loginApi} copy={copyToClipboard} onError={setError} />}
             {session.state === 'authentication_required' && session.authMethods?.map(method => <Pressable key={method.id} testID={`agent-auth-method-${method.id}`} style={styles.option} onPress={() => void authenticate(method.id)}><Text style={styles.optionText}>{method.name}</Text>{method.description && <Text style={styles.meta}>{method.description}</Text>}</Pressable>)}
           </View>}
-          <ScrollView style={styles.messages} contentContainerStyle={styles.messageContent}>
+          <ScrollView
+            ref={scroll}
+            style={styles.messages}
+            contentContainerStyle={styles.messageContent}
+            scrollEventThrottle={100}
+            onScroll={event => { const { contentOffset, layoutMeasurement, contentSize } = event.nativeEvent; following.current = isFollowing(contentOffset.y, layoutMeasurement.height, contentSize.height); }}
+            onContentSizeChange={() => { if (following.current) scroll.current?.scrollToEnd({ animated: false }); }}>
             {blocks.map(block => {
               if (block.type === 'user') {
                 return <View key={block.item.id} style={styles.userBlock}>
@@ -338,7 +348,7 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent, on
 function TranscriptRow({ item, expanded, live, onToggle }: { item: TranscriptItem; expanded: boolean; live: boolean; onToggle: () => void }) {
   if (item.role === 'thought') {
     return <Pressable onPress={onToggle} style={styles.thought}>
-      <Text style={styles.role}>{thoughtLabel(item, live)}</Text>
+      <Text style={styles.thoughtLabel}>{thoughtLabel(item, live)}</Text>
       {expanded ? <Text style={styles.thoughtBody}>{visibleText(item.text)}</Text> : null}
     </Pressable>;
   }
@@ -421,6 +431,7 @@ const styles = StyleSheet.create({
   planEntry: { ...auText('muted'), lineHeight: 20 },
   workBody: { ...auText('muted'), lineHeight: 20 },
   role: { ...auText('fieldLabel') },
+  thoughtLabel: auText('toolCallSummary'),
   meta: { ...auText('muted'), marginTop: 4 },
   permission: { ...auBox('card'), borderColor: agentUpTheme.colors.borderDanger, gap: 8 },
   auth: { ...auBox('card'), gap: 8 },

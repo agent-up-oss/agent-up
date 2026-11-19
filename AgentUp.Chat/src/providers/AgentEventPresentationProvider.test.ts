@@ -20,6 +20,7 @@ import {
   mergeAgentSession,
   groupWork,
   thoughtLabel,
+  isFollowing,
   endTurn,
 } from './AgentEventPresentationProvider';
 import type { TranscriptItem, AgentSession } from '../models/AgentSession';
@@ -264,4 +265,20 @@ test('a steering turn that follows with no prompt gets its own reply instead of 
   const replies = groupTranscript(items).flatMap(block => block.type === 'reply' ? [block.item.text] : []);
   assert.deepEqual(replies, ['Edited.', '```ts\nconst port = 4000;\n```']);
   assert.deepEqual(endTurn([], 'x'), []);
+});
+
+test('a collapsed run names failed tools, and no run stays open once the session stops', () => {
+  const items: TranscriptItem[] = [
+    { id: 't1', role: 'tool', status: 'failed', text: 'npm run lint' },
+    { id: 't2', role: 'tool', status: 'completed', text: 'edit' },
+  ];
+  assert.equal(runSummary(items, '9s'), 'Worked for 9s · 2 tools · 1 failed');
+  const blocks = groupTranscript([userMessageItem(1, { text: 'Go' }), ...items]);
+  assert.equal(liveRunId(blocks), 't1');
+  assert.equal(liveRunId(blocks, false), undefined);
+});
+
+test('the transcript follows new output only while the reader is at the end', () => {
+  assert.equal(isFollowing(920, 800, 1760), true);
+  assert.equal(isFollowing(500, 800, 1760), false);
 });

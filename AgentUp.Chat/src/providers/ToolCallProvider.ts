@@ -54,7 +54,7 @@ const kindTitles: Record<string, string> = {
   execute: 'Run', think: 'Think', fetch: 'Fetch', switch_mode: 'Switch mode',
 };
 
-const summaryKeys = ['command', 'filePath', 'file_path', 'path', 'pattern', 'query', 'url', 'description', 'workspaceId', 'worktreePath', 'name', 'id'];
+const summaryKeys = ['command', 'filePath', 'file_path', 'pattern', 'query', 'path', 'url', 'description', 'workspaceId', 'worktreePath', 'name', 'id'];
 
 export function presentToolCall(title?: string, kind?: string, rawInput?: string, output?: string, status?: string): ToolCallView {
   return presentToolFacts({ name: title, title, kind, rawInput, output, status });
@@ -140,6 +140,9 @@ export function toolState(status?: string): ToolCallState {
 export function formatOutput(output?: string): string | undefined {
   const trimmed = output?.trim();
   if (!trimmed) return undefined;
+  // OpenCode wraps what a read returned in tags; the reader wants the file text.
+  const read = /^<path>[^<]*<\/path>\s*(?:<type>[^<]*<\/type>\s*)?<content>([\s\S]*)<\/content>$/.exec(trimmed);
+  if (read) return read[1]!.trim() ? read[1]!.replace(/^\n+|\n+$/g, '') : undefined;
   if (trimmed[0] === '{' || trimmed[0] === '[') {
     try { return JSON.stringify(JSON.parse(trimmed), null, 2); }
     catch { return trimmed; }
@@ -157,7 +160,12 @@ export function shorten(value: string): string {
 
 function summaryOf(input: Record<string, unknown> | undefined): string | undefined {
   if (!input) return undefined;
-  return summaryKeys.map(key => scalar(input[key])).find(Boolean) ?? Object.values(input).map(scalar).find(Boolean);
+  return summaryKeys.map(key => scalar(input[key])).find(isTelling) ?? Object.values(input).map(scalar).find(isTelling);
+}
+
+/** "." or "./" says nothing about a call, so a search names its pattern instead of its directory. */
+function isTelling(value: string | undefined): value is string {
+  return Boolean(value) && value !== '.' && value !== './';
 }
 
 function pathLikeTitle(title?: string, kind?: string) {
