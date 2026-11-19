@@ -21,7 +21,8 @@ const fencePattern = /^(`{3,}|~{3,})([^`]*)$/;
 const rulePattern = /^(?:-{3,}|\*{3,}|_{3,})$/;
 const headingPattern = /^(#{1,6})\s+(.*)$/;
 const listPattern = /^([ \t]*)([-*+]|\d{1,3}[.)])\s+(.*)$/;
-const tableSeparatorPattern = /^\|?\s*:?-{3,}:?\s*(?:\|\s*:?-{3,}:?\s*)*\|?$/;
+// GitHub-flavoured markdown needs one hyphen per separator cell; ":-:" centres a column.
+const tableSeparatorPattern = /^\|?\s*:?-+:?\s*(?:\|\s*:?-+:?\s*)*\|?$/;
 const wrapperPattern = /^(`{3,}|~{3,})[ \t]*(?:markdown|md)[ \t]*\n/i;
 const linkPattern = /^\[([^\]]+)\]\(([^)\s]+)\)/;
 

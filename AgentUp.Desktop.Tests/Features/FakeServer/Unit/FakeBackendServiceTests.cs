@@ -355,6 +355,54 @@ public sealed class FakeBackendServiceTests
     }
 
     [Test]
+    public void Handle_capabilitySettingsRefuseAnUnknownCapabilityAndIgnoreAMalformedBody()
+    {
+        var backend = FakeServerTestComposition.Backend();
+        Json(backend, Post("/api/capabilities/enable", """{"id":"opencode"}"""));
+
+        var unknown = Run(backend, Put("/api/capabilities/missing/settings", """{"values":{}}"""));
+        var malformed = Json(backend, Put("/api/capabilities/opencode/settings", "{not json"));
+        var cleared = Json(backend, Put("/api/capabilities/opencode/settings", """{"values":{"endpoint":"  "}}"""));
+        var endpoint = cleared["settings"]!.AsArray().Single(item => item!["key"]!.GetValue<string>() == "endpoint")!;
+
+        Assert.That(unknown.Status, Is.EqualTo(404));
+        Assert.That(malformed["state"]!.GetValue<string>(), Is.EqualTo("needsSetup"), "A body that cannot be read changes nothing.");
+        Assert.That(endpoint["hasValue"]!.GetValue<bool>(), Is.False);
+        Assert.That(endpoint["value"], Is.Null, "A blank value clears the setting.");
+    }
+
+    [Test]
+    public void Handle_capabilityWhoseSoftwareIsMissingCannotBeEnabledAndItsAgentSaysWhy()
+    {
+        var backend = BackendFromJson("""
+            {"id":"fake","url":"http://127.0.0.1:9","displayName":"Demo","connection":{},"authentication":{},"entitlements":{},"workspaces":[{"id":"bob","displayName":"Bob","state":"Running","applications":[]}],"agents":{"bob":{"session":{"state":"idle"}}},"capabilities":[{"id":"cursor","displayName":"Cursor","kind":"agent","enabled":false,"available":false,"missing":["cursor-agent"]}]}
+            """);
+
+        var enable = Run(backend, Post("/api/capabilities/enable", """{"id":"cursor"}"""));
+        var cursor = Json(backend, Get("/api/workspaces/bob/agent"))["agents"]!.AsArray().Single()!;
+
+        Assert.That(enable.Status, Is.EqualTo(409));
+        Assert.That(enable.Body, Does.Contain("software not found"));
+        Assert.That(cursor["unavailability"]!.GetValue<string>(), Is.EqualTo("softwareNotFound"));
+        Assert.That(cursor["detail"]!.GetValue<string>(), Does.Contain("cursor-agent"));
+        Assert.That(cursor["remedy"]!.GetValue<string>(), Does.Contain("PATH"));
+    }
+
+    [Test]
+    public void Handle_agentWhoseCapabilityNeedsSettingsSaysWhereToSetThem()
+    {
+        var backend = FakeServerTestComposition.Backend();
+        Json(backend, Post("/api/capabilities/enable", """{"id":"opencode"}"""));
+
+        var opencode = Json(backend, Get("/api/workspaces/bob/agent"))["agents"]!.AsArray()
+            .Single(item => item!["agent"]!.GetValue<string>() == "opencode")!;
+
+        Assert.That(opencode["available"]!.GetValue<bool>(), Is.False);
+        Assert.That(opencode["unavailability"]!.GetValue<string>(), Is.EqualTo("settingsRequired"));
+        Assert.That(opencode["remedy"]!.GetValue<string>(), Does.Contain("Settings"));
+    }
+
+    [Test]
     public void Handle_agentListFollowsEnabledCapabilities()
     {
         var backend = FakeServerTestComposition.Backend();

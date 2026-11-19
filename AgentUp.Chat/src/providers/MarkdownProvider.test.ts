@@ -61,3 +61,9 @@ test('block keys change only when what the block draws changes', () => {
   assert.equal(blockKey(after[0]!), blockKey(before[0]!));
   assert.notEqual(blockKey(after[1]!), blockKey(before[1]!));
 });
+
+test('a separator cell needs only one hyphen, as in GitHub-flavoured markdown', () => {
+  const table = parseMarkdown('| a | b |\n|:-:|-|\n| 1 | 2 |')[0];
+  assert.equal(table?.kind, 'table');
+  assert.deepEqual(table?.kind === 'table' && table.alignments, ['center', 'left']);
+});

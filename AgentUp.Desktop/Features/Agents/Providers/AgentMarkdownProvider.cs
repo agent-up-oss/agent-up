@@ -287,7 +287,8 @@ public static partial class AgentMarkdownProvider
     [GeneratedRegex(@"^(?<fence>`{3,}|~{3,})[ \t]*(?:markdown|md)[ \t]*\n", RegexOptions.IgnoreCase)]
     private static partial Regex WrapperRegex();
 
-    [GeneratedRegex(@"^\|?\s*:?-{3,}:?\s*(?:\|\s*:?-{3,}:?\s*)*\|?$")]
+    // GitHub-flavoured markdown needs one hyphen per separator cell; ":-:" centres a column.
+    [GeneratedRegex(@"^\|?\s*:?-+:?\s*(?:\|\s*:?-+:?\s*)*\|?$")]
     private static partial Regex TableSeparatorRegex();
 
     [GeneratedRegex(@"^(?:-{3,}|\*{3,}|_{3,})$")]

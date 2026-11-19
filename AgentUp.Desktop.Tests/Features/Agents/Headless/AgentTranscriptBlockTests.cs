@@ -95,6 +95,51 @@ public sealed class AgentTranscriptBlockTests
         Assert.That(entries[2], Is.TypeOf<AgentChatItemViewModel>(), "A single read stays an ordinary row.");
     }
 
+    [AvaloniaTest]
+    public async Task A_folded_group_opens_to_its_calls_and_searches_read_as_searches()
+    {
+        var entries = AgentToolGroupViewModel.Group([Tool("s1", "glob", "search", """{"pattern":"*.md"}"""), Tool("s2", "grep", "search", """{"pattern":"port"}""")]);
+        var group = (AgentToolGroupViewModel)entries.Single();
+
+        Assert.That(group.Title, Is.EqualTo("Searched 2 times"));
+        Assert.That((group.IsOpen, group.Chevron), Is.EqualTo((false, "›")));
+        Assert.That(group.AutomationId, Does.Contain("s1"));
+        await group.ToggleCommand.Execute().FirstAsync();
+        Assert.That((group.IsOpen, group.Chevron), Is.EqualTo((true, "⌄")));
+        Assert.That(group.Items.Select(item => item.Tool.Summary), Is.EqualTo(new[] { "*.md", "port" }));
+    }
+
+    [AvaloniaTest]
+    public void A_running_or_failed_read_is_not_folded_into_a_group()
+    {
+        var running = new AgentChatItemViewModel("Tool", "read", "pending", "r1");
+        running.SetTool("read", "read", """{"filePath":"a.ts"}""", null, "in_progress");
+
+        var entries = AgentToolGroupViewModel.Group([running, Tool("r2", "read", "read", """{"filePath":"b.ts"}""")]);
+
+        Assert.That(entries.OfType<AgentToolGroupViewModel>(), Is.Empty);
+        Assert.That(entries, Has.Count.EqualTo(2));
+    }
+
+    [AvaloniaTest]
+    public void Quotes_rules_nested_lists_emphasis_links_and_centred_columns_draw_with_their_classes()
+    {
+        var view = new AgentMarkdownView { Markdown = "> quoted\n\n---\n\n- outer\n  - inner *soft* [docs](https://example.com)\n\n| a | b |\n|:-:|---|\n| 1 | 2 |" };
+
+        var quote = (Border)view.Children[0];
+        var rule = (Border)view.Children[1];
+        var inner = (Border)view.Children[3];
+        var runs = ((TextBlock)((Grid)inner.Child!).Children[1]).Inlines!.OfType<Run>().ToArray();
+        var table = (Grid)((ScrollViewer)((Border)view.Children[4]).Child!).Content!;
+
+        Assert.That(quote.Classes, Does.Contain("au-md-quote"));
+        Assert.That(rule.Classes, Does.Contain("au-md-rule"));
+        Assert.That(inner.Margin.Left, Is.GreaterThan(((Border)view.Children[2]).Margin.Left), "A nested item is indented further.");
+        Assert.That(runs.Single(run => run.Text == "soft").FontStyle, Is.EqualTo(FontStyle.Italic));
+        Assert.That(runs.Single(run => run.Text == "docs").TextDecorations, Is.EqualTo(TextDecorations.Underline));
+        Assert.That(table.Children.OfType<TextBlock>().First().TextAlignment, Is.EqualTo(TextAlignment.Center));
+    }
+
     private static AgentChatItemViewModel Tool(string id, string name, string kind, string input)
     {
         var item = new AgentChatItemViewModel("Tool", name, "pending", id);

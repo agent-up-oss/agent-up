@@ -17,6 +17,20 @@ public sealed class AgentEventPresentationProviderTests
     }
 
     [Test]
+    public void Present_readsWhatAToolReturnedBeyondItsVisibleContent()
+    {
+        var unified = Present("""{"sessionUpdate":"tool_call_update","toolCallId":"t1","status":"completed","rawOutput":{"output":"Edit applied.","metadata":{"diff":"@@ -1 +1 @@\n-a\n+b"}}}""");
+        var snippet = Present("""{"sessionUpdate":"tool_call_update","toolCallId":"t2","status":"completed","content":[{"type":"content","content":{"type":"text","text":"ok"}},{"type":"diff","path":"/repo/a.ts","oldText":"a","newText":"b"}]}""");
+        var plain = Present("""{"sessionUpdate":"tool_call_update","toolCallId":"t3","status":"completed","rawOutput":"file text","content":"not a list"}""");
+        var other = Present("""{"sessionUpdate":"tool_call_update","toolCallId":"t4","status":"completed","rawOutput":42}""");
+
+        Assert.That((unified.RawOutput, unified.UnifiedDiff), Is.EqualTo(("Edit applied.", "@@ -1 +1 @@\n-a\n+b")));
+        Assert.That((snippet.DiffPath, snippet.DiffOldText, snippet.DiffNewText), Is.EqualTo(("/repo/a.ts", "a", "b")));
+        Assert.That((plain.RawOutput, plain.DiffPath), Is.EqualTo(("file text", (string?)null)));
+        Assert.That(other.RawOutput, Is.Null, "Raw output that is neither text nor an object with text says nothing.");
+    }
+
+    [Test]
     public void RunSummary_namesToolsAndThoughts()
     {
         Assert.That(AgentEventPresentationProvider.RunSummary([]), Is.EqualTo("Worked"));
