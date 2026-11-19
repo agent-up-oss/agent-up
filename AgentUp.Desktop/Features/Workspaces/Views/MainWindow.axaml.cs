@@ -214,7 +214,8 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     private void OnAgentTranscriptScrolled(object? sender, ScrollChangedEventArgs args)
     {
         var scroll = AgentTranscriptScroll;
-        if (args.ExtentDelta.Y != 0 && _followAgentTranscript)
+        // The content grew by more than rounding: new output, not a relayout.
+        if (Math.Abs(args.ExtentDelta.Y) > 0.5 && _followAgentTranscript)
         {
             scroll.ScrollToEnd();
             return;
