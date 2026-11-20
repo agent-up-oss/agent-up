@@ -29,6 +29,27 @@ public sealed class InferenceHttpControllerTests
         Assert.That(body!["choices"]![0]!["message"]!["content"]!.GetValue<string>(), Is.EqualTo("hi there"));
     }
 
+    // The Server's in-process agent speaks Ollama, so the same model answers /api/chat.
+    [Test]
+    public async Task Answers_ollama_chat_with_the_tool_call_the_model_generated()
+    {
+        using var lifetime = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+        var ready = new TaskCompletionSource<int>();
+        var serving = ModelServerComposition.Controller(new ScriptedTokenGenerator("<tool_call>{\"name\": \"browser_screenshot\", \"arguments\": {}}</tool_call>"))
+            .ServeAsync(0, ready.SetResult, lifetime.Token);
+        var port = await ready.Task.WaitAsync(lifetime.Token);
+        using var http = new HttpClient();
+        var tool = new { type = "function", function = new { name = "browser_screenshot", description = "Captures the page.", parameters = new { type = "object" } } };
+
+        using var answer = await http.PostAsJsonAsync($"http://127.0.0.1:{port}/api/chat", new { model = "m", stream = false, messages = new[] { new { role = "user", content = "look" } }, tools = new[] { tool } }, lifetime.Token);
+        var body = await answer.Content.ReadFromJsonAsync<JsonNode>(lifetime.Token);
+        await lifetime.CancelAsync();
+        await serving;
+
+        Assert.That(answer.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        Assert.That(body!["message"]!["tool_calls"]![0]!["function"]!["name"]!.GetValue<string>(), Is.EqualTo("browser_screenshot"));
+    }
+
     [Test]
     public async Task Streams_server_sent_events_ending_in_done()
     {

@@ -3,7 +3,7 @@ using AgentUp.TestAgents.Features.Inference.Models;
 
 namespace AgentUp.TestAgents.Features.Inference.Providers;
 
-/// <summary>The OpenAI chat-completions response, whole or as server-sent-event chunks.</summary>
+/// <summary>The OpenAI chat-completions response, whole or as server-sent-event chunks, and Ollama's chat response.</summary>
 public sealed class ChatCompletionWriter
 {
     public string Whole(string id, string model, ChatCompletion completion)
@@ -30,6 +30,30 @@ public sealed class ChatCompletionWriter
             chunks.Add(Chunk(id, model, new JsonObject { ["tool_calls"] = ToolCalls(completion, withIndex: true) }, null, null));
         chunks.Add(Chunk(id, model, new JsonObject(), completion.FinishReason, Usage(completion)));
         return chunks;
+    }
+
+    /// <summary>Ollama's <c>/api/chat</c> answer: one message, with each call's arguments as an object.</summary>
+    public string Ollama(string model, ChatCompletion completion)
+    {
+        var message = new JsonObject { ["role"] = "assistant", ["content"] = completion.Content };
+        if (completion.ToolCalls.Count > 0)
+        {
+            message["tool_calls"] = new JsonArray([.. completion.ToolCalls.Select(call => (JsonNode)new JsonObject
+            {
+                ["function"] = new JsonObject { ["name"] = call.Name, ["arguments"] = JsonNode.Parse(call.ArgumentsJson) as JsonObject ?? new JsonObject() }
+            })]);
+        }
+
+        return new JsonObject
+        {
+            ["model"] = model,
+            ["created_at"] = DateTimeOffset.UtcNow.ToString("O"),
+            ["message"] = message,
+            ["done"] = true,
+            ["done_reason"] = "stop",
+            ["prompt_eval_count"] = completion.PromptTokens,
+            ["eval_count"] = completion.CompletionTokens
+        }.ToJsonString();
     }
 
     public string Models(string model) => new JsonObject

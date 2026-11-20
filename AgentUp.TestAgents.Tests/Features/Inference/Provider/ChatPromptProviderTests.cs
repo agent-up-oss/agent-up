@@ -64,6 +64,22 @@ public sealed class ChatPromptProviderTests
         Assert.That(prompt, Does.Not.Contain("enqueue_commit"));
     }
 
+    // An Ollama client sends only its own tools, so none is an MCP server's crowding the agent's.
+    [Test]
+    public void Render_without_narrowing_offers_every_tool_and_replays_object_arguments()
+    {
+        var prompt = new ChatPromptProvider().Render(Request("""
+            {"messages":[{"role":"user","content":"Review it"},
+               {"role":"assistant","content":"","tool_calls":[{"function":{"name":"browser_navigate","arguments":{"url":"http://app"}}}]},
+               {"role":"tool","tool_name":"browser_navigate","content":"opened"}],
+             "tools":[{"type":"function","function":{"name":"browser_screenshot","description":"Captures the page.","parameters":{"type":"object","properties":{}}}}]}
+            """), narrowTools: false);
+
+        Assert.That(prompt, Does.Contain("\"name\":\"browser_screenshot\""));
+        Assert.That(prompt, Does.Contain("\"arguments\": {\"url\":\"http://app\"}"));
+        Assert.That(prompt, Does.Contain("<tool_response>\nopened\n</tool_response>"));
+    }
+
     [Test]
     public void Offered_keeps_an_mcp_tool_the_assistant_already_called()
     {

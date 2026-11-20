@@ -33,6 +33,17 @@ public sealed class ChatCompletionWriterTests
     }
 
     [Test]
+    public void Ollama_is_one_done_message_whose_call_arguments_are_an_object()
+    {
+        var json = JsonNode.Parse(new ChatCompletionWriter().Ollama("m", WithCall))!;
+        var function = json["message"]!["tool_calls"]![0]!["function"]!;
+
+        Assert.That(json["done"]!.GetValue<bool>(), Is.True);
+        Assert.That(function["name"]!.GetValue<string>(), Is.EqualTo("write"));
+        Assert.That(function["arguments"]!["filePath"]!.GetValue<string>(), Is.EqualTo("a"));
+    }
+
+    [Test]
     public void Models_lists_the_one_model_the_server_answers_to()
     {
         var models = JsonNode.Parse(new ChatCompletionWriter().Models("qwen"))!;

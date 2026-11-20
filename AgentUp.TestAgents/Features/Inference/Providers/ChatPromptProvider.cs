@@ -21,7 +21,11 @@ public sealed class ChatPromptProvider
     public const int MessageChars = 1500;
     public const int MaxMessages = 8;
 
-    public string Render(JsonNode request)
+    /// <summary>
+    /// Renders the request. <paramref name="narrowTools"/> drops MCP-contributed tools the
+    /// conversation has not named; an Ollama client sends only its own tools, so it renders them all.
+    /// </summary>
+    public string Render(JsonNode request, bool narrowTools = true)
     {
         var builder = new StringBuilder();
         var messages = request["messages"] as JsonArray ?? [];
@@ -30,7 +34,8 @@ public sealed class ChatPromptProvider
             .Select(message => Text(message?["content"])));
         builder.Append("<|im_start|>system\n")
             .Append(Cut(system.Length == 0 ? "You are a helpful coding assistant." : system, SystemPromptChars));
-        var tools = Offered(request["tools"] as JsonArray ?? [], messages);
+        var offered = request["tools"] as JsonArray ?? [];
+        var tools = narrowTools ? Offered(offered, messages) : [.. offered];
         if (tools.Count > 0)
         {
             builder.Append("\n\n# Tools\n\nYou may call one or more functions to assist with the user query.\n\n")
@@ -83,12 +88,20 @@ public sealed class ChatPromptProvider
             builder.Append("\n<tool_call>\n{\"name\": ")
                 .Append(JsonSerializer.Serialize(function?["name"]?.GetValue<string>() ?? ""))
                 .Append(", \"arguments\": ")
-                .Append(function?["arguments"]?.GetValue<string>() is { Length: > 0 } arguments ? arguments : "{}")
+                .Append(Arguments(function?["arguments"]))
                 .Append("}\n</tool_call>");
         }
 
         return builder.Append("<|im_end|>\n").ToString();
     }
+
+    /// <summary>OpenAI sends a call's arguments as JSON text; Ollama sends the object itself.</summary>
+    private static string Arguments(JsonNode? arguments) => arguments switch
+    {
+        JsonObject value => value.ToJsonString(),
+        JsonValue value when value.TryGetValue<string>(out var text) && text.Length > 0 => text,
+        _ => "{}"
+    };
 
     private static string CompactTool(JsonNode? tool)
     {

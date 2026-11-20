@@ -7,7 +7,8 @@ namespace AgentUp.TestAgents.Features.Inference.Providers;
 
 /// <summary>
 /// The loopback HTTP surface of the model server: <c>GET /v1/models</c> and
-/// <c>POST /v1/chat/completions</c>, plain or as server-sent events. Given an API key, every
+/// <c>POST /v1/chat/completions</c>, plain or as server-sent events, and Ollama's
+/// <c>POST /api/chat</c>. Given an API key, every
 /// request without it as a bearer token is answered 401, the way a hosted endpoint would.
 /// </summary>
 public sealed class ModelHttpListener
@@ -17,6 +18,7 @@ public sealed class ModelHttpListener
         string? apiKey,
         Func<string> models,
         Func<string, Func<string, Task>, CancellationToken, Task<string?>> complete,
+        Func<string, CancellationToken, Task<string>> chat,
         Action<int> listening,
         CancellationToken cancellationToken)
     {
@@ -39,7 +41,7 @@ public sealed class ModelHttpListener
                 break;
             }
 
-            _ = HandleAsync(context, apiKey, models, complete, cancellationToken);
+            _ = HandleAsync(context, apiKey, models, complete, chat, cancellationToken);
         }
     }
 
@@ -48,6 +50,7 @@ public sealed class ModelHttpListener
         string? apiKey,
         Func<string> models,
         Func<string, Func<string, Task>, CancellationToken, Task<string?>> complete,
+        Func<string, CancellationToken, Task<string>> chat,
         CancellationToken cancellationToken)
     {
         var response = context.Response;
@@ -63,6 +66,13 @@ public sealed class ModelHttpListener
             if (context.Request.HttpMethod == "GET" && path.EndsWith("/models", StringComparison.Ordinal))
             {
                 await WriteAsync(response, 200, "application/json", models());
+                return;
+            }
+
+            if (context.Request.HttpMethod == "POST" && path == "/api/chat")
+            {
+                using var request = new StreamReader(context.Request.InputStream, Encoding.UTF8);
+                await WriteAsync(response, 200, "application/json", await chat(await request.ReadToEndAsync(cancellationToken), cancellationToken));
                 return;
             }
 

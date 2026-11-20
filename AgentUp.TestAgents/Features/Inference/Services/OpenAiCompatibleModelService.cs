@@ -32,7 +32,7 @@ public sealed class OpenAiCompatibleModelService(
     /// <paramref name="apiKey"/> is required as a bearer token on every request.
     /// </summary>
     public Task ServeAsync(int port, string? apiKey, Action<int> listening, CancellationToken cancellationToken) =>
-        listener.ServeAsync(port, apiKey, Models, CompleteAsync, listening, cancellationToken);
+        listener.ServeAsync(port, apiKey, Models, CompleteAsync, ChatAsync, listening, cancellationToken);
 
     /// <summary>
     /// Answers one request. A streaming request gets its chunks through <paramref name="chunk"/>
@@ -42,11 +42,34 @@ public sealed class OpenAiCompatibleModelService(
     {
         var request = JsonNode.Parse(body) ?? throw new JsonException("The request body is empty.");
         var model = request["model"]?.GetValue<string>() ?? ModelId;
+        var completion = await GenerateAsync(request, narrowTools: true, cancellationToken);
+        var id = $"chatcmpl-{Interlocked.Increment(ref _sequence)}";
+        if (request["stream"]?.GetValue<bool>() != true)
+            return writer.Whole(id, model, completion);
+
+        foreach (var part in writer.Chunks(id, model, completion))
+            await chunk(part);
+        return null;
+    }
+
+    /// <summary>
+    /// Answers Ollama's <c>/api/chat</c>, which is what the Server's in-process agent speaks.
+    /// The answer is always whole: that client asks for no stream.
+    /// </summary>
+    public async Task<string> ChatAsync(string body, CancellationToken cancellationToken)
+    {
+        var request = JsonNode.Parse(body) ?? throw new JsonException("The request body is empty.");
+        var model = request["model"]?.GetValue<string>() ?? ModelId;
+        return writer.Ollama(model, await GenerateAsync(request, narrowTools: false, cancellationToken));
+    }
+
+    private async Task<ChatCompletion> GenerateAsync(JsonNode request, bool narrowTools, CancellationToken cancellationToken)
+    {
         var offered = (request["tools"] as JsonArray ?? [])
             .Select(tool => tool?["function"]?["name"]?.GetValue<string>())
             .OfType<string>()
             .ToHashSet(StringComparer.Ordinal);
-        var prompt = prompts.Render(request);
+        var prompt = prompts.Render(request, narrowTools);
 
         // One model, one context: requests are answered in turn.
         await _gate.WaitAsync(cancellationToken);
@@ -60,13 +83,6 @@ public sealed class OpenAiCompatibleModelService(
             _gate.Release();
         }
 
-        var completion = reader.Read(generated, offered, prompt.Length / 4, generated.Length / 4);
-        var id = $"chatcmpl-{Interlocked.Increment(ref _sequence)}";
-        if (request["stream"]?.GetValue<bool>() != true)
-            return writer.Whole(id, model, completion);
-
-        foreach (var part in writer.Chunks(id, model, completion))
-            await chunk(part);
-        return null;
+        return reader.Read(generated, offered, prompt.Length / 4, generated.Length / 4);
     }
 }
