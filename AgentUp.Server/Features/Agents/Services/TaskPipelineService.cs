@@ -23,7 +23,8 @@ public sealed class TaskPipelineService(
     GitQueryController gitRead,
     WorkspaceQueryController workspaces,
     IAgentWorkspaceSettingsRepository settings,
-    IRoleProgress progress) : ITaskPipeline
+    IRoleProgress progress,
+    IReviewApplicationHost? applications = null) : ITaskPipeline
 {
     public async Task<TaskTurnPlan> PrepareAsync(string workspaceId, AgentRoleDefinition role, AssignedIssue issue, CancellationToken cancellationToken)
     {
@@ -86,6 +87,21 @@ public sealed class TaskPipelineService(
         var checkout = await CheckoutAsync(workspaceId, task.Proposal.Branch, [task.Proposal.Branch, task.Proposal.BaseBranch], cancellationToken);
         if (checkout is not null)
             return TaskTurnPlan.Refused(checkout);
+        // A product reviewer never reads the repository: it is told what was asked and tries the
+        // checked-out revision in the running application instead of reading a diff.
+        if (settings.Get(workspaceId).Member == TeamMemberKind.PmReviewer)
+        {
+            IReadOnlyList<string> addresses = [];
+            if (applications is not null)
+            {
+                var (running, error) = await applications.RunAsync(workspaceId, cancellationToken);
+                if (error is not null)
+                    return TaskTurnPlan.Refused($"The revision under review did not start: {error}");
+                addresses = running;
+            }
+
+            return TaskTurnPlan.Ready(TaskPrompts.ProductReviewer(role, task, addresses));
+        }
         var diff = await gitRead.GetDiffAsync(workspaceId, $"refs/remotes/origin/{task.Proposal.BaseBranch}", "HEAD", cancellationToken);
         return TaskTurnPlan.Ready(TaskPrompts.Reviewer(role, task, diff));
     }
@@ -106,6 +122,7 @@ public sealed class TaskPipelineService(
         var pushed = await forge.PushTaskBranchAsync(workspaceId, branch, cancellationToken);
         if (!pushed.Succeeded)
             return TaskTurnOutcome.Blocked("push_failed", pushed.Error ?? "The push failed.");
+        var head = await gitRead.ResolveCommitAsync(workspaceId, "HEAD", cancellationToken);
 
         string number;
         string url;
@@ -126,7 +143,7 @@ public sealed class TaskPipelineService(
                 await forge.CommentAsync(workspaceId, new ForgeCommentRequest(number, result.Reply.Trim()), cancellationToken);
         }
 
-        queue.Propose(workspaceId, task.Owner, task.Repository, task.Id, number, url, branch, baseBranch);
+        queue.Propose(workspaceId, task.Owner, task.Repository, task.Id, number, url, branch, baseBranch, head);
         progress.Record(workspaceId, RoleTerminationKind.ProposalOpened);
         return TaskTurnOutcome.Done();
     }

@@ -592,6 +592,13 @@ public sealed partial class GitWorkingTreeProvider : IGitWorkingTreeProvider
         return await RunGitAsync(repoRoot, ["diff", "--no-color", "--no-ext-diff", $"{baseRef}...{head}", "--"], cancellationToken, trimOutput: false);
     }
 
+    public async Task<string?> ResolveCommitAsync(string worktreePath, string reference, CancellationToken cancellationToken = default)
+    {
+        var repoRoot = await RunGitAsync(worktreePath, ["rev-parse", "--show-toplevel"], cancellationToken);
+        var (exitCode, stdout, _) = await RunGitCoreAsync(repoRoot, ["rev-parse", "--verify", "--quiet", "--end-of-options", $"{reference}^{{commit}}"], cancellationToken);
+        return exitCode == 0 && stdout.Trim() is { Length: > 0 } commit ? commit : null;
+    }
+
     public async Task ResetToRemoteBranchAsync(string worktreePath, string branch, CancellationToken cancellationToken = default)
     {
         var repoRoot = await RunGitAsync(worktreePath, ["rev-parse", "--show-toplevel"], cancellationToken);

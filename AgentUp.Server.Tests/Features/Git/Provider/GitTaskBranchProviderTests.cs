@@ -34,6 +34,23 @@ public sealed class GitTaskBranchProviderTests
     }
 
     [Test]
+    public async Task ResolveCommitAsync_namesTheCommitARefPointsAtAndNothingForAMissingRef()
+    {
+        var repository = await RepositoryAsync();
+        var provider = new GitWorkingTreeProvider();
+
+        var head = await provider.ResolveCommitAsync(repository, "HEAD");
+        var missing = await provider.ResolveCommitAsync(repository, "refs/remotes/origin/agent-up/issue-9");
+
+        Assert.Multiple(async () =>
+        {
+            Assert.That(head, Is.EqualTo(await TestGitRepository.ReadAsync(repository, "rev-parse", "HEAD")));
+            Assert.That(missing, Is.Null);
+        });
+        Directory.Delete(repository, recursive: true);
+    }
+
+    [Test]
     public async Task CommitAllToBranchAsync_leavesTheCheckoutAloneWhenNothingChanged()
     {
         var repository = await RepositoryAsync();

@@ -57,7 +57,7 @@ public sealed class TaskPipelineServiceTests
             Assert.That(team.Git.CommittedMessage, Is.EqualTo("Say Ahoy (#1)\n\nReplaced Hello."));
             Assert.That(team.Transport.Pushed, Is.EqualTo(new[] { ("agent-up/issue-1", "bob-token") }), "pushed with the author's own credential");
             Assert.That(task.Stage, Is.EqualTo(TaskStage.InReview));
-            Assert.That(task.Proposal, Is.EqualTo(new TaskProposal("42", "https://example.test/42", "agent-up/issue-1", "main", 1)));
+            Assert.That(task.Proposal, Is.EqualTo(new TaskProposal("42", "https://example.test/42", "agent-up/issue-1", "main", 1, team.Git.Commit)));
             Assert.That(team.Progress.Satisfied(team.Bob, RoleTerminationKind.ProposalOpened), Is.True);
         });
     }
@@ -125,6 +125,57 @@ public sealed class TaskPipelineServiceTests
     }
 
     [Test]
+    public async Task PrepareAsync_tellsAProductReviewerWhatWasAskedButNeverShowsItTheCode()
+    {
+        var team = await InReviewAsync();
+        team.Members.Set(team.Lucy, TeamMemberKind.PmReviewer);
+        team.Git.RangeDiff = "-Hello\n+Ahoy";
+
+        var plan = await team.Pipeline.PrepareAsync(team.Lucy, Reviewer, Issue, CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(team.Git.ResetBranch, Is.EqualTo("agent-up/issue-1"), "the revision is what the workspace runs");
+            Assert.That(team.Applications.Started, Is.EqualTo(new[] { team.Lucy }), "the Server starts it; the reviewer may not");
+            Assert.That(plan.Prompt, Does.Contain("Open it in the browser at http://127.0.0.1:5701/"));
+            Assert.That(plan.Prompt, Does.Contain("In src/greeting.js replace Hello with Ahoy."));
+            Assert.That(plan.Prompt, Does.Not.Contain("+Ahoy"));
+        });
+    }
+
+    [Test]
+    public async Task PrepareAsync_refusesAProductReviewWhenTheRevisionDoesNotStart()
+    {
+        var team = await InReviewAsync(startError: "Storefront exited with code 1");
+        team.Members.Set(team.Lucy, TeamMemberKind.PmReviewer);
+
+        var plan = await team.Pipeline.PrepareAsync(team.Lucy, Reviewer, Issue, CancellationToken.None);
+
+        Assert.That(plan.Refusal, Is.EqualTo("The revision under review did not start: Storefront exited with code 1"));
+    }
+
+    // Reviews are triggered by the push itself, so a person pushing to the task branch counts too.
+    [Test]
+    public async Task ListAwaitingAsync_putsAProposalBackInFrontOfAReviewerWhenAnyonePushesToIt()
+    {
+        var team = await InReviewAsync();
+        team.Queue.Review("acme", "widgets", "1", new TaskReview(team.Lucy, TaskReviewVerdict.Approve, 1, "ok"), [team.Lucy]);
+        var proposals = new CuratedProposalQueue(team.Queue, team.Host, team.GitRead);
+        var approved = await proposals.ListAwaitingAsync(team.Lucy, CancellationToken.None);
+        team.Git.Refs["refs/remotes/origin/agent-up/issue-1"] = "pushed-by-a-person";
+
+        var afterPush = await proposals.ListAwaitingAsync(team.Lucy, CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(approved, Is.Empty, "the head the reviewer approved has not moved");
+            Assert.That(afterPush.Single().Number, Is.EqualTo(1));
+            Assert.That(team.Queue.Get("acme", "widgets", "1")!.Proposal!.Revision, Is.EqualTo(2));
+            Assert.That(team.Transport.Fetched[^1], Is.EqualTo(new[] { "agent-up/issue-1" }), "fetched with the reviewer's own credential");
+        });
+    }
+
+    [Test]
     public async Task FinishAsync_submitsAReviewersVerdictAndApprovesWhenEveryReviewerApproved()
     {
         var team = await InReviewAsync();
@@ -161,9 +212,9 @@ public sealed class TaskPipelineServiceTests
 
     private static LoopRunResult Turn(string reply) => new LoopRunResultBuilder().StopReason("settled").Replying(reply).Build();
 
-    private static async Task<Team> InReviewAsync()
+    private static async Task<Team> InReviewAsync(string? startError = null)
     {
-        var team = await TeamAsync();
+        var team = await TeamAsync(startError);
         await team.Pipeline.PrepareAsync(team.Bob, Author, Issue, CancellationToken.None);
         team.Git.Changes.Add(new GitChangeEntry("src/greeting.js", GitChangeStatus.Modified));
         await team.Pipeline.FinishAsync(team.Bob, Author, Issue, Turn("Done."), CancellationToken.None);
@@ -171,7 +222,7 @@ public sealed class TaskPipelineServiceTests
         return team;
     }
 
-    private static async Task<Team> TeamAsync()
+    private static async Task<Team> TeamAsync(string? startError = null)
     {
         var workspaces = new WorkspaceQueryController(ServerTestComposition.CreateRegistry());
         var bob = (await workspaces.RegisterAsync(ServerDomain.Workspace().Build())).Id;
@@ -201,8 +252,9 @@ public sealed class TaskPipelineServiceTests
         queue.Enqueue(new QueuedTask("1", "acme", "widgets", 1, "Say Ahoy", "In src/greeting.js replace Hello with Ahoy.", "https://example.test/1", DateTimeOffset.UnixEpoch));
         queue.TryClaim(bob, "acme", "widgets", "1");
         var progress = new MemoryRoleProgress();
-        var pipeline = new TaskPipelineService(queue, forgeController, new GitWorkspaceController(changes), new GitQueryController(changes), workspaces, settings, progress);
-        return new Team(pipeline, queue, git, transport, forge, progress, bob, lucy);
+        var applications = new FixedReviewApplicationHost(["http://127.0.0.1:5701/"], startError);
+        var pipeline = new TaskPipelineService(queue, forgeController, new GitWorkspaceController(changes), new GitQueryController(changes), workspaces, settings, progress, applications);
+        return new Team(pipeline, queue, git, transport, forge, progress, bob, lucy, forgeController, new GitQueryController(changes), members, applications);
     }
 
     private sealed record Team(
@@ -213,7 +265,11 @@ public sealed class TaskPipelineServiceTests
         StubForgeCapability Forge,
         MemoryRoleProgress Progress,
         string Bob,
-        string Lucy);
+        string Lucy,
+        ForgeController Host,
+        GitQueryController GitRead,
+        TeamMemberController Members,
+        FixedReviewApplicationHost Applications);
 
     private sealed class MemoryTaskQueueStore : ITaskQueueStore
     {

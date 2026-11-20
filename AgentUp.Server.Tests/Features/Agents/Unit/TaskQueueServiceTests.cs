@@ -210,6 +210,54 @@ public sealed class TaskQueueServiceTests
         });
     }
 
+    // A push is the trigger: whoever moved the branch, the approval of the code before it is stale.
+    [Test]
+    public void Pushed_opensANewRevisionThatNoEarlierApprovalDecides()
+    {
+        var queue = Held("bob");
+        queue.Begin("bob", "acme", "widgets", "1", "main");
+        queue.Propose("bob", "acme", "widgets", "1", "7", "https://example.test/pulls/7", "agent-up/issue-1", "main", "aaa");
+        queue.Review("acme", "widgets", "1", new TaskReview("hector", TaskReviewVerdict.Approve, 1, "ok"), ["hector"]);
+
+        var pushed = queue.Pushed("acme", "widgets", "1", "bbb");
+        var again = queue.Pushed("acme", "widgets", "1", "bbb");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(pushed!.Stage, Is.EqualTo(TaskStage.InReview));
+            Assert.That(pushed.Proposal, Is.EqualTo(new TaskProposal("7", "https://example.test/pulls/7", "agent-up/issue-1", "main", 2, "bbb")));
+            Assert.That(pushed.AwaitsReviewFrom("hector"), Is.True);
+            Assert.That(again, Is.Null, "the same head is the same revision");
+        });
+    }
+
+    // A reviewer can see the author's push arrive before the author records it; that is one revision.
+    [Test]
+    public void Propose_keepsTheRevisionAReviewerAlreadySawPushed()
+    {
+        var queue = Held("bob");
+        queue.Begin("bob", "acme", "widgets", "1", "main");
+        queue.Propose("bob", "acme", "widgets", "1", "7", "https://example.test/pulls/7", "agent-up/issue-1", "main", "aaa");
+        queue.Pushed("acme", "widgets", "1", "bbb");
+
+        queue.Propose("bob", "acme", "widgets", "1", "7", "https://example.test/pulls/7", "agent-up/issue-1", "main", "bbb");
+
+        Assert.That(queue.Get("acme", "widgets", "1")!.Proposal!.Revision, Is.EqualTo(2));
+    }
+
+    [Test]
+    public void Pushed_ignoresATaskWithNoProposalYet()
+    {
+        var queue = Held("bob");
+        queue.Begin("bob", "acme", "widgets", "1", "main");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(queue.Pushed("acme", "widgets", "1", "bbb"), Is.Null);
+            Assert.That(queue.Proposed("acme", "widgets"), Is.Empty);
+        });
+    }
+
     [Test]
     public void Review_sendsTheTaskBackToItsAuthorOnAnyRequestForChanges()
     {

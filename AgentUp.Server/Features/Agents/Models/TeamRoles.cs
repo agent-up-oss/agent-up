@@ -19,7 +19,7 @@ public static class TeamRoles
 
     public const string PmReviewerPrompt =
         "You are the product reviewer on this team. You review what a user would see, not the code. " +
-        "Start the workspace and open the application in the browser, try what the issue asks for, and judge whether it does it. " +
+        "The revision under review is already running: open it in the browser, try what the issue asks for, and judge whether it does it. " +
         "Finish with your review and a last line that is exactly VERDICT: APPROVE or VERDICT: REQUEST_CHANGES.";
 
     /// <summary>The declared role, or the one this member kind plays by default.</summary>

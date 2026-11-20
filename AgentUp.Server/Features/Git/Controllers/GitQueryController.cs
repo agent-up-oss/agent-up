@@ -12,6 +12,10 @@ public sealed class GitQueryController(GitChangeTreeService changes)
     public Task<string?> GetDiffAsync(string workspaceId, string baseRef, string head, CancellationToken cancellationToken = default)
         => changes.GetRangeDiffAsync(workspaceId, baseRef, head, cancellationToken);
 
+    /// <summary>The commit a ref names, such as a fetched <c>refs/remotes/origin/&lt;branch&gt;</c>.</summary>
+    public Task<string?> ResolveCommitAsync(string workspaceId, string reference, CancellationToken cancellationToken = default)
+        => changes.ResolveCommitAsync(workspaceId, reference, cancellationToken);
+
     public Task<GitHeadState?> GetHeadAsync(string workspaceId, CancellationToken cancellationToken = default)
         => changes.GetHeadAsync(workspaceId, cancellationToken);
 }

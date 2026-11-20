@@ -271,6 +271,7 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<IAssignedIssueQueue, CuratedIssueQueue>();
         // Reviewers are offered the picked tasks whose open revision they have not reviewed.
         builder.Services.AddSingleton<IAssignedProposalQueue, CuratedProposalQueue>();
+        builder.Services.AddSingleton<IReviewApplicationHost, WorkspaceReviewApplicationProvider>();
         builder.Services.AddSingleton<IRoleProgress, MemoryRoleProgress>();
         builder.Services.AddSingleton<ITaskPipeline, TaskPipelineService>();
         builder.Services.AddSingleton<ILoopBackoff, LoopBackoffProvider>();

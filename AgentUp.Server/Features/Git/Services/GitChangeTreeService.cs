@@ -99,6 +99,22 @@ public sealed class GitChangeTreeService
             GitCommitResult.Failed,
             cancellationToken);
 
+    /// <summary>The commit a ref names in the workspace's repository, or null when it names none.</summary>
+    public async Task<string?> ResolveCommitAsync(string workspaceId, string reference, CancellationToken cancellationToken = default)
+    {
+        var workspace = _workspaces.GetById(workspaceId);
+        if (workspace is null)
+            return null;
+        try
+        {
+            return await _git.ResolveCommitAsync(workspace.WorktreePath, reference, cancellationToken);
+        }
+        catch (InvalidOperationException)
+        {
+            return null;
+        }
+    }
+
     /// <summary>What a branch adds since it left its base, or null when either ref is unknown.</summary>
     public async Task<string?> GetRangeDiffAsync(string workspaceId, string baseRef, string head, CancellationToken cancellationToken = default)
     {

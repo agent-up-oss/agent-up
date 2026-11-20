@@ -132,6 +132,17 @@ internal sealed class FakeGitWorkingTreeProvider : IGitWorkingTreeProvider
         return Failure is null ? Task.FromResult(RangeDiff) : Task.FromException<string>(new InvalidOperationException(Failure));
     }
 
+    /// <summary>The commit each ref names; a ref that is not here resolves to nothing.</summary>
+    public Dictionary<string, string> Refs { get; } = new(StringComparer.Ordinal);
+
+    public Task<string?> ResolveCommitAsync(string worktreePath, string reference, CancellationToken cancellationToken = default)
+    {
+        LastWorktreePath = worktreePath;
+        if (Failure is not null)
+            return Task.FromException<string?>(new InvalidOperationException(Failure));
+        return Task.FromResult(reference == "HEAD" && !Refs.ContainsKey("HEAD") ? Commit : Refs.GetValueOrDefault(reference));
+    }
+
     public Task ResetToRemoteBranchAsync(string worktreePath, string branch, CancellationToken cancellationToken = default)
     {
         LastWorktreePath = worktreePath;

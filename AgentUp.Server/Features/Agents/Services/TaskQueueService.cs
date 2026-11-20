@@ -146,16 +146,59 @@ public sealed class TaskQueueService
 
     /// <summary>
     /// The author's work is on the host as a proposal. Each push is a new revision, and every
-    /// reviewer owes a review of it, whatever they said about the one before.
+    /// reviewer owes a review of it, whatever they said about the one before. A head a reviewer
+    /// already saw arrive is that same revision, not another.
     /// </summary>
-    public bool Propose(string workspaceId, string owner, string repository, string id, string number, string url, string branch, string baseBranch)
+    public bool Propose(string workspaceId, string owner, string repository, string id, string number, string url, string branch, string baseBranch, string? head = null)
     {
         lock (_gate)
             return ReplaceHeld(workspaceId, owner, repository, id, task => task with
             {
                 Stage = TaskStage.InReview,
-                Proposal = new TaskProposal(number, url, branch, baseBranch, (task.Proposal?.Revision ?? 0) + 1)
+                Proposal = new TaskProposal(
+                    number,
+                    url,
+                    branch,
+                    baseBranch,
+                    head is not null && task.Proposal?.Head == head ? task.Proposal.Revision : (task.Proposal?.Revision ?? 0) + 1,
+                    head)
             });
+    }
+
+    /// <summary>
+    /// The proposal's branch moved on the host. Whoever pushed - the author's loop or a person -
+    /// that is a new revision: it goes back in front of every reviewer, and no verdict on the code
+    /// before it decides anything. Returns the task when the push opened a revision.
+    /// </summary>
+    public QueuedTask? Pushed(string owner, string repository, string id, string head)
+    {
+        lock (_gate)
+        {
+            var task = Find(owner, repository, id);
+            if (task?.Proposal is null
+                || task.Stage is not (TaskStage.InReview or TaskStage.ChangesRequested or TaskStage.Approved)
+                || string.Equals(task.Proposal.Head, head, StringComparison.Ordinal))
+                return null;
+
+            var next = task with
+            {
+                Stage = TaskStage.InReview,
+                Proposal = task.Proposal with { Revision = task.Proposal.Revision + 1, Head = head }
+            };
+            _tasks[_tasks.IndexOf(task)] = next;
+            Persist();
+            return next;
+        }
+    }
+
+    /// <summary>The tasks on a repository that have a proposal open on the host, in queue order.</summary>
+    public IReadOnlyList<QueuedTask> Proposed(string owner, string repository)
+    {
+        lock (_gate)
+            return [.. _tasks.Where(task => task.Proposal is not null
+                && task.Stage is TaskStage.InReview or TaskStage.ChangesRequested or TaskStage.Approved
+                && string.Equals(task.Owner, owner, StringComparison.OrdinalIgnoreCase)
+                && string.Equals(task.Repository, repository, StringComparison.OrdinalIgnoreCase))];
     }
 
     /// <summary>The tasks whose open revision this reviewer has not reviewed yet, in queue order.</summary>

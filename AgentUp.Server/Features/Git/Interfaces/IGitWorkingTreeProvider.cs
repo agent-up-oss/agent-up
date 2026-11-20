@@ -24,6 +24,9 @@ public interface IGitWorkingTreeProvider
     /// <summary>The unified diff of what <paramref name="head"/> adds since it left <paramref name="baseRef"/>.</summary>
     Task<string> GetRangeDiffAsync(string worktreePath, string baseRef, string head, CancellationToken cancellationToken = default);
 
+    /// <summary>The commit <paramref name="reference"/> names, or null when the repository has no such ref.</summary>
+    Task<string?> ResolveCommitAsync(string worktreePath, string reference, CancellationToken cancellationToken = default);
+
     /// <summary>Points <paramref name="branch"/> at the fetched <c>origin/&lt;branch&gt;</c> and checks it out.</summary>
     Task ResetToRemoteBranchAsync(string worktreePath, string branch, CancellationToken cancellationToken = default);
 

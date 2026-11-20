@@ -49,6 +49,28 @@ public static class TaskPrompts
             .TrimEnd();
     }
 
+    /// <summary>
+    /// What a product reviewer reads: the issue and where the running revision answers, never the
+    /// code. The Server started the revision before the turn, so the addresses are that revision.
+    /// </summary>
+    public static string ProductReviewer(AgentRoleDefinition role, QueuedTask task, IReadOnlyList<string> addresses)
+    {
+        var prompt = new StringBuilder()
+            .AppendLine($"Review the change for issue #{task.Number}: {task.Title}")
+            .AppendLine()
+            .AppendLine("The issue asked:")
+            .AppendLine(task.Body.Trim())
+            .AppendLine()
+            .AppendLine($"Revision {task.Proposal!.Revision} of {task.Proposal.Url} is running in your workspace.");
+        foreach (var address in addresses)
+            prompt.AppendLine($"Open it in the browser at {address}");
+        return prompt
+            .AppendLine()
+            .AppendLine(role.Prompt)
+            .ToString()
+            .TrimEnd();
+    }
+
     private const int DiffLimit = 12_000;
 
     /// <summary>The commit message for one revision of an author's work.</summary>
