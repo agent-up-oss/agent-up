@@ -143,6 +143,38 @@ public sealed class AgentSchedulingService : IAsyncDisposable
         { return new AgentScheduleResult(null, true, exception.Message); }
     }
 
+    /// <summary>
+    /// Opens a new ACP session on the agent process already running, so the next prompt starts
+    /// with no conversation behind it. The loop does this before each task attempt: what the agent
+    /// said about one attempt must not steer the next. The old session stays in saved history.
+    /// </summary>
+    public async Task<AgentActionResult> StartFreshSessionAsync(string workspaceId, string description, CancellationToken cancellationToken)
+    {
+        var gate = LifecycleGate(workspaceId);
+        await gate.WaitAsync(cancellationToken);
+        try
+        {
+            if (!_sessions.TryGetValue(workspaceId, out var state)) return AgentActionResult.NotFound();
+            if (state.State is "running")
+                return AgentActionResult.Failed("The agent is in the middle of a turn.");
+            if (string.IsNullOrWhiteSpace(state.AcpSessionId))
+                return AgentActionResult.Failed("The workspace agent has no ACP session.");
+            try
+            {
+                await CreateSessionAsync(state, cancellationToken);
+            }
+            catch (Exception exception) when (exception is InvalidOperationException or IOException or JsonException)
+            {
+                return AgentActionResult.Failed(exception.Message);
+            }
+
+            SaveSession(workspaceId, state, workspaces.GetById(workspaceId)?.Branch ?? string.Empty, description);
+            events.Publish(workspaceId, "state", (await GetAsync(workspaceId, cancellationToken))!);
+            return AgentActionResult.Success();
+        }
+        finally { gate.Release(); }
+    }
+
     public async Task<AgentBindingResult> BindAsync(string workspaceId, string agent, CancellationToken cancellationToken)
     {
         var workspace = workspaces.GetById(workspaceId);
@@ -620,7 +652,9 @@ public sealed class AgentSchedulingService : IAsyncDisposable
             completed,
             stop,
             state.LoopBlock,
-            state.SawToolCall);
+            state.SawToolCall,
+            state.LastReply.ToString(),
+            state.RepeatedFailures);
     }
 
     private async Task RunPromptAsync(
@@ -632,6 +666,10 @@ public sealed class AgentSchedulingService : IAsyncDisposable
         try
         {
             state.SawToolCall = false;
+            state.LastReply.Clear();
+            state.LastFailure = null;
+            state.RepeatedFailures = 0;
+            state.ToolCalls.Clear();
             var delivered = DrainSteering(state, message);
             result = await state.Process.CallAsync("session/prompt", new {
                 sessionId = state.AcpSessionId,
@@ -744,9 +782,47 @@ public sealed class AgentSchedulingService : IAsyncDisposable
             && (updateKind.GetString()?.Contains("tool", StringComparison.OrdinalIgnoreCase) == true
                 || updateKind.GetString()?.Contains("function", StringComparison.OrdinalIgnoreCase) == true))
             state.SawToolCall = true;
+        if (method == "session/update")
+        {
+            CountRepeatedFailure(state, update);
+            if (update.TryGetProperty("toolCallId", out var toolCallId) && toolCallId.ValueKind == JsonValueKind.String)
+                state.ToolCalls[toolCallId.GetString()!] = update.Clone();
+        }
+        if (method == "session/update"
+            && update.TryGetProperty("sessionUpdate", out var replyKind)
+            && replyKind.GetString() == "agent_message_chunk"
+            && update.TryGetProperty("content", out var content)
+            && content.ValueKind == JsonValueKind.Object
+            && content.TryGetProperty("text", out var text))
+            state.LastReply.Append(text.GetString());
         state.TranscriptEvents++;
         events.Publish(workspaceId, method == "session/update" ? "session_update" : method, payload);
         return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Counts a tool call failing the same way again. A finished tool call of any other outcome
+    /// breaks the run, so only an agent repeating one mistake accumulates.
+    /// </summary>
+    private static void CountRepeatedFailure(AgentSessionState state, JsonElement update)
+    {
+        if (!update.TryGetProperty("sessionUpdate", out var kind) || kind.GetString() != "tool_call_update"
+            || !update.TryGetProperty("status", out var status))
+            return;
+        var outcome = status.GetString();
+        if (outcome == "failed")
+        {
+            var title = update.TryGetProperty("title", out var named) ? named.GetString() : null;
+            var output = update.TryGetProperty("rawOutput", out var raw) ? raw.GetRawText() : string.Empty;
+            var failure = $"{title}\n{output}";
+            state.RepeatedFailures = string.Equals(failure, state.LastFailure, StringComparison.Ordinal) ? state.RepeatedFailures + 1 : 1;
+            state.LastFailure = failure;
+        }
+        else if (outcome == "completed")
+        {
+            state.LastFailure = null;
+            state.RepeatedFailures = 0;
+        }
     }
 
     private static string DrainSteering(AgentSessionState state, string message)
@@ -795,11 +871,14 @@ public sealed class AgentSchedulingService : IAsyncDisposable
         IReadOnlySet<string> optionIds,
         IAgentPermissionPolicy policy)
     {
-        var decision = policy.Decide(payload);
+        var request = AgentPermissionRequestProvider.WithAnnouncedToolCall(payload, state.ToolCalls);
+        var decision = policy.Decide(request);
         if (decision is null)
         {
             state.LoopBlock = "blocked:policy";
-            events.Publish(workspaceId, "permission_decision", new { blocked = true, ruleId = (string?)null });
+            logger.LogInformation("The permission policy for workspace {WorkspaceId} refused {ToolCall}.", workspaceId,
+                request.TryGetProperty("toolCall", out var refused) ? refused.GetRawText() : request.GetRawText());
+            events.Publish(workspaceId, "permission_decision", new { blocked = true, ruleId = (string?)null, request });
             var reject = optionIds.FirstOrDefault(id => id.Contains("reject", StringComparison.Ordinal)) ?? optionIds.First();
             return payloads.Payload(new { outcome = new { outcome = "selected", optionId = reject } });
         }

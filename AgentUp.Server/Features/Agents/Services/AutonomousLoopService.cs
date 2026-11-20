@@ -21,6 +21,7 @@ public sealed class AutonomousLoopService(
         scheduling.BeginLoopTask(request.WorkspaceId);
         var context = request.Task.Length;
         var noProgress = 0;
+        var worked = false;
         var rateLimitedAttempts = 0;
         try
         {
@@ -30,28 +31,17 @@ public sealed class AutonomousLoopService(
                 var message = iteration == 1
                     ? request.Task
                     : noProgress > 0
-                        ? "Continue under the standing permission policy. Do not wait for confirmation. Call complete_task when the task is done."
-                        : "Continue the task. Call complete_task when it is done.";
+                        ? "Continue under the standing permission policy. Do not wait for confirmation. When the task is done, reply with a short summary and make no further changes."
+                        : "Continue the task. When it is done, reply with a short summary and make no further changes.";
                 context += message.Length;
-                AgentActionResult action;
-                using (var promptTimeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
+                var (action, stuck) = await TurnAsync(request, message, cancellationToken);
+                if (action is null)
                 {
-                    promptTimeout.CancelAfter(Math.Max(1, request.PromptTimeoutMs));
-                    try
-                    {
-                        action = await scheduling.PromptWaitAsync(request.WorkspaceId, message, promptTimeout.Token);
-                    }
-                    catch (OperationCanceledException) when (promptTimeout.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
-                    {
-                        action = AgentActionResult.Failed("The agent stopped writing but held the session open.");
-                    }
-
-                    if (promptTimeout.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
-                    {
-                        await scheduling.CancelAsync(request.WorkspaceId, CancellationToken.None);
-                        var hung = scheduling.InspectLoop(request.WorkspaceId);
-                        return Result(request, iteration, LoopTerminal.Failed, "unresponsive", hung, "The agent stopped writing but held the session open.", context);
-                    }
+                    await scheduling.CancelAsync(request.WorkspaceId, CancellationToken.None);
+                    var hung = scheduling.InspectLoop(request.WorkspaceId);
+                    return stuck
+                        ? Result(request, iteration, LoopTerminal.Failed, "stuck", hung, $"The agent repeated the same failing tool call {request.RepeatedFailureLimit} times.", context)
+                        : Result(request, iteration, LoopTerminal.Failed, "unresponsive", hung, "The agent stopped writing but held the session open.", context);
                 }
                 var snapshot = scheduling.InspectLoop(request.WorkspaceId);
                 if (context > request.ContextCharLimit)
@@ -79,6 +69,17 @@ public sealed class AutonomousLoopService(
 
                     return Result(request, iteration, LoopTerminal.BlockedRateLimited, "rate_limited", snapshot, "blocked:rate-limited", context);
                 }
+                // A real ACP agent has no way to say "done" except by stopping: a turn that uses no
+                // tool after the task has done work is the agent handing the result back.
+                if (!snapshot.SawToolCall && worked
+                    && string.Equals(snapshot.StopReason, "end_turn", StringComparison.Ordinal))
+                    return Result(request, iteration, LoopTerminal.Completed, "settled", snapshot, null, context);
+                // A review is an answer, not a change: a reviewer that replies without needing a
+                // tool has done its task.
+                if (request.ReplyCompletes && !snapshot.SawToolCall && !string.IsNullOrWhiteSpace(snapshot.LastReply)
+                    && string.Equals(snapshot.StopReason, "end_turn", StringComparison.Ordinal))
+                    return Result(request, iteration, LoopTerminal.Completed, "replied", snapshot, null, context);
+                worked |= snapshot.SawToolCall;
                 if (!snapshot.SawToolCall && !snapshot.CompletedTask)
                 {
                     noProgress++;
@@ -115,6 +116,43 @@ public sealed class AutonomousLoopService(
 
     public IReadOnlyList<string> Invariants(LoopRunResult result) => invariants.Evaluate(result);
 
+    /// <summary>
+    /// Runs one prompt and waits for it. <see cref="LoopRunRequest.PromptTimeoutMs"/> is a window of
+    /// silence, not a budget for the turn: a real agent can work for many minutes, and only one
+    /// that has emitted nothing for that long while holding the session is unresponsive. A turn that
+    /// keeps talking is still stopped once it repeats one failing tool call
+    /// <see cref="LoopRunRequest.RepeatedFailureLimit"/> times, because that never ends on its own.
+    /// A null action means the turn was stopped; <c>Stuck</c> says which of the two stopped it.
+    /// </summary>
+    private async Task<(AgentActionResult? Action, bool Stuck)> TurnAsync(LoopRunRequest request, string message, CancellationToken cancellationToken)
+    {
+        var window = Math.Max(1, request.PromptTimeoutMs);
+        var slice = TimeSpan.FromMilliseconds(Math.Clamp(window / 5, 5, 1000));
+        var turn = scheduling.PromptWaitAsync(request.WorkspaceId, message, cancellationToken);
+        var heard = scheduling.InspectLoop(request.WorkspaceId).TranscriptEvents;
+        var quietSince = Environment.TickCount64;
+        while (!turn.IsCompleted)
+        {
+            await Task.WhenAny(turn, Task.Delay(slice, CancellationToken.None));
+            cancellationToken.ThrowIfCancellationRequested();
+            if (turn.IsCompleted)
+                break;
+            var inspection = scheduling.InspectLoop(request.WorkspaceId);
+            if (inspection.RepeatedFailures >= request.RepeatedFailureLimit)
+                return (null, true);
+            var now = inspection.TranscriptEvents;
+            if (now != heard)
+            {
+                heard = now;
+                quietSince = Environment.TickCount64;
+            }
+            else if (Environment.TickCount64 - quietSince >= window)
+                return (null, false);
+        }
+
+        return (await turn, false);
+    }
+
     private static LoopInspection EmptyInspection() => new([], true, true, 0, false, null, null, false);
 
     private static LoopRunResult Result(
@@ -136,5 +174,6 @@ public sealed class AutonomousLoopService(
             contextChars,
             snapshot.CompletedTask,
             blockReason,
-            request.Seed);
+            request.Seed,
+            string.IsNullOrWhiteSpace(snapshot.LastReply) ? null : snapshot.LastReply);
 }

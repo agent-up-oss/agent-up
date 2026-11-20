@@ -125,6 +125,43 @@ public sealed class CuratedIssueQueueTests
         Assert.That(tasks.Held(workspaceId)?.Id, Is.EqualTo("1"));
     }
 
+    [Test]
+    public async Task ListAssignedAsync_offersAnAuthorNothingWhileItsTaskIsInReview()
+    {
+        var (queue, tasks, workspaceId) = await ArrangeAsync();
+        tasks.Enqueue(Task("1", 1));
+        tasks.Enqueue(Task("2", 2));
+        tasks.TryClaim(workspaceId, "acme", "widgets", "1");
+        tasks.Begin(workspaceId, "acme", "widgets", "1", "main");
+        tasks.Propose(workspaceId, "acme", "widgets", "1", "7", "https://example.test/pulls/7", "agent-up/issue-1", "main");
+
+        var listed = await queue.ListAssignedAsync(workspaceId, AssignedIssueOrder.NumberAsc, CancellationToken.None);
+
+        // The author waits on its reviewers rather than starting the next task with this one open.
+        Assert.That(listed, Is.Empty);
+    }
+
+    [Test]
+    public async Task ListAwaitingAsync_offersAReviewerTheTasksWhoseRevisionItHasNotReviewed()
+    {
+        var (_, tasks, workspaceId) = await ArrangeAsync();
+        var proposals = new CuratedProposalQueue(tasks, Forge(workspaceId));
+        tasks.Enqueue(Task("1", 1));
+        tasks.TryClaim("bob", "acme", "widgets", "1");
+        tasks.Begin("bob", "acme", "widgets", "1", "main");
+        tasks.Propose("bob", "acme", "widgets", "1", "7", "https://example.test/pulls/7", "agent-up/issue-1", "main");
+
+        var before = await proposals.ListAwaitingAsync(workspaceId, CancellationToken.None);
+        tasks.Review("acme", "widgets", "1", new TaskReview(workspaceId, TaskReviewVerdict.Approve, 1, "ok"), [workspaceId, "hector"]);
+        var after = await proposals.ListAwaitingAsync(workspaceId, CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(before.Single(), Is.EqualTo(new AssignedProposal("1", "Task 1", "", DateTimeOffset.UnixEpoch, "https://example.test/pulls/7", 1)));
+            Assert.That(after, Is.Empty);
+        });
+    }
+
     private static QueuedTask Task(string id, int number) =>
         new(id, "acme", "widgets", number, $"Task {number}", "", $"https://example.test/{number}", DateTimeOffset.UnixEpoch);
 
@@ -143,8 +180,13 @@ public sealed class CuratedIssueQueueTests
             new ForgeOAuthStateStore(),
             new FixedForgeOAuthExchange("token"));
         var tasks = new TaskQueueService(new MemoryTaskQueueStore());
-        return (new CuratedIssueQueue(tasks, new ForgeController(service)), tasks, workspace.Id);
+        Forges[workspace.Id] = new ForgeController(service);
+        return (new CuratedIssueQueue(tasks, Forges[workspace.Id]), tasks, workspace.Id);
     }
+
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, ForgeController> Forges = new();
+
+    private static ForgeController Forge(string workspaceId) => Forges[workspaceId];
 
     private sealed class MemoryTaskQueueStore : ITaskQueueStore
     {

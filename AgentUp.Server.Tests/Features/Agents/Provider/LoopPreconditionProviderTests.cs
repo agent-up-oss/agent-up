@@ -35,7 +35,7 @@ public sealed class LoopPreconditionProviderTests
         await host.Workspaces.UpdateBoundAgentAsync(host.WorkspaceId, "codex");
         host.Settings.Save(host.Settings.Get(host.WorkspaceId) with
         {
-            PolicyRules = [new PermissionRule("all", PermissionRuleKind.WorktreeWrite, true)]
+            PolicyRules = [new PermissionRuleBuilder("all", PermissionRuleKind.WorktreeWrite).Build()]
         });
 
         var unmet = await host.Preconditions.UnmetAsync(host.WorkspaceId, CancellationToken.None);
@@ -160,7 +160,7 @@ public sealed class LoopPreconditionProviderTests
         await host.Workspaces.UpdateBoundAgentAsync(host.WorkspaceId, "codex");
         host.Settings.Save(host.Settings.Get(host.WorkspaceId) with
         {
-            PolicyRules = [new PermissionRule("all", PermissionRuleKind.WorktreeWrite, true)]
+            PolicyRules = [new PermissionRuleBuilder("all", PermissionRuleKind.WorktreeWrite).Build()]
         });
 
         Assert.That(await host.Preconditions.UnmetAsync(host.WorkspaceId, CancellationToken.None), Is.Null);
@@ -221,7 +221,7 @@ public sealed class LoopPreconditionProviderTests
         await host.Workspaces.UpdateBoundAgentAsync(host.WorkspaceId, "codex");
         host.Settings.Save(host.Settings.Get(host.WorkspaceId) with
         {
-            PolicyRules = [new PermissionRule("all", PermissionRuleKind.WorktreeWrite, true)],
+            PolicyRules = [new PermissionRuleBuilder("all", PermissionRuleKind.WorktreeWrite).Build()],
             HostConnectionAuthorized = true
         });
     }

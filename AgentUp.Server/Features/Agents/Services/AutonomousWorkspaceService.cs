@@ -21,9 +21,12 @@ public sealed class AutonomousWorkspaceService(
     WorkspaceQueryController workspaces,
     IRoleToolFilter roleTools,
     IEnabledCapabilityPackages? packages = null,
-    IHostConnectionPresence? host = null)
+    IHostConnectionPresence? host = null,
+    ITaskPipeline? pipeline = null,
+    Func<CancellationToken, Task>? waitForWork = null)
 {
     private readonly ConcurrentDictionary<string, CancellationTokenSource> _runs = new(StringComparer.Ordinal);
+    private readonly Func<CancellationToken, Task> _waitForWork = waitForWork ?? (token => Task.Delay(TimeSpan.FromSeconds(15), token));
 
     public AutonomousWorkspaceService ReconcileAfterRestart()
     {
@@ -203,20 +206,27 @@ public sealed class AutonomousWorkspaceService(
                 }
 
                 var current = settings.Get(workspaceId);
+                var role = TeamRoles.For(current.Member, current.Role);
                 AssignedIssue task;
                 try
                 {
-                    var next = await NextTaskAsync(workspaceId, current, completed, cancellationToken);
+                    var next = await NextTaskAsync(workspaceId, role, completed, cancellationToken);
                     if (next is null)
                     {
                         Record(workspaceId, "idle", null, LoopTerminal.Idle, "queue_empty", null, []);
-                        return;
+                        // A team works in turns: a reviewer has nothing until an author opens a
+                        // proposal, and an author waits on its reviewers, so an active member waits
+                        // for work rather than stopping.
+                        if (pipeline is null)
+                            return;
+                        await _waitForWork(cancellationToken);
+                        continue;
                     }
 
                     // Many workspaces draw from one queue, so the task is only ours once the queue
                     // says so. Losing the race means another workspace took it: choose again
                     // rather than open the same issue twice.
-                    if (current.Role?.Trigger != RoleTriggerKind.ProposalAwaitingReview
+                    if (role.Trigger != RoleTriggerKind.ProposalAwaitingReview
                         && !await issues.TryHoldAsync(workspaceId, next.Id, cancellationToken))
                         continue;
 
@@ -242,14 +252,40 @@ public sealed class AutonomousWorkspaceService(
                     return;
                 }
 
+                if (pipeline is not null)
+                {
+                    var fresh = await scheduling.StartFreshSessionAsync(workspaceId, $"#{task.Number} {task.Title}", cancellationToken);
+                    if (fresh.Error is not null)
+                    {
+                        Record(workspaceId, "blocked", task, LoopTerminal.Failed, "schedule", fresh.Error, []);
+                        return;
+                    }
+                }
+
                 Record(workspaceId, "running", task, null, null, null, []);
+                progress.Reset(workspaceId);
                 var policy = new DeclaredPermissionPolicy(current.PolicyRules);
-                var work = current.Role?.Trigger == RoleTriggerKind.ProposalAwaitingReview
-                    ? $"Review proposal {task.Id}: {task.Title}\n{task.Url}\n\n{task.Body}"
-                    : $"Work on issue #{task.Number}: {task.Title}\n\n{task.Body}";
-                var prompt = current.Role is null ? work : $"{current.Role.Prompt}\n\n{work}";
+                string prompt;
+                if (pipeline is not null)
+                {
+                    var plan = await pipeline.PrepareAsync(workspaceId, role, task, cancellationToken);
+                    if (plan.Prompt is null)
+                    {
+                        Record(workspaceId, "blocked", task, LoopTerminal.Failed, "prepare", plan.Refusal, []);
+                        return;
+                    }
+                    prompt = plan.Prompt;
+                }
+                else
+                {
+                    var work = role.Trigger == RoleTriggerKind.ProposalAwaitingReview
+                        ? $"Review proposal {task.Id}: {task.Title}\n{task.Url}\n\n{task.Body}"
+                        : $"Work on issue #{task.Number}: {task.Title}\n\n{task.Body}";
+                    prompt = current.Role is null ? work : $"{current.Role.Prompt}\n\n{work}";
+                }
                 var result = await loop.RunAsync(
-                    new LoopRunRequest(workspaceId, prompt, 32, policy, 200_000, StandingPolicyReplies: current.StandingPolicyReplies),
+                    new LoopRunRequest(workspaceId, prompt, 32, policy, 200_000, StandingPolicyReplies: current.StandingPolicyReplies,
+                        ReplyCompletes: role.Trigger == RoleTriggerKind.ProposalAwaitingReview),
                     cancellationToken);
                 if (result.Terminal is not LoopTerminal.Completed)
                 {
@@ -259,11 +295,25 @@ public sealed class AutonomousWorkspaceService(
                     return;
                 }
 
-                completed.Add(TaskKey(current.Role?.Trigger, task.Id));
-                if (current.Role?.Trigger != RoleTriggerKind.ProposalAwaitingReview)
-                    await issues.CompleteAsync(workspaceId, task.Id, cancellationToken);
-                await DrainCompletedAsync(workspaceId, current, completed, cancellationToken);
-                if (current.Role is not null && !progress.Satisfied(workspaceId, current.Role.Termination))
+                if (pipeline is not null)
+                {
+                    // The queue carries the task on from here: an author's stays held while it is
+                    // reviewed, and a reviewer is offered it again only for a new revision.
+                    var outcome = await pipeline.FinishAsync(workspaceId, role, task, result, cancellationToken);
+                    if (!outcome.Published)
+                    {
+                        Record(workspaceId, "blocked", task, LoopTerminal.BlockedAwaitingInput, outcome.StopReason, outcome.Cause, result.PermissionRuleIds);
+                        return;
+                    }
+                }
+                else
+                {
+                    completed.Add(TaskKey(role.Trigger, task.Id));
+                    if (role.Trigger != RoleTriggerKind.ProposalAwaitingReview)
+                        await issues.CompleteAsync(workspaceId, task.Id, cancellationToken);
+                    await DrainCompletedAsync(workspaceId, role, completed, cancellationToken);
+                }
+                if ((current.Role is not null || pipeline is not null) && !progress.Satisfied(workspaceId, role.Termination))
                 {
                     Record(workspaceId, "blocked", task, LoopTerminal.BlockedAwaitingInput, "termination", "blocked:termination", result.PermissionRuleIds);
                     return;
@@ -284,11 +334,12 @@ public sealed class AutonomousWorkspaceService(
 
     private async Task<AssignedIssue?> NextTaskAsync(
         string workspaceId,
-        AgentWorkspaceSettings current,
+        AgentRoleDefinition role,
         HashSet<string> completed,
         CancellationToken cancellationToken)
     {
-        if (current.Role?.Trigger == RoleTriggerKind.ProposalAwaitingReview)
+        var current = settings.Get(workspaceId);
+        if (role.Trigger == RoleTriggerKind.ProposalAwaitingReview)
         {
             var queue = await proposals.ListAwaitingAsync(workspaceId, cancellationToken);
             var proposal = queue.FirstOrDefault(item => !completed.Contains(TaskKey(RoleTriggerKind.ProposalAwaitingReview, item.Id)));
@@ -301,11 +352,12 @@ public sealed class AutonomousWorkspaceService(
 
     private async Task DrainCompletedAsync(
         string workspaceId,
-        AgentWorkspaceSettings current,
+        AgentRoleDefinition role,
         HashSet<string> completed,
         CancellationToken cancellationToken)
     {
-        if (current.Role?.Trigger == RoleTriggerKind.ProposalAwaitingReview)
+        var current = settings.Get(workspaceId);
+        if (role.Trigger == RoleTriggerKind.ProposalAwaitingReview)
         {
             var queue = await proposals.ListAwaitingAsync(workspaceId, cancellationToken);
             proposals.Replace(workspaceId, [.. queue.Where(item => !completed.Contains(TaskKey(RoleTriggerKind.ProposalAwaitingReview, item.Id)))]);
@@ -323,7 +375,7 @@ public sealed class AutonomousWorkspaceService(
         trigger == RoleTriggerKind.ProposalAwaitingReview ? $"proposal:{id}" : $"issue:{id}";
 
     private static AssignedIssue ToIssue(AssignedProposal proposal) =>
-        new(proposal.Id, 0, proposal.Title, proposal.Body, proposal.CreatedAt, proposal.CreatedAt, proposal.Url);
+        new(proposal.Id, proposal.Number, proposal.Title, proposal.Body, proposal.CreatedAt, proposal.CreatedAt, proposal.Url);
 
     private void Record(
         string workspaceId,

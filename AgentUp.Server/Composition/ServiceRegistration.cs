@@ -240,6 +240,7 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<GithubAppApiProvider>();
         builder.Services.AddSingleton<GithubAppConnectionService>();
         builder.Services.AddSingleton<IForgeGitRemoteResolver, ForgeGitRemoteResolver>();
+        builder.Services.AddSingleton<IForgeGitTransport, ForgeGitTransportProvider>();
         builder.Services.AddSingleton<IForgeOAuthSettings, ForgeOAuthSettingsProvider>();
         builder.Services.AddSingleton<IForgeOAuthStateStore, ForgeOAuthStateStore>();
         builder.Services.AddSingleton<IForgeOAuthExchange, ForgeOAuthExchangeProvider>();
@@ -268,8 +269,10 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<TrainingController>();
         // The loop draws from the picked queue, never from whatever the host happens to have open.
         builder.Services.AddSingleton<IAssignedIssueQueue, CuratedIssueQueue>();
-        builder.Services.AddSingleton<IAssignedProposalQueue, MemoryAssignedProposalQueue>();
+        // Reviewers are offered the picked tasks whose open revision they have not reviewed.
+        builder.Services.AddSingleton<IAssignedProposalQueue, CuratedProposalQueue>();
         builder.Services.AddSingleton<IRoleProgress, MemoryRoleProgress>();
+        builder.Services.AddSingleton<ITaskPipeline, TaskPipelineService>();
         builder.Services.AddSingleton<ILoopBackoff, LoopBackoffProvider>();
         builder.Services.AddSingleton<IEnabledAgentInspector, EnabledAgentInspector>();
         builder.Services.AddSingleton<IRoleToolFilter, RoleToolFilterProvider>();
@@ -287,7 +290,8 @@ public static class ServiceRegistration
                 sp.GetRequiredService<WorkspaceQueryController>(),
                 sp.GetRequiredService<IRoleToolFilter>(),
                 sp.GetService<IEnabledCapabilityPackages>(),
-                sp.GetService<IHostConnectionPresence>()).ReconcileAfterRestart());
+                sp.GetService<IHostConnectionPresence>(),
+                sp.GetRequiredService<ITaskPipeline>()).ReconcileAfterRestart());
         builder.Services.AddSingleton<LoopScenarioCatalog>();
         builder.Services.AddSingleton<LoopOutcomeBaselineStore>();
         builder.Services.AddSingleton<WorkspaceEventFrameProvider>();
@@ -514,6 +518,7 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<IWorkspacePromptGuard, WorkspaceAgentPromptGuard>();
         builder.Services.AddSingleton<GitChangeTreeService>();
         builder.Services.AddSingleton<GitQueryController>();
+        builder.Services.AddSingleton<GitWorkspaceController>();
         builder.Services.AddSingleton<ISourceCloneRootProvider>(_ => new SourceCloneRootProvider(dataDir));
         builder.Services.AddSingleton<ISourceCloneTargetProvider, SourceCloneTargetProvider>();
         builder.Services.AddSingleton<ISourceCloneGitProvider, GitSourceCloneProvider>();

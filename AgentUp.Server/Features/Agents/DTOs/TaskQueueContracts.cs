@@ -11,7 +11,16 @@ public sealed record QueuedTaskDto(
     string Url,
     DateTimeOffset QueuedAt,
     string? TargetWorkspaceId,
-    string? HeldByWorkspaceId);
+    string? HeldByWorkspaceId,
+    string Stage = "queued",
+    TaskProposalDto? Proposal = null,
+    IReadOnlyList<TaskReviewDto>? Reviews = null);
+
+/// <summary>The proposal a task's author opened, and which revision of it is under review.</summary>
+public sealed record TaskProposalDto(string Number, string Url, string Branch, string BaseBranch, int Revision);
+
+/// <summary>One reviewer's verdict on one revision: <c>approve</c>, <c>requestChanges</c> or <c>comment</c>.</summary>
+public sealed record TaskReviewDto(string WorkspaceId, string Verdict, int Revision, string Body);
 
 /// <summary>Picks one of the repository's open issues into the queue.</summary>
 /// <summary>

@@ -193,6 +193,120 @@ public sealed class TaskQueueServiceTests
         });
     }
 
+    [Test]
+    public void Propose_putsTheTaskInReviewAndCountsRevisions()
+    {
+        var queue = Held("bob");
+        queue.Begin("bob", "acme", "widgets", "1", "main");
+        queue.Propose("bob", "acme", "widgets", "1", "7", "https://example.test/pulls/7", "agent-up/issue-1", "main");
+        queue.Propose("bob", "acme", "widgets", "1", "7", "https://example.test/pulls/7", "agent-up/issue-1", "main");
+        var task = queue.Get("acme", "widgets", "1")!;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(task.Stage, Is.EqualTo(TaskStage.InReview));
+            Assert.That(task.Proposal!.Revision, Is.EqualTo(2));
+            Assert.That(task.BaseBranch, Is.EqualTo("main"));
+        });
+    }
+
+    [Test]
+    public void Review_sendsTheTaskBackToItsAuthorOnAnyRequestForChanges()
+    {
+        var queue = InReview();
+
+        var reviewed = queue.Review("acme", "widgets", "1", Verdict("lucy", TaskReviewVerdict.RequestChanges), ["lucy", "hector"]);
+
+        Assert.That(reviewed!.Stage, Is.EqualTo(TaskStage.ChangesRequested));
+    }
+
+    [Test]
+    public void Review_approvesOnlyWhenEveryReviewerApprovesTheSameRevision()
+    {
+        var queue = InReview();
+
+        var one = queue.Review("acme", "widgets", "1", Verdict("lucy", TaskReviewVerdict.Approve), ["lucy", "hector"]);
+        var both = queue.Review("acme", "widgets", "1", Verdict("hector", TaskReviewVerdict.Approve), ["lucy", "hector"]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(one!.Stage, Is.EqualTo(TaskStage.InReview));
+            Assert.That(both!.Stage, Is.EqualTo(TaskStage.Approved));
+        });
+    }
+
+    [Test]
+    public void Review_neverApprovesOnAComment()
+    {
+        var queue = InReview();
+
+        // A reviewer who wrote no verdict decided nothing, even when nobody objected.
+        var reviewed = queue.Review("acme", "widgets", "1", Verdict("lucy", TaskReviewVerdict.Comment), ["lucy"]);
+
+        Assert.That(reviewed!.Stage, Is.EqualTo(TaskStage.InReview));
+    }
+
+    [Test]
+    public void Review_ignoresAVerdictOnAnOlderRevision()
+    {
+        var queue = InReview();
+        queue.Propose("bob", "acme", "widgets", "1", "7", "https://example.test/pulls/7", "agent-up/issue-1", "main");
+
+        var stale = queue.Review("acme", "widgets", "1", Verdict("lucy", TaskReviewVerdict.Approve), ["lucy"]);
+
+        Assert.That(stale, Is.Null);
+    }
+
+    [Test]
+    public void AwaitingReview_offersEachRevisionToEveryReviewerOnce()
+    {
+        var queue = InReview();
+        queue.Review("acme", "widgets", "1", Verdict("lucy", TaskReviewVerdict.Approve), ["lucy", "hector"]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(queue.AwaitingReview("lucy", "acme", "widgets"), Is.Empty);
+            Assert.That(queue.AwaitingReview("hector", "acme", "widgets").Single().Id, Is.EqualTo("1"));
+            Assert.That(queue.AwaitingReview("hector", "acme", "other"), Is.Empty);
+        });
+    }
+
+    [Test]
+    public void Held_releasesTheAuthorOnceItsTaskIsApproved()
+    {
+        var queue = InReview();
+        queue.Review("acme", "widgets", "1", Verdict("lucy", TaskReviewVerdict.Approve), ["lucy"]);
+
+        Assert.That(queue.Held("bob"), Is.Null);
+    }
+
+    [Test]
+    public void TryClaim_refusesATaskThatIsNoLongerQueued()
+    {
+        var queue = InReview();
+        queue.Release("acme", "widgets", "1");
+
+        Assert.That(queue.TryClaim("hector", "acme", "widgets", "1"), Is.False);
+    }
+
+    private static TaskQueueService Held(string workspaceId)
+    {
+        var queue = Queue();
+        queue.Enqueue(Task("1", 1));
+        queue.TryClaim(workspaceId, "acme", "widgets", "1");
+        return queue;
+    }
+
+    private static TaskQueueService InReview()
+    {
+        var queue = Held("bob");
+        queue.Begin("bob", "acme", "widgets", "1", "main");
+        queue.Propose("bob", "acme", "widgets", "1", "7", "https://example.test/pulls/7", "agent-up/issue-1", "main");
+        return queue;
+    }
+
+    private static TaskReview Verdict(string workspaceId, TaskReviewVerdict verdict) => new(workspaceId, verdict, 1, "notes");
+
     private static TaskQueueService Queue() => new(new MemoryTaskQueueStore());
 
     private static QueuedTask Task(string id, int number) =>

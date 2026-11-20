@@ -5,4 +5,5 @@ public sealed record AssignedProposal(
     string Title,
     string Body,
     DateTimeOffset CreatedAt,
-    string Url);
+    string Url,
+    int Number = 0);

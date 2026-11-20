@@ -26,8 +26,10 @@ public sealed record LoopRunRequest(
     int ContextCharLimit,
     uint Seed = 42,
     int StandingPolicyReplies = 2,
-    int PromptTimeoutMs = 30_000,
-    int RateLimitRetries = 1);
+    int PromptTimeoutMs = 300_000,
+    int RateLimitRetries = 1,
+    int RepeatedFailureLimit = 5,
+    bool ReplyCompletes = false);
 
 public sealed record LoopRunResult(
     LoopTerminal Terminal,
@@ -40,4 +42,5 @@ public sealed record LoopRunResult(
     int ContextChars,
     bool CompletedTask,
     string? BlockReason,
-    uint Seed);
+    uint Seed,
+    string? Reply = null);

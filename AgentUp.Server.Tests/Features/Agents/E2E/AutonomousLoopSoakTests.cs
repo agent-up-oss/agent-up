@@ -37,7 +37,7 @@ public sealed class AutonomousLoopSoakTests
         await host.Workspaces.UpdateBoundAgentAsync(host.WorkspaceId, "codex");
         host.Settings.Save(host.Settings.Get(host.WorkspaceId) with
         {
-            PolicyRules = [new PermissionRule("all", PermissionRuleKind.WorktreeWrite, true)],
+            PolicyRules = [new PermissionRuleBuilder("all", PermissionRuleKind.WorktreeWrite).Build()],
             HostConnectionAuthorized = true
         });
         Assert.That(host.Autonomy.TryEnableServer(out _), Is.True);

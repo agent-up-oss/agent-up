@@ -46,4 +46,15 @@ public sealed class AgentSessionState
     public ConcurrentQueue<string> Steering { get; } = new();
     public int ConsecutiveNoProgress { get; set; }
     public bool SawToolCall { get; set; }
+
+    /// <summary>The latest update the agent sent for each tool call in the running turn.</summary>
+    public ConcurrentDictionary<string, JsonElement> ToolCalls { get; } = new(StringComparer.Ordinal);
+
+    /// <summary>The last tool failure, and how many times in a row the agent has repeated it.</summary>
+    public string? LastFailure { get; set; }
+
+    public int RepeatedFailures { get; set; }
+
+    /// <summary>What the agent said in the turn that ran last, so a review can carry its verdict.</summary>
+    public System.Text.StringBuilder LastReply { get; } = new();
 }

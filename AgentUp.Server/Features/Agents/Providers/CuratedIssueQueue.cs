@@ -23,9 +23,11 @@ public sealed class CuratedIssueQueue(TaskQueueService queue, ForgeController fo
         AssignedIssueOrder order,
         CancellationToken cancellationToken)
     {
+        // A task under review is still this author's, but there is nothing to do until a reviewer
+        // asks for changes, so it waits rather than starting something else.
         var held = queue.Held(workspaceId);
         if (held is not null)
-            return Task.FromResult<IReadOnlyList<AssignedIssue>>([Issue(held)]);
+            return Task.FromResult<IReadOnlyList<AssignedIssue>>(held.Stage is TaskStage.InReview ? [] : [Issue(held)]);
 
         var repository = forge.ResolveRepository(workspaceId);
         if (repository is null)
@@ -35,6 +37,7 @@ public sealed class CuratedIssueQueue(TaskQueueService queue, ForgeController fo
         [
             .. queue.List()
                 .Where(task => task.HeldByWorkspaceId is null
+                    && task.Stage == TaskStage.Queued
                     && task.OfferedTo(workspaceId, repository.Owner, repository.Repository))
                 .Select(Issue)
         ]);

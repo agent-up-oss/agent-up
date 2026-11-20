@@ -1,3 +1,4 @@
+using AgentUp.Server.Tests.Support;
 using AgentUp.Server.Features.Agents.Models;
 
 namespace AgentUp.Server.Tests.Features.Agents.Unit;
@@ -77,8 +78,15 @@ public sealed class TeamMemberGrantsTests
         });
     }
 
-    private static PermissionRule Rule(PermissionRuleKind kind, bool allow, string? scope = null) =>
-        new("rule", kind, allow, scope);
+    private static PermissionRule Rule(PermissionRuleKind kind, bool allow, string? scope = null)
+    {
+        var rule = new PermissionRuleBuilder("rule", kind);
+        if (!allow)
+            rule.Denied();
+        if (scope is not null)
+            rule.Scoped(scope);
+        return rule.Build();
+    }
 
     [Test]
     public void FixtureOf_onlyTheOllamaAgentRunsInProcess()

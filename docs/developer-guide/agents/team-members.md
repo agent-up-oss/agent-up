@@ -25,6 +25,8 @@ One Server hosts many workspaces, and each workspace is one team member with its
 
 Authors and dev reviewers work on code, so they run an ACP coding CLI against their checkout: Claude, Codex, or Cursor today. PM reviewers have nothing to do with code and skip that layer.
 
+Each kind also has a default unattended role: authors take picked issues and end with a proposal, reviewers take proposals awaiting their review and end with a verdict. The Server commits, pushes, and posts for them under the member's own forge account; see [Team pipeline](/developer-guide/agents/autonomy#team-pipeline).
+
 A review raises threads another member must address, so only reviewers submit one. Authors still post plain proposal comments, and address threads through `enqueue_review_fix_commit`.
 
 ## Enforcement

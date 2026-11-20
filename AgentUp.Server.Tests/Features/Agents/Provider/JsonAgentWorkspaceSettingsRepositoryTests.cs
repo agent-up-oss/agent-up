@@ -1,3 +1,4 @@
+using AgentUp.Server.Tests.Support;
 using AgentUp.Server.Features.Agents.Models;
 using AgentUp.Server.Features.Agents.Providers;
 
@@ -14,7 +15,7 @@ public sealed class JsonAgentWorkspaceSettingsRepositoryTests
         var role = new AgentRoleDefinition("Ship it", ["read_file"], RoleTriggerKind.IssueAssigned, RoleTerminationKind.ProposalOpened);
         first.Save(new AgentWorkspaceSettings(
             "ws-1",
-            [new PermissionRule("write", PermissionRuleKind.WorktreeWrite, true)],
+            [new PermissionRuleBuilder("write", PermissionRuleKind.WorktreeWrite).Build()],
             role,
             false,
             true,

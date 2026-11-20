@@ -112,9 +112,19 @@ public sealed class DeclaredPermissionPolicy(IReadOnlyList<PermissionRule> rules
         return "";
     }
 
+    /// <summary>
+    /// The command a request runs. ACP agents put it in the tool call's <c>rawInput</c> (OpenCode,
+    /// Claude Code), some at the top of the tool call; the title is only a fallback, because agents
+    /// title a command call with the tool's name as often as with the command.
+    /// </summary>
     private static string ReadCommand(JsonElement request)
     {
-        if (request.TryGetProperty("toolCall", out var tool) && tool.TryGetProperty("command", out var command))
+        if (!request.TryGetProperty("toolCall", out var tool) || tool.ValueKind != JsonValueKind.Object)
+            return ReadTitle(request);
+        if (tool.TryGetProperty("rawInput", out var raw) && raw.ValueKind == JsonValueKind.Object
+            && raw.TryGetProperty("command", out var rawCommand) && rawCommand.ValueKind == JsonValueKind.String)
+            return rawCommand.GetString() ?? "";
+        if (tool.TryGetProperty("command", out var command) && command.ValueKind == JsonValueKind.String)
             return command.GetString() ?? "";
         return ReadTitle(request);
     }

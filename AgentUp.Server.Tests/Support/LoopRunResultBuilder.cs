@@ -15,6 +15,14 @@ internal sealed class LoopRunResultBuilder
     private bool _completed = true;
     private string? _block;
     private uint _seed = 42;
+    private string? _reply;
+
+    /// <summary>What the agent said last in the run, which a reviewer's verdict is read from.</summary>
+    public LoopRunResultBuilder Replying(string reply)
+    {
+        _reply = reply;
+        return this;
+    }
 
     public LoopRunResultBuilder Terminal(LoopTerminal terminal)
     {
@@ -91,5 +99,6 @@ internal sealed class LoopRunResultBuilder
         _context,
         _completed,
         _block,
-        _seed);
+        _seed,
+        _reply);
 }

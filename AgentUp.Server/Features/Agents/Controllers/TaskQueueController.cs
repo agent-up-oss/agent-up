@@ -1,3 +1,4 @@
+using System.Text.Json;
 using AgentUp.Server.Features.Agents.DTOs;
 using AgentUp.Server.Features.Agents.Models;
 using AgentUp.Server.Features.Agents.Services;
@@ -39,5 +40,14 @@ public sealed class TaskQueueController(TaskQueueService queue, TaskPickingServi
         task.Url,
         task.QueuedAt,
         task.TargetWorkspaceId,
-        task.HeldByWorkspaceId);
+        task.HeldByWorkspaceId,
+        JsonNamingPolicy.CamelCase.ConvertName(Enum.GetName(task.Stage)!),
+        task.Proposal is null
+            ? null
+            : new TaskProposalDto(task.Proposal.Number, task.Proposal.Url, task.Proposal.Branch, task.Proposal.BaseBranch, task.Proposal.Revision),
+        [.. (task.Reviews ?? []).Select(review => new TaskReviewDto(
+            review.WorkspaceId,
+            JsonNamingPolicy.CamelCase.ConvertName(Enum.GetName(review.Verdict)!),
+            review.Revision,
+            review.Body))]);
 }
