@@ -40,10 +40,15 @@ internal sealed class StubForgeCapability : IForgeCapability
 
     public int ReviewCalls { get; private set; }
 
+    public string? LastReadToken { get; private set; }
+
     public Task<ForgeHostSnapshot> ReadAsync(ForgeRequest request, CancellationToken cancellationToken = default)
-        => ReadFailure is not null
+    {
+        LastReadToken = request.Token;
+        return ReadFailure is not null
             ? Task.FromException<ForgeHostSnapshot>(ReadFailure)
             : Task.FromResult(Snapshot);
+    }
 
     public Task<IReadOnlyList<ForgeIssue>> ListAssignedAsync(
         ForgeRequest request,

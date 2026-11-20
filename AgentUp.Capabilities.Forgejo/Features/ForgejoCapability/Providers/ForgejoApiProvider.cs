@@ -155,10 +155,17 @@ public sealed class ForgejoApiProvider(HttpMessageHandler? handler = null, strin
         using var client = CreateClient(request.Token);
         using var response = await client.PostAsJsonAsync(
             $"repos/{request.Owner}/{request.Repository}/pulls/{command.ProposalNumber}/reviews",
-            new { body = command.Body, @event = command.Event },
+            new { body = command.Body, @event = ReviewEvent(command.Event) },
             cancellationToken);
         response.EnsureSuccessStatusCode();
     }
+
+    /// <summary>
+    /// Forgejo names an approval <c>APPROVED</c>; the Server's neutral name is <c>APPROVE</c>, the
+    /// same as GitHub's. Other events pass through.
+    /// </summary>
+    public static string ReviewEvent(string @event) =>
+        string.Equals(@event, "APPROVE", StringComparison.OrdinalIgnoreCase) ? "APPROVED" : @event.ToUpperInvariant();
 
     public static bool IsProtected(string @ref)
     {

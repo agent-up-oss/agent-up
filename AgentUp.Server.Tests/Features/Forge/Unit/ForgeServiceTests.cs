@@ -260,6 +260,104 @@ public sealed class ForgeServiceTests
     }
 
     [Test]
+    public async Task CompleteLoginOutcomeAsync_reportsTheHostsRefusalInsteadOfThrowing()
+    {
+        var credentials = new MemoryForgeCredentialStore();
+        var states = new ForgeOAuthStateStore();
+        var (service, workspaceId) = await ArrangeAsync(
+            new StubForgeCapability(),
+            credentials,
+            oauth: new ForgeOAuthConfiguration("client", "secret", "http://localhost/callback"),
+            states: states,
+            exchange: new FixedForgeOAuthExchange("unused", "The host refused the sign-in code (400): unsupported_grant_type"));
+        var state = states.Issue(workspaceId);
+
+        var outcome = await service.CompleteLoginOutcomeAsync("code", state, CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(outcome.StatusCode, Is.EqualTo(502));
+            Assert.That(System.Text.Json.JsonSerializer.Serialize(outcome.Body), Does.Contain("unsupported_grant_type"));
+            Assert.That(credentials.Read(workspaceId, "github"), Is.Null);
+        });
+    }
+
+    [Test]
+    public async Task GetHostingAsync_refreshesAnExpiringOAuthTokenBeforeReadingTheHost()
+    {
+        var clock = new StubTimeProvider();
+        var credentials = new MemoryForgeCredentialStore();
+        var forge = new StubForgeCapability();
+        var exchange = new FixedForgeOAuthExchange("unused", refreshed: new ForgeOAuthGrant("fresh", "next-refresh", clock.UtcNow.AddHours(1)));
+        var (service, workspaceId) = await ArrangeAsync(forge, credentials, exchange: exchange, time: clock);
+        credentials.WriteGrant(workspaceId, "github", new ForgeOAuthGrant("stale", "refresh-1", clock.UtcNow.AddSeconds(30)));
+
+        await service.GetHostingAsync(workspaceId, CancellationToken.None);
+
+        // Forgejo expires access tokens after an hour; without this the workspace loses its host.
+        Assert.Multiple(() =>
+        {
+            Assert.That(exchange.RefreshedWith, Is.EqualTo(new[] { "refresh-1" }));
+            Assert.That(forge.LastReadToken, Is.EqualTo("fresh"));
+            Assert.That(credentials.ReadGrant(workspaceId, "github")!.RefreshToken, Is.EqualTo("next-refresh"));
+        });
+    }
+
+    [Test]
+    public async Task GetHostingAsync_leavesAFreshTokenAlone()
+    {
+        var clock = new StubTimeProvider();
+        var credentials = new MemoryForgeCredentialStore();
+        var exchange = new FixedForgeOAuthExchange("unused", refreshed: new ForgeOAuthGrant("never", null, null));
+        var (service, workspaceId) = await ArrangeAsync(new StubForgeCapability(), credentials, exchange: exchange, time: clock);
+        credentials.WriteGrant(workspaceId, "github", new ForgeOAuthGrant("current", "refresh-1", clock.UtcNow.AddMinutes(30)));
+
+        await service.GetHostingAsync(workspaceId, CancellationToken.None);
+
+        Assert.That(exchange.RefreshedWith, Is.Empty);
+    }
+
+    [Test]
+    public async Task GetHostingAsync_asksToSignInAgainWhenTheHostRefusesTheCredential()
+    {
+        var credentials = new MemoryForgeCredentialStore();
+        var (service, workspaceId) = await ArrangeAsync(
+            new StubForgeCapability { ReadFailure = new HttpRequestException("Unauthorized", null, System.Net.HttpStatusCode.Unauthorized) },
+            credentials);
+        credentials.Write(workspaceId, "github", "expired");
+
+        var hosting = await service.GetHostingAsync(workspaceId, CancellationToken.None);
+
+        // "Check the repository host URL" is the wrong remedy for an expired sign-in.
+        Assert.That(hosting!.Availability, Is.EqualTo("needsCredential"));
+    }
+
+    [Test]
+    public async Task PushTaskBranchAsync_neverWritesABranchOutsideTheTaskPrefix()
+    {
+        var (service, workspaceId) = await ArrangeAsync(new StubForgeCapability());
+
+        var main = await service.PushTaskBranchAsync(workspaceId, "main", CancellationToken.None);
+        var bare = await service.PushTaskBranchAsync(workspaceId, "agent-up/", CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(main.Error, Does.Contain("only agent-up/ branches"));
+            Assert.That(bare.Succeeded, Is.False);
+        });
+    }
+
+    [Test]
+    public async Task FetchBranchesAsync_needsASignedInWorkspace()
+    {
+        var (service, workspaceId) = await ArrangeAsync(new StubForgeCapability());
+
+        var fetched = await service.FetchBranchesAsync(workspaceId, ["main"], CancellationToken.None);
+
+        Assert.That(fetched.Error, Is.Not.Null);
+    }
+
+    [Test]
     public async Task GetHostingAsync_mapsATimeoutToUnreachable()
     {
         var credentials = new MemoryForgeCredentialStore();
@@ -718,7 +816,8 @@ public sealed class ForgeServiceTests
         ForgeOAuthStateStore? states = null,
         FixedForgeOAuthExchange? exchange = null,
         GithubAppConnectionService? githubApps = null,
-        TeamMemberKind? member = null)
+        TeamMemberKind? member = null,
+        TimeProvider? time = null)
     {
         var workspaces = new WorkspaceQueryController(ServerTestComposition.CreateRegistry());
         var workspace = await workspaces.RegisterAsync(ServerDomain.Workspace().Build());
@@ -743,7 +842,8 @@ public sealed class ForgeServiceTests
             states ?? new ForgeOAuthStateStore(),
             exchange ?? new FixedForgeOAuthExchange("exchanged"),
             githubApps,
-            members);
+            members,
+            time: time);
         return (service, workspace.Id);
     }
 

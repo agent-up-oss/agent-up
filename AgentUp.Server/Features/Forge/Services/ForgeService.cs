@@ -18,8 +18,15 @@ public sealed class ForgeService(
     IForgeOAuthStateStore states,
     IForgeOAuthExchange exchange,
     GithubAppConnectionService? githubApps = null,
-    TeamMemberController? members = null)
+    TeamMemberController? members = null,
+    IForgeGitTransport? transport = null,
+    TimeProvider? time = null)
 {
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, SemaphoreSlim> _refreshes = new(StringComparer.Ordinal);
+
+    /// <summary>The only branches the Server pushes on a team member's behalf.</summary>
+    public const string TaskBranchPrefix = "agent-up/";
+
     public async Task<ForgeHostingDto?> GetHostingAsync(string workspaceId, CancellationToken cancellationToken)
     {
         var workspace = workspaces.GetById(workspaceId);
@@ -41,25 +48,16 @@ public sealed class ForgeService(
             var token = await CredentialAsync(workspaceId, forge, remote, cancellationToken);
             if (string.IsNullOrWhiteSpace(token))
                 return NeedsCredential(forge.Identity.Id, IsLoginConfigured(forge.Identity.Id));
-
-            var snapshot = await forge.ReadAsync(
-                new ForgeRequest(token, remote.Owner, remote.Repository, remote.Branch),
-                cancellationToken);
-            // The workspace has an account whether or not a proposal is open, so both answers carry it.
-            var account = ToAccount(snapshot.Account);
-            if (snapshot.Proposal is null)
-                return NoProposal(forge.Identity.Id, account);
-
-            return Ready(
-                forge.Identity.Id,
-                ToProposal(snapshot.Proposal),
-                [.. snapshot.Checks.Select(ToCheck)],
-                [.. snapshot.Threads.Select(ToThread)],
-                snapshot.Mergeability is null
-                    ? null
-                    : new ForgeMergeabilityDto(snapshot.Mergeability.Mergeable, snapshot.Mergeability.State),
-                account,
-                [.. (snapshot.Reviews ?? []).Select(ToReview)]);
+            try
+            {
+                return await ReadHostingAsync(forge, token, remote, cancellationToken);
+            }
+            catch (HttpRequestException exception) when (exception.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            {
+                // The host no longer accepts this workspace's credential: signing in again is the
+                // remedy, not checking the host URL.
+                return NeedsCredential(forge.Identity.Id, IsLoginConfigured(forge.Identity.Id));
+            }
         }
         catch (HttpRequestException exception)
         {
@@ -69,6 +67,28 @@ public sealed class ForgeService(
         {
             return Unreachable(forge.Identity.Id, exception.Message);
         }
+    }
+
+    private async Task<ForgeHostingDto> ReadHostingAsync(IForgeCapability forge, string token, ForgeGitRemote remote, CancellationToken cancellationToken)
+    {
+        var snapshot = await forge.ReadAsync(
+            new ForgeRequest(token, remote.Owner, remote.Repository, remote.Branch),
+            cancellationToken);
+        // The workspace has an account whether or not a proposal is open, so both answers carry it.
+        var account = ToAccount(snapshot.Account);
+        if (snapshot.Proposal is null)
+            return NoProposal(forge.Identity.Id, account);
+
+        return Ready(
+            forge.Identity.Id,
+            ToProposal(snapshot.Proposal),
+            [.. snapshot.Checks.Select(ToCheck)],
+            [.. snapshot.Threads.Select(ToThread)],
+            snapshot.Mergeability is null
+                ? null
+                : new ForgeMergeabilityDto(snapshot.Mergeability.Mergeable, snapshot.Mergeability.State),
+            account,
+            [.. (snapshot.Reviews ?? []).Select(ToReview)]);
     }
 
     public async Task<ForgeHttpOutcome> StartLoginAsync(
@@ -155,11 +175,31 @@ public sealed class ForgeService(
         if (forge is null)
             return false;
 
-        credentials.Write(
+        credentials.WriteGrant(
             workspaceId,
             forge.Identity.Id,
-            await exchange.ExchangeAsync(code, forge.Host.OAuthTokenUrl, cancellationToken));
+            await exchange.ExchangeGrantAsync(code, forge.Host.OAuthTokenUrl, cancellationToken));
         return true;
+    }
+
+    /// <summary>
+    /// The sign-in callback, answered as the page the browser lands on: signed in, refused by the
+    /// host with its reason, or an unknown sign-in.
+    /// </summary>
+    public async Task<ForgeHttpOutcome> CompleteLoginOutcomeAsync(string code, string state, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await CompleteLoginAsync(code, state, cancellationToken)
+                ? new ForgeHttpOutcome(StatusCodes.Status200OK, new { signedIn = true })
+                : new ForgeHttpOutcome(StatusCodes.Status404NotFound, null);
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or HttpRequestException)
+        {
+            return new ForgeHttpOutcome(
+                StatusCodes.Status502BadGateway,
+                new { title = "Forge sign-in failed", detail = exception.Message });
+        }
     }
 
     public bool HasCredential(string workspaceId)
@@ -322,6 +362,52 @@ public sealed class ForgeService(
         }, cancellationToken);
 
     /// <summary>
+    /// Pushes the workspace's HEAD to a task branch with its own credential. Only
+    /// <see cref="TaskBranchPrefix"/> branches are written, so no base branch can ever be moved.
+    /// </summary>
+    public async Task<ForgeTransferOutcome> PushTaskBranchAsync(string workspaceId, string branch, CancellationToken cancellationToken)
+    {
+        if (!branch.StartsWith(TaskBranchPrefix, StringComparison.Ordinal) || branch.Length == TaskBranchPrefix.Length)
+            return ForgeTransferOutcome.Refused($"Agent-Up pushes only {TaskBranchPrefix} branches.");
+        return await TransferAsync(
+            workspaceId,
+            (path, remote, token) => transport!.PushAsync(path, remote, branch, token, cancellationToken),
+            cancellationToken);
+    }
+
+    /// <summary>Fetches the named branches into the workspace's <c>origin</c> tracking refs.</summary>
+    public Task<ForgeTransferOutcome> FetchBranchesAsync(string workspaceId, IReadOnlyList<string> branches, CancellationToken cancellationToken)
+        => TransferAsync(
+            workspaceId,
+            (path, remote, token) => transport!.FetchAsync(path, remote, branches, token, cancellationToken),
+            cancellationToken);
+
+    private async Task<ForgeTransferOutcome> TransferAsync(
+        string workspaceId,
+        Func<string, string, string, Task> transfer,
+        CancellationToken cancellationToken)
+    {
+        if (transport is null)
+            return ForgeTransferOutcome.Refused("This Server has no Git transport for forge credentials.");
+        var workspace = workspaces.GetById(workspaceId);
+        var remote = workspace is null ? null : remotes.Resolve(workspace.WorktreePath);
+        if (workspace is null || remote is null)
+            return ForgeTransferOutcome.Refused("The workspace has no forge remote.");
+        var request = await RequestForAsync(workspaceId, cancellationToken);
+        if (request is null)
+            return ForgeTransferOutcome.Refused("The workspace is not signed in to its forge.");
+        try
+        {
+            await transfer(workspace.WorktreePath, remote.RemoteUrl, request.Value.Request.Token);
+            return ForgeTransferOutcome.Done();
+        }
+        catch (InvalidOperationException exception)
+        {
+            return ForgeTransferOutcome.Refused(exception.Message);
+        }
+    }
+
+    /// <summary>
     /// The repository this workspace's checkout points at. No credential is needed: the queue has
     /// to tell whose tasks a workspace may take even while the host is signed out.
     /// </summary>
@@ -380,7 +466,44 @@ public sealed class ForgeService(
         CancellationToken cancellationToken)
         => UsesGithubApp(forge)
             ? githubApps!.TokenAsync(workspaceId, remote.Repository, cancellationToken)
-            : Task.FromResult(credentials.Read(workspaceId, forge.Identity.Id));
+            : OAuthTokenAsync(workspaceId, forge, cancellationToken);
+
+    /// <summary>
+    /// The workspace's OAuth access token, refreshed first when it is about to expire. Refreshes
+    /// for one workspace run one at a time, because hosts rotate the refresh token and a second
+    /// refresh with the old one would be refused. A refresh the host refuses leaves the old token,
+    /// which the host then answers with 401: the workspace reads as needing to sign in again.
+    /// </summary>
+    private async Task<string?> OAuthTokenAsync(string workspaceId, IForgeCapability forge, CancellationToken cancellationToken)
+    {
+        var grant = credentials.ReadGrant(workspaceId, forge.Identity.Id);
+        var now = (time ?? TimeProvider.System).GetUtcNow();
+        if (grant is null || !grant.NeedsRefresh(now))
+            return grant?.AccessToken;
+
+        var gate = _refreshes.GetOrAdd($"{workspaceId}/{forge.Identity.Id}", _ => new SemaphoreSlim(1, 1));
+        await gate.WaitAsync(cancellationToken);
+        try
+        {
+            grant = credentials.ReadGrant(workspaceId, forge.Identity.Id);
+            if (grant is null || !grant.NeedsRefresh((time ?? TimeProvider.System).GetUtcNow()))
+                return grant?.AccessToken;
+            try
+            {
+                var refreshed = await exchange.RefreshAsync(grant.RefreshToken!, forge.Host.OAuthTokenUrl, cancellationToken);
+                credentials.WriteGrant(workspaceId, forge.Identity.Id, refreshed);
+                return refreshed.AccessToken;
+            }
+            catch (Exception exception) when (exception is InvalidOperationException or HttpRequestException)
+            {
+                return grant.AccessToken;
+            }
+        }
+        finally
+        {
+            gate.Release();
+        }
+    }
 
     private bool IsLoginConfigured(string moduleId)
         => moduleId.Equals("github", StringComparison.OrdinalIgnoreCase) && githubApps is not null

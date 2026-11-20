@@ -43,7 +43,7 @@ public sealed class ForgeOAuthHttpController(ForgeController forge) : Controller
         [FromQuery] string state,
         CancellationToken cancellationToken)
     {
-        var completed = await forge.CompleteLoginAsync(code, state, cancellationToken);
-        return completed ? Ok(new { signedIn = true }) : NotFound();
+        var outcome = await forge.CompleteLoginOutcomeAsync(code, state, cancellationToken);
+        return outcome.Body is null ? StatusCode(outcome.StatusCode) : StatusCode(outcome.StatusCode, outcome.Body);
     }
 }
