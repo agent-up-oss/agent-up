@@ -150,24 +150,56 @@ public sealed class FakeBackendServiceTests
     }
 
     [Test]
-    public void Handle_agentPromptPublishesScriptedEvents()
+    public void Handle_anAuthorPlaysTheDemoAgentRunAtItsOwnPaceAndThenEndsTheTurn()
     {
-        var backend = FakeServerTestComposition.Backend();
-        var published = new List<string>();
-        using var subscription = backend.SubscribeAgent("bob", item => published.Add(item.Type));
+        var pending = new List<(int At, Action Work)>();
+        var backend = FakeServerTestComposition.Backend((at, work) => pending.Add((at, work)));
+        var updates = new List<string>();
+        using var subscription = backend.SubscribeAgent("bob", item =>
+        {
+            if (item.Payload?["sessionUpdate"]?.GetValue<string>() is { } update) updates.Add(update);
+        });
 
-        var result = Run(backend, Post("/api/workspaces/bob/agent/messages", """{"message":"status?"}"""));
-        var replayed = backend.AgentEventsAfter("bob", 0);
-        var changes = Json(backend, Get("/api/workspaces/bob/git/changes"));
+        var result = Run(backend, Post("/api/workspaces/bob/agent/messages", """{"message":"add the weekly harbor special"}"""));
+        var beforePlayback = updates.Count;
+        var stateWhilePlaying = Json(backend, Get("/api/workspaces/bob/agent"))["state"]!.GetValue<string>();
+        foreach (var (_, work) in pending.OrderBy(entry => entry.At).ToArray()) work();
+        var replayed = backend.AgentEventsAfter("bob", 0).Select(item => item.Type).ToArray();
 
         Assert.Multiple(() =>
         {
             Assert.That(result.Status, Is.EqualTo(204));
-            Assert.That(published, Does.Contain("user_message"));
-            Assert.That(published, Does.Contain("session_update"));
-            Assert.That(replayed.Select(item => item.Type), Does.Contain("user_message"));
-            Assert.That(changes["fileCount"]!.GetValue<int>(), Is.EqualTo(3));
+            Assert.That(beforePlayback, Is.Zero, "nothing of the run arrives before its first delay");
+            Assert.That(stateWhilePlaying, Is.EqualTo("running"));
+            Assert.That(updates.Count(update => update == "tool_call"), Is.GreaterThanOrEqualTo(10), "the run reads, edits and runs tests");
+            Assert.That(updates, Does.Contain("agent_thought_chunk"));
+            Assert.That(replayed[^2..], Is.EqualTo(new[] { "prompt_result", "state" }));
             Assert.That(Json(backend, Get("/api/workspaces/bob/agent"))["state"]!.GetValue<string>(), Is.EqualTo("ready"));
+            Assert.That(Json(backend, Get("/api/workspaces/bob/git/changes"))["fileCount"]!.GetValue<int>(), Is.EqualTo(3));
+        });
+    }
+
+    [Test]
+    public void Handle_aMessageSentWhileTheDemoRunPlaysSteersItInsteadOfStartingASecondRun()
+    {
+        var pending = new List<(int At, Action Work)>();
+        var backend = FakeServerTestComposition.Backend((at, work) => pending.Add((at, work)));
+
+        Run(backend, Post("/api/workspaces/bob/agent/messages", """{"message":"add the weekly harbor special"}"""));
+        var scheduled = pending.Count;
+        var steer = Run(backend, Post("/api/workspaces/bob/agent/messages", """{"message":"keep the price struck through"}"""));
+        var steeredScheduledNothing = pending.Count == scheduled;
+        foreach (var (_, work) in pending.OrderBy(entry => entry.At).ToArray()) work();
+        var events = backend.AgentEventsAfter("bob", 0);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(steer.Status, Is.EqualTo(204));
+            Assert.That(steeredScheduledNothing, Is.True, "one turn, not two");
+            Assert.That(events.Count(item => item.Type == "user_message"), Is.EqualTo(2));
+            Assert.That(events.Count(item => item.Type == "prompt_result"), Is.EqualTo(1));
+            Assert.That(events.Last(item => item.Type == "session_update").Payload.ToJsonString(),
+                Does.Contain("keep the price struck through"));
         });
     }
 

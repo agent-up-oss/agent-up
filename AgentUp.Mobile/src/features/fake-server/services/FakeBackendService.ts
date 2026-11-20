@@ -1,5 +1,6 @@
 import {
   cloneDefinition,
+  type FakeAgentRunStep,
   type FakeOfferedIssue,
   type FakeProductDecision,
   type FakeQueuedTask,
@@ -178,6 +179,8 @@ export class FakeBackendService {
   private loopGeneration = 0;
   private autonomyEnabled = false;
   private readonly permissionPolicies = new Map<string, unknown[]>();
+  /** Messages sent while the Demo run plays, keyed by workspace; present only while it plays. */
+  private readonly steering = new Map<string, string[]>();
   private cancelLifecycle: (() => void) | null = null;
 
   constructor(definition: FakeServerDefinition, schedule: FakeScheduler = defaultScheduler) {
@@ -929,9 +932,24 @@ export class FakeBackendService {
     // the tree.
     const reviewing = reviewsOthersWork(session.session);
     const added = git && !reviewing ? addAgentWorkingTreeFile(git) : null;
+    // A message sent while the run plays is steering, as on a real Server: it is recorded now and
+    // answered when the turn ends, never started as a second turn over the first.
+    const steered = this.steering.get(workspaceId);
+    if (steered) {
+      steered.push(message);
+      this.publishAgent(workspaceId, 'user_message', { text: message });
+      return { status: 204, contentType: 'application/json' };
+    }
     const snapshot = this.liveAgentSession(session.session);
     this.publishAgent(workspaceId, 'user_message', { text: message });
     this.publishAgent(workspaceId, 'state', { ...snapshot, state: 'running' });
+    const run = reviewing ? [] : this.state.agentRun ?? [];
+    if (run.length > 0) {
+      this.recordAgentState(session, 'running');
+      this.steering.set(workspaceId, []);
+      this.playAgentRun(workspaceId, run, snapshot, () => this.recordAgentState(session, 'ready'));
+      return { status: 204, contentType: 'application/json' };
+    }
     const text = added
       ? `I added \`${added.path}\` so the storefront can show the weekly harbor special. It is uncommitted in the working tree.`
       : reviewing
@@ -943,6 +961,37 @@ export class FakeBackendService {
     });
     this.publishAgent(workspaceId, 'state', { ...snapshot, state: 'ready' });
     return { status: 204, contentType: 'application/json' };
+  }
+
+  /**
+   * Plays the definition's agent turn at its own pace, then ends the turn the way a Server does:
+   * a prompt result and the session back to ready.
+   */
+  private playAgentRun(workspaceId: string, run: FakeAgentRunStep[], snapshot: Record<string, unknown>, ended: () => void) {
+    let at = 0;
+    for (const step of run) {
+      at += step.delayMs ?? 0;
+      const type = step.type ?? 'session_update';
+      const payload = structuredClone(step.payload ?? {});
+      this.schedule(at, () => this.publishAgent(workspaceId, type, payload));
+    }
+    this.schedule(at + 300, () => {
+      ended();
+      for (const note of this.steering.get(workspaceId) ?? []) {
+        this.publishAgent(workspaceId, 'session_update', {
+          sessionUpdate: 'agent_message_chunk',
+          content: { type: 'text', text: `Noted for the next pass: ${note}` },
+        });
+      }
+      this.steering.delete(workspaceId);
+      this.publishAgent(workspaceId, 'prompt_result', { stopReason: 'end_turn' });
+      this.publishAgent(workspaceId, 'state', { ...snapshot, state: 'ready' });
+    });
+  }
+
+  /** The session a client reads while the run plays, so one that reconnects mid-turn sees it running. */
+  private recordAgentState(session: { session?: unknown }, state: string) {
+    if (session.session && typeof session.session === 'object') (session.session as Record<string, unknown>).state = state;
   }
 
   private agentEventStream(workspaceId: string, query: string): FakeBackendResponse {

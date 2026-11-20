@@ -97,7 +97,8 @@ runner.
 Every screen is captured *used*, not freshly opened. The routes interact first: they sign in
 by choosing Demo, send two prompts to the workspace agent, add two items to the Demo
 storefront's cart, tick files and write a commit message, jump to a line in a diff, commit,
-and disable a capability module. The routes are ordered and cumulative, because the Demo
+and disable a capability module. The second prompt lands while the Demo agent's run is still
+playing, so it is captured as steering. The routes are ordered and cumulative, because the Demo
 backend answers a prompt by adding a file to the working tree: Git is captured after the
 agent has run, and History after the commit those files went into.
 

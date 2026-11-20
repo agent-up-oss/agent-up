@@ -17,6 +17,7 @@ public sealed class FakeBackendService
     private readonly Dictionary<string, List<Action<FakeServerEvent>>> _agentListeners = new(StringComparer.Ordinal);
     private readonly List<Action<string>> _workspaceListeners = [];
     private readonly Dictionary<string, JsonArray> _appTemplates = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, List<string>> _steering = new(StringComparer.Ordinal);
     private int _lifecycleGeneration;
     private int _loopGeneration;
     private bool _autonomyEnabled;
@@ -686,10 +687,22 @@ public sealed class FakeBackendService
         }
 
         var message = ReadJsonString(body, "message") ?? "";
+        if (Steer(workspaceId, message))
+            return new FakeBackendResponseDto(204, "application/json");
         var running = snapshot.DeepClone().AsObject();
         running["state"] = "running";
         PublishAgent(workspaceId, "user_message", new JsonObject { ["text"] = message });
         PublishAgent(workspaceId, "state", running);
+        var run = reviewing ? null : _state.AgentRun;
+        if (run is { Count: > 0 })
+        {
+            RecordAgentState(workspaceId, "running");
+            lock (_gate)
+                _steering[workspaceId] = [];
+            PlayAgentRun(workspaceId, run, snapshot);
+            return new FakeBackendResponseDto(204, "application/json");
+        }
+
         var text = path is not null
             ? $"I added `{path}` so the storefront can show the weekly harbor special. It is uncommitted in the working tree."
             : reviewing
@@ -704,6 +717,73 @@ public sealed class FakeBackendService
         ready["state"] = "ready";
         PublishAgent(workspaceId, "state", ready);
         return new FakeBackendResponseDto(204, "application/json");
+    }
+
+    /// <summary>
+    /// Plays the definition's agent turn at its own pace, then ends the turn the way a Server does:
+    /// a prompt result and the session back to ready.
+    /// </summary>
+    private void PlayAgentRun(string workspaceId, JsonArray run, JsonObject snapshot)
+    {
+        var at = 0;
+        foreach (var step in run.OfType<JsonObject>())
+        {
+            at += step["delayMs"]?.GetValue<int>() ?? 0;
+            var type = step["type"]?.GetValue<string>() ?? "session_update";
+            var payload = step["payload"]?.DeepClone() ?? new JsonObject();
+            _schedule(at, () => PublishAgent(workspaceId, type, payload));
+        }
+
+        _schedule(at + 300, () =>
+        {
+            RecordAgentState(workspaceId, "ready");
+            foreach (var note in EndSteering(workspaceId))
+                PublishAgent(workspaceId, "session_update", new JsonObject
+                {
+                    ["sessionUpdate"] = "agent_message_chunk",
+                    ["content"] = new JsonObject { ["type"] = "text", ["text"] = $"Noted for the next pass: {note}" }
+                });
+            PublishAgent(workspaceId, "prompt_result", new JsonObject { ["stopReason"] = "end_turn" });
+            var ready = snapshot.DeepClone().AsObject();
+            ready["state"] = "ready";
+            PublishAgent(workspaceId, "state", ready);
+        });
+    }
+
+    /// <summary>
+    /// A message sent while the run plays is steering, as on a real Server: it is recorded now and
+    /// answered when the turn ends, never started as a second turn over the first.
+    /// </summary>
+    private bool Steer(string workspaceId, string message)
+    {
+        lock (_gate)
+        {
+            if (!_steering.TryGetValue(workspaceId, out var notes))
+                return false;
+            notes.Add(message);
+        }
+        PublishAgent(workspaceId, "user_message", new JsonObject { ["text"] = message });
+        return true;
+    }
+
+    private List<string> EndSteering(string workspaceId)
+    {
+        lock (_gate)
+        {
+            var notes = _steering.GetValueOrDefault(workspaceId) ?? [];
+            _steering.Remove(workspaceId);
+            return notes;
+        }
+    }
+
+    /// <summary>The session a client reads while the run plays, so one that reconnects mid-turn sees it running.</summary>
+    private void RecordAgentState(string workspaceId, string state)
+    {
+        lock (_gate)
+        {
+            if ((_state.Agents?[workspaceId] as JsonObject)?["session"] is JsonObject session)
+                session["state"] = state;
+        }
     }
 
     /// <summary>

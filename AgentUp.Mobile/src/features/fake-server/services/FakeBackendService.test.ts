@@ -57,8 +57,38 @@ test('binding records the workspace agent', () => {
   assert.equal(unbound.boundAgent, null);
 });
 
-test('agent prompts add a working-tree file and say so', () => {
-  const service = backend();
+test('an author plays the Demo agent run at its own pace and then ends the turn', () => {
+  const { service, step } = queuedBackend();
+  const updates: string[] = [];
+  const types: string[] = [];
+  const unsubscribe = service.subscribeAgent('bob', event => {
+    types.push(event.type);
+    const update = event.payload as { sessionUpdate?: string };
+    if (update?.sessionUpdate) updates.push(update.sessionUpdate);
+  });
+  const result = service.handle({
+    method: 'POST',
+    path: '/api/workspaces/bob/agent/messages',
+    query: '',
+    body: JSON.stringify({ message: 'add the weekly harbor special' }),
+  });
+  const beforePlayback = updates.length;
+  const stateWhilePlaying = json(service, 'GET', '/api/workspaces/bob/agent').state;
+  for (let index = 0; index < 500 && !types.includes('prompt_result'); index += 1) step();
+  unsubscribe();
+  const changes = json(service, 'GET', '/api/workspaces/bob/git/changes');
+  assert.equal(result.status, 204);
+  assert.equal(beforePlayback, 0, 'nothing of the run arrives before its first delay');
+  assert.equal(stateWhilePlaying, 'running');
+  assert.equal(json(service, 'GET', '/api/workspaces/bob/agent').state, 'ready');
+  assert.ok(updates.filter(update => update === 'tool_call').length >= 10, 'the run reads, edits and runs tests');
+  assert.ok(updates.includes('agent_thought_chunk'));
+  assert.deepEqual(types.slice(-2), ['prompt_result', 'state']);
+  assert.equal(changes.fileCount, 3);
+});
+
+test('a message sent while the Demo run plays steers it instead of starting a second run', () => {
+  const { service, step } = queuedBackend();
   const types: string[] = [];
   const texts: string[] = [];
   const unsubscribe = service.subscribeAgent('bob', event => {
@@ -66,19 +96,18 @@ test('agent prompts add a working-tree file and say so', () => {
     const payload = event.payload as { content?: { text?: string } };
     if (payload?.content?.text) texts.push(payload.content.text);
   });
-  const result = service.handle({
-    method: 'POST',
-    path: '/api/workspaces/bob/agent/messages',
-    query: '',
-    body: JSON.stringify({ message: 'add a promo banner' }),
+  const send = (message: string) => service.handle({
+    method: 'POST', path: '/api/workspaces/bob/agent/messages', query: '', body: JSON.stringify({ message }),
   });
+  send('add the weekly harbor special');
+  step();
+  const steer = send('keep the price struck through');
+  for (let index = 0; index < 500 && !types.includes('prompt_result'); index += 1) step();
   unsubscribe();
-  const changes = json(service, 'GET', '/api/workspaces/bob/git/changes');
-  assert.equal(result.status, 204);
-  assert.ok(types.includes('user_message'));
-  assert.ok(types.includes('session_update'));
-  assert.match(texts.join('\n'), /PromoBanner/);
-  assert.equal(changes.fileCount, 3);
+  assert.equal(steer.status, 204);
+  assert.equal(types.filter(type => type === 'prompt_result').length, 1, 'one turn, not two');
+  assert.equal(types.filter(type => type === 'user_message').length, 2);
+  assert.match(texts.at(-1) ?? '', /keep the price struck through/);
 });
 
 test('application tickets serve interactive storefront HTML', () => {

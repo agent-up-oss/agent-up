@@ -10,6 +10,11 @@ export type FakeServerDefinition = {
   git?: Record<string, Record<string, unknown>>;
   console?: Record<string, unknown>;
   agents?: Record<string, { session?: unknown; scripts?: Array<{ events?: Array<{ type?: string; payload?: unknown }> }> }>;
+  /**
+   * The agent turn an author plays when prompted: ACP events, each after a delay from the one
+   * before, so the Demo shows a real run's thinking, reads, edits, summaries and timings.
+   */
+  agentRun?: FakeAgentRunStep[];
   pages?: Record<string, string>;
   capabilities?: unknown[];
   validationFlows?: unknown[];
@@ -25,6 +30,9 @@ export type FakeServerDefinition = {
   /** The pictures behind those decisions, by evidence id. */
   decisionEvidence?: Record<string, FakeDecisionEvidence>;
 };
+
+/** One event of the Demo agent's turn, published this many milliseconds after the previous one. */
+export type FakeAgentRunStep = { delayMs?: number; type?: string; payload?: unknown };
 
 /** One recorded product decision, and whatever the product owner made of it. */
 export type FakeProductDecision = {
