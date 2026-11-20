@@ -206,10 +206,13 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
     }
 
     private bool _followAgentTranscript = true;
+    private readonly DispatcherTimer _transcriptFollow = new() { Interval = TimeSpan.FromMilliseconds(16) };
+    private long _transcriptFollowTick;
 
     /// <summary>
     /// Keeps the agent's newest output in view while the reader is at the end of the transcript,
-    /// and leaves them where they are once they have scrolled up to read.
+    /// and leaves them where they are once they have scrolled up to read. New output glides into
+    /// view rather than jumping there.
     /// </summary>
     private void OnAgentTranscriptScrolled(object? sender, ScrollChangedEventArgs args)
     {
@@ -217,11 +220,50 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         // The content grew by more than rounding: new output, not a relayout.
         if (Math.Abs(args.ExtentDelta.Y) > 0.5 && _followAgentTranscript)
         {
-            scroll.ScrollToEnd();
+            FollowTranscriptToEnd();
             return;
         }
 
+        // While gliding, the offsets moving are the glide's own, not the reader scrolling.
+        if (_transcriptFollow.IsEnabled)
+            return;
         _followAgentTranscript = TranscriptFollowProvider.IsFollowing(scroll.Offset.Y, scroll.Viewport.Height, scroll.Extent.Height);
+    }
+
+    private void FollowTranscriptToEnd()
+    {
+        if (!MotionProvider.Enabled)
+        {
+            AgentTranscriptScroll.ScrollToEnd();
+            return;
+        }
+
+        if (_transcriptFollow.IsEnabled)
+            return;
+        _transcriptFollowTick = Environment.TickCount64;
+        _transcriptFollow.Start();
+    }
+
+    private void OnTranscriptFollowTick(object? sender, EventArgs args)
+    {
+        var scroll = AgentTranscriptScroll;
+        var now = Environment.TickCount64;
+        var target = Math.Max(0, scroll.Extent.Height - scroll.Viewport.Height);
+        var next = MotionProvider.FollowStep(scroll.Offset.Y, target, now - _transcriptFollowTick);
+        _transcriptFollowTick = now;
+        scroll.Offset = new Vector(scroll.Offset.X, next);
+        if (next >= target)
+            _transcriptFollow.Stop();
+    }
+
+    /// <summary>A reader who reaches for the transcript takes it over from the glide at once.</summary>
+    private void OnTranscriptReaderInput(object? sender, RoutedEventArgs args)
+    {
+        if (!_transcriptFollow.IsEnabled)
+            return;
+        _transcriptFollow.Stop();
+        if (args is PointerWheelEventArgs { Delta.Y: > 0 })
+            _followAgentTranscript = false;
     }
 
     private static HttpClient CreateServerHttpClient() => new()
@@ -245,6 +287,11 @@ public partial class MainWindow : ReactiveWindow<MainViewModel>
         _addressPollTimer.Tick += OnAddressPollTimerTick;
         PortPane.SizeChanged += OnPortPaneSizeChanged;
         AgentTranscriptScroll.ScrollChanged += OnAgentTranscriptScrolled;
+        _transcriptFollow.Tick += OnTranscriptFollowTick;
+        AgentTranscriptScroll.AddHandler(PointerWheelChangedEvent, OnTranscriptReaderInput, RoutingStrategies.Tunnel, handledEventsToo: true);
+        AgentTranscriptScroll.AddHandler(PointerPressedEvent, OnTranscriptReaderInput, RoutingStrategies.Tunnel, handledEventsToo: true);
+        if (MotionProvider.Enabled)
+            AgentTranscript.Classes.Add("au-motion");
         _serverBaseUrl = NormalizeServerBaseUrl(serverHttp.BaseAddress)
             ?? throw new ArgumentException("The server HTTP client requires a base address.", nameof(serverHttp));
         _serverHttp = serverHttp;

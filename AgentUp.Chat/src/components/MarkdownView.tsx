@@ -5,6 +5,7 @@ import { monoFont } from './monoFont';
 import { blockKey, parseMarkdown, type MarkdownBlock, type MarkdownInline } from '../providers/MarkdownProvider';
 import { highlightLines, languageForFence } from '../providers/SyntaxProvider';
 import { SyntaxLine } from './SyntaxLine';
+import { usePacedText } from './Motion';
 
 /**
  * An agent's markdown drawn with the design system's transcript styles. Nested Text cannot take
@@ -13,7 +14,9 @@ import { SyntaxLine } from './SyntaxLine';
  * chunk changed: each block is memoised on its key, so the ones above the cursor stay put.
  */
 export function MarkdownView({ markdown }: { markdown: string }) {
-  const blocks = useMemo(() => parseMarkdown(markdown).map(block => ({ block, key: blockKey(block) })), [markdown]);
+  // Streamed text is drawn at a steady pace that catches up with what arrived.
+  const shown = usePacedText(markdown);
+  const blocks = useMemo(() => parseMarkdown(shown).map(block => ({ block, key: blockKey(block) })), [shown]);
   return <View style={styles.stack}>{blocks.map((entry, index) => <MemoBlock key={index} blockKey={entry.key} block={entry.block} />)}</View>;
 }
 

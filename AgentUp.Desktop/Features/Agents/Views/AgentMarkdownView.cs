@@ -1,5 +1,8 @@
 using Avalonia;
+using Avalonia.Animation;
+using Avalonia.Animation.Easings;
 using Avalonia.Controls;
+using Avalonia.Threading;
 using Avalonia.Controls.Documents;
 using Avalonia.Input.Platform;
 using Avalonia.Layout;
@@ -15,7 +18,9 @@ namespace AgentUp.Desktop.Features.Agents.Views;
 /// paragraphs, lists, quotes, rules, tables and highlighted code. Inline runs cannot carry
 /// style classes in Avalonia, so inline code and links take the same tokens the catalog's
 /// inline classes use. A streaming reply only redraws from the first block that changed, so
-/// the blocks a new chunk did not touch keep their controls and do not flicker.
+/// the blocks a new chunk did not touch keep their controls and do not flicker. Streamed text is
+/// revealed at a steady pace that catches up with what arrived, and a block that did not exist
+/// before fades in, so a reply flows instead of popping in chunks.
 /// </summary>
 public sealed class AgentMarkdownView : StackPanel
 {
@@ -26,10 +31,14 @@ public sealed class AgentMarkdownView : StackPanel
     public const int HighlightLineLimit = 400;
 
     private readonly List<string> _keys = [];
+    private readonly DispatcherTimer _pace = new() { Interval = TimeSpan.FromMilliseconds(16) };
+    private string _shown = "";
+    private long _lastTick;
 
     public AgentMarkdownView()
     {
         Spacing = 8;
+        _pace.Tick += (_, _) => Advance();
     }
 
     public string? Markdown
@@ -44,13 +53,64 @@ public sealed class AgentMarkdownView : StackPanel
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
-        if (change.Property == MarkdownProperty)
-            Render();
+        if (change.Property != MarkdownProperty)
+            return;
+        var target = Markdown ?? "";
+        // Only text that extends what is already shown is paced; anything else is a new message
+        // or a replaced one, and lands at once.
+        if (MotionProvider.Enabled && VisualRoot is not null && _shown.Length > 0 && target.StartsWith(_shown, StringComparison.Ordinal))
+        {
+            if (!_pace.IsEnabled)
+            {
+                _lastTick = Environment.TickCount64;
+                _pace.Start();
+            }
+            return;
+        }
+
+        _pace.Stop();
+        Show(target);
     }
 
-    private void Render()
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
-        var blocks = AgentMarkdownProvider.Parse(Markdown);
+        base.OnDetachedFromVisualTree(e);
+        _pace.Stop();
+        Show(Markdown ?? "");
+    }
+
+    private void Advance()
+    {
+        var target = Markdown ?? "";
+        var now = Environment.TickCount64;
+        var next = MotionProvider.RevealStep(_shown.Length, target.Length, now - _lastTick);
+        _lastTick = now;
+        Show(target[..next]);
+        if (next >= target.Length)
+            _pace.Stop();
+    }
+
+    private void Show(string markdown)
+    {
+        var before = Children.Count;
+        _shown = markdown;
+        Render(markdown);
+        if (!MotionProvider.Enabled || VisualRoot is null)
+            return;
+        for (var index = before; index < Children.Count; index++)
+            FadeIn(Children[index]);
+    }
+
+    private static void FadeIn(Control block)
+    {
+        block.Opacity = 0;
+        block.Transitions = [new DoubleTransition { Property = OpacityProperty, Duration = MotionProvider.Reveal, Easing = new CubicEaseOut() }];
+        Dispatcher.UIThread.Post(() => block.Opacity = 1, DispatcherPriority.Render);
+    }
+
+    private void Render(string markdown)
+    {
+        var blocks = AgentMarkdownProvider.Parse(markdown);
         var keys = blocks.Select(block => block.Key).ToArray();
         var kept = 0;
         while (kept < keys.Length && kept < _keys.Count && string.Equals(keys[kept], _keys[kept], StringComparison.Ordinal))

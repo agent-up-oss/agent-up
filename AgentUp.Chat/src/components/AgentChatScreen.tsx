@@ -11,6 +11,8 @@ import { presentAgentRow } from '../providers/AgentAvailabilityProvider';
 import { shouldShowLoopControls } from '../providers/LoopSurfaceProvider';
 import { AgentSignIn } from './AgentSignIn';
 import { MarkdownView } from './MarkdownView';
+import { Arrive, Reveal, useReducedMotion } from './Motion';
+import { followAfterScroll } from '../providers/MotionProvider';
 import { presentToolItem, ToolCallRow, WorkFoldRow } from './ToolCallRow';
 import {
   activityHint,
@@ -194,6 +196,8 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent, on
   // The transcript follows new output while the reader is at the end, and stays put once they scroll up.
   const scroll = useRef<ScrollViewInstance>(null);
   const following = useRef(true);
+  const lastOffset = useRef(0);
+  const reducedMotion = useReducedMotion();
   const choose = async (agent: AgentId) => {
     if (!server) return; setBusy(true); setError(null);
     try {
@@ -299,21 +303,25 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent, on
             style={styles.messages}
             contentContainerStyle={styles.messageContent}
             scrollEventThrottle={100}
-            onScroll={event => { const { contentOffset, layoutMeasurement, contentSize } = event.nativeEvent; following.current = isFollowing(contentOffset.y, layoutMeasurement.height, contentSize.height); }}
-            onContentSizeChange={() => { if (following.current) scroll.current?.scrollToEnd({ animated: false }); }}>
+            onScroll={event => {
+              const { contentOffset, layoutMeasurement, contentSize } = event.nativeEvent;
+              following.current = followAfterScroll(following.current, lastOffset.current, contentOffset.y, layoutMeasurement.height, contentSize.height);
+              lastOffset.current = contentOffset.y;
+            }}
+            onContentSizeChange={() => { if (following.current) scroll.current?.scrollToEnd({ animated: !reducedMotion }); }}>
             {blocks.map(block => {
               if (block.type === 'user') {
-                return <View key={block.item.id} style={styles.userBlock}>
+                return <Arrive key={block.item.id}><View style={styles.userBlock}>
                   {block.item.status ? <Text style={styles.steering}>{block.item.status}</Text> : null}
                   <View style={styles.userBubble}><Text style={styles.userText}>{visibleText(block.item.text)}</Text></View>
-                </View>;
+                </View></Arrive>;
               }
               // What the agent says - midway or at the end - is prose on the canvas and never folds.
               if (block.type === 'summary') {
-                return <View key={block.item.id} style={styles.reply} testID={block.final ? 'agent-reply' : 'agent-summary'}>
+                return <Arrive key={block.item.id}><View style={styles.reply} testID={block.final ? 'agent-reply' : 'agent-summary'}>
                   {block.final ? <Text style={styles.replyAgent}>{selectedAgentName}</Text> : null}
                   <MarkdownView markdown={block.item.text} />
-                </View>;
+                </View></Arrive>;
               }
               const live = block.id === openWorkId;
               const open = expandedRuns[block.id] ?? live;
@@ -321,15 +329,15 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent, on
               const renderItem = (item: TranscriptItem) => {
                 const active = item.id === activeId;
                 const thoughtOpen = isExpanded(item, active, expanded);
-                return <TranscriptRow key={item.id} item={item} expanded={thoughtOpen} active={active} onToggle={() => setExpanded(current => ({ ...current, [item.id]: !isExpanded(item, active, current) }))} />;
+                return <Arrive key={item.id}><TranscriptRow item={item} expanded={thoughtOpen} active={active} onToggle={() => setExpanded(current => ({ ...current, [item.id]: !isExpanded(item, active, current) }))} /></Arrive>;
               };
-              return <View key={block.id} style={styles.run} testID="agent-work">
+              return <Arrive key={block.id}><View style={styles.run} testID="agent-work">
                 {!live && <Pressable accessibilityRole="button" onPress={() => setExpandedRuns(current => ({ ...current, [block.id]: !open }))} style={styles.runHeader}><Text style={styles.runSummary}>{workSummary(block.items, block.duration)}</Text><Text style={styles.runSummary}>{open ? '▾' : '▸'}</Text></Pressable>}
-                {open && foldWork(block.items, item => presentToolItem(item).summary, activeId).map(entry =>
+                <Reveal open={open}><View style={styles.runEntries}>{foldWork(block.items, item => presentToolItem(item).summary, activeId).map(entry =>
                   entry.type === 'fold'
                     ? <WorkFoldRow key={entry.id} entry={entry} renderItem={renderItem} />
-                    : renderItem(entry.item))}
-              </View>;
+                    : renderItem(entry.item))}</View></Reveal>
+              </View></Arrive>;
             })}
           </ScrollView>
           {permission && <View style={styles.permission}>
@@ -358,7 +366,7 @@ function TranscriptRow({ item, expanded, active, onToggle }: { item: TranscriptI
     // A thought is one line until it is opened, then its raw text as plain text.
     return <Pressable accessibilityRole="button" onPress={onToggle} style={styles.thought}>
       <Text style={styles.thoughtLabel}>{thoughtLabel(item, active)}</Text>
-      {expanded ? <Text style={styles.thoughtBody}>{visibleText(item.text)}</Text> : null}
+      <Reveal open={expanded}><Text style={styles.thoughtBody}>{visibleText(item.text)}</Text></Reveal>
     </Pressable>;
   }
   if (item.role === 'tool') return <ToolCallRow item={item} active={active} />;
@@ -432,6 +440,7 @@ const styles = StyleSheet.create({
   userBubble: { ...auBox('chatUser'), alignSelf: 'flex-end' },
   userText: { ...auText('workspaceName'), lineHeight: 20 },
   run: { gap: 8 },
+  runEntries: { gap: 8 },
   runHeader: { ...auBox('chatRun'), flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   runSummary: auText('muted'),
   thought: auBox('chatThought'),

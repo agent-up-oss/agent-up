@@ -1,5 +1,6 @@
 import type React from 'react';
 import { useState } from 'react';
+import { Reveal } from './Motion';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { auBox, auText } from '@agent-up/design-system/native';
 import type { TranscriptItem } from '../models/AgentSession';
@@ -50,7 +51,7 @@ export function ToolCallRow({ item, active = false }: { item: TranscriptItem; ac
       {diff && diff.removed > 0 ? <Text style={styles.removed}>−{diff.removed}</Text> : null}
       {view.duration ? <Text style={styles.duration}>{view.duration}</Text> : null}
     </Pressable>
-    {open ? <View style={styles.detail}>
+    <Reveal open={open}><View style={styles.detail}>
       {diff ? <>
         {diff.path ? <Text style={styles.label}>{diff.path}</Text> : null}
         <ScrollView horizontal style={styles.diff} contentContainerStyle={styles.diffContent} testID={`agent-tool-diff-${item.toolCallId ?? item.id}`}>
@@ -73,7 +74,7 @@ export function ToolCallRow({ item, active = false }: { item: TranscriptItem; ac
           ? <Pressable accessibilityRole="button" onPress={() => setAll(true)}><Text style={styles.more}>{view.hiddenLines === 1 ? 'Show 1 more line' : `Show ${view.hiddenLines} more lines`}</Text></Pressable>
           : null}
       </> : null}
-    </View> : null}
+    </View></Reveal>
   </View>;
 }
 
@@ -87,7 +88,7 @@ export function WorkFoldRow({ entry, renderItem }: { entry: Extract<WorkEntry, {
       <Text style={styles.summary} numberOfLines={1} ellipsizeMode="tail">{entry.summary}</Text>
       <Text style={styles.duration}>{open ? '⌄' : '›'}</Text>
     </Pressable>
-    {open ? <View style={[styles.detail, styles.group]}>{entry.items.map(renderItem)}</View> : null}
+    <Reveal open={open}><View style={[styles.detail, styles.group]}>{entry.items.map(renderItem)}</View></Reveal>
   </View>;
 }
 
