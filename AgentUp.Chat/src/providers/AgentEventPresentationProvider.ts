@@ -193,48 +193,56 @@ export function liveWorkId(blocks: TranscriptBlock[], running = true): string | 
 }
 
 export function groupTranscript(items: TranscriptItem[]): TranscriptBlock[] {
+  // One pass with no per-turn buffers: this runs on every streamed event over the whole transcript.
   const blocks: TranscriptBlock[] = [];
-  let turn: TranscriptItem[] = [];
+  let work: TranscriptItem[] = [];
+  let workEnd: string | undefined;
+  let first = true;
   let promptedAt: string | undefined;
-  const flush = () => {
-    let work: TranscriptItem[] = [];
-    let first = true;
-    const close = () => {
-      if (work.length === 0) return;
-      // The first section's time runs from the prompt, so the model's thinking before its first step counts.
-      const startedAt = first ? promptedAt ?? work[0]!.startedAt : work[0]!.startedAt;
-      const endedAt = work.map(item => item.endedAt).filter((value): value is string => Boolean(value)).sort().at(-1);
-      const duration = durationBetween(startedAt, endedAt);
-      blocks.push({ type: 'work', id: work[0]!.id, items: work, ...(duration ? { duration } : {}) });
-      work = [];
-      first = false;
-    };
-    turn.forEach((item, index) => {
-      if (item.role !== 'agent') { work.push(item); return; }
-      close();
-      first = false;
-      blocks.push({ type: 'summary', item, final: index === turn.length - 1 });
-    });
+  let lastSummary: { type: 'summary'; item: TranscriptItem; final: boolean } | undefined;
+  const close = () => {
+    if (work.length === 0) return;
+    // The first section's time runs from the prompt, so the model's thinking before its first step counts.
+    const startedAt = first ? promptedAt ?? work[0]!.startedAt : work[0]!.startedAt;
+    const duration = durationBetween(startedAt, workEnd);
+    blocks.push(duration ? { type: 'work', id: work[0]!.id, items: work, duration } : { type: 'work', id: work[0]!.id, items: work });
+    work = [];
+    workEnd = undefined;
+    first = false;
+  };
+  // A summary is the turn's final reply when nothing follows it before the turn ends.
+  const endTurn = () => {
+    if (work.length === 0 && lastSummary) lastSummary.final = true;
     close();
-    turn = [];
+    first = true;
+    lastSummary = undefined;
   };
   for (const item of items) {
     if (item.role === 'user') {
-      flush();
+      endTurn();
       if (!item.status) promptedAt = item.startedAt;
       blocks.push({ type: 'user', item });
       continue;
     }
-    turn.push(item);
+    if (item.role === 'agent') {
+      close();
+      first = false;
+      lastSummary = { type: 'summary', item, final: false };
+      blocks.push(lastSummary);
+    } else {
+      if (work.length === 0) lastSummary = undefined;
+      work.push(item);
+      if (item.endedAt && (!workEnd || item.endedAt > workEnd)) workEnd = item.endedAt;
+    }
     if (item.turnEnd) {
       // Steering queued during this turn runs next with no prompt of its own, so it starts its
       // own sections, timed from when this turn ended.
       const endedAt = item.endedAt;
-      flush();
+      endTurn();
       promptedAt = endedAt;
     }
   }
-  flush();
+  endTurn();
   return blocks;
 }
 
