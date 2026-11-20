@@ -108,6 +108,38 @@ public sealed class TaskSourceHttpTests
         });
     }
 
+    // The host returns the reader to the path it was given, and only this slice can spend its state.
+    [Test]
+    public async Task TheSignInReturnsToTheTaskSourcesOwnCallbackAndExchangesWithIt()
+    {
+        var exchange = new FixedForgeOAuthExchange("exchanged");
+        await using var host = await HostAsync(exchange);
+        await host.Client.PutAsJsonAsync("/api/task-source", new SetTaskSourceRequest("github", "harbor", "storefront"), Json);
+        var login = await (await host.Client.PostAsync("/api/task-source/login", null)).Content.ReadFromJsonAsync<TaskSourceLoginDto>(Json);
+        var query = System.Web.HttpUtility.ParseQueryString(new Uri(login!.AuthorizeUrl).Query);
+
+        await host.Client.GetAsync($"/api/task-source/callback?code=abc&state={query["state"]}");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(query["redirect_uri"], Is.EqualTo("https://example.test/api/task-source/callback"));
+            Assert.That(exchange.LastRedirectUri, Is.EqualTo("https://example.test/api/task-source/callback"));
+        });
+    }
+
+    [Test]
+    public async Task TheCallbackLeavesTheSourceUnconnectedWhenTheHostRefusesTheCode()
+    {
+        await using var host = await HostAsync(new FixedForgeOAuthExchange("unused", refusal: "The host refused the sign-in code (400)."));
+        await host.Client.PutAsJsonAsync("/api/task-source", new SetTaskSourceRequest("github", "harbor", "storefront"), Json);
+        var login = await (await host.Client.PostAsync("/api/task-source/login", null)).Content.ReadFromJsonAsync<TaskSourceLoginDto>(Json);
+        var state = System.Web.HttpUtility.ParseQueryString(new Uri(login!.AuthorizeUrl).Query)["state"];
+
+        var callback = await host.Client.GetAsync($"/api/task-source/callback?code=abc&state={state}");
+
+        Assert.That(callback.StatusCode, Is.EqualTo(HttpStatusCode.NotFound), "a refused code is not a server error");
+    }
+
     [Test]
     public async Task TheCallbackRefusesAStateNobodyIssued()
     {
@@ -133,7 +165,9 @@ public sealed class TaskSourceHttpTests
         Assert.That(source!.Configured, Is.False);
     }
 
-    private static async Task<Host> HostAsync(params ForgeIssue[] issues)
+    private static Task<Host> HostAsync(params ForgeIssue[] issues) => HostAsync(new FixedForgeOAuthExchange("exchanged"), issues);
+
+    private static async Task<Host> HostAsync(FixedForgeOAuthExchange exchange, params ForgeIssue[] issues)
     {
         var builder = WebApplication.CreateBuilder(new WebApplicationOptions { Args = ["--urls=http://127.0.0.1:0"] });
         builder.Services.AddControllers().AddApplicationPart(typeof(TaskSourceHttpController).Assembly);
@@ -144,7 +178,7 @@ public sealed class TaskSourceHttpTests
             new FakeEnabledCapabilityPackages().WithForges(new StubForgeCapability { Issues = issues }));
         builder.Services.AddSingleton<IForgeOAuthSettings>(
             new FixedForgeOAuthSettings(new ForgeOAuthConfiguration("client", "secret", "https://example.test/callback")));
-        builder.Services.AddSingleton<IForgeOAuthExchange>(new FixedForgeOAuthExchange("exchanged"));
+        builder.Services.AddSingleton<IForgeOAuthExchange>(exchange);
         builder.Services.AddSingleton<ITaskSourceStore>(_ => new JsonTaskSourceStore(directory));
         builder.Services.AddSingleton<ITaskSourceCredentialStore>(_ => new JsonTaskSourceCredentialStore(directory));
         builder.Services.AddSingleton<ITaskSourceStateStore, TaskSourceStateStore>();

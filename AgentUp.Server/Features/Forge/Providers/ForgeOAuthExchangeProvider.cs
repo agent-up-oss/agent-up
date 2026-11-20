@@ -11,14 +11,20 @@ public sealed class ForgeOAuthExchangeProvider(IForgeOAuthSettings settings, Htt
     public async Task<string> ExchangeAsync(string code, string tokenUrl, CancellationToken cancellationToken)
         => (await ExchangeGrantAsync(code, tokenUrl, cancellationToken)).AccessToken;
 
+    public async Task<string> ExchangeAsync(string code, string tokenUrl, string redirectUri, CancellationToken cancellationToken)
+        => (await GrantAsync(code, tokenUrl, redirectUri, cancellationToken)).AccessToken;
+
     public Task<ForgeOAuthGrant> ExchangeGrantAsync(string code, string tokenUrl, CancellationToken cancellationToken)
+        => GrantAsync(code, tokenUrl, null, cancellationToken);
+
+    private Task<ForgeOAuthGrant> GrantAsync(string code, string tokenUrl, string? redirectUri, CancellationToken cancellationToken)
         => RequestAsync(tokenUrl, configuration => new Dictionary<string, string>
         {
             ["grant_type"] = "authorization_code",
             ["client_id"] = configuration.ClientId,
             ["client_secret"] = configuration.ClientSecret,
             ["code"] = code,
-            ["redirect_uri"] = configuration.RedirectUri
+            ["redirect_uri"] = redirectUri ?? configuration.RedirectUri
         }, cancellationToken);
 
     public Task<ForgeOAuthGrant> RefreshAsync(string refreshToken, string tokenUrl, CancellationToken cancellationToken)

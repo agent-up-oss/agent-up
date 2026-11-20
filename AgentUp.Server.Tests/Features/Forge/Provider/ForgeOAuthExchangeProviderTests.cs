@@ -45,6 +45,19 @@ public sealed class ForgeOAuthExchangeProviderTests
     }
 
     [Test]
+    public async Task ExchangeAsync_namesTheRedirectTheSignInBeganWith()
+    {
+        var handler = new RecordedHandler(HttpStatusCode.OK, """{"access_token":"exchanged"}""");
+        var provider = new ForgeOAuthExchangeProvider(
+            new FixedForgeOAuthSettings(new ForgeOAuthConfiguration("client", "secret", "http://localhost/api/forge/callback")),
+            handler);
+
+        await provider.ExchangeAsync("code", "https://example.test/login/oauth/access_token", "http://localhost/api/task-source/callback", CancellationToken.None);
+
+        Assert.That(handler.Bodies.Single(), Does.Contain("redirect_uri=http%3A%2F%2Flocalhost%2Fapi%2Ftask-source%2Fcallback"));
+    }
+
+    [Test]
     public async Task ExchangeGrantAsync_keepsTheRefreshTokenAndWhenTheAccessTokenExpires()
     {
         var clock = new StubTimeProvider();

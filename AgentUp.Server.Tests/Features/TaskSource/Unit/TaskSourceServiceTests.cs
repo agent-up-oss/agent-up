@@ -69,7 +69,7 @@ public sealed class TaskSourceServiceTests
             Assert.That(outcome.StatusCode, Is.EqualTo(200));
             Assert.That(url, Does.StartWith("https://example.test/login/oauth/authorize?"));
             Assert.That(url, Does.Contain("client_id=client"));
-            Assert.That(url, Does.Contain("redirect_uri=https%3A%2F%2Fexample.test%2Fcallback"));
+            Assert.That(url, Does.Contain("redirect_uri=https%3A%2F%2Fexample.test%2Fapi%2Ftask-source%2Fcallback"));
             Assert.That(url, Does.Contain("state="));
             Assert.That(url, Does.Contain("response_type=code"));
         });

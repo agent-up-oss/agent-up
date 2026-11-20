@@ -54,6 +54,14 @@ internal sealed class FixedForgeOAuthExchange(string token, string? refusal = nu
             : Task.FromResult(refreshed);
     }
 
+    public string? LastRedirectUri { get; private set; }
+
+    public Task<string> ExchangeAsync(string code, string tokenUrl, string redirectUri, CancellationToken cancellationToken)
+    {
+        LastRedirectUri = redirectUri;
+        return ExchangeAsync(code, tokenUrl, cancellationToken);
+    }
+
     public Task<string> ExchangeAsync(string code, string tokenUrl, CancellationToken cancellationToken)
     {
         LastTokenUrl = tokenUrl;
