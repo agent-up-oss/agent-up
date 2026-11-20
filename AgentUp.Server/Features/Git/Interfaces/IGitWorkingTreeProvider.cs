@@ -14,6 +14,19 @@ public interface IGitWorkingTreeProvider
 
     Task DiscardAsync(string worktreePath, IReadOnlyList<string> files, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Commits every change in the worktree onto <paramref name="branch"/>, creating it from HEAD
+    /// when it does not exist, under the given author. Returns the new commit, or null when the
+    /// worktree had nothing to commit.
+    /// </summary>
+    Task<string?> CommitAllToBranchAsync(string worktreePath, string branch, string message, GitIdentity author, CancellationToken cancellationToken = default);
+
+    /// <summary>The unified diff of what <paramref name="head"/> adds since it left <paramref name="baseRef"/>.</summary>
+    Task<string> GetRangeDiffAsync(string worktreePath, string baseRef, string head, CancellationToken cancellationToken = default);
+
+    /// <summary>Points <paramref name="branch"/> at the fetched <c>origin/&lt;branch&gt;</c> and checks it out.</summary>
+    Task ResetToRemoteBranchAsync(string worktreePath, string branch, CancellationToken cancellationToken = default);
+
     Task SwitchBranchAsync(string worktreePath, string name, bool create, CancellationToken cancellationToken = default);
 
     Task CheckoutRemoteAsync(string worktreePath, string name, CancellationToken cancellationToken = default);

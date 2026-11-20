@@ -9,6 +9,9 @@ public sealed class GitQueryController(GitChangeTreeService changes)
     public Task<GitChangeTree?> GetChangesAsync(string workspaceId, CancellationToken cancellationToken = default)
         => changes.GetChangesAsync(workspaceId, cancellationToken);
 
+    public Task<string?> GetDiffAsync(string workspaceId, string baseRef, string head, CancellationToken cancellationToken = default)
+        => changes.GetRangeDiffAsync(workspaceId, baseRef, head, cancellationToken);
+
     public Task<GitHeadState?> GetHeadAsync(string workspaceId, CancellationToken cancellationToken = default)
         => changes.GetHeadAsync(workspaceId, cancellationToken);
 }

@@ -104,6 +104,44 @@ internal sealed class FakeGitWorkingTreeProvider : IGitWorkingTreeProvider
             throw new InvalidOperationException(Failure);
     }
 
+    public GitIdentity? CommitAuthor { get; private set; }
+
+    public string? ResetBranch { get; private set; }
+
+    public Task<string?> CommitAllToBranchAsync(string worktreePath, string branch, string message, GitIdentity author, CancellationToken cancellationToken = default)
+    {
+        LastWorktreePath = worktreePath;
+        if (Failure is not null)
+            return Task.FromException<string?>(new InvalidOperationException(Failure));
+        // Like the provider: nothing changed means nothing to commit, and the checkout stays put.
+        if (Changes.Count == 0)
+            return Task.FromResult<string?>(null);
+        Branch = branch;
+        CommittedMessage = message;
+        CommitAuthor = author;
+        CommittedFiles = [.. Changes.Select(change => change.Path)];
+        Changes.Clear();
+        return Task.FromResult<string?>(Commit);
+    }
+
+    public string RangeDiff { get; set; } = string.Empty;
+
+    public Task<string> GetRangeDiffAsync(string worktreePath, string baseRef, string head, CancellationToken cancellationToken = default)
+    {
+        LastWorktreePath = worktreePath;
+        return Failure is null ? Task.FromResult(RangeDiff) : Task.FromException<string>(new InvalidOperationException(Failure));
+    }
+
+    public Task ResetToRemoteBranchAsync(string worktreePath, string branch, CancellationToken cancellationToken = default)
+    {
+        LastWorktreePath = worktreePath;
+        if (Failure is not null)
+            return Task.FromException(new InvalidOperationException(Failure));
+        ResetBranch = branch;
+        Branch = branch;
+        return Task.CompletedTask;
+    }
+
     public Task SwitchBranchAsync(string worktreePath, string name, bool create, CancellationToken cancellationToken = default)
     {
         LastWorktreePath = worktreePath;
