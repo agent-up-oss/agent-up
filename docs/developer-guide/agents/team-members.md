@@ -52,7 +52,9 @@ The Server runs inside its Nix shell, which supplies bubblewrap. `BubblewrapAgen
 | Its `.git` (both directories of a linked worktree) | read-only | read-only |
 | The rest of the data directory, other clones, the service account's home | absent | absent |
 
-A single-user Nix install has no daemon, so there `/nix` is writable for `nix shell`. The agent also gets a private `/tmp`, its own PID, IPC, and UTS namespaces, and no capabilities. Its environment is cleared to a short allowlist (locale, proxy, certificate, and Nix variables, `PATH`, `DOTNET_ROOT`) plus what the Server sets for it, so `AGENTUP_ADMIN_PASSWORD` and other Server secrets never reach it.
+A single-user Nix install has no daemon, so there `/nix` is writable for `nix shell`. The Server decides that from the daemon's socket file, not its directory, which installers leave on single-user hosts too.
+
+The agent is executed by the path found on `PATH`, not the symlink's target, and the target's directory is mounted beside it. `nix-shell` is a link to the multi-call `nix` binary, which reads its mode from `argv[0]`, so following the link ran capability shells as plain `nix`. The agent also gets a private `/tmp`, its own PID, IPC, and UTS namespaces, and no capabilities. Its environment is cleared to a short allowlist (locale, proxy, certificate, and Nix variables, `PATH`, `DOTNET_ROOT`) plus what the Server sets for it, so `AGENTUP_ADMIN_PASSWORD` and other Server secrets never reach it.
 
 A Linux host without bubblewrap fails the session start with that cause. bubblewrap is Linux only; on macOS the agent starts with the cleared environment but its filesystem is not confined, so the clone-level guarantee holds only on a Linux Server. Running the agent with the Server's own permissions instead would let a reviewer write the clone. In a container, bubblewrap needs unprivileged user namespaces; Ubuntu 24.04 hosts may need `kernel.apparmor_restrict_unprivileged_userns=0`.
 

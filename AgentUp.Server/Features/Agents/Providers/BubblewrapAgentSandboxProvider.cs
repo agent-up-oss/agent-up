@@ -69,11 +69,15 @@ public sealed class BubblewrapAgentSandboxProvider : IAgentSandbox
 
         _home.Ensure();
         var clone = Path.GetFullPath(worktree);
+        // A daemon is running only when its socket is there. Installers create the directory on
+        // single-user hosts too, and treating that as a daemon left the store read-only to a Nix
+        // that has nobody else to write it.
+        var daemon = Exists(NixDaemonSocket + "/socket");
         var inputs = new AgentSandboxInputs(
             SystemRootCandidates.Where(Exists).ToArray(),
             Exists(NixRoot) ? NixRoot : null,
-            NixWritable: Exists(NixRoot) && !Exists(NixDaemonSocket),
-            Exists(NixDaemonSocket) ? NixDaemonSocket : null,
+            NixWritable: Exists(NixRoot) && !daemon,
+            daemon ? NixDaemonSocket : null,
             ReadOnlyPaths(executable, path, server),
             _home.HomePath,
             clone,
@@ -117,6 +121,7 @@ public sealed class BubblewrapAgentSandboxProvider : IAgentSandbox
             .Where(server.ContainsKey)
             .Select(name => server[name]));
         paths.Add(Path.GetDirectoryName(executable)!);
+        paths.Add(Path.GetDirectoryName(RealPath(executable))!);
         paths.Add(PackageRoot(RealPath(executable)));
         return paths
             .Where(Path.IsPathRooted)
@@ -160,15 +165,19 @@ public sealed class BubblewrapAgentSandboxProvider : IAgentSandbox
         return directories.Where(Directory.Exists).ToArray();
     }
 
+    /// <summary>
+    /// The executable as found on PATH, symlink and all. Exec'ing the link target instead would
+    /// change <c>argv[0]</c>, and a multi-call binary picks its mode from that name: <c>nix-shell</c>
+    /// is a link to <c>nix</c>, so a capability launched through its Nix shell would run as plain
+    /// <c>nix</c>. The target's directory is mounted separately, so the link resolves in the sandbox.
+    /// </summary>
     private static string? Resolve(string fileName, string path)
     {
         if (Path.IsPathRooted(fileName))
-            return File.Exists(fileName) ? RealPath(fileName) : null;
+            return File.Exists(fileName) ? Path.GetFullPath(fileName) : null;
         return path.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
-            .Select(directory => Path.Join(directory, fileName))
-            .Where(File.Exists)
-            .Select(RealPath)
-            .FirstOrDefault();
+            .Select(directory => Path.GetFullPath(Path.Join(directory, fileName)))
+            .FirstOrDefault(File.Exists);
     }
 
     private static string RealPath(string path) =>

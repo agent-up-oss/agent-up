@@ -43,6 +43,40 @@ public sealed class BubblewrapAgentSandboxProviderTests
     }
 
     [Test]
+    public void Prepare_runsTheExecutableByItsLinkNameAndMountsWhereTheLinkPoints()
+    {
+        using var host = new SandboxHost(withBubblewrap: true);
+        var link = host.Link("nix-shell", host.Multicall);
+
+        var launch = host.Prepare(TeamMemberGrants.Author, command: "nix-shell");
+
+        // nix-shell is a link to the multi-call nix binary, which reads its mode from argv[0].
+        Assert.Multiple(() =>
+        {
+            Assert.That(launch.Arguments.SkipWhile(argument => argument != "--").Skip(1).First(), Is.EqualTo(link));
+            Assert.That(BindOf(launch, Path.GetDirectoryName(host.Multicall)!), Is.EqualTo("--ro-bind"));
+        });
+    }
+
+    [TestCase(false, "--bind")]
+    [TestCase(true, "--ro-bind")]
+    public void Prepare_leavesTheNixStoreWritableUnlessADaemonSocketIsListening(bool socket, string store)
+    {
+        using var host = new SandboxHost(withBubblewrap: true);
+        host.Nix(socket);
+
+        var launch = host.Prepare(TeamMemberGrants.Author, root: host.HostRoot);
+
+        // An installer leaves the socket directory behind on single-user hosts: only the socket
+        // means a daemon owns the store.
+        Assert.Multiple(() =>
+        {
+            Assert.That(BindOf(launch, "/nix"), Is.EqualTo(store));
+            Assert.That(BindOf(launch, "/nix/var/nix/daemon-socket"), Is.EqualTo(socket ? "--bind" : null));
+        });
+    }
+
+    [Test]
     public void Prepare_givesADevReviewerAReadOnlyClone()
     {
         using var host = new SandboxHost(withBubblewrap: true);
@@ -159,12 +193,33 @@ public sealed class BubblewrapAgentSandboxProviderTests
 
         public string Tools => Path.Join(_root, "tools");
         public string Agent => Path.Join(Tools, "opencode");
+        public string Multicall => Path.Join(_root, "store", "nix", "bin", "nix");
+        public string HostRoot => Path.Join(_root, "host");
+
+        /// <summary>A Nix install under <see cref="HostRoot"/>, with or without a listening daemon.</summary>
+        public void Nix(bool socket)
+        {
+            var directory = Path.Join(HostRoot, "nix", "var", "nix", "daemon-socket");
+            Directory.CreateDirectory(directory);
+            if (socket)
+                File.WriteAllText(Path.Join(directory, "socket"), string.Empty);
+        }
+
+        /// <summary>A link named <paramref name="name"/> on the tools PATH to <paramref name="target"/>.</summary>
+        public string Link(string name, string target)
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(target)!);
+            Executable(target);
+            var link = Path.Join(Tools, name);
+            File.CreateSymbolicLink(link, target);
+            return link;
+        }
         public string Clone => Path.Join(_root, "clones", "author-1");
         public string Data => Path.Join(_root, "data");
         public string CommonGitDirectory => Path.Join(_root, "main", ".git");
         public string LinkedGitDirectory => Path.Join(CommonGitDirectory, "worktrees", "author-1");
 
-        public AgentSandboxLaunch Prepare(TeamMemberGrants grants, bool linux = true)
+        public AgentSandboxLaunch Prepare(TeamMemberGrants grants, bool linux = true, string command = "opencode", string root = "/")
         {
             var server = new Dictionary<string, string>
             {
@@ -175,9 +230,10 @@ public sealed class BubblewrapAgentSandboxProviderTests
                 new AgentCliHomeProvider(Data),
                 Data,
                 serverEnvironment: () => server,
+                root: root,
                 linux: linux);
             return provider.Prepare(
-                new AgentCommand("opencode", ["acp"]),
+                new AgentCommand(command, ["acp"]),
                 new Dictionary<string, string> { ["OPENCODE_CONFIG_CONTENT"] = "{}" },
                 Clone,
                 grants);
