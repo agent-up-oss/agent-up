@@ -1,28 +1,73 @@
 using System.Text;
+using AgentUp.Server.Features.Forge.DTOs;
 
 namespace AgentUp.Server.Features.Agents.Models;
 
 /// <summary>What a team member is told about the task in front of it, built from the queue's record.</summary>
 public static class TaskPrompts
 {
-    /// <summary>The issue leads, so even a small model reads what to change before how to behave.</summary>
-    public static string Author(AgentRoleDefinition role, QueuedTask task)
+    /// <summary>
+    /// The issue leads, so even a small model reads what to change before how to behave. A task
+    /// sent back carries everything the host said about the revision: each finding at its file and
+    /// line, every failing check with where to read its log, the comments, and the reviews.
+    /// </summary>
+    public static string Author(AgentRoleDefinition role, QueuedTask task, ForgeTaskFeedbackDto? feedback = null, string? authorLogin = null)
     {
         var prompt = new StringBuilder()
             .AppendLine($"Issue #{task.Number}: {task.Title}")
             .AppendLine()
             .AppendLine(task.Body.Trim());
-        var requested = task.CurrentReviews.Where(review => review.Verdict == TaskReviewVerdict.RequestChanges).ToArray();
-        if (task.Stage == TaskStage.ChangesRequested && requested.Length > 0)
+        if (task.Stage == TaskStage.ChangesRequested && task.Proposal is not null)
         {
             prompt.AppendLine()
-                .AppendLine($"Your earlier change for this issue (proposal {task.Proposal!.Url}, revision {task.Proposal.Revision}) was reviewed and changes were requested. It is already in the working tree on {task.Proposal.Branch}. Address every point below.");
-            foreach (var review in requested)
-                prompt.AppendLine().AppendLine("Review:").AppendLine(review.Body.Trim());
+                .AppendLine($"Your earlier change for this issue (proposal {task.Proposal.Url}, revision {task.Proposal.Revision}) needs more work. It is already in the working tree on {task.Proposal.Branch}. Address every point below.");
+            foreach (var review in task.CurrentReviews.Where(review => review.Verdict == TaskReviewVerdict.RequestChanges))
+                prompt.AppendLine().AppendLine($"Review ({Kind(review.Kind)}):").AppendLine(review.Body.Trim());
+            AppendFeedback(prompt, feedback, authorLogin);
         }
 
         return prompt.AppendLine().AppendLine(role.Prompt).ToString().TrimEnd();
     }
+
+    private static void AppendFeedback(StringBuilder prompt, ForgeTaskFeedbackDto? feedback, string? authorLogin)
+    {
+        if (feedback is null)
+            return;
+        var failing = TaskChecks.Failing(feedback.Checks).ToArray();
+        if (failing.Length > 0)
+        {
+            prompt.AppendLine().AppendLine("Failing checks (read the log at the link):");
+            foreach (var check in failing)
+                prompt.AppendLine($"- {check.Name}: {check.Conclusion}{(check.Url.Length > 0 ? $" ({check.Url})" : "")}");
+        }
+
+        var others = feedback.Threads
+            .Where(thread => !thread.IsResolved && thread.Summary.Trim().Length > 0
+                && !string.Equals(thread.Author, authorLogin, StringComparison.OrdinalIgnoreCase))
+            .TakeLast(FeedbackLimit)
+            .ToArray();
+        var findings = others.Where(thread => thread.Path is not null).ToArray();
+        if (findings.Length > 0)
+        {
+            prompt.AppendLine().AppendLine("Findings on the code:");
+            foreach (var finding in findings)
+                prompt.AppendLine($"- {finding.Path}{(finding.Line is { } line ? $":{line}" : "")}{By(finding.Author)}: {finding.Summary.Trim()}");
+        }
+
+        var comments = others.Where(thread => thread.Path is null).ToArray();
+        if (comments.Length > 0)
+        {
+            prompt.AppendLine().AppendLine("Comments on the proposal:");
+            foreach (var comment in comments)
+                prompt.AppendLine($"-{By(comment.Author)} {comment.Summary.Trim()}");
+        }
+    }
+
+    private static string By(string? author) => string.IsNullOrWhiteSpace(author) ? "" : $" ({author})";
+
+    private static string Kind(TeamMemberKind kind) => kind == TeamMemberKind.PmReviewer ? "product" : "code";
+
+    private const int FeedbackLimit = 30;
 
     /// <summary>
     /// The change leads, inline, so a reviewer reads exactly the revision under review without

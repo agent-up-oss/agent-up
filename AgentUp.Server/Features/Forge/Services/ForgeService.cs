@@ -332,13 +332,80 @@ public sealed class ForgeService(
             {
                 await forge.SubmitReviewAsync(
                     request,
-                    new ForgeSubmitReviewCommand(command.ProposalNumber, command.Body, command.Event),
+                    new ForgeSubmitReviewCommand(
+                        command.ProposalNumber,
+                        command.Body,
+                        command.Event,
+                        [.. (command.Findings ?? []).Select(finding => new ForgeReviewComment(finding.Path, finding.Line, finding.Body))]),
                     cancellationToken);
                 return true;
             },
             cancellationToken);
         return new ForgeReviewOutcome(submitted, null);
     }
+
+    /// <summary>The account this workspace acts as on its host, which is how the host names that team member.</summary>
+    public async Task<ForgeAccountDto?> ReadAccountAsync(string workspaceId, CancellationToken cancellationToken)
+    {
+        var request = await RequestForAsync(workspaceId, cancellationToken);
+        if (request is null)
+            return null;
+        var snapshot = await request.Value.Forge.ReadAsync(request.Value.Request, cancellationToken);
+        return ToAccount(snapshot.Account);
+    }
+
+    /// <summary>
+    /// Everything the host holds about the proposal from one task branch, read with this
+    /// workspace's credential whatever the workspace has checked out.
+    /// </summary>
+    public async Task<ForgeTaskFeedbackDto?> ReadFeedbackAsync(string workspaceId, string branch, CancellationToken cancellationToken)
+    {
+        var request = await RequestForAsync(workspaceId, cancellationToken);
+        if (request is null)
+            return null;
+        var snapshot = await request.Value.Forge.ReadAsync(request.Value.Request with { Branch = branch }, cancellationToken);
+        return new ForgeTaskFeedbackDto(
+            snapshot.Proposal is null ? null : ToProposal(snapshot.Proposal),
+            snapshot.Proposal?.HeadSha,
+            [.. snapshot.Checks.Select(ToCheck)],
+            [.. snapshot.Threads.Select(ToThread)],
+            [.. (snapshot.Reviews ?? []).Select(ToReview)]);
+    }
+
+    /// <summary>Gives an issue to the account that took it. False when the workspace has no usable forge.</summary>
+    public async Task<bool> AssignIssueAsync(string workspaceId, int issueNumber, string login, CancellationToken cancellationToken)
+        => await MutateAsync(
+            workspaceId,
+            async (forge, request) =>
+            {
+                await forge.AssignIssueAsync(request, issueNumber, login, cancellationToken);
+                return true;
+            },
+            cancellationToken);
+
+    /// <summary>Asks a named account to review a proposal, with this workspace's credential.</summary>
+    public async Task<bool> RequestReviewAsync(string workspaceId, string proposalNumber, string login, CancellationToken cancellationToken)
+        => await MutateAsync(
+            workspaceId,
+            async (forge, request) =>
+            {
+                await forge.RequestReviewAsync(request, proposalNumber, login, cancellationToken);
+                return true;
+            },
+            cancellationToken);
+
+    /// <summary>Stores a file on the host for a comment to link; null when the host has nowhere to put it.</summary>
+    public async Task<string?> AttachAsync(
+        string workspaceId,
+        string number,
+        string fileName,
+        string contentType,
+        byte[] content,
+        CancellationToken cancellationToken)
+        => (await MutateAsync(
+            workspaceId,
+            (forge, request) => forge.AttachAsync(request, number, fileName, contentType, content, cancellationToken),
+            cancellationToken))?.Url;
 
     private async Task<T?> MutateAsync<T>(
         string workspaceId,
@@ -621,7 +688,7 @@ public sealed class ForgeService(
         => new(ForgeHostingCopy.Ready, moduleId, proposal, checks, threads, mergeability, null, null, account, reviews);
 
     private static ForgeReviewDto ToReview(ForgeReview review)
-        => new(review.Login, review.State);
+        => new(review.Login, review.State, review.CommitId);
 
     private static ForgeAccountDto? ToAccount(ForgeAccount? account)
         => account is null ? null : new ForgeAccountDto(account.Login, account.DisplayName, account.IsBot, account.Url);
@@ -633,5 +700,5 @@ public sealed class ForgeService(
         => new(check.Name, check.Status, check.Conclusion, check.Url);
 
     private static ForgeReviewThreadDto ToThread(ForgeReviewThread thread)
-        => new(thread.Id, thread.Url, thread.Summary, thread.IsResolved);
+        => new(thread.Id, thread.Url, thread.Summary, thread.IsResolved, thread.Path, thread.Line, thread.Author);
 }

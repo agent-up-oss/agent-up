@@ -39,6 +39,8 @@ internal sealed class FakeGitWorkingTreeProvider : IGitWorkingTreeProvider
 
     public string? SwitchedBranch { get; private set; }
 
+    public string? StartedBranch { get; private set; }
+
     public bool CreatedBranch { get; private set; }
 
     public string? CheckedOutBranch { get; private set; }
@@ -151,6 +153,15 @@ internal sealed class FakeGitWorkingTreeProvider : IGitWorkingTreeProvider
         ResetBranch = branch;
         Branch = branch;
         return Task.CompletedTask;
+    }
+
+    public Task StartBranchAsync(string worktreePath, string branch, CancellationToken cancellationToken = default)
+    {
+        LastWorktreePath = worktreePath;
+        StartedBranch = branch;
+        if (Failure is null)
+            Branch = branch;
+        return Failure is null ? Task.CompletedTask : Task.FromException(new InvalidOperationException(Failure));
     }
 
     public Task SwitchBranchAsync(string worktreePath, string name, bool create, CancellationToken cancellationToken = default)

@@ -7,6 +7,14 @@ internal sealed class FixedReviewApplicationHost(IReadOnlyList<string> addresses
 {
     public List<string> Started { get; } = [];
 
+    public List<string> Stopped { get; } = [];
+
+    public Task StopAsync(string workspaceId, CancellationToken cancellationToken)
+    {
+        Stopped.Add(workspaceId);
+        return Task.CompletedTask;
+    }
+
     public Task<(IReadOnlyList<string> Addresses, string? Error)> RunAsync(string workspaceId, CancellationToken cancellationToken)
     {
         Started.Add(workspaceId);

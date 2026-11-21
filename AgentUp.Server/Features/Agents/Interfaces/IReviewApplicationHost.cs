@@ -12,4 +12,7 @@ public interface IReviewApplicationHost
     /// answer, or the reason it could not start.
     /// </summary>
     Task<(IReadOnlyList<string> Addresses, string? Error)> RunAsync(string workspaceId, CancellationToken cancellationToken);
+
+    /// <summary>Stops the workspace once its review is in, so a finished reviewer holds no running revision.</summary>
+    Task StopAsync(string workspaceId, CancellationToken cancellationToken);
 }

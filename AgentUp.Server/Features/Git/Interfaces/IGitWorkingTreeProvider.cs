@@ -32,6 +32,9 @@ public interface IGitWorkingTreeProvider
 
     Task SwitchBranchAsync(string worktreePath, string name, bool create, CancellationToken cancellationToken = default);
 
+    /// <summary>Puts the checkout on a branch started at the current commit, replacing a stale local branch of that name.</summary>
+    Task StartBranchAsync(string worktreePath, string branch, CancellationToken cancellationToken = default);
+
     Task CheckoutRemoteAsync(string worktreePath, string name, CancellationToken cancellationToken = default);
 
     Task FetchAsync(string worktreePath, string? remote, CancellationToken cancellationToken = default);

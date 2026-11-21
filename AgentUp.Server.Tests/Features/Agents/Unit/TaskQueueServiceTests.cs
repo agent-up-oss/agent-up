@@ -217,7 +217,7 @@ public sealed class TaskQueueServiceTests
         var queue = Held("bob");
         queue.Begin("bob", "acme", "widgets", "1", "main");
         queue.Propose("bob", "acme", "widgets", "1", "7", "https://example.test/pulls/7", "agent-up/issue-1", "main", "aaa");
-        queue.Review("acme", "widgets", "1", new TaskReview("hector", TaskReviewVerdict.Approve, 1, "ok"), ["hector"]);
+        queue.Review("acme", "widgets", "1", Verdict("hector", TaskReviewVerdict.Approve, Dev), [Dev]);
 
         var pushed = queue.Pushed("acme", "widgets", "1", "bbb");
         var again = queue.Pushed("acme", "widgets", "1", "bbb");
@@ -226,7 +226,7 @@ public sealed class TaskQueueServiceTests
         {
             Assert.That(pushed!.Stage, Is.EqualTo(TaskStage.InReview));
             Assert.That(pushed.Proposal, Is.EqualTo(new TaskProposal("7", "https://example.test/pulls/7", "agent-up/issue-1", "main", 2, "bbb")));
-            Assert.That(pushed.AwaitsReviewFrom("hector"), Is.True);
+            Assert.That(pushed.AwaitsReviewFrom("hector", Dev), Is.True);
             Assert.That(again, Is.Null, "the same head is the same revision");
         });
     }
@@ -263,23 +263,25 @@ public sealed class TaskQueueServiceTests
     {
         var queue = InReview();
 
-        var reviewed = queue.Review("acme", "widgets", "1", Verdict("lucy", TaskReviewVerdict.RequestChanges), ["lucy", "hector"]);
+        var reviewed = queue.Review("acme", "widgets", "1", Verdict("lucy", TaskReviewVerdict.RequestChanges, Pm), [Dev, Pm]);
 
         Assert.That(reviewed!.Stage, Is.EqualTo(TaskStage.ChangesRequested));
     }
 
+    // The host only knows that two approvals are needed; which two is the team's.
     [Test]
-    public void Review_approvesOnlyWhenEveryReviewerApprovesTheSameRevision()
+    public void Review_approvesOnlyWhenEachKindOfReviewApprovesTheSameRevision()
     {
         var queue = InReview();
 
-        var one = queue.Review("acme", "widgets", "1", Verdict("lucy", TaskReviewVerdict.Approve), ["lucy", "hector"]);
-        var both = queue.Review("acme", "widgets", "1", Verdict("hector", TaskReviewVerdict.Approve), ["lucy", "hector"]);
+        var one = queue.Review("acme", "widgets", "1", Verdict("lucy", TaskReviewVerdict.Approve, Pm), [Dev, Pm]);
+        var both = queue.Review("acme", "widgets", "1", Verdict("hector", TaskReviewVerdict.Approve, Dev), [Dev, Pm]);
 
         Assert.Multiple(() =>
         {
             Assert.That(one!.Stage, Is.EqualTo(TaskStage.InReview));
             Assert.That(both!.Stage, Is.EqualTo(TaskStage.Approved));
+            Assert.That((both.DevReviewerWorkspaceId, both.PmReviewerWorkspaceId), Is.EqualTo(("hector", "lucy")));
         });
     }
 
@@ -289,7 +291,7 @@ public sealed class TaskQueueServiceTests
         var queue = InReview();
 
         // A reviewer who wrote no verdict decided nothing, even when nobody objected.
-        var reviewed = queue.Review("acme", "widgets", "1", Verdict("lucy", TaskReviewVerdict.Comment), ["lucy"]);
+        var reviewed = queue.Review("acme", "widgets", "1", Verdict("lucy", TaskReviewVerdict.Comment, Pm), [Pm]);
 
         Assert.That(reviewed!.Stage, Is.EqualTo(TaskStage.InReview));
     }
@@ -300,22 +302,98 @@ public sealed class TaskQueueServiceTests
         var queue = InReview();
         queue.Propose("bob", "acme", "widgets", "1", "7", "https://example.test/pulls/7", "agent-up/issue-1", "main");
 
-        var stale = queue.Review("acme", "widgets", "1", Verdict("lucy", TaskReviewVerdict.Approve), ["lucy"]);
+        var stale = queue.Review("acme", "widgets", "1", Verdict("lucy", TaskReviewVerdict.Approve, Pm), [Pm]);
 
         Assert.That(stale, Is.Null);
     }
 
     [Test]
-    public void AwaitingReview_offersEachRevisionToEveryReviewerOnce()
+    public void Review_ignoresAReviewOfAKindAnotherReviewerHolds()
     {
         var queue = InReview();
-        queue.Review("acme", "widgets", "1", Verdict("lucy", TaskReviewVerdict.Approve), ["lucy", "hector"]);
+        queue.TryClaimReview("hector", Dev, "acme", "widgets", "1");
+
+        var other = queue.Review("acme", "widgets", "1", Verdict("dana", TaskReviewVerdict.Approve, Dev), [Dev]);
+
+        Assert.That(other, Is.Null);
+    }
+
+    // Both reviewers looked at the same revision; the author reads both, not only the first.
+    [Test]
+    public void Review_keepsAReviewThatLandsAfterChangesWereRequested()
+    {
+        var queue = InReview();
+        queue.Review("acme", "widgets", "1", Verdict("hector", TaskReviewVerdict.RequestChanges, Dev), [Dev, Pm]);
+
+        var late = queue.Review("acme", "widgets", "1", Verdict("lucy", TaskReviewVerdict.Approve, Pm), [Dev, Pm]);
 
         Assert.Multiple(() =>
         {
-            Assert.That(queue.AwaitingReview("lucy", "acme", "widgets"), Is.Empty);
-            Assert.That(queue.AwaitingReview("hector", "acme", "widgets").Single().Id, Is.EqualTo("1"));
-            Assert.That(queue.AwaitingReview("hector", "acme", "other"), Is.Empty);
+            Assert.That(late!.Stage, Is.EqualTo(TaskStage.ChangesRequested));
+            Assert.That(late.CurrentReviews.Select(review => review.WorkspaceId), Is.EqualTo(new[] { "hector", "lucy" }));
+        });
+    }
+
+    [Test]
+    public void AwaitingReview_offersEachRevisionToOneReviewerOfEachKind()
+    {
+        var queue = InReview();
+        queue.TryClaimReview("hector", Dev, "acme", "widgets", "1");
+        queue.Review("acme", "widgets", "1", Verdict("lucy", TaskReviewVerdict.Approve, Pm), [Dev, Pm]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(queue.AwaitingReview("lucy", Pm, "acme", "widgets"), Is.Empty);
+            Assert.That(queue.AwaitingReview("pat", Pm, "acme", "widgets"), Is.Empty, "the product review is done for this revision");
+            Assert.That(queue.AwaitingReview("hector", Dev, "acme", "widgets").Single().Id, Is.EqualTo("1"));
+            Assert.That(queue.AwaitingReview("dana", Dev, "acme", "widgets"), Is.Empty, "the dev review is hector's");
+            Assert.That(queue.AwaitingReview("hector", Dev, "acme", "other"), Is.Empty);
+        });
+    }
+
+    // No switching reviewers between pushes: the next revision goes back to the same two.
+    [Test]
+    public void TryClaimReview_keepsTheFirstReviewerOfAKindForEveryRevision()
+    {
+        var queue = InReview();
+        var hector = queue.TryClaimReview("hector", Dev, "acme", "widgets", "1");
+        var dana = queue.TryClaimReview("dana", Dev, "acme", "widgets", "1");
+        queue.Review("acme", "widgets", "1", Verdict("hector", TaskReviewVerdict.RequestChanges, Dev), [Dev]);
+        queue.Propose("bob", "acme", "widgets", "1", "7", "https://example.test/pulls/7", "agent-up/issue-1", "main");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That((hector, dana), Is.EqualTo((true, false)));
+            Assert.That(queue.AwaitingReview("hector", Dev, "acme", "widgets").Single().Proposal!.Revision, Is.EqualTo(2));
+            Assert.That(queue.AwaitingReview("dana", Dev, "acme", "widgets"), Is.Empty);
+            Assert.That(queue.TryClaimReview("hector", Dev, "acme", "widgets", "1"), Is.True);
+        });
+    }
+
+    [Test]
+    public void TryClaimReview_refusesAnAuthor()
+    {
+        var queue = InReview();
+
+        Assert.That(queue.TryClaimReview("bob", TeamMemberKind.Author, "acme", "widgets", "1"), Is.False);
+    }
+
+    // A failed check is feedback: the revision goes back to its author, but only the one it ran on.
+    [Test]
+    public void ChecksFailed_sendsTheRevisionUnderReviewBackToItsAuthor()
+    {
+        var queue = Held("bob");
+        queue.Begin("bob", "acme", "widgets", "1", "main");
+        queue.Propose("bob", "acme", "widgets", "1", "7", "https://example.test/pulls/7", "agent-up/issue-1", "main", "aaa");
+
+        var older = queue.ChecksFailed("acme", "widgets", "1", "zzz");
+        var failed = queue.ChecksFailed("acme", "widgets", "1", "aaa");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(older, Is.Null);
+            Assert.That(failed!.Stage, Is.EqualTo(TaskStage.ChangesRequested));
+            Assert.That(queue.Held("bob")!.Stage, Is.EqualTo(TaskStage.ChangesRequested));
         });
     }
 
@@ -323,7 +401,7 @@ public sealed class TaskQueueServiceTests
     public void Held_releasesTheAuthorOnceItsTaskIsApproved()
     {
         var queue = InReview();
-        queue.Review("acme", "widgets", "1", Verdict("lucy", TaskReviewVerdict.Approve), ["lucy"]);
+        queue.Review("acme", "widgets", "1", Verdict("lucy", TaskReviewVerdict.Approve, Pm), [Pm]);
 
         Assert.That(queue.Held("bob"), Is.Null);
     }
@@ -353,7 +431,11 @@ public sealed class TaskQueueServiceTests
         return queue;
     }
 
-    private static TaskReview Verdict(string workspaceId, TaskReviewVerdict verdict) => new(workspaceId, verdict, 1, "notes");
+    private const TeamMemberKind Dev = TeamMemberKind.DevReviewer;
+
+    private const TeamMemberKind Pm = TeamMemberKind.PmReviewer;
+
+    private static TaskReview Verdict(string workspaceId, TaskReviewVerdict verdict, TeamMemberKind kind) => new(workspaceId, verdict, 1, "notes", kind);
 
     private static TaskQueueService Queue() => new(new MemoryTaskQueueStore());
 

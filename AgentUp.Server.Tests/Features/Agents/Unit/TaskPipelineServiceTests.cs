@@ -40,6 +40,22 @@ public sealed class TaskPipelineServiceTests
         });
     }
 
+    // The author takes the ticket; the Server does the host work for it, with its credential.
+    [Test]
+    public async Task PrepareAsync_startsAndPublishesTheTaskBranchAndAssignsTheIssueToTheAuthor()
+    {
+        var team = await TeamAsync();
+
+        await team.Pipeline.PrepareAsync(team.Bob, Author, Issue, CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(team.Git.StartedBranch, Is.EqualTo("agent-up/issue-1"));
+            Assert.That(team.Transport.Pushed, Is.EqualTo(new[] { ("agent-up/issue-1", "bob-token") }));
+            Assert.That(team.Forge.TeamWrites, Is.EqualTo(new[] { "bob-token: assign #1 -> bob" }));
+        });
+    }
+
     [Test]
     public async Task FinishAsync_turnsAnAuthorsChangesIntoAProposalOnItsTaskBranch()
     {
@@ -55,7 +71,7 @@ public sealed class TaskPipelineServiceTests
             Assert.That(outcome.Published, Is.True, outcome.Cause);
             Assert.That(team.Git.Branch, Is.EqualTo("agent-up/issue-1"));
             Assert.That(team.Git.CommittedMessage, Is.EqualTo("Say Ahoy (#1)\n\nReplaced Hello."));
-            Assert.That(team.Transport.Pushed, Is.EqualTo(new[] { ("agent-up/issue-1", "bob-token") }), "pushed with the author's own credential");
+            Assert.That(team.Transport.Pushed[^1], Is.EqualTo(("agent-up/issue-1", "bob-token")), "pushed with the author's own credential");
             Assert.That(task.Stage, Is.EqualTo(TaskStage.InReview));
             Assert.That(task.Proposal, Is.EqualTo(new TaskProposal("42", "https://example.test/42", "agent-up/issue-1", "main", 1, team.Git.Commit)));
             Assert.That(team.Progress.Satisfied(team.Bob, RoleTerminationKind.ProposalOpened), Is.True);
@@ -74,7 +90,7 @@ public sealed class TaskPipelineServiceTests
         Assert.Multiple(() =>
         {
             Assert.That(outcome.StopReason, Is.EqualTo("nothing_to_propose"));
-            Assert.That(team.Transport.Pushed, Is.Empty);
+            Assert.That(team.Transport.Pushed, Has.Count.EqualTo(1), "only the empty task branch was pushed");
             Assert.That(team.Queue.Get("acme", "widgets", "1")!.Stage, Is.EqualTo(TaskStage.Implementing));
         });
     }
@@ -101,7 +117,7 @@ public sealed class TaskPipelineServiceTests
     {
         var team = await TeamAsync();
         await team.Pipeline.PrepareAsync(team.Bob, Author, Issue, CancellationToken.None);
-        team.Git.Branch = "agent-up/issue-1";
+        team.Git.Refs["refs/remotes/origin/main"] = "base-commit";
 
         var outcome = await team.Pipeline.FinishAsync(team.Bob, Author, Issue, Turn("Done."), CancellationToken.None);
 
@@ -121,6 +137,47 @@ public sealed class TaskPipelineServiceTests
             Assert.That(team.Transport.Fetched.Single(), Is.EqualTo(new[] { "agent-up/issue-1", "main" }));
             Assert.That(team.Git.ResetBranch, Is.EqualTo("agent-up/issue-1"));
             Assert.That(plan.Prompt, Does.Contain("-Hello\n+Ahoy"));
+        });
+    }
+
+    // The author opened the proposal, so it is the author's credential that names the reviewer.
+    [Test]
+    public async Task PrepareAsync_namesTheReviewerOnTheProposalWithTheAuthorsCredential()
+    {
+        var team = await InReviewAsync();
+        team.Forge.TeamWrites.Clear();
+
+        await team.Pipeline.PrepareAsync(team.Lucy, Reviewer, Issue, CancellationToken.None);
+
+        Assert.That(team.Forge.TeamWrites, Is.EqualTo(new[] { "bob-token: review !42 -> lucy" }));
+    }
+
+    // Everything the host said comes back to the author: findings at their lines, failing checks, comments.
+    [Test]
+    public async Task PrepareAsync_givesAnAuthorSentBackEveryFindingAndFailingCheck()
+    {
+        var team = await InReviewAsync();
+        team.Forge.Snapshot = new AgentUp.Sdk.Forge.ForgeHostSnapshot(
+            null,
+            [new AgentUp.Sdk.Forge.ForgeCheck("test", "completed", "failure", "https://example.test/runs/3")],
+            [
+                new AgentUp.Sdk.Forge.ForgeReviewThread("1", "", "Keep the comma.", false, "src/greeting.js", 1, "lucy"),
+                new AgentUp.Sdk.Forge.ForgeReviewThread("2", "", "Ready for review.", false, null, null, "bob"),
+                new AgentUp.Sdk.Forge.ForgeReviewThread("3", "", "Please also update the README.", false, null, null, "dana")
+            ],
+            null);
+        team.Queue.Review("acme", "widgets", "1", new TaskReview(team.Lucy, TaskReviewVerdict.RequestChanges, 1, "One finding.", TeamMemberKind.DevReviewer), [TeamMemberKind.DevReviewer]);
+
+        var plan = await team.Pipeline.PrepareAsync(team.Bob, Author, Issue, CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(plan.Prompt, Does.Contain("Review (code):\nOne finding."));
+            Assert.That(plan.Prompt, Does.Contain("- src/greeting.js:1 (lucy): Keep the comma."));
+            Assert.That(plan.Prompt, Does.Contain("- test: failure (https://example.test/runs/3)"));
+            Assert.That(plan.Prompt, Does.Contain("- (dana) Please also update the README."));
+            Assert.That(plan.Prompt, Does.Not.Contain("Ready for review."), "the author's own comment is not feedback");
+            Assert.That(team.Forge.ReadBranches, Does.Contain("agent-up/issue-1"), "feedback is read for the task branch, whatever is checked out");
         });
     }
 
@@ -159,8 +216,8 @@ public sealed class TaskPipelineServiceTests
     public async Task ListAwaitingAsync_putsAProposalBackInFrontOfAReviewerWhenAnyonePushesToIt()
     {
         var team = await InReviewAsync();
-        team.Queue.Review("acme", "widgets", "1", new TaskReview(team.Lucy, TaskReviewVerdict.Approve, 1, "ok"), [team.Lucy]);
-        var proposals = new CuratedProposalQueue(team.Queue, team.Host, team.GitRead);
+        team.Queue.Review("acme", "widgets", "1", new TaskReview(team.Lucy, TaskReviewVerdict.Approve, 1, "ok", TeamMemberKind.DevReviewer), [TeamMemberKind.DevReviewer]);
+        var proposals = new CuratedProposalQueue(team.Queue, team.Host, team.Settings, team.GitRead);
         var approved = await proposals.ListAwaitingAsync(team.Lucy, CancellationToken.None);
         team.Git.Refs["refs/remotes/origin/agent-up/issue-1"] = "pushed-by-a-person";
 
@@ -188,6 +245,26 @@ public sealed class TaskPipelineServiceTests
             Assert.That(team.Forge.ReviewCalls, Is.EqualTo(1));
             Assert.That(team.Queue.Get("acme", "widgets", "1")!.Stage, Is.EqualTo(TaskStage.Approved));
             Assert.That(team.Progress.Satisfied(team.Lucy, RoleTerminationKind.ReviewSubmitted), Is.True);
+            Assert.That(team.Applications.Stopped, Is.EqualTo(new[] { team.Lucy }), "a finished reviewer holds no running revision");
+        });
+    }
+
+    // One dev reviewer is not enough when the team also has a product reviewer on the repository.
+    [Test]
+    public async Task FinishAsync_waitsForEachKindOfReviewTheTeamHas()
+    {
+        var team = await InReviewAsync();
+        var pat = (await team.Workspaces.RegisterAsync(ServerDomain.Workspace().Named("pat").WithWorktreePath("/tmp/agent-up-pat").Build())).Id;
+        team.Members.Set(pat, TeamMemberKind.PmReviewer);
+
+        await team.Pipeline.FinishAsync(team.Lucy, Reviewer, Issue, Turn("Correct.\nVERDICT: APPROVE"), CancellationToken.None);
+        var task = team.Queue.Get("acme", "widgets", "1")!;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(task.Stage, Is.EqualTo(TaskStage.InReview));
+            Assert.That(task.DevReviewerWorkspaceId, Is.EqualTo(team.Lucy));
+            Assert.That(team.Queue.AwaitingReview(pat, TeamMemberKind.PmReviewer, "acme", "widgets").Single().Id, Is.EqualTo("1"));
         });
     }
 
@@ -202,7 +279,7 @@ public sealed class TaskPipelineServiceTests
         {
             Assert.That(outcome.StopReason, Is.EqualTo("no_verdict"));
             Assert.That(team.Forge.ReviewCalls, Is.Zero);
-            Assert.That(team.Queue.AwaitingReview(team.Lucy, "acme", "widgets"), Has.Count.EqualTo(1), "the review is still owed");
+            Assert.That(team.Queue.AwaitingReview(team.Lucy, TeamMemberKind.DevReviewer, "acme", "widgets"), Has.Count.EqualTo(1), "the review is still owed");
         });
     }
 
@@ -231,6 +308,8 @@ public sealed class TaskPipelineServiceTests
         var members = new TeamMemberController(new TeamMemberService(settings, workspaces));
         members.Set(lucy, TeamMemberKind.DevReviewer);
         var forge = new StubForgeCapability();
+        forge.Accounts["bob-token"] = "bob";
+        forge.Accounts["lucy-token"] = "lucy";
         var credentials = new MemoryForgeCredentialStore();
         credentials.Write(bob, "github", "bob-token");
         credentials.Write(lucy, "github", "lucy-token");
@@ -253,8 +332,9 @@ public sealed class TaskPipelineServiceTests
         queue.TryClaim(bob, "acme", "widgets", "1");
         var progress = new MemoryRoleProgress();
         var applications = new FixedReviewApplicationHost(["http://127.0.0.1:5701/"], startError);
-        var pipeline = new TaskPipelineService(queue, forgeController, new GitWorkspaceController(changes), new GitQueryController(changes), workspaces, settings, progress, applications);
-        return new Team(pipeline, queue, git, transport, forge, progress, bob, lucy, forgeController, new GitQueryController(changes), members, applications);
+        var requirements = new TaskReviewRequirementService(forgeController, workspaces, settings);
+        var pipeline = new TaskPipelineService(queue, forgeController, new GitWorkspaceController(changes), new GitQueryController(changes), workspaces, settings, progress, requirements, applications);
+        return new Team(pipeline, queue, git, transport, forge, progress, bob, lucy, forgeController, new GitQueryController(changes), members, applications, settings, workspaces);
     }
 
     private sealed record Team(
@@ -269,7 +349,9 @@ public sealed class TaskPipelineServiceTests
         ForgeController Host,
         GitQueryController GitRead,
         TeamMemberController Members,
-        FixedReviewApplicationHost Applications);
+        FixedReviewApplicationHost Applications,
+        InMemoryAgentWorkspaceSettingsRepository Settings,
+        WorkspaceQueryController Workspaces);
 
     private sealed class MemoryTaskQueueStore : ITaskQueueStore
     {

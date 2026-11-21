@@ -48,6 +48,30 @@ public sealed class TaskQueueControllerTests
         Assert.That(proposal, Is.EqualTo(new TaskProposalDto("9", "https://example.test/pulls/9", "agent-up/issue-3", "main", 1, "abc123")));
     }
 
+    // The Tasks overview reads which kinds of review a revision still waits on, and who holds each.
+    [Test]
+    public async Task List_namesWhoHoldsEachReviewAndWhichKindsTheRevisionStillNeeds()
+    {
+        var (controller, tasks, workspaceId) = await ArrangeAsync(TeamMemberKind.DevReviewer, Issue("7", 3));
+        await controller.EnqueueAsync(new EnqueueTaskRequest(workspaceId, "7"));
+        tasks.TryClaim("bob", "acme", "widgets", "7");
+        tasks.Begin("bob", "acme", "widgets", "7", "main");
+        tasks.Propose("bob", "acme", "widgets", "7", "9", "https://example.test/pulls/9", "agent-up/issue-3", "main", "abc123");
+        tasks.TryClaimReview(workspaceId, TeamMemberKind.DevReviewer, "acme", "widgets", "7");
+
+        var before = controller.List().Single();
+        tasks.Review("acme", "widgets", "7", new TaskReview(workspaceId, TaskReviewVerdict.Approve, 1, "ok", TeamMemberKind.DevReviewer), [TeamMemberKind.DevReviewer]);
+        var after = controller.List().Single();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(before.DevReviewerWorkspaceId, Is.EqualTo(workspaceId));
+            Assert.That(before.NeedsReview, Is.EqualTo(new[] { "devReviewer" }));
+            Assert.That(after.NeedsReview, Is.Empty);
+            Assert.That(after.Reviews!.Single().Kind, Is.EqualTo("devReviewer"));
+        });
+    }
+
     [Test]
     public async Task EnqueueAsync_refusesAnIssueTheHostDoesNotServe()
     {
@@ -119,7 +143,11 @@ public sealed class TaskQueueControllerTests
     private static ForgeIssue Issue(string id, int number) =>
         new(id, number, $"Issue {number}", "body", DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch, $"https://example.test/{number}");
 
+    private static Task<(TaskQueueController Controller, TaskQueueService Tasks, string WorkspaceId)> ArrangeAsync(
+        params ForgeIssue[] issues) => ArrangeAsync(TeamMemberKind.Author, issues);
+
     private static async Task<(TaskQueueController Controller, TaskQueueService Tasks, string WorkspaceId)> ArrangeAsync(
+        TeamMemberKind member,
         params ForgeIssue[] issues)
     {
         var workspaces = new WorkspaceQueryController(ServerTestComposition.CreateRegistry());
@@ -136,8 +164,13 @@ public sealed class TaskQueueControllerTests
             new FixedForgeOAuthExchange("token"));
         var tasks = new TaskQueueService(new MemoryTaskQueueStore());
         var forge = new ForgeController(service);
+        var settings = new InMemoryAgentWorkspaceSettingsRepository();
+        settings.Save(settings.Get(workspace.Id) with { Member = member });
         return (
-            new TaskQueueController(tasks, new TaskPickingService(tasks, forge, TaskSourceComposition.Controller())),
+            new TaskQueueController(
+                tasks,
+                new TaskPickingService(tasks, forge, TaskSourceComposition.Controller()),
+                new TaskReviewRequirementService(forge, workspaces, settings)),
             tasks,
             workspace.Id);
     }

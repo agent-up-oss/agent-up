@@ -157,6 +157,30 @@ public sealed class GitChangeTreeService
             GitCommitResult.Failed,
             cancellationToken);
 
+    /// <summary>Starts a task branch at the commit now checked out, so the work has a home before it has a commit.</summary>
+    public Task<GitMutationResult> StartBranchAsync(
+        string workspaceId,
+        string branch,
+        CancellationToken cancellationToken = default) =>
+        MutateAsync(
+            workspaceId,
+            async workspace =>
+            {
+                try
+                {
+                    await _git.StartBranchAsync(workspace.WorktreePath, branch, cancellationToken);
+                    await RefreshIdentityAsync(workspace, cancellationToken);
+                    return GitMutationResult.Success();
+                }
+                catch (InvalidOperationException ex)
+                {
+                    return GitMutationResult.Failed(ex.Message);
+                }
+            },
+            GitMutationResult.NotFound,
+            GitMutationResult.Failed,
+            cancellationToken);
+
     /// <summary>Checks out the fetched remote branch exactly, discarding nothing but the old local copy of it.</summary>
     public Task<GitMutationResult> ResetToRemoteBranchAsync(
         string workspaceId,

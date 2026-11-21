@@ -226,8 +226,10 @@ public sealed class AutonomousWorkspaceService(
                     // Many workspaces draw from one queue, so the task is only ours once the queue
                     // says so. Losing the race means another workspace took it: choose again
                     // rather than open the same issue twice.
-                    if (role.Trigger != RoleTriggerKind.ProposalAwaitingReview
-                        && !await issues.TryHoldAsync(workspaceId, next.Id, cancellationToken))
+                    var taken = role.Trigger == RoleTriggerKind.ProposalAwaitingReview
+                        ? await proposals.TryTakeAsync(workspaceId, next.Id, cancellationToken)
+                        : await issues.TryHoldAsync(workspaceId, next.Id, cancellationToken);
+                    if (!taken)
                         continue;
 
                     task = next;

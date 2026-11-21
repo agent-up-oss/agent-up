@@ -18,7 +18,12 @@ internal sealed class StubForgeCapability : IForgeCapability
         "https://example.test/login/oauth/authorize",
         "https://example.test/login/oauth/access_token");
 
-    public ForgeHostSnapshot Snapshot { get; init; } = new(null, [], [], null);
+    public ForgeHostSnapshot Snapshot { get; set; } = new(null, [], [], null);
+
+    /// <summary>The account each credential acts as, by token; a token not listed has no account.</summary>
+    public Dictionary<string, string> Accounts { get; } = new(StringComparer.Ordinal);
+
+    public List<string> ReadBranches { get; } = [];
 
     public IReadOnlyList<ForgeIssue> Assigned { get; init; } = [];
 
@@ -45,9 +50,13 @@ internal sealed class StubForgeCapability : IForgeCapability
     public Task<ForgeHostSnapshot> ReadAsync(ForgeRequest request, CancellationToken cancellationToken = default)
     {
         LastReadToken = request.Token;
+        ReadBranches.Add(request.Branch);
+        var snapshot = Accounts.TryGetValue(request.Token, out var login)
+            ? Snapshot with { Account = new ForgeAccount(login, login, false, $"https://example.test/{login}") }
+            : Snapshot;
         return ReadFailure is not null
             ? Task.FromException<ForgeHostSnapshot>(ReadFailure)
-            : Task.FromResult(Snapshot);
+            : Task.FromResult(snapshot);
     }
 
     public Task<IReadOnlyList<ForgeIssue>> ListAssignedAsync(
@@ -87,6 +96,32 @@ internal sealed class StubForgeCapability : IForgeCapability
     public Task SubmitReviewAsync(ForgeRequest request, ForgeSubmitReviewCommand command, CancellationToken cancellationToken = default)
     {
         ReviewCalls++;
+        LastReview = command;
         return Task.CompletedTask;
+    }
+
+    public ForgeSubmitReviewCommand? LastReview { get; private set; }
+
+    /// <summary>Every write that names a team member, as "token: issue/proposal -> login".</summary>
+    public List<string> TeamWrites { get; } = [];
+
+    public ForgeAttachment? Attachment { get; init; }
+
+    public Task AssignIssueAsync(ForgeRequest request, int issueNumber, string login, CancellationToken cancellationToken = default)
+    {
+        TeamWrites.Add($"{request.Token}: assign #{issueNumber} -> {login}");
+        return Task.CompletedTask;
+    }
+
+    public Task RequestReviewAsync(ForgeRequest request, string proposalNumber, string login, CancellationToken cancellationToken = default)
+    {
+        TeamWrites.Add($"{request.Token}: review !{proposalNumber} -> {login}");
+        return Task.CompletedTask;
+    }
+
+    public Task<ForgeAttachment?> AttachAsync(ForgeRequest request, string issueNumber, string fileName, string contentType, byte[] content, CancellationToken cancellationToken = default)
+    {
+        TeamWrites.Add($"{request.Token}: attach {fileName} to {issueNumber}");
+        return Task.FromResult(Attachment);
     }
 }

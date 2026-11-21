@@ -65,6 +65,27 @@ public sealed class GitTaskBranchProviderTests
         Directory.Delete(repository, recursive: true);
     }
 
+    // A ticket's branch exists from the moment it is taken, before any commit; a branch left over
+    // from an earlier attempt under the same name starts again from the base.
+    [Test]
+    public async Task StartBranchAsync_startsTheTaskBranchAtTheBaseReplacingAStaleOne()
+    {
+        var repository = await RepositoryAsync();
+        var provider = new GitWorkingTreeProvider();
+        await File.WriteAllTextAsync(Path.Join(repository, "greeting.txt"), "Stale\n");
+        await provider.CommitAllToBranchAsync(repository, "agent-up/issue-1", "Stale", Bob);
+        await TestGitRepository.RunAsync(repository, "switch", "main");
+
+        await provider.StartBranchAsync(repository, "agent-up/issue-1");
+
+        Assert.Multiple(async () =>
+        {
+            Assert.That(await TestGitRepository.ReadAsync(repository, "rev-parse", "--abbrev-ref", "HEAD"), Is.EqualTo("agent-up/issue-1"));
+            Assert.That(await TestGitRepository.ReadAsync(repository, "rev-parse", "HEAD"), Is.EqualTo(await TestGitRepository.ReadAsync(repository, "rev-parse", "main")));
+        });
+        Directory.Delete(repository, recursive: true);
+    }
+
     [Test]
     public async Task CommitAllToBranchAsync_addsARevisionToAnExistingTaskBranch()
     {

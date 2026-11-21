@@ -7,13 +7,20 @@ using AgentUp.Server.Features.Git.Controllers;
 namespace AgentUp.Server.Features.Agents.Providers;
 
 /// <summary>
-/// What a reviewer is offered: the picked tasks on its own repository whose open revision it has
-/// not reviewed. The queue is the record, so a reviewer never reviews a proposal nobody picked.
+/// What a reviewer is offered: the picked tasks on its own repository whose open revision needs a
+/// review of the reviewer's kind - dev or product - and that are either still free or already
+/// this reviewer's. The host only knows that a number of approvals is required; which kinds are
+/// still owed is the Server's to infer from the reviews already given. The queue is the record,
+/// so a reviewer never reviews a proposal nobody picked.
 /// A review is triggered by a push: before answering, the reviewer fetches every proposed branch
 /// with its own credential, and a branch whose head moved - whoever pushed it - is a new revision
 /// in front of every reviewer.
 /// </summary>
-public sealed class CuratedProposalQueue(TaskQueueService queue, ForgeController forge, GitQueryController? git = null) : IAssignedProposalQueue
+public sealed class CuratedProposalQueue(
+    TaskQueueService queue,
+    ForgeController forge,
+    IAgentWorkspaceSettingsRepository settings,
+    GitQueryController? git = null) : IAssignedProposalQueue
 {
     public async Task<IReadOnlyList<AssignedProposal>> ListAwaitingAsync(string workspaceId, CancellationToken cancellationToken)
     {
@@ -24,7 +31,7 @@ public sealed class CuratedProposalQueue(TaskQueueService queue, ForgeController
         await ReadPushesAsync(workspaceId, queue.Proposed(repository.Owner, repository.Repository), cancellationToken);
         return
         [
-            .. queue.AwaitingReview(workspaceId, repository.Owner, repository.Repository)
+            .. queue.AwaitingReview(workspaceId, settings.Get(workspaceId).Member, repository.Owner, repository.Repository)
                 .Select(task => new AssignedProposal(task.Id, task.Title, task.Body, task.QueuedAt, task.Proposal!.Url, task.Number))
         ];
     }
@@ -32,6 +39,17 @@ public sealed class CuratedProposalQueue(TaskQueueService queue, ForgeController
     /// <summary>Nothing to do: a review recorded on the task is what takes it off this list.</summary>
     public void Replace(string workspaceId, IReadOnlyList<AssignedProposal> proposals)
     {
+    }
+
+    /// <summary>
+    /// The first reviewer of a kind to take a task keeps its review for every later revision, so
+    /// a push goes back to the reviewer that already knows the change.
+    /// </summary>
+    public Task<bool> TryTakeAsync(string workspaceId, string id, CancellationToken cancellationToken)
+    {
+        var repository = forge.ResolveRepository(workspaceId);
+        return Task.FromResult(repository is not null
+            && queue.TryClaimReview(workspaceId, settings.Get(workspaceId).Member, repository.Owner, repository.Repository, id));
     }
 
     /// <summary>

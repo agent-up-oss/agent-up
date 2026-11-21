@@ -76,4 +76,19 @@ public sealed class ForgeController(ForgeService service)
 
     public Task<ForgeReviewOutcome> SubmitReviewAsync(string workspaceId, ForgeReviewRequest command, CancellationToken cancellationToken = default)
         => service.SubmitReviewAsync(workspaceId, command, cancellationToken);
+
+    public Task<ForgeAccountDto?> ReadAccountAsync(string workspaceId, CancellationToken cancellationToken = default)
+        => service.ReadAccountAsync(workspaceId, cancellationToken);
+
+    public Task<ForgeTaskFeedbackDto?> ReadFeedbackAsync(string workspaceId, string branch, CancellationToken cancellationToken = default)
+        => service.ReadFeedbackAsync(workspaceId, branch, cancellationToken);
+
+    public Task<bool> AssignIssueAsync(string workspaceId, int issueNumber, string login, CancellationToken cancellationToken = default)
+        => service.AssignIssueAsync(workspaceId, issueNumber, login, cancellationToken);
+
+    public Task<bool> RequestReviewAsync(string workspaceId, string proposalNumber, string login, CancellationToken cancellationToken = default)
+        => service.RequestReviewAsync(workspaceId, proposalNumber, login, cancellationToken);
+
+    public Task<string?> AttachAsync(string workspaceId, string number, string fileName, string contentType, byte[] content, CancellationToken cancellationToken = default)
+        => service.AttachAsync(workspaceId, number, fileName, contentType, content, cancellationToken);
 }

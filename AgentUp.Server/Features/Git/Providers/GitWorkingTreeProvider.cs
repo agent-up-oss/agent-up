@@ -178,6 +178,13 @@ public sealed partial class GitWorkingTreeProvider : IGitWorkingTreeProvider
             await RunGitAsync(repoRoot, ["switch", "--", branch], cancellationToken);
     }
 
+    public async Task StartBranchAsync(string worktreePath, string branch, CancellationToken cancellationToken = default)
+    {
+        var repoRoot = await RunGitAsync(worktreePath, ["rev-parse", "--show-toplevel"], cancellationToken);
+        await RunGitAsync(repoRoot, ["check-ref-format", "--branch", branch], cancellationToken);
+        await RunGitAsync(repoRoot, ["switch", "-C", branch], cancellationToken);
+    }
+
     public async Task CheckoutRemoteAsync(
         string worktreePath,
         string name,

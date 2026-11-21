@@ -277,6 +277,7 @@ public static class ServiceRegistration
             sp.GetRequiredService<WorkspaceQueryController>(),
             sp.GetRequiredService<IReviewBrowser>()));
         builder.Services.AddSingleton<IRoleProgress, MemoryRoleProgress>();
+        builder.Services.AddSingleton<TaskReviewRequirementService>();
         builder.Services.AddSingleton<ITaskPipeline, TaskPipelineService>();
         builder.Services.AddSingleton<ILoopBackoff, LoopBackoffProvider>();
         builder.Services.AddSingleton<IEnabledAgentInspector, EnabledAgentInspector>();

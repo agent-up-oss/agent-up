@@ -47,4 +47,7 @@ public sealed class WorkspaceReviewApplicationProvider(
         var refusal = await browser.OpenAsync(workspaceId, addresses[0], cancellationToken);
         return refusal is null ? (addresses, null) : ([], $"The browser could not open {addresses[0]}: {refusal}");
     }
+
+    public async Task StopAsync(string workspaceId, CancellationToken cancellationToken) =>
+        await lifecycle.StopAsync(workspaceId);
 }

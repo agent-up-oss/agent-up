@@ -17,6 +17,9 @@ public sealed class GitWorkspaceController(GitChangeTreeService changes)
         CancellationToken cancellationToken = default)
         => changes.CommitAllToBranchAsync(workspaceId, branch, message, author, cancellationToken);
 
+    public Task<GitMutationResult> StartBranchAsync(string workspaceId, string branch, CancellationToken cancellationToken = default)
+        => changes.StartBranchAsync(workspaceId, branch, cancellationToken);
+
     public Task<GitMutationResult> ResetToRemoteBranchAsync(string workspaceId, string branch, CancellationToken cancellationToken = default)
         => changes.ResetToRemoteBranchAsync(workspaceId, branch, cancellationToken);
 }

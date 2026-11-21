@@ -673,6 +673,62 @@ public sealed class ForgeServiceTests
         Assert.That(forge.ReviewCalls, Is.EqualTo(1));
     }
 
+    // Every team write the Server makes names the member's own host account and goes out with
+    // that workspace's credential; a finding keeps its file and line on the way to the host.
+    [Test]
+    public async Task TeamWrites_goOutWithTheWorkspacesCredentialAndKeepEachFindingsLine()
+    {
+        var credentials = new MemoryForgeCredentialStore();
+        var forge = new StubForgeCapability { Attachment = new AgentUp.Sdk.Forge.ForgeAttachment("shot.png", "https://example.test/attachments/1") };
+        forge.Accounts["token"] = "hector";
+        var (service, workspaceId) = await ArrangeAsync(forge, credentials, member: TeamMemberKind.DevReviewer);
+        credentials.Write(workspaceId, "github", "token");
+
+        var account = await service.ReadAccountAsync(workspaceId, CancellationToken.None);
+        await service.AssignIssueAsync(workspaceId, 3, "bob", CancellationToken.None);
+        await service.RequestReviewAsync(workspaceId, "42", "hector", CancellationToken.None);
+        var link = await service.AttachAsync(workspaceId, "42", "shot.png", "image/png", [1], CancellationToken.None);
+        await service.SubmitReviewAsync(workspaceId, new ForgeReviewRequest("42", "One thing.", "REQUEST_CHANGES", [new ForgeReviewFindingDto("src/a.js", 4, "Keep it.")]), CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(account!.Login, Is.EqualTo("hector"));
+            Assert.That(forge.TeamWrites, Is.EqualTo(new[] { "token: assign #3 -> bob", "token: review !42 -> hector", "token: attach shot.png to 42" }));
+            Assert.That(link, Is.EqualTo("https://example.test/attachments/1"));
+            Assert.That(forge.LastReview!.Comments, Is.EqualTo(new[] { new AgentUp.Sdk.Forge.ForgeReviewComment("src/a.js", 4, "Keep it.") }));
+        });
+    }
+
+    // What the author is called back with: the proposal on its task branch, whatever is checked out.
+    [Test]
+    public async Task ReadFeedbackAsync_readsTheTaskBranchsProposalWithItsFindingsAndChecks()
+    {
+        var credentials = new MemoryForgeCredentialStore();
+        var forge = new StubForgeCapability
+        {
+            Snapshot = new AgentUp.Sdk.Forge.ForgeHostSnapshot(
+                new AgentUp.Sdk.Forge.ForgeProposal("1", "42", "Say Ahoy", "https://example.test/42", "agent-up/issue-1", "main", "open", "abc"),
+                [new AgentUp.Sdk.Forge.ForgeCheck("test", "completed", "failure", "https://example.test/runs/1")],
+                [new AgentUp.Sdk.Forge.ForgeReviewThread("9", "", "Keep it.", false, "src/a.js", 4, "hector")],
+                null,
+                null,
+                [new AgentUp.Sdk.Forge.ForgeReview("hector", "REQUEST_CHANGES", DateTimeOffset.UnixEpoch, "abc")])
+        };
+        var (service, workspaceId) = await ArrangeAsync(forge, credentials);
+        credentials.Write(workspaceId, "github", "token");
+
+        var feedback = await service.ReadFeedbackAsync(workspaceId, "agent-up/issue-1", CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(forge.ReadBranches, Is.EqualTo(new[] { "agent-up/issue-1" }));
+            Assert.That(feedback!.HeadSha, Is.EqualTo("abc"));
+            Assert.That(feedback.Threads.Single(), Is.EqualTo(new ForgeReviewThreadDto("9", "", "Keep it.", false, "src/a.js", 4, "hector")));
+            Assert.That(feedback.Reviews.Single(), Is.EqualTo(new ForgeReviewDto("hector", "REQUEST_CHANGES", "abc")));
+            Assert.That(feedback.Checks.Single().Conclusion, Is.EqualTo("failure"));
+        });
+    }
+
     [Test]
     public async Task SubmitReviewAsync_refusesAnAuthorWorkspace()
     {

@@ -145,14 +145,14 @@ public sealed class CuratedIssueQueueTests
     public async Task ListAwaitingAsync_offersAReviewerTheTasksWhoseRevisionItHasNotReviewed()
     {
         var (_, tasks, workspaceId) = await ArrangeAsync();
-        var proposals = new CuratedProposalQueue(tasks, Forge(workspaceId));
+        var proposals = new CuratedProposalQueue(tasks, Forge(workspaceId), Reviewer(workspaceId, TeamMemberKind.DevReviewer));
         tasks.Enqueue(Task("1", 1));
         tasks.TryClaim("bob", "acme", "widgets", "1");
         tasks.Begin("bob", "acme", "widgets", "1", "main");
         tasks.Propose("bob", "acme", "widgets", "1", "7", "https://example.test/pulls/7", "agent-up/issue-1", "main");
 
         var before = await proposals.ListAwaitingAsync(workspaceId, CancellationToken.None);
-        tasks.Review("acme", "widgets", "1", new TaskReview(workspaceId, TaskReviewVerdict.Approve, 1, "ok"), [workspaceId, "hector"]);
+        tasks.Review("acme", "widgets", "1", new TaskReview(workspaceId, TaskReviewVerdict.Approve, 1, "ok", TeamMemberKind.DevReviewer), [TeamMemberKind.DevReviewer, TeamMemberKind.PmReviewer]);
         var after = await proposals.ListAwaitingAsync(workspaceId, CancellationToken.None);
 
         Assert.Multiple(() =>
@@ -162,10 +162,86 @@ public sealed class CuratedIssueQueueTests
         });
     }
 
+    // A dev reviewer that took a review keeps it; another dev reviewer is not offered it again.
+    [Test]
+    public async Task TryTakeAsync_givesEachReviewOfAKindToOneReviewer()
+    {
+        var (_, tasks, workspaceId) = await ArrangeAsync();
+        var proposals = new CuratedProposalQueue(tasks, Forge(workspaceId), Reviewer(workspaceId, TeamMemberKind.PmReviewer));
+        Proposed(tasks);
+        tasks.TryClaimReview("lucy", TeamMemberKind.PmReviewer, "acme", "widgets", "1");
+
+        var taken = await proposals.TryTakeAsync(workspaceId, "1", CancellationToken.None);
+        var offered = await proposals.ListAwaitingAsync(workspaceId, CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(taken, Is.False);
+            Assert.That(offered, Is.Empty);
+        });
+    }
+
+    // A failing check on the revision under review is feedback, so the author is called again.
+    [Test]
+    public async Task ListAssignedAsync_handsATaskBackToItsAuthorWhenTheHostsChecksFailOnIt()
+    {
+        var (queue, tasks, workspaceId) = await ArrangeAsync(new ForgeHostSnapshot(
+            new ForgeProposal("1", "7", "Task 1", "https://example.test/pulls/7", "agent-up/issue-1", "main", "open", "aaa"),
+            [new ForgeCheck("test", "completed", "failure", "https://example.test/runs/3"), new ForgeCheck("lint", "completed", "success", "")],
+            [],
+            null));
+        tasks.Enqueue(Task("1", 1));
+        tasks.TryClaim(workspaceId, "acme", "widgets", "1");
+        tasks.Begin(workspaceId, "acme", "widgets", "1", "main");
+        tasks.Propose(workspaceId, "acme", "widgets", "1", "7", "https://example.test/pulls/7", "agent-up/issue-1", "main", "aaa");
+
+        var listed = await queue.ListAssignedAsync(workspaceId, AssignedIssueOrder.NumberAsc, CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(listed.Single().Id, Is.EqualTo("1"));
+            Assert.That(tasks.Get("acme", "widgets", "1")!.Stage, Is.EqualTo(TaskStage.ChangesRequested));
+        });
+    }
+
+    // Checks on a head the revision is not, such as the one before the last push, decide nothing.
+    [Test]
+    public async Task ListAssignedAsync_keepsWaitingWhenTheFailingChecksAreOnAnotherCommit()
+    {
+        var (queue, tasks, workspaceId) = await ArrangeAsync(new ForgeHostSnapshot(
+            new ForgeProposal("1", "7", "Task 1", "https://example.test/pulls/7", "agent-up/issue-1", "main", "open", "old"),
+            [new ForgeCheck("test", "completed", "failure", "")],
+            [],
+            null));
+        tasks.Enqueue(Task("1", 1));
+        tasks.TryClaim(workspaceId, "acme", "widgets", "1");
+        tasks.Begin(workspaceId, "acme", "widgets", "1", "main");
+        tasks.Propose(workspaceId, "acme", "widgets", "1", "7", "https://example.test/pulls/7", "agent-up/issue-1", "main", "aaa");
+
+        var listed = await queue.ListAssignedAsync(workspaceId, AssignedIssueOrder.NumberAsc, CancellationToken.None);
+
+        Assert.That(listed, Is.Empty);
+    }
+
+    private static void Proposed(TaskQueueService tasks)
+    {
+        tasks.Enqueue(Task("1", 1));
+        tasks.TryClaim("bob", "acme", "widgets", "1");
+        tasks.Begin("bob", "acme", "widgets", "1", "main");
+        tasks.Propose("bob", "acme", "widgets", "1", "7", "https://example.test/pulls/7", "agent-up/issue-1", "main");
+    }
+
+    private static InMemoryAgentWorkspaceSettingsRepository Reviewer(string workspaceId, TeamMemberKind kind)
+    {
+        var settings = new InMemoryAgentWorkspaceSettingsRepository();
+        settings.Save(settings.Get(workspaceId) with { Member = kind });
+        return settings;
+    }
+
     private static QueuedTask Task(string id, int number) =>
         new(id, "acme", "widgets", number, $"Task {number}", "", $"https://example.test/{number}", DateTimeOffset.UnixEpoch);
 
-    private static async Task<(CuratedIssueQueue Queue, TaskQueueService Tasks, string WorkspaceId)> ArrangeAsync()
+    private static async Task<(CuratedIssueQueue Queue, TaskQueueService Tasks, string WorkspaceId)> ArrangeAsync(ForgeHostSnapshot? snapshot = null)
     {
         var workspaces = new WorkspaceQueryController(ServerTestComposition.CreateRegistry());
         var workspace = await workspaces.RegisterAsync(ServerDomain.Workspace().Build());
@@ -173,7 +249,7 @@ public sealed class CuratedIssueQueueTests
         credentials.Write(workspace.Id, "github", "token");
         var service = new ForgeService(
             workspaces,
-            new FakeEnabledCapabilityPackages().WithForges(new StubForgeCapability()),
+            new FakeEnabledCapabilityPackages().WithForges(new StubForgeCapability { Snapshot = snapshot ?? new ForgeHostSnapshot(null, [], [], null) }),
             credentials,
             new FixedForgeGitRemoteResolver(new ForgeGitRemote("acme", "widgets", "main", "https://github.com/acme/widgets.git")),
             new FixedForgeOAuthSettings(new ForgeOAuthConfiguration("", "", "")),

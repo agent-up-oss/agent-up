@@ -1,4 +1,5 @@
 using System.Net.Http;
+using Microsoft.Extensions.Logging;
 using AgentUp.Server.Features.Agents.DTOs;
 using AgentUp.Server.Features.Agents.Interfaces;
 using AgentUp.Server.Features.Agents.Models;
@@ -24,16 +25,25 @@ public sealed class TaskPipelineService(
     WorkspaceQueryController workspaces,
     IAgentWorkspaceSettingsRepository settings,
     IRoleProgress progress,
-    IReviewApplicationHost? applications = null) : ITaskPipeline
+    TaskReviewRequirementService requirements,
+    IReviewApplicationHost? applications = null,
+    ILogger<TaskPipelineService>? logger = null) : ITaskPipeline
 {
     public async Task<TaskTurnPlan> PrepareAsync(string workspaceId, AgentRoleDefinition role, AssignedIssue issue, CancellationToken cancellationToken)
     {
         var task = Find(workspaceId, issue.Id);
         if (task is null)
             return TaskTurnPlan.Refused("The task is no longer in the queue.");
-        return role.Trigger == RoleTriggerKind.ProposalAwaitingReview
-            ? await PrepareReviewAsync(workspaceId, role, task, cancellationToken)
-            : await PrepareAuthorAsync(workspaceId, role, task, cancellationToken);
+        try
+        {
+            return role.Trigger == RoleTriggerKind.ProposalAwaitingReview
+                ? await PrepareReviewAsync(workspaceId, role, task, cancellationToken)
+                : await PrepareAuthorAsync(workspaceId, role, task, cancellationToken);
+        }
+        catch (HttpRequestException exception)
+        {
+            return TaskTurnPlan.Refused($"The host could not be reached: {exception.Message}");
+        }
     }
 
     public async Task<TaskTurnOutcome> FinishAsync(string workspaceId, AgentRoleDefinition role, AssignedIssue issue, LoopRunResult result, CancellationToken cancellationToken)
@@ -54,8 +64,10 @@ public sealed class TaskPipelineService(
     }
 
     /// <summary>
-    /// A fresh task starts from its base branch; one sent back by review continues on its task
-    /// branch, where the earlier revision already is.
+    /// A fresh task starts from its base branch: the Server starts the task branch there, pushes
+    /// it so the work is visible on the host from the start, and assigns the issue to the author's
+    /// own account, which is how the host learns who took it. One sent back continues on its task
+    /// branch, where the earlier revision already is, and its prompt carries what the host said.
     /// </summary>
     private async Task<TaskTurnPlan> PrepareAuthorAsync(string workspaceId, AgentRoleDefinition role, QueuedTask task, CancellationToken cancellationToken)
     {
@@ -72,8 +84,24 @@ public sealed class TaskPipelineService(
                 if (moved is not null)
                     return TaskTurnPlan.Refused(moved);
             }
+            var branch = TaskBranch(task);
+            var started = await git.StartBranchAsync(workspaceId, branch, cancellationToken);
+            if (!started.Succeeded)
+                return TaskTurnPlan.Refused(started.Error ?? $"The task branch {branch} could not be started.");
+            var pushed = await forge.PushTaskBranchAsync(workspaceId, branch, cancellationToken);
+            if (!pushed.Succeeded)
+                return TaskTurnPlan.Refused(pushed.Error ?? $"The task branch {branch} could not be pushed.");
+            if (await forge.ReadAccountAsync(workspaceId, cancellationToken) is { } account)
+                await forge.AssignIssueAsync(workspaceId, task.Number, account.Login, cancellationToken);
             queue.Begin(workspaceId, task.Owner, task.Repository, task.Id, baseBranch);
             task = Find(workspaceId, task.Id)!;
+        }
+
+        if (task.Stage == TaskStage.ChangesRequested && task.Proposal is not null)
+        {
+            var feedback = await forge.ReadFeedbackAsync(workspaceId, task.Proposal.Branch, cancellationToken);
+            var account = await forge.ReadAccountAsync(workspaceId, cancellationToken);
+            return TaskTurnPlan.Ready(TaskPrompts.Author(role, task, feedback, account?.Login));
         }
 
         return TaskTurnPlan.Ready(TaskPrompts.Author(role, task));
@@ -87,6 +115,7 @@ public sealed class TaskPipelineService(
         var checkout = await CheckoutAsync(workspaceId, task.Proposal.Branch, [task.Proposal.Branch, task.Proposal.BaseBranch], cancellationToken);
         if (checkout is not null)
             return TaskTurnPlan.Refused(checkout);
+        await RequestReviewAsync(workspaceId, task, cancellationToken);
         // A product reviewer never reads the repository: it is told what was asked and tries the
         // checked-out revision in the running application instead of reading a diff.
         if (settings.Get(workspaceId).Member == TeamMemberKind.PmReviewer)
@@ -106,15 +135,34 @@ public sealed class TaskPipelineService(
         return TaskTurnPlan.Ready(TaskPrompts.Reviewer(role, task, diff));
     }
 
+    /// <summary>
+    /// Names this reviewer on the proposal, so the host shows who the review is waiting on. The
+    /// author opened the proposal, so the request goes out with the author's credential; it is
+    /// repeated for every revision, because a push is a new request for the same reviewer. A host
+    /// that refuses only loses that marker, never the review.
+    /// </summary>
+    private async Task RequestReviewAsync(string workspaceId, QueuedTask task, CancellationToken cancellationToken)
+    {
+        if (task.HeldByWorkspaceId is not { } author || await forge.ReadAccountAsync(workspaceId, cancellationToken) is not { } reviewer)
+            return;
+        try
+        {
+            await forge.RequestReviewAsync(author, task.Proposal!.Number, reviewer.Login, cancellationToken);
+        }
+        catch (HttpRequestException exception)
+        {
+            logger?.LogWarning(exception, "The host did not record the review request for {WorkspaceId} on {Proposal}.", workspaceId, task.Proposal!.Number);
+        }
+    }
+
     private async Task<TaskTurnOutcome> PublishAsync(string workspaceId, QueuedTask task, LoopRunResult result, CancellationToken cancellationToken)
     {
-        var branch = task.Proposal?.Branch ?? $"{ForgeController.TaskBranchPrefix}issue-{task.Number}";
+        var branch = task.Proposal?.Branch ?? TaskBranch(task);
         var baseBranch = task.Proposal?.BaseBranch ?? task.BaseBranch ?? "main";
         var committed = await git.CommitAllToBranchAsync(workspaceId, branch, TaskPrompts.Commit(task, result.Reply), Identity(workspaceId), cancellationToken);
         // A commit already on the task branch from an attempt whose push failed is still the
         // work to publish; only a branch with no proposal yet can be in that state.
-        if (committed.NothingToCommit
-            && (task.Proposal is not null || (await gitRead.GetHeadAsync(workspaceId, cancellationToken))?.Branch != branch))
+        if (committed.NothingToCommit && (task.Proposal is not null || !await AheadOfBaseAsync(workspaceId, branch, baseBranch, cancellationToken)))
             return TaskTurnOutcome.Blocked("nothing_to_propose", "The agent finished without changing any file, so there is nothing to propose.");
         if (!committed.Succeeded && !committed.NothingToCommit)
             return TaskTurnOutcome.Blocked("commit_failed", committed.Error ?? "The commit failed.");
@@ -168,8 +216,13 @@ public sealed class TaskPipelineService(
                 return TaskTurnOutcome.Blocked("review_failed", submitted.Refusal ?? "The host did not accept the review.");
         }
 
-        queue.Review(task.Owner, task.Repository, task.Id, new TaskReview(workspaceId, verdict, task.Proposal!.Revision, body), Reviewers(task));
+        var kind = settings.Get(workspaceId).Member;
+        queue.Review(task.Owner, task.Repository, task.Id, new TaskReview(workspaceId, verdict, task.Proposal!.Revision, body, kind), requirements.For(task.Owner, task.Repository));
         progress.Record(workspaceId, RoleTerminationKind.ReviewSubmitted);
+        // The review is in, so the revision has nothing more to show: the reviewer's applications
+        // stop and it is free for the next review.
+        if (applications is not null)
+            await applications.StopAsync(workspaceId, cancellationToken);
         return TaskTurnOutcome.Done();
     }
 
@@ -182,16 +235,17 @@ public sealed class TaskPipelineService(
         return reset.Succeeded ? null : reset.Error ?? "The checkout failed.";
     }
 
-    /// <summary>Every reviewer on the task's repository; approval needs each of them.</summary>
-    private IReadOnlyCollection<string> Reviewers(QueuedTask task) =>
-    [
-        .. workspaces.GetAll()
-            .Where(workspace => TeamRoles.Reviews(settings.Get(workspace.Id).Member))
-            .Where(workspace => forge.ResolveRepository(workspace.Id) is { } repository
-                && string.Equals(repository.Owner, task.Owner, StringComparison.OrdinalIgnoreCase)
-                && string.Equals(repository.Repository, task.Repository, StringComparison.OrdinalIgnoreCase))
-            .Select(workspace => workspace.Id)
-    ];
+    /// <summary>Whether the task branch carries a commit the base does not, from an attempt whose push failed.</summary>
+    private async Task<bool> AheadOfBaseAsync(string workspaceId, string branch, string baseBranch, CancellationToken cancellationToken)
+    {
+        if ((await gitRead.GetHeadAsync(workspaceId, cancellationToken))?.Branch != branch)
+            return false;
+        var head = await gitRead.ResolveCommitAsync(workspaceId, "HEAD", cancellationToken);
+        var start = await gitRead.ResolveCommitAsync(workspaceId, $"refs/remotes/origin/{baseBranch}", cancellationToken);
+        return head is not null && start is not null && !string.Equals(head, start, StringComparison.Ordinal);
+    }
+
+    private static string TaskBranch(QueuedTask task) => $"{ForgeController.TaskBranchPrefix}issue-{task.Number}";
 
     private QueuedTask? Find(string workspaceId, string id) =>
         forge.ResolveRepository(workspaceId) is { } repository ? queue.Get(repository.Owner, repository.Repository, id) : null;
