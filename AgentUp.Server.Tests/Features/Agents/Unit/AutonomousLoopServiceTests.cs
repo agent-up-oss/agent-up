@@ -293,6 +293,29 @@ public sealed class AutonomousLoopServiceTests
         await harness.Scheduling.DisposeAsync();
     }
 
+    // A small model often answers a review without the verdict line; it is asked for that line,
+    // not told to "continue", which it reads as a reason to call more tools.
+    [Test]
+    public async Task RunAsync_asksAReviewerForItsVerdictUntilItGivesOne()
+    {
+        var harness = await HarnessAsync();
+        harness.Process.PromptResult = JsonSerializer.SerializeToElement(new { stopReason = "end_turn" });
+        var replies = new Queue<string>(["Looks fine to me.", "Fine.\nVERDICT: APPROVE"]);
+        harness.Process.BeforePromptCompletes = _ => harness.Process.SendNotificationAsync("session/update",
+            Update(new { sessionUpdate = "agent_message_chunk", content = new { type = "text", text = replies.Dequeue() } }));
+        await harness.Scheduling.ScheduleAsync(harness.Workspace.Id, "codex", CancellationToken.None);
+
+        var review = await harness.Loop.RunAsync(Request(harness.Workspace.Id) with { ReplyCompletes = true }, CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That((review.Terminal, review.StopReason), Is.EqualTo((LoopTerminal.Completed, "replied")));
+            Assert.That(review.Iterations, Is.EqualTo(2));
+            Assert.That(harness.Process.Prompts[^1], Does.Contain("VERDICT: APPROVE or VERDICT: REQUEST_CHANGES"));
+        });
+        await harness.Scheduling.DisposeAsync();
+    }
+
     private static JsonElement Update(object update) =>
         JsonSerializer.SerializeToElement(new { sessionId = "session-1", update });
 

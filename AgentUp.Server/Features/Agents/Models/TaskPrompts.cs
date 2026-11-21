@@ -63,7 +63,7 @@ public static class TaskPrompts
             .AppendLine()
             .AppendLine($"Revision {task.Proposal!.Revision} of {task.Proposal.Url} is running in your workspace.");
         foreach (var address in addresses)
-            prompt.AppendLine($"Open it in the browser at {address}");
+            prompt.AppendLine($"It is open in your browser at {address} - inspect the page to see it.");
         return prompt
             .AppendLine()
             .AppendLine(role.Prompt)

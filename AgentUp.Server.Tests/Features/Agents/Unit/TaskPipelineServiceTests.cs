@@ -137,7 +137,7 @@ public sealed class TaskPipelineServiceTests
         {
             Assert.That(team.Git.ResetBranch, Is.EqualTo("agent-up/issue-1"), "the revision is what the workspace runs");
             Assert.That(team.Applications.Started, Is.EqualTo(new[] { team.Lucy }), "the Server starts it; the reviewer may not");
-            Assert.That(plan.Prompt, Does.Contain("Open it in the browser at http://127.0.0.1:5701/"));
+            Assert.That(plan.Prompt, Does.Contain("It is open in your browser at http://127.0.0.1:5701/"));
             Assert.That(plan.Prompt, Does.Contain("In src/greeting.js replace Hello with Ahoy."));
             Assert.That(plan.Prompt, Does.Not.Contain("+Ahoy"));
         });

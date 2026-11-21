@@ -1,5 +1,6 @@
 using AgentUp.Server.Features.Agents.DTOs;
 using AgentUp.Server.Features.Agents.Interfaces;
+using AgentUp.Server.Features.Agents.Models;
 
 namespace AgentUp.Server.Features.Agents.Services;
 
@@ -13,6 +14,18 @@ public sealed class AutonomousLoopService(
     LoopInvariantGuard invariants,
     ILoopBackoff backoff)
 {
+    /// <summary>
+    /// What a reviewer is told when a turn ends without a verdict. A generic "continue" reads as
+    /// "do more", and a small model then calls tools it does not need; this asks for the one
+    /// thing still missing.
+    /// </summary>
+    public const string VerdictNudge =
+        "Finish your review now without running anything else. Reply with what is good, what must change, " +
+        "and a last line that is exactly VERDICT: APPROVE or VERDICT: REQUEST_CHANGES.";
+
+    private static bool GivesVerdict(string? reply) =>
+        !string.IsNullOrWhiteSpace(reply) && ReviewVerdictText.Read(reply).Verdict != TaskReviewVerdict.Comment;
+
     public async Task<LoopRunResult> RunAsync(LoopRunRequest request, CancellationToken cancellationToken)
     {
         if (!scheduling.AttachPolicy(request.WorkspaceId, request.Policy))
@@ -30,6 +43,8 @@ public sealed class AutonomousLoopService(
                 cancellationToken.ThrowIfCancellationRequested();
                 var message = iteration == 1
                     ? request.Task
+                    : request.ReplyCompletes
+                        ? VerdictNudge
                     : noProgress > 0
                         ? "Continue under the standing permission policy. Do not wait for confirmation. When the task is done, reply with a short summary and make no further changes."
                         : "Continue the task. When it is done, reply with a short summary and make no further changes.";
@@ -71,12 +86,13 @@ public sealed class AutonomousLoopService(
                 }
                 // A real ACP agent has no way to say "done" except by stopping: a turn that uses no
                 // tool after the task has done work is the agent handing the result back.
-                if (!snapshot.SawToolCall && worked
+                // A reviewer's task is its verdict, so only a reply that gives one hands it back.
+                if (!snapshot.SawToolCall && worked && !request.ReplyCompletes
                     && string.Equals(snapshot.StopReason, "end_turn", StringComparison.Ordinal))
                     return Result(request, iteration, LoopTerminal.Completed, "settled", snapshot, null, context);
-                // A review is an answer, not a change: a reviewer that replies without needing a
-                // tool has done its task.
-                if (request.ReplyCompletes && !snapshot.SawToolCall && !string.IsNullOrWhiteSpace(snapshot.LastReply)
+                // A review is an answer, not a change: a reviewer that replies with its verdict
+                // has done its task; one that replies without it is asked for it.
+                if (request.ReplyCompletes && !snapshot.SawToolCall && GivesVerdict(snapshot.LastReply)
                     && string.Equals(snapshot.StopReason, "end_turn", StringComparison.Ordinal))
                     return Result(request, iteration, LoopTerminal.Completed, "replied", snapshot, null, context);
                 worked |= snapshot.SawToolCall;
