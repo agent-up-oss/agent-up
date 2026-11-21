@@ -9,6 +9,8 @@ public sealed class TeamRolePromptTests
     [TestCase("The test is wrong.\n**VERDICT: REQUEST_CHANGES**", TaskReviewVerdict.RequestChanges, "The test is wrong.")]
     [TestCase("verdict: request changes", TaskReviewVerdict.RequestChanges, "")]
     [TestCase("I could not find the URL.", TaskReviewVerdict.Comment, "I could not find the URL.")]
+    [TestCase("It does what was asked. Therefore, the VERDICT is APPROVE.", TaskReviewVerdict.Approve, "It does what was asked.")]
+    [TestCase("The VERDICT is not APPROVE.", TaskReviewVerdict.Comment, "The VERDICT is not APPROVE.")]
     public void ReviewVerdictText_readsTheLastVerdictLine(string reply, TaskReviewVerdict verdict, string body)
     {
         var (read, rest) = ReviewVerdictText.Read(reply);
