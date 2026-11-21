@@ -435,7 +435,9 @@ const styles = StyleSheet.create({
   messageContent: { gap: 10, paddingVertical: 10 },
   reply: { ...auBox('chatReply'), gap: 6 },
   replyAgent: auText('chatReplyAgent'),
-  userBlock: { alignSelf: 'flex-end', alignItems: 'flex-end', gap: 4 },
+  // The row spans the transcript and pushes the bubble right: shrinking the row instead made the
+  // bubble's 80% a fraction of its own text, so short messages wrapped word by word.
+  userBlock: { alignSelf: 'stretch', alignItems: 'flex-end', gap: 4 },
   steering: auText('muted'),
   userBubble: { ...auBox('chatUser'), alignSelf: 'flex-end' },
   userText: { ...auText('workspaceName'), lineHeight: 20 },
