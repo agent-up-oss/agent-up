@@ -53,9 +53,13 @@ public sealed class TaskPipelineService(
             return TaskTurnOutcome.Blocked("task_missing", "The task left the queue while it was being worked.");
         try
         {
+            // A member that already submitted through its task tool is done: the turn's reply is
+            // only the fallback for an agent that ends its turn instead.
+            if (progress.Satisfied(workspaceId, role.Termination))
+                return TaskTurnOutcome.Done();
             return role.Trigger == RoleTriggerKind.ProposalAwaitingReview
                 ? await SubmitReviewAsync(workspaceId, task, result, cancellationToken)
-                : await PublishAsync(workspaceId, task, result, cancellationToken);
+                : await PublishWorkAsync(workspaceId, task, result.Reply, cancellationToken);
         }
         catch (HttpRequestException exception)
         {
@@ -155,11 +159,16 @@ public sealed class TaskPipelineService(
         }
     }
 
-    private async Task<TaskTurnOutcome> PublishAsync(string workspaceId, QueuedTask task, LoopRunResult result, CancellationToken cancellationToken)
+    /// <summary>
+    /// Turns an author's working tree into the next revision: commit to the task branch under the
+    /// member's name, push with its credential, and open the proposal or comment on it with the
+    /// author's summary. The same path serves <c>submit_work</c> and an author that just stops.
+    /// </summary>
+    public async Task<TaskTurnOutcome> PublishWorkAsync(string workspaceId, QueuedTask task, string? summary, CancellationToken cancellationToken)
     {
         var branch = task.Proposal?.Branch ?? TaskBranch(task);
         var baseBranch = task.Proposal?.BaseBranch ?? task.BaseBranch ?? "main";
-        var committed = await git.CommitAllToBranchAsync(workspaceId, branch, TaskPrompts.Commit(task, result.Reply), Identity(workspaceId), cancellationToken);
+        var committed = await git.CommitAllToBranchAsync(workspaceId, branch, TaskPrompts.Commit(task, summary), Identity(workspaceId), cancellationToken);
         // A commit already on the task branch from an attempt whose push failed is still the
         // work to publish; only a branch with no proposal yet can be in that state.
         if (committed.NothingToCommit && (task.Proposal is not null || !await AheadOfBaseAsync(workspaceId, branch, baseBranch, cancellationToken)))
@@ -178,7 +187,7 @@ public sealed class TaskPipelineService(
         {
             var opened = await forge.OpenProposalAsync(
                 workspaceId,
-                new ForgeOpenProposalRequest(task.Title, TaskPrompts.ProposalBody(task, result.Reply), branch, baseBranch),
+                new ForgeOpenProposalRequest(task.Title, TaskPrompts.ProposalBody(task, summary), branch, baseBranch),
                 cancellationToken);
             if (opened is null)
                 return TaskTurnOutcome.Blocked("proposal_failed", "The host did not open the proposal.");
@@ -187,8 +196,8 @@ public sealed class TaskPipelineService(
         else
         {
             (number, url) = (task.Proposal.Number, task.Proposal.Url);
-            if (!string.IsNullOrWhiteSpace(result.Reply))
-                await forge.CommentAsync(workspaceId, new ForgeCommentRequest(number, result.Reply.Trim()), cancellationToken);
+            if (!string.IsNullOrWhiteSpace(summary))
+                await forge.CommentAsync(workspaceId, new ForgeCommentRequest(number, summary.Trim()), cancellationToken);
         }
 
         queue.Propose(workspaceId, task.Owner, task.Repository, task.Id, number, url, branch, baseBranch, head);
@@ -196,31 +205,42 @@ public sealed class TaskPipelineService(
         return TaskTurnOutcome.Done();
     }
 
+    /// <summary>A coding agent that ends its turn instead of calling submit_review gives its verdict as its reply.</summary>
     private async Task<TaskTurnOutcome> SubmitReviewAsync(string workspaceId, QueuedTask task, LoopRunResult result, CancellationToken cancellationToken)
     {
         var (verdict, body) = ReviewVerdictText.Read(result.Reply);
         // A reply with no verdict is not a review: posting it would put words on the proposal under
         // the reviewer's name that decide nothing, and it would take the task off their list.
-        if (verdict == TaskReviewVerdict.Comment && !progress.Satisfied(workspaceId, RoleTerminationKind.ReviewSubmitted))
+        if (verdict == TaskReviewVerdict.Comment)
             return TaskTurnOutcome.Blocked("no_verdict", "The review did not end with VERDICT: APPROVE or VERDICT: REQUEST_CHANGES, so nothing was posted.");
-        if (body.Length == 0)
+        return await SubmitVerdictAsync(workspaceId, task, verdict, body, [], cancellationToken);
+    }
+
+    /// <summary>
+    /// Posts one reviewer's verdict on the open revision under its own account, with each
+    /// finding on its line, and records it on the task. The review is then in, so the revision
+    /// has nothing more to show: the reviewer's workspace stops and it is free for the next one.
+    /// </summary>
+    public async Task<TaskTurnOutcome> SubmitVerdictAsync(
+        string workspaceId,
+        QueuedTask task,
+        TaskReviewVerdict verdict,
+        string body,
+        IReadOnlyList<ForgeReviewFindingDto> findings,
+        CancellationToken cancellationToken)
+    {
+        if (body.Trim().Length == 0)
             body = verdict == TaskReviewVerdict.Approve ? "Looks good." : "No written findings.";
-        // An in-process reviewer submits through its own tool; a coding agent's verdict is its reply.
-        if (!progress.Satisfied(workspaceId, RoleTerminationKind.ReviewSubmitted))
-        {
-            var submitted = await forge.SubmitReviewAsync(
-                workspaceId,
-                new ForgeReviewRequest(task.Proposal!.Number, body, ReviewVerdictText.Event(verdict)),
-                cancellationToken);
-            if (!submitted.Submitted)
-                return TaskTurnOutcome.Blocked("review_failed", submitted.Refusal ?? "The host did not accept the review.");
-        }
+        var submitted = await forge.SubmitReviewAsync(
+            workspaceId,
+            new ForgeReviewRequest(task.Proposal!.Number, body, ReviewVerdictText.Event(verdict), findings),
+            cancellationToken);
+        if (!submitted.Submitted)
+            return TaskTurnOutcome.Blocked("review_failed", submitted.Refusal ?? "The host did not accept the review.");
 
         var kind = settings.Get(workspaceId).Member;
-        queue.Review(task.Owner, task.Repository, task.Id, new TaskReview(workspaceId, verdict, task.Proposal!.Revision, body, kind), requirements.For(task.Owner, task.Repository));
+        queue.Review(task.Owner, task.Repository, task.Id, new TaskReview(workspaceId, verdict, task.Proposal.Revision, body, kind), requirements.For(task.Owner, task.Repository));
         progress.Record(workspaceId, RoleTerminationKind.ReviewSubmitted);
-        // The review is in, so the revision has nothing more to show: the reviewer's applications
-        // stop and it is free for the next review.
         if (applications is not null)
             await applications.StopAsync(workspaceId, cancellationToken);
         return TaskTurnOutcome.Done();

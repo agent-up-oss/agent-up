@@ -29,7 +29,8 @@ public sealed record LoopRunRequest(
     int PromptTimeoutMs = 300_000,
     int RateLimitRetries = 1,
     int RepeatedFailureLimit = 5,
-    bool ReplyCompletes = false);
+    bool ReplyCompletes = false,
+    Func<bool>? Submitted = null);
 
 public sealed record LoopRunResult(
     LoopTerminal Terminal,

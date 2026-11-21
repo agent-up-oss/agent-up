@@ -28,8 +28,9 @@ public sealed class InProcessAgentToolServiceTests
             Assert.That(names, Does.Not.Contain("get_workspace_diagnostics"));
             Assert.That(names, Does.Not.Contain("list_workspaces"));
             Assert.That(names, Does.Contain(InProcessAgentToolService.CompleteTask));
-            // No forge on this Server, so there is nothing to submit a review to.
-            Assert.That(names, Does.Not.Contain(InProcessAgentToolService.SubmitReview));
+            // A reviewer reviews through the same task tools a coding agent has, and never submits work.
+            Assert.That(names, Does.Contain("get_task").And.Contain("submit_review"));
+            Assert.That(names, Does.Not.Contain("submit_work"));
         });
     }
 
@@ -77,15 +78,34 @@ public sealed class InProcessAgentToolServiceTests
         });
     }
 
+    // Submitting the review is the end of a reviewer's task: the Server takes it from there.
     [Test]
-    public async Task CallAsync_submitReviewIsRefusedWithoutAForge()
+    public async Task CallAsync_aSubmittedReviewEndsTheTask()
     {
-        var (service, _) = Arrange(TeamMemberKind.PmReviewer);
+        var (service, mcp) = Arrange(TeamMemberKind.PmReviewer);
 
-        var result = await service.CallAsync("pm-1", InProcessAgentToolService.SubmitReview,
-            JsonSerializer.SerializeToElement(new { proposalNumber = "7", body = "broken" }), CancellationToken.None);
+        var result = await service.CallAsync("pm-1", "submit_review",
+            JsonSerializer.SerializeToElement(new { verdict = "request_changes", summary = "The button does nothing." }), CancellationToken.None);
 
-        Assert.That(result.IsError, Is.True);
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.CompletesTask, Is.True);
+            Assert.That(mcp.Calls.Single().Endpoint, Is.EqualTo("/mcp/tasks"));
+            Assert.That(mcp.Calls.Single().Arguments["workspaceId"].GetString(), Is.EqualTo("pm-1"));
+        });
+    }
+
+    // A refused review leaves the task open, so the reviewer can correct it and submit again.
+    [Test]
+    public async Task CallAsync_aRefusedReviewLeavesTheTaskOpen()
+    {
+        var (service, mcp) = Arrange(TeamMemberKind.PmReviewer);
+        mcp.Answer = """{"succeeded":false,"message":"verdict must be approve or request_changes."}""";
+
+        var result = await service.CallAsync("pm-1", "submit_review",
+            JsonSerializer.SerializeToElement(new { verdict = "maybe", summary = "Hm." }), CancellationToken.None);
+
+        Assert.That(result.CompletesTask, Is.False);
     }
 
     private static (InProcessAgentToolService Service, FakeMcp Mcp) Arrange(TeamMemberKind member)
@@ -95,16 +115,19 @@ public sealed class InProcessAgentToolServiceTests
         var members = new TeamMemberService(settings, new WorkspaceQueryController(ServerTestComposition.CreateRegistry()));
         var permissions = new McpToolPermissionController(new McpToolPermissionService(new McpToolPermissionFilterProvider()));
         var mcp = new FakeMcp();
-        return (new InProcessAgentToolService(mcp, new InProcessToolCatalogProvider(), members, permissions, new MemoryRoleProgress()), mcp);
+        return (new InProcessAgentToolService(mcp, new InProcessToolCatalogProvider(), members, permissions), mcp);
     }
 
     private sealed class FakeMcp : ILoopbackMcpClient
     {
         public List<(string Endpoint, string Tool, IReadOnlyDictionary<string, JsonElement> Arguments)> Calls { get; } = [];
 
+        public string Answer { get; set; } = """{"succeeded":true,"message":"ok"}""";
+
         public Task<IReadOnlyList<JsonElement>> ListToolsAsync(string endpoint, CancellationToken cancellationToken) =>
             Task.FromResult<IReadOnlyList<JsonElement>>(endpoint switch
             {
+                "/mcp/tasks" => [Pinned("get_task"), Pinned("submit_work"), Pinned("submit_review")],
                 "/mcp/browser" => [Pinned("browser_click"), Pinned("browser_screenshot")],
                 "/mcp/orchestration" => [Pinned("get_workspace_status"), Pinned("get_workspace_diagnostics"), Unpinned("list_workspaces")],
                 _ => []
@@ -117,7 +140,7 @@ public sealed class InProcessAgentToolServiceTests
             CancellationToken cancellationToken)
         {
             Calls.Add((endpoint, tool, arguments));
-            return Task.FromResult(JsonSerializer.SerializeToElement(new { content = new[] { new { type = "text", text = "ok" } } }));
+            return Task.FromResult(JsonSerializer.SerializeToElement(new { content = new[] { new { type = "text", text = Answer } } }));
         }
 
         private static JsonElement Pinned(string name) => JsonSerializer.SerializeToElement(new

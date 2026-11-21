@@ -287,7 +287,8 @@ public sealed class AutonomousWorkspaceService(
                 }
                 var result = await loop.RunAsync(
                     new LoopRunRequest(workspaceId, prompt, 32, policy, 200_000, StandingPolicyReplies: current.StandingPolicyReplies,
-                        ReplyCompletes: role.Trigger == RoleTriggerKind.ProposalAwaitingReview),
+                        ReplyCompletes: role.Trigger == RoleTriggerKind.ProposalAwaitingReview,
+                        Submitted: pipeline is null ? null : () => progress.Satisfied(workspaceId, role.Termination)),
                     cancellationToken);
                 if (result.Terminal is not LoopTerminal.Completed)
                 {

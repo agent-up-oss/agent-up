@@ -47,7 +47,8 @@ public sealed record TeamMemberGrants(
         ControlsBrowser: false,
         SubmitsReviews: true,
         AgentFixtureKind.CodingAgent,
-        Set(WorkspaceRead, ApplicationRead, GitRead, DiagnosticsRead, AgentPrompt, AgentRead));
+        // A dev reviewer starts the revision it reviews to see that it runs, but writes nothing.
+        Set(WorkspaceRead, WorkspaceStart, WorkspaceStop, ApplicationRead, GitRead, DiagnosticsRead, AgentPrompt, AgentRead));
 
     public static TeamMemberGrants PmReviewer { get; } = new(
         TeamMemberKind.PmReviewer,

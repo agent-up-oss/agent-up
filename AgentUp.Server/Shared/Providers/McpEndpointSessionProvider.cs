@@ -91,6 +91,13 @@ public sealed class McpEndpointSessionProvider
         "train_decision_categories"
     };
 
+    private static readonly HashSet<string> TaskTools = new(StringComparer.Ordinal)
+    {
+        "get_task",
+        "submit_work",
+        "submit_review"
+    };
+
     private static readonly HashSet<string> CapabilityTools = new(StringComparer.Ordinal)
     {
         "list_capability_modules",
@@ -112,6 +119,9 @@ public sealed class McpEndpointSessionProvider
 
     private const string TrainingInstructions =
         "Agent-Up product decision MCP server. Record a product decision you have taken so the product owner can judge it later. Recording never blocks and never returns a verdict: write it down and carry on with your work.";
+
+    private const string TasksInstructions =
+        "Agent-Up task MCP server. get_task reads the task you are on: the issue, the proposal, every review, findings at their lines, check results with links to their logs, and comments. An author changes files and calls submit_work; a reviewer calls submit_review with its verdict, findings and screenshots. Never commit, push, open a proposal or post a review yourself: Agent-Up does that for you with your team member's own account.";
 
     private const string CapabilitiesInstructions =
         "Agent-Up capability modules MCP server. List, enable, and disable registry packages on this Server. Enabling wraps later application and agent launches through nix. Desktop and Mobile never call the remote registry.";
@@ -187,6 +197,12 @@ public sealed class McpEndpointSessionProvider
         {
             options.ServerInstructions = AgentUpMcpGuidance.ForEndpoint(TrainingInstructions, instructions);
             KeepTools(options, TrainingTools);
+        }
+        else if (IsEndpoint(context, "/mcp/tasks"))
+        {
+            options.ServerInstructions = AgentUpMcpGuidance.ForEndpoint(TasksInstructions, instructions);
+            KeepTools(options, TaskTools);
+            options.ResourceCollection?.Clear();
         }
         else if (IsEndpoint(context, "/mcp/capabilities"))
         {

@@ -89,6 +89,18 @@ Desktop and `@agent-up/chat` read the same ACP events with the same rules. Their
 
 A workspace may record one bound agent module id. Unbound is the interactive picker. Autonomy stays off until the Server is enabled (persisted, env var still wins) and the workspace is activated against the ordered `GET /api/autonomy` chain, a policy, a host connection, and assigned issues. Roles prefix the prompt and may filter advertised MCP tools. The full contract is on Autonomy.
 
+## Task tools
+
+`/mcp/tasks` is how an agent reads its task and says it is done; the Server makes every Git and host write around it with the member's own credential.
+
+<DocFacts>
+<DocFact label="get_task">The task the member is on: issue, stage, proposal and revision, the open revision's reviews, findings at `path:line`, each check's latest result with its log link, comments, and the next step. `workspace.read`.</DocFact>
+<DocFact label="submit_work">Authors only. Commits to `agent-up/issue-<n>`, pushes, and opens or updates the proposal with the summary. `git.write`.</DocFact>
+<DocFact label="submit_review">Reviewers only. verdict "approve" or "request_changes", a summary, findings at `path`/`line`, and up to six screenshot artifact ids the Server attaches on the host. Stops the reviewer's workspace and ends its task. `workspace.read`; an author is refused by the task service.</DocFact>
+</DocFacts>
+
+An agent that ends its turn without these still works: an author's reply becomes its summary, and a reviewer's `VERDICT:` line its verdict.
+
 ## Product decisions
 
 An agent writes down a product decision with `train_record_decision` on `/mcp/training` and carries on: recording never blocks and returns no verdict. Record a call where real alternatives existed and a reasonable person could have chosen otherwise — scope and priorities, what a screen says and how it behaves, where a boundary in the code goes — and leave out instructions you were given, questions with one sensible answer, and routine work. The headline is the decision in one line a product owner can judge at a glance; the detail is what was decided and the evidence is what it rested on, with up to four audit artifact ids (a `browser_screenshot` capture, for one) that the Server copies into its own evidence store so the reference survives a changing worktree.

@@ -17,17 +17,17 @@ One Server hosts many workspaces, and each workspace is one team member with its
 
 ## Matrix
 
-| Kind | Reads repository | Writes repository | Drives browser | Submits reviews | Fixture |
-|---|---|---|---|---|---|
-| `Author` | yes | yes | yes | no | ACP coding CLI |
-| `DevReviewer` | yes | no | no | yes | ACP coding CLI |
-| `PmReviewer` | no | no | yes | yes | in-process |
+| Kind | Reads repository | Writes repository | Starts its workspace | Drives browser | Submits reviews | Fixture |
+|---|---|---|---|---|---|---|
+| `Author` | yes | yes | yes | yes | no | ACP coding CLI |
+| `DevReviewer` | yes | no | yes | no | yes | ACP coding CLI |
+| `PmReviewer` | no | no | no, the Server starts it | yes | yes | in-process |
 
 Authors and dev reviewers work on code, so they run an ACP coding CLI against their checkout: Claude, Codex, or Cursor today. PM reviewers have nothing to do with code and skip that layer.
 
 Each kind also has a default unattended role: authors take picked issues and end with a proposal, reviewers take proposals awaiting their review and end with a verdict. The Server commits, pushes, and posts for them under the member's own forge account; see [Team pipeline](/developer-guide/agents/autonomy#team-pipeline).
 
-A review raises threads another member must address, so only reviewers submit one. Authors still post plain proposal comments, and address threads through `enqueue_review_fix_commit`.
+A review raises threads another member must address, so only reviewers submit one, through `submit_review` on `/mcp/tasks`. Authors still post plain proposal comments, and address threads through `enqueue_review_fix_commit`.
 
 ## Enforcement
 

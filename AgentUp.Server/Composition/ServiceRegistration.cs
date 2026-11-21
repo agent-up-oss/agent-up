@@ -191,6 +191,7 @@ public static class ServiceRegistration
             .WithTools<DiagnosticsMcpTools>()
             .WithTools<CapabilityModulesMcpTools>()
             .WithTools<TrainingMcpTools>()
+            .WithTools<TaskMcpTools>()
             .WithResources<OrchestrationMcpResources>()
             .AddAuthorizationFilters();
 #pragma warning restore MCP9004
@@ -278,7 +279,11 @@ public static class ServiceRegistration
             sp.GetRequiredService<IReviewBrowser>()));
         builder.Services.AddSingleton<IRoleProgress, MemoryRoleProgress>();
         builder.Services.AddSingleton<TaskReviewRequirementService>();
-        builder.Services.AddSingleton<ITaskPipeline, TaskPipelineService>();
+        builder.Services.AddSingleton<TaskPipelineService>();
+        builder.Services.AddSingleton<ITaskPipeline>(provider => provider.GetRequiredService<TaskPipelineService>());
+        builder.Services.AddSingleton<IReviewEvidenceSource, AuditReviewEvidenceProvider>();
+        builder.Services.AddSingleton<TaskWorkService>();
+        builder.Services.AddSingleton<TaskWorkController>();
         builder.Services.AddSingleton<ILoopBackoff, LoopBackoffProvider>();
         builder.Services.AddSingleton<IEnabledAgentInspector, EnabledAgentInspector>();
         builder.Services.AddSingleton<IRoleToolFilter, RoleToolFilterProvider>();

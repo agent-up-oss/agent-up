@@ -115,6 +115,27 @@ public sealed class AutonomousLoopServiceTests
         await harness.Scheduling.DisposeAsync();
     }
 
+    // A member that called its task tool has handed the task over, whatever its reply says after.
+    [Test]
+    public async Task RunAsync_completesOnceTheMemberSubmittedThroughItsTaskTool()
+    {
+        var harness = await HarnessAsync();
+        harness.Process.PromptResult = JsonSerializer.SerializeToElement(new { stopReason = "end_turn" });
+        await harness.Scheduling.ScheduleAsync(harness.Workspace.Id, "codex", CancellationToken.None);
+
+        var result = await harness.Loop.RunAsync(
+            Request(harness.Workspace.Id, maxIterations: 4) with { ReplyCompletes = true, Submitted = () => true },
+            CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Terminal, Is.EqualTo(LoopTerminal.Completed));
+            Assert.That(result.StopReason, Is.EqualTo("submitted"));
+            Assert.That(result.Iterations, Is.EqualTo(1), "no verdict nudge after the review is in");
+        });
+        await harness.Scheduling.DisposeAsync();
+    }
+
     [Test]
     public async Task RunAsync_stopsAsBlockedRateLimitedAfterBackoffRetries()
     {

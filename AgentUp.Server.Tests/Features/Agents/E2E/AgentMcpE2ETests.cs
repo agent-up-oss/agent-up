@@ -69,7 +69,7 @@ public sealed class AgentMcpE2ETests
     }
 
     [Test]
-    public async Task A_dev_reviewer_reads_but_cannot_run_the_app_drive_the_browser_or_queue_commits()
+    public async Task A_dev_reviewer_runs_the_app_but_cannot_drive_the_browser_queue_commits_or_submit_work()
     {
         await using var server = await StartServerAsync();
         using var app = new McpJourneyApp();
@@ -86,13 +86,14 @@ public sealed class AgentMcpE2ETests
                 ["slice"] = "Docs",
                 ["message"] = "docs(Docs): reviewer change",
                 ["files"] = new JsonArray { "README.md" }
-            }));
+            }),
+            Call("agent-up-tasks", "submit_work", new JsonObject { ["summary"] = "I changed it myself." }));
 
         Assert.That(member.StatusCode, Is.EqualTo(HttpStatusCode.OK), await member.Content.ReadAsStringAsync());
-        Assert.That(calls[0].Status, Is.EqualTo("completed"), calls[0].Output);
-        Assert.That(calls.Skip(1).Select(call => $"{call.Title}={call.Status}"), Has.All.EndsWith("=failed"),
+        Assert.That(calls.Take(2).Select(call => $"{call.Title}={call.Status}"), Has.All.EndsWith("=completed"),
             string.Join(Environment.NewLine, calls.Select(call => $"{call.Title}: {call.Output}")));
-        Assert.That(await WorkspaceStateAsync(server, workspaceId), Is.Not.EqualTo("Running"), "The reviewer could not start the app.");
+        Assert.That(calls.Skip(2).Select(call => $"{call.Title}={call.Status}"), Has.All.EndsWith("=failed"),
+            string.Join(Environment.NewLine, calls.Select(call => $"{call.Title}: {call.Output}")));
     }
 
     private static Task<AgentUpServerProcess> StartServerAsync()

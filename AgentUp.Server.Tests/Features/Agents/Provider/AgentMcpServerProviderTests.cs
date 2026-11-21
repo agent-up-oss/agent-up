@@ -16,8 +16,9 @@ public sealed class AgentMcpServerProviderTests
         {
             Assert.That(servers.GetArrayLength(), Is.EqualTo(AgentMcpServerProvider.Endpoints.Count));
             Assert.That(servers[0].GetProperty("type").GetString(), Is.EqualTo("http"));
-            Assert.That(servers[0].GetProperty("name").GetString(), Is.EqualTo("agent-up-orchestration"));
-            Assert.That(servers[0].GetProperty("url").GetString(), Is.EqualTo("http://127.0.0.1:5001/mcp/orchestration"));
+            // The task tools lead: they are how an agent reads its task and says it is done.
+            Assert.That(servers[0].GetProperty("name").GetString(), Is.EqualTo("agent-up-tasks"));
+            Assert.That(servers[0].GetProperty("url").GetString(), Is.EqualTo("http://127.0.0.1:5001/mcp/tasks"));
             Assert.That(servers[0].GetProperty("headers").GetArrayLength(), Is.Zero);
         });
     }

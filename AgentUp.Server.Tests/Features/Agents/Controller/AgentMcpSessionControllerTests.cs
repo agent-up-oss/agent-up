@@ -26,7 +26,9 @@ public sealed class AgentMcpSessionControllerTests
         {
             Assert.That(resolved!.WorkspaceId, Is.EqualTo("reviewer-1"));
             Assert.That(resolved.Permissions, Does.Contain("git.read").And.Contain("agent.prompt"));
-            Assert.That(resolved.Permissions, Does.Not.Contain("git.write").And.Not.Contain("browser.control").And.Not.Contain("workspace.start"));
+            // A dev reviewer starts the revision to see it run, but never writes or drives the browser.
+            Assert.That(resolved.Permissions, Does.Contain("workspace.start"));
+            Assert.That(resolved.Permissions, Does.Not.Contain("git.write").And.Not.Contain("browser.control"));
         });
     }
 

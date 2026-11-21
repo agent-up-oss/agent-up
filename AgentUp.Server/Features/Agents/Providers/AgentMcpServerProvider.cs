@@ -13,7 +13,7 @@ public sealed class AgentMcpServerProvider(IConfiguration configuration, IServer
 {
     /// <summary>The named endpoints a coding agent works through, in the order they are offered.</summary>
     public static readonly IReadOnlyList<string> Endpoints =
-        ["orchestration", "commits", "verification", "browser", "audit", "training"];
+        ["tasks", "orchestration", "commits", "verification", "browser", "audit", "training"];
 
     private const string Fallback = "http://127.0.0.1:5000";
 

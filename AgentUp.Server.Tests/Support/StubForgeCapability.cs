@@ -105,7 +105,7 @@ internal sealed class StubForgeCapability : IForgeCapability
     /// <summary>Every write that names a team member, as "token: issue/proposal -> login".</summary>
     public List<string> TeamWrites { get; } = [];
 
-    public ForgeAttachment? Attachment { get; init; }
+    public ForgeAttachment? Attachment { get; set; }
 
     public Task AssignIssueAsync(ForgeRequest request, int issueNumber, string login, CancellationToken cancellationToken = default)
     {

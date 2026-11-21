@@ -71,6 +71,10 @@ public sealed class AutonomousLoopService(
                 }
                 if (snapshot.CompletedTask)
                     return Result(request, iteration, LoopTerminal.Completed, snapshot.StopReason ?? "end_turn", snapshot, null, context);
+                // A member that submitted through its task tool has handed the task over, whatever
+                // it went on to say: the Server takes it from here.
+                if (request.Submitted?.Invoke() == true)
+                    return Result(request, iteration, LoopTerminal.Completed, "submitted", snapshot, null, context);
                 if (string.Equals(snapshot.StopReason, "cancelled", StringComparison.Ordinal))
                     return Result(request, iteration, LoopTerminal.Cancelled, "cancelled", snapshot, null, context);
                 if (string.Equals(snapshot.StopReason, "rate_limited", StringComparison.OrdinalIgnoreCase))
