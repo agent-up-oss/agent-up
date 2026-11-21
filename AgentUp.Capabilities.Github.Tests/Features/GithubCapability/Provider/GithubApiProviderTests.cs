@@ -480,6 +480,55 @@ public sealed class GithubApiProviderTests
         Assert.That(handler.Requests.Single(), Does.Contain("pulls/42/reviews"));
     }
 
+    [Test]
+    public async Task SubmitReviewAsync_postsEachFindingOnTheNewSideOfItsLine()
+    {
+        var handler = Recorded(("POST /repos/acme/widgets/pulls/42/reviews", "{}"));
+
+        await new GithubForgeCapability(handler).SubmitReviewAsync(Request(), new ForgeSubmitReviewCommand(
+            "42", "One thing.", "REQUEST_CHANGES", [new ForgeReviewComment("src/greeting.js", 3, "Keep the comma.")]));
+
+        Assert.That(handler.Bodies.Single(), Does.Contain("\"path\":\"src/greeting.js\"").And.Contain("\"line\":3").And.Contain("\"side\":\"RIGHT\""));
+    }
+
+    [Test]
+    public async Task AssignIssueAsync_andRequestReviewAsync_nameTheTeamMembersAccount()
+    {
+        var handler = Recorded(
+            ("POST /repos/acme/widgets/issues/3/assignees", "{}"),
+            ("POST /repos/acme/widgets/pulls/42/requested_reviewers", "{}"));
+        var forge = new GithubForgeCapability(handler);
+
+        await forge.AssignIssueAsync(Request(), 3, "bob");
+        await forge.RequestReviewAsync(Request(), "42", "hector");
+
+        Assert.That(handler.Bodies, Is.EqualTo(new[] { """{"assignees":["bob"]}""", """{"reviewers":["hector"]}""" }));
+    }
+
+    [Test]
+    public async Task ReadAsync_readsALineFindingsLocationAuthorAndTheReviewedCommit()
+    {
+        const string findings = """
+            [{"id":5,"html_url":"https://github.com/acme/widgets/pull/42#discussion_r5","body":"Assert the new headline.","path":"test/page.test.js","line":8,"user":{"login":"hector"}}]
+            """;
+        const string reviews = """
+            [{"id":9,"user":{"login":"hector"},"state":"CHANGES_REQUESTED","submitted_at":"2026-01-02T00:00:00Z","commit_id":"abc123"}]
+            """;
+        var handler = Recorded(
+            ("GET /repos/acme/widgets/pulls?head=acme:topic&state=open", Pulls),
+            ("GET /repos/acme/widgets/commits/abc123/check-runs", Checks),
+            ("GET /repos/acme/widgets/pulls/42/comments", findings),
+            ("GET /repos/acme/widgets/pulls/42/reviews?per_page=100", reviews));
+        var snapshot = await new GithubForgeCapability(handler).ReadAsync(Request());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That((snapshot.Threads.Single().Path, snapshot.Threads.Single().Line, snapshot.Threads.Single().Author), Is.EqualTo(("test/page.test.js", 8, "hector")));
+            Assert.That(snapshot.Reviews!.Single().CommitId, Is.EqualTo("abc123"));
+            Assert.That(snapshot.Proposal!.HeadSha, Is.EqualTo("abc123"));
+        });
+    }
+
 
     private static ForgeRequest Request() => new("token", "acme", "widgets", "topic");
 
@@ -490,9 +539,12 @@ public sealed class GithubApiProviderTests
     {
         public List<string> Requests { get; } = [];
         public List<string> Uris { get; } = [];
+        public List<string> Bodies { get; } = [];
 
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
+            if (request.Content is not null)
+                Bodies.Add(await request.Content.ReadAsStringAsync(cancellationToken));
             var path = request.RequestUri is null
                 ? ""
                 : request.RequestUri.PathAndQuery.TrimStart('/');
@@ -501,12 +553,12 @@ public sealed class GithubApiProviderTests
             if (request.RequestUri is not null)
                 Uris.Add(request.RequestUri.ToString());
             if (!responses.TryGetValue(key, out var body))
-                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
+                return new HttpResponseMessage(HttpStatusCode.NotFound);
 
-            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            return new HttpResponseMessage(HttpStatusCode.OK)
             {
                 Content = new StringContent(body, Encoding.UTF8, "application/json")
-            });
+            };
         }
     }
 

@@ -17,7 +17,7 @@ public sealed class ForgejoApiProviderTests
             ("GET /user", User),
             ("GET /repos/acme/widgets/pulls?head=acme:topic&state=open", Pulls),
             ("GET /repos/acme/widgets/commits/abc123/statuses", Statuses),
-            ("GET /repos/acme/widgets/pulls/42/comments", Comments));
+            ("GET /repos/acme/widgets/issues/42/comments", Comments));
         var snapshot = await new ForgejoForgeCapability(handler).ReadAsync(Request());
 
         Assert.Multiple(() =>
@@ -298,6 +298,86 @@ public sealed class ForgejoApiProviderTests
             new ForgejoForgeCapability(handler).UpdateRefAsync(Request(), new ForgeUpdateRefCommand("topic", "abc")));
     }
 
+    // Forgejo keeps a finding with the review that raised it; there is no flat list of line comments.
+    [Test]
+    public async Task ReadAsync_readsEachReviewsFindingsWithTheirLineAndAuthor()
+    {
+        const string reviews = """
+            [{"id":7,"user":{"login":"hector"},"state":"REQUEST_REVIEW","submitted_at":"2026-01-01T00:00:00Z","comments_count":0},
+             {"id":8,"user":{"login":"hector"},"state":"REQUEST_CHANGES","submitted_at":"2026-01-02T00:00:00Z","commit_id":"abc123","comments_count":1}]
+            """;
+        const string findings = """
+            [{"id":22,"path":"test/page.test.js","position":8,"original_position":0,"body":"Assert the new headline.","html_url":"https://forgejo.example.test/acme/widgets/pulls/42#issuecomment-22","user":{"login":"hector"}}]
+            """;
+        var handler = Recorded(
+            ("GET /repos/acme/widgets/pulls?head=acme:topic&state=open", Pulls),
+            ("GET /repos/acme/widgets/commits/abc123/statuses", "[]"),
+            ("GET /repos/acme/widgets/pulls/42/reviews?limit=100", reviews),
+            ("GET /repos/acme/widgets/pulls/42/reviews/8/comments", findings),
+            ("GET /repos/acme/widgets/issues/42/comments", "[]"));
+        var snapshot = await new ForgejoForgeCapability(handler).ReadAsync(Request());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(snapshot.Threads.Single(), Is.EqualTo(new ForgeReviewThread(
+                "22", "https://forgejo.example.test/acme/widgets/pulls/42#issuecomment-22", "Assert the new headline.", false, "test/page.test.js", 8, "hector")));
+            Assert.That(snapshot.Reviews!.Single(), Is.EqualTo(new ForgeReview("hector", "REQUEST_CHANGES", DateTimeOffset.Parse("2026-01-02T00:00:00Z"), "abc123")),
+                "asking for a review is not a verdict");
+            Assert.That(snapshot.Proposal!.HeadSha, Is.EqualTo("abc123"));
+            Assert.That(handler.Requests, Has.None.Contains("reviews/7/comments"), "a review with no findings is not read");
+        });
+    }
+
+    [Test]
+    public async Task SubmitReviewAsync_postsEachFindingOnItsLine()
+    {
+        var handler = Recorded(("POST /repos/acme/widgets/pulls/42/reviews", "{}"));
+
+        await new ForgejoForgeCapability(handler).SubmitReviewAsync(Request(), new ForgeSubmitReviewCommand(
+            "42", "One thing.", "REQUEST_CHANGES", [new ForgeReviewComment("src/greeting.js", 1, "Keep the comma.")]));
+
+        Assert.That(handler.Bodies.Single(), Does.Contain("\"path\":\"src/greeting.js\"").And.Contain("\"new_position\":1").And.Contain("\"event\":\"REQUEST_CHANGES\""));
+    }
+
+    [Test]
+    public async Task AssignIssueAsync_andRequestReviewAsync_nameTheTeamMembersAccount()
+    {
+        var handler = Recorded(
+            ("PATCH /repos/acme/widgets/issues/3", "{}"),
+            ("POST /repos/acme/widgets/pulls/42/requested_reviewers", "[]"));
+        var forge = new ForgejoForgeCapability(handler);
+
+        await forge.AssignIssueAsync(Request(), 3, "bob");
+        await forge.RequestReviewAsync(Request(), "42", "hector");
+
+        Assert.That(handler.Bodies, Is.EqualTo(new[] { """{"assignees":["bob"]}""", """{"reviewers":["hector"]}""" }));
+    }
+
+    [Test]
+    public async Task AttachAsync_uploadsTheFileAndReturnsWhereToOpenIt()
+    {
+        var handler = Recorded(("POST /repos/acme/widgets/issues/42/assets?name=shot.png",
+            """{"name":"shot.png","browser_download_url":"https://forgejo.example.test/attachments/abc"}"""));
+
+        var attachment = await new ForgejoForgeCapability(handler).AttachAsync(Request(), "42", "shot.png", "image/png", [1, 2, 3]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(attachment, Is.EqualTo(new ForgeAttachment("shot.png", "https://forgejo.example.test/attachments/abc")));
+            Assert.That(handler.Bodies.Single(), Does.Contain("name=attachment"));
+        });
+    }
+
+    [Test]
+    public async Task AttachAsync_returnsNothingWhenTheHostNamesNoLink()
+    {
+        var handler = Recorded(("POST /repos/acme/widgets/issues/42/assets?name=shot.png", "{}"));
+
+        var attachment = await new ForgejoForgeCapability(handler).AttachAsync(Request(), "42", "shot.png", "image/png", [1]);
+
+        Assert.That(attachment, Is.Null);
+    }
+
     [Test]
     public async Task ReadAsync_readsIssueConversationWhenPullCommentsAreNotImplemented()
     {
@@ -475,8 +555,7 @@ public sealed class ForgejoApiProviderTests
         var handler = Recorded(
             ("GET /repos/acme/widgets/pulls?head=acme:topic&state=open", Pulls),
             ("GET /repos/acme/widgets/commits/abc123/statuses", "[]"),
-            ("GET /repos/acme/widgets/pulls/42/comments", comments),
-            ("GET /repos/acme/widgets/issues/42/comments", "[]"));
+            ("GET /repos/acme/widgets/issues/42/comments", comments));
         var snapshot = await new ForgejoForgeCapability(handler).ReadAsync(Request());
 
         Assert.Multiple(() =>
@@ -654,9 +733,12 @@ public sealed class ForgejoApiProviderTests
     {
         public List<string> Requests { get; } = [];
         public List<string> Uris { get; } = [];
+        public List<string> Bodies { get; } = [];
 
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
+            if (request.Content is not null)
+                Bodies.Add(await request.Content.ReadAsStringAsync(cancellationToken));
             var path = request.RequestUri is null ? "" : request.RequestUri.PathAndQuery;
             const string apiPrefix = "/api/v1";
             if (path.StartsWith(apiPrefix, StringComparison.Ordinal))
@@ -666,9 +748,9 @@ public sealed class ForgejoApiProviderTests
             if (request.RequestUri is not null)
                 Uris.Add(request.RequestUri.ToString());
             if (!responses.TryGetValue(key, out var recorded))
-                return Task.FromResult(CreateResponse(HttpStatusCode.NotFound));
+                return CreateResponse(HttpStatusCode.NotFound);
 
-            return Task.FromResult(CreateResponse(recorded.Status, recorded.Body));
+            return CreateResponse(recorded.Status, recorded.Body);
         }
 
         [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Returned HttpResponseMessage ownership transfers to HttpClient.")]

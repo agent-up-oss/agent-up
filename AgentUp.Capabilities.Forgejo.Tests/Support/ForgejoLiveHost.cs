@@ -164,6 +164,43 @@ public sealed class ForgejoLiveHost : IAsyncDisposable
         response.EnsureSuccessStatusCode();
     }
 
+    /// <summary>
+    /// A second account with write access to <paramref name="repository"/>, as a team member is:
+    /// its own login and its own token, so what it does is attributed to it.
+    /// </summary>
+    public async Task<(string Login, string Token)> CreateCollaboratorAsync(string repository, string login, CancellationToken cancellationToken)
+    {
+        using (var user = await _client.PostAsJsonAsync(
+            "admin/users",
+            new { username = login, email = $"{login}@example.invalid", password = Password, must_change_password = false },
+            cancellationToken))
+        {
+            if (user.StatusCode != System.Net.HttpStatusCode.UnprocessableEntity)
+                user.EnsureSuccessStatusCode();
+        }
+
+        using (var collaborator = await _client.PutAsJsonAsync(
+            $"repos/{Owner}/{repository}/collaborators/{login}",
+            new { permission = "write" },
+            cancellationToken))
+            collaborator.EnsureSuccessStatusCode();
+
+        using var basic = new HttpClient { BaseAddress = new Uri($"{Origin}/api/v1/") };
+        basic.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue(
+            "Basic", Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes($"{login}:{Password}")));
+        using var token = await basic.PostAsJsonAsync(
+            $"users/{login}/tokens",
+            new { name = $"e2e-{repository}", scopes = new[] { "all" } },
+            cancellationToken);
+        token.EnsureSuccessStatusCode();
+        var created = await token.Content.ReadFromJsonAsync<JsonElement>(Json, cancellationToken);
+        return (login, created.GetProperty("sha1").GetString()!);
+    }
+
+    /// <summary>A JSON document the owner reads from the API, for asserting what the host shows.</summary>
+    public async Task<JsonElement> ReadAsync(string path, CancellationToken cancellationToken)
+        => await _client.GetFromJsonAsync<JsonElement>(path, Json, cancellationToken);
+
     public async Task WaitForBranchAsync(string repository, string branch, CancellationToken cancellationToken)
         => await ReadBranchShaAsync(repository, branch, cancellationToken);
 

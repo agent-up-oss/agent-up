@@ -81,4 +81,10 @@ public sealed class GithubForgeCapability : IForgeCapability
         ForgeSubmitReviewCommand command,
         CancellationToken cancellationToken = default)
         => _api.SubmitReviewAsync(request, command, cancellationToken);
+
+    public Task AssignIssueAsync(ForgeRequest request, int issueNumber, string login, CancellationToken cancellationToken = default)
+        => _api.AssignIssueAsync(request, issueNumber, login, cancellationToken);
+
+    public Task RequestReviewAsync(ForgeRequest request, string proposalNumber, string login, CancellationToken cancellationToken = default)
+        => _api.RequestReviewAsync(request, proposalNumber, login, cancellationToken);
 }
