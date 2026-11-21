@@ -9,6 +9,7 @@
         xmlns:gitVm="using:AgentUp.Desktop.Features.Git.ViewModels"
         xmlns:gitViews="using:AgentUp.Desktop.Features.Git.Views"
         xmlns:agentVm="using:AgentUp.Desktop.Features.Agents.ViewModels"
+        xmlns:agentViews="using:AgentUp.Desktop.Features.Agents.Views"
         xmlns:validationVm="using:AgentUp.Desktop.Features.Validation.ViewModels"
         xmlns:capVm="using:AgentUp.Desktop.Features.Capabilities.ViewModels"
         xmlns:metricsViews="using:AgentUp.Desktop.Features.Metrics.Views"
@@ -160,95 +161,248 @@
             </Button>
         </DataTemplate>
         <DataTemplate DataType="agentVm:AgentChatItemViewModel">
-            <Grid>
+            <Grid Classes="au-chat-enter">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="2*"/>
                     <ColumnDefinition Width="8*"/>
                 </Grid.ColumnDefinitions>
-                <Border Grid.Column="1"
-                        Classes="au-chat-user"
-                        HorizontalAlignment="Right">
-                    <TextBlock Text="{Binding VisibleText}" TextWrapping="Wrap"/>
-                </Border>
+                <StackPanel Grid.Column="1" Spacing="4" HorizontalAlignment="Right">
+                    <TextBlock Classes="au-muted"
+                               Text="{Binding Status}"
+                               IsVisible="{Binding Status, Converter={x:Static ObjectConverters.IsNotNull}}"
+                               HorizontalAlignment="Right"/>
+                    <Border Classes="au-chat-user"
+                            HorizontalAlignment="Right">
+                        <TextBlock Text="{Binding VisibleText}" TextWrapping="Wrap"/>
+                    </Border>
+                </StackPanel>
             </Grid>
         </DataTemplate>
 
+        <!-- One agent turn: what the agent said is always shown, and the work between those
+             messages folds into sections that open while the agent works in them. -->
         <DataTemplate DataType="agentVm:AgentRunViewModel">
-            <StackPanel Spacing="8">
-                <Button Classes="au-chat-run"
-                        HorizontalAlignment="Stretch"
-                        HorizontalContentAlignment="Stretch"
-                        Focusable="False"
-                        IsVisible="{Binding ShowHeader}"
-                        AutomationProperties.AutomationId="{Binding AutomationId}"
-                        Command="{Binding ToggleCommand}">
-                    <Grid ColumnDefinitions="*,Auto">
-                        <TextBlock Classes="au-muted" Text="{Binding Summary}"/>
-                        <TextBlock Grid.Column="1" Classes="au-muted" Text="{Binding Chevron}"/>
-                    </Grid>
-                </Button>
-                <ItemsControl ItemsSource="{Binding WorkItems}"
-                              IsVisible="{Binding IsExpanded}"
-                              HorizontalAlignment="Stretch">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <StackPanel Spacing="4"/>
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate DataType="agentVm:AgentChatItemViewModel">
-                            <Panel>
-                                <Button Classes="au-chat-thought"
-                                        HorizontalAlignment="Stretch"
-                                        HorizontalContentAlignment="Stretch"
-                                        Focusable="False"
-                                        IsVisible="{Binding IsThought}"
-                                        AutomationProperties.AutomationId="{Binding AutomationId}"
-                                        Command="{Binding ToggleCommand}">
-                                    <StackPanel>
-                                        <TextBlock Classes="au-field-label" Text="{Binding Label}"/>
-                                        <TextBlock Classes="au-chat-thought-body"
-                                                   Text="{Binding VisibleText}"
-                                                   TextWrapping="Wrap"
-                                                   IsVisible="{Binding IsThoughtExpanded}"/>
-                                    </StackPanel>
-                                </Button>
-                                <Border Classes="au-chat-work" IsVisible="{Binding IsWork}">
-                                    <StackPanel Spacing="2">
-                                        <Grid ColumnDefinitions="*,Auto">
-                                            <TextBlock Classes="au-field-label" Text="{Binding Label}"/>
-                                            <TextBlock Grid.Column="1"
-                                                       Classes="au-field-label"
-                                                       Text="{Binding Status}"
-                                                       Foreground="{DynamicResource AgentUpColorTextWarningBrush}"
-                                                       IsVisible="{Binding Status, Converter={x:Static ObjectConverters.IsNotNull}}"/>
-                                        </Grid>
-                                        <TextBlock Classes="au-muted"
-                                                   Text="{Binding VisibleText}"
-                                                   TextWrapping="Wrap"/>
-                                    </StackPanel>
-                                </Border>
-                            </Panel>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-                <ContentControl Content="{Binding Reply}" IsVisible="{Binding HasReply}">
-                    <ContentControl.ContentTemplate>
-                        <DataTemplate DataType="agentVm:AgentChatItemViewModel">
-                            <Border Classes="au-card">
-                                <StackPanel Spacing="4">
-                                    <TextBlock Classes="au-field-label" Text="{Binding Label}"/>
-                                    <TextBlock Text="{Binding VisibleText}" TextWrapping="Wrap"/>
-                                </StackPanel>
-                            </Border>
-                        </DataTemplate>
-                    </ContentControl.ContentTemplate>
-                </ContentControl>
-            </StackPanel>
+            <ItemsControl ItemsSource="{Binding Segments}" HorizontalAlignment="Stretch">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Spacing="8"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.DataTemplates>
+                    <!-- A summary or the reply: prose on the canvas, never folded. The closing
+                         reply is headed with the agent's name. -->
+                    <DataTemplate DataType="agentVm:AgentChatItemViewModel">
+                        <StackPanel Classes="au-chat-enter" Spacing="6">
+                            <TextBlock Classes="au-chat-reply-agent"
+                                       Text="{Binding $parent[Window].DataContext.Agent.SelectedAgentDisplayName}"
+                                       IsVisible="{Binding IsClosing}"/>
+                            <agentViews:AgentMarkdownView Classes="au-chat-reply"
+                                                          Markdown="{Binding Text}"
+                                                          AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AgentReply}"/>
+                        </StackPanel>
+                    </DataTemplate>
+                    <DataTemplate DataType="agentVm:AgentWorkSectionViewModel">
+                        <StackPanel Classes="au-chat-enter" Spacing="4">
+                            <Button Classes="au-chat-run"
+                                    HorizontalAlignment="Stretch"
+                                    HorizontalContentAlignment="Stretch"
+                                    Focusable="False"
+                                    IsVisible="{Binding ShowHeader}"
+                                    AutomationProperties.AutomationId="{Binding AutomationId}"
+                                    Command="{Binding ToggleCommand}">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <TextBlock Classes="au-muted" Text="{Binding Summary}" TextTrimming="CharacterEllipsis"/>
+                                    <TextBlock Grid.Column="1" Classes="au-muted" Text="{Binding Chevron}"/>
+                                </Grid>
+                            </Button>
+                            <agentViews:AgentRevealPresenter IsOpen="{Binding IsExpanded}">
+                                <ItemsControl ItemsSource="{Binding Entries}"
+                                             
+                                              HorizontalAlignment="Stretch">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel Spacing="4"/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.DataTemplates>
+                                        <!-- Consecutive finished edits, reads, searches and thoughts fold into one count line. -->
+                                        <DataTemplate DataType="agentVm:AgentWorkFoldViewModel">
+                                            <StackPanel Classes="au-chat-enter" Spacing="4">
+                                                <Button Classes="au-tool-call"
+                                                        HorizontalAlignment="Stretch"
+                                                        HorizontalContentAlignment="Stretch"
+                                                        Focusable="False"
+                                                        AutomationProperties.AutomationId="{Binding AutomationId}"
+                                                        Command="{Binding ToggleCommand}">
+                                                    <Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="8">
+                                                        <TextBlock Classes="au-tool-call-glyph" Text="✓" VerticalAlignment="Center"/>
+                                                        <TextBlock Grid.Column="1" Classes="au-tool-call-title" Text="{Binding Title}" VerticalAlignment="Center"/>
+                                                        <TextBlock Grid.Column="2" Classes="au-tool-call-summary" Text="{Binding Summary}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                                                        <TextBlock Grid.Column="3" Classes="au-tool-call-summary" Text="{Binding Chevron}" VerticalAlignment="Center"/>
+                                                    </Grid>
+                                                </Button>
+                                                <agentViews:AgentRevealPresenter IsOpen="{Binding IsOpen}">
+                                                    <Border Classes="au-tool-call-detail">
+                                                        <ItemsControl ItemsSource="{Binding Items}">
+                                                            <ItemsControl.ItemsPanel>
+                                                                <ItemsPanelTemplate>
+                                                                    <StackPanel Spacing="4"/>
+                                                                </ItemsPanelTemplate>
+                                                            </ItemsControl.ItemsPanel>
+                                                        </ItemsControl>
+                                                    </Border>
+                                                </agentViews:AgentRevealPresenter>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                        <DataTemplate DataType="agentVm:AgentChatItemViewModel">
+                                            <Panel Classes="au-chat-enter">
+                                                <Button Classes="au-chat-thought"
+                                                        HorizontalAlignment="Stretch"
+                                                        HorizontalContentAlignment="Stretch"
+                                                        Focusable="False"
+                                                        IsVisible="{Binding IsThought}"
+                                                        AutomationProperties.AutomationId="{Binding AutomationId}"
+                                                        Command="{Binding ToggleCommand}">
+                                                    <StackPanel>
+                                                        <TextBlock Classes="au-field-label" Text="{Binding Label}"/>
+                                                        <agentViews:AgentRevealPresenter IsOpen="{Binding IsThoughtExpanded}">
+                                                            <TextBlock Classes="au-chat-thought-body"
+                                                                       Text="{Binding VisibleText}"
+                                                                       TextWrapping="Wrap"
+                                                                      />
+                                                        </agentViews:AgentRevealPresenter>
+                                                    </StackPanel>
+                                                </Button>
+                                                <!-- A tool call is one quiet row: status, readable name, source, and
+                                                     the argument that matters. It opens to its input and output. -->
+                                                <StackPanel Spacing="4" IsVisible="{Binding IsTool}">
+                                                    <Button Classes="au-tool-call"
+                                                            HorizontalAlignment="Stretch"
+                                                            HorizontalContentAlignment="Stretch"
+                                                            Focusable="False"
+                                                            AutomationProperties.AutomationId="{Binding ToolAutomationId}"
+                                                            Command="{Binding ToggleToolCommand}">
+                                                        <Grid ColumnDefinitions="Auto,Auto,Auto,*,Auto,Auto,Auto,Auto" ColumnSpacing="8">
+                                                            <TextBlock Classes="au-tool-call-glyph"
+                                                                       Classes.au-tool-call-glyph--running="{Binding IsToolRunning}"
+                                                                       Classes.au-tool-call-glyph--failed="{Binding IsToolFailed}"
+                                                                       Text="{Binding ToolGlyph}"
+                                                                       VerticalAlignment="Center"/>
+                                                            <TextBlock Grid.Column="1" Classes="au-tool-call-title" Text="{Binding Tool.Title}" VerticalAlignment="Center"/>
+                                                            <Border Grid.Column="2" Classes="au-tool-call-source" IsVisible="{Binding HasToolSource}" VerticalAlignment="Center">
+                                                                <TextBlock Classes="au-tool-call-source" Text="{Binding Tool.Source}"/>
+                                                            </Border>
+                                                            <TextBlock Grid.Column="3"
+                                                                       Classes="au-tool-call-summary"
+                                                                       Text="{Binding Tool.Summary}"
+                                                                       IsVisible="{Binding HasToolSummary}"
+                                                                       TextTrimming="CharacterEllipsis"
+                                                                       VerticalAlignment="Center"/>
+                                                            <TextBlock Grid.Column="4" Classes="au-git-insertions" Text="{Binding DiffAdded}" IsVisible="{Binding HasDiffAdded}" VerticalAlignment="Center"/>
+                                                            <TextBlock Grid.Column="5" Classes="au-git-deletions" Text="{Binding DiffRemoved}" IsVisible="{Binding HasDiffRemoved}" VerticalAlignment="Center"/>
+                                                            <TextBlock Grid.Column="6" Classes="au-tool-call-summary" Text="{Binding ToolDuration}" IsVisible="{Binding HasToolDuration}" VerticalAlignment="Center"/>
+                                                            <TextBlock Grid.Column="7" Classes="au-tool-call-summary" Text="{Binding ToolChevron}" VerticalAlignment="Center"/>
+                                                        </Grid>
+                                                    </Button>
+                                                    <agentViews:AgentRevealPresenter IsOpen="{Binding IsToolOpen}">
+                                                        <Border Classes="au-tool-call-detail">
+                                                            <StackPanel Spacing="6">
+                                                                <!-- An edit shows what changed, in the Git viewer's diff treatment. -->
+                                                                <TextBlock Classes="au-tool-call-label" Text="{Binding Tool.Diff.Path}" IsVisible="{Binding HasToolDiffOpen}"/>
+                                                                <Border Classes="au-tool-call-output" IsVisible="{Binding HasToolDiffOpen}" Padding="0,4">
+                                                                    <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                                                                        <ItemsControl ItemsSource="{Binding DiffLines}">
+                                                                            <ItemsControl.ItemTemplate>
+                                                                                <DataTemplate DataType="agentVm:AgentDiffLineViewModel">
+                                                                                    <Border Classes="au-file-viewer-line"
+                                                                                            Classes.au-file-viewer-line--added="{Binding IsAdded}"
+                                                                                            Classes.au-file-viewer-line--deleted="{Binding IsDeleted}"
+                                                                                            Classes.au-file-viewer-line--hunk="{Binding IsHunk}">
+                                                                                        <Grid ColumnDefinitions="Auto,Auto,*">
+                                                                                            <TextBlock Classes="au-file-viewer-gutter" Text="{Binding Number}" TextAlignment="Right"/>
+                                                                                            <TextBlock Grid.Column="1"
+                                                                                                       Classes="au-file-viewer-prefix"
+                                                                                                       Classes.au-file-viewer-prefix--added="{Binding IsAdded}"
+                                                                                                       Classes.au-file-viewer-prefix--deleted="{Binding IsDeleted}"
+                                                                                                       Text="{Binding Prefix}"/>
+                                                                                            <agentViews:AgentSyntaxLineView Grid.Column="2" TextClass="au-file-viewer-code" Tokens="{Binding Tokens}"/>
+                                                                                        </Grid>
+                                                                                    </Border>
+                                                                                </DataTemplate>
+                                                                            </ItemsControl.ItemTemplate>
+                                                                        </ItemsControl>
+                                                                    </ScrollViewer>
+                                                                </Border>
+                                                                <Button Classes="au-button au-button--secondary au-button--compact"
+                                                                        HorizontalAlignment="Left"
+                                                                        IsVisible="{Binding CanShowWholeDiff}"
+                                                                        AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AgentDiffShowAll}"
+                                                                        Command="{Binding ShowWholeDiffCommand}"
+                                                                        Content="{Binding ShowWholeDiffLabel}"/>
+                                                                <TextBlock Classes="au-tool-call-label" Text="Input" IsVisible="{Binding HasToolInput}"/>
+                                                                <Border Classes="au-tool-call-output" IsVisible="{Binding HasToolInput}">
+                                                                    <TextBlock Classes="au-tool-call-output-text" Text="{Binding Tool.Input}" TextWrapping="Wrap"/>
+                                                                </Border>
+                                                                <TextBlock Classes="au-tool-call-label" Text="Output" IsVisible="{Binding HasToolOutput}"/>
+                                                                <Border Classes="au-tool-call-output"
+                                                                        Classes.au-tool-call-output--failed="{Binding IsToolFailed}"
+                                                                        IsVisible="{Binding HasToolOutput}">
+                                                                    <ScrollViewer MaxHeight="420" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                                                        <TextBlock Classes="au-tool-call-output-text"
+                                                                                   Classes.au-tool-call-output-text--failed="{Binding IsToolFailed}"
+                                                                                   Text="{Binding ToolOutputText}"
+                                                                                   TextWrapping="Wrap"/>
+                                                                    </ScrollViewer>
+                                                                </Border>
+                                                                <Button Classes="au-button au-button--secondary au-button--compact"
+                                                                        HorizontalAlignment="Left"
+                                                                        IsVisible="{Binding CanShowAllOutput}"
+                                                                        AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AgentToolShowAll}"
+                                                                        Command="{Binding ShowAllOutputCommand}"
+                                                                        Content="{Binding ShowAllOutputLabel}"/>
+                                                            </StackPanel>
+                                                        </Border>
+                                                    </agentViews:AgentRevealPresenter>
+                                                </StackPanel>
+                                                <!-- What the agent said between steps reads as prose, like the reply. -->
+                                                <agentViews:AgentMarkdownView Classes="au-chat-reply"
+                                                                              IsVisible="{Binding IsAgentText}"
+                                                                              Markdown="{Binding Text}"/>
+                                                <Border Classes="au-chat-work" IsVisible="{Binding IsOtherWork}">
+                                                    <StackPanel Spacing="2">
+                                                        <TextBlock Classes="au-field-label" Text="{Binding Label}"/>
+                                                        <TextBlock Classes="au-muted"
+                                                                   Text="{Binding VisibleText}"
+                                                                   TextWrapping="Wrap"/>
+                                                    </StackPanel>
+                                                </Border>
+                                            </Panel>
+                                        </DataTemplate>
+                                    </ItemsControl.DataTemplates>
+                                </ItemsControl>
+                            </agentViews:AgentRevealPresenter>
+                        </StackPanel>
+                    </DataTemplate>
+                </ItemsControl.DataTemplates>
+            </ItemsControl>
         </DataTemplate>
     </Window.DataTemplates>
 
     <Window.Styles>
+        <!-- Arrival: a new transcript entry fades up once, when it first appears. The transcript
+             carries au-motion only while motion is on. -->
+        <Style Selector="ItemsControl.au-motion :is(Control).au-chat-enter">
+            <Style.Animations>
+                <Animation Duration="0:0:0.24" Easing="CubicEaseOut" FillMode="Backward">
+                    <KeyFrame Cue="0%">
+                        <Setter Property="Opacity" Value="0"/>
+                    </KeyFrame>
+                    <KeyFrame Cue="100%">
+                        <Setter Property="Opacity" Value="1"/>
+                    </KeyFrame>
+                </Animation>
+            </Style.Animations>
+        </Style>
         <!-- Strip default ListBox chrome -->
         <Style Selector="ListBox">
             <Setter Property="Background" Value="Transparent"/>
@@ -1357,7 +1511,103 @@
                                                 Command="{Binding Agent.StopCommand}"
                                                 Content="Stop agent"/>
                                     </Grid>
-                                    <StackPanel x:Name="ChatSettings" Grid.Row="1" Spacing="10">
+                                    <!-- The agent's choice, saved sessions, and unattended-loop checklist live in
+                                         the workspace Settings tab; this tab keeps the conversation. -->
+                                    <Border Grid.Row="1" Classes="au-choice" Padding="12,8">
+                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                                            <TextBlock Classes="au-muted"
+                                                       AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AgentSettingsSummary}"
+                                                       Text="{Binding Agent.SettingsSummary}"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       VerticalAlignment="Center"/>
+                                            <Button Grid.Column="1"
+                                                    Classes="au-button au-button--secondary au-button--compact"
+                                                    AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AgentOpenSettings}"
+                                                    Command="{Binding OpenWorkspaceSettingsCommand}"
+                                                    Content="Settings"/>
+                                        </Grid>
+                                    </Border>
+                                    <StackPanel Grid.Row="2" Spacing="8">
+                                        <ItemsControl ItemsSource="{Binding Agent.AuthenticationOptions}">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <StackPanel Orientation="Horizontal" Spacing="8"/>
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate DataType="agentVm:AgentOptionViewModel">
+                                                    <Button Classes="au-button au-button--secondary au-button--compact" AutomationProperties.AutomationId="{Binding AutomationId}" Command="{Binding Command}" Content="{Binding Label}"/>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                        <StackPanel IsVisible="{Binding Agent.HasLoginChallenge}" Spacing="6">
+                                            <TextBlock Text="{Binding Agent.LoginInstructions}" TextWrapping="Wrap" Foreground="{DynamicResource AgentUpColorTextWarningBrush}"/>
+                                            <TextBox Classes="au-input" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AgentLoginUrl}" IsReadOnly="True" Text="{Binding Agent.LoginUrl}" IsVisible="{Binding Agent.HasLoginUrl}"/>
+                                            <TextBlock Classes="au-mono"
+                                                       Text="{Binding Agent.LoginCode}"
+                                                       IsVisible="{Binding Agent.HasLoginCode}"
+                                                       FontSize="{DynamicResource AgentUpFontSizeUiXl}"
+                                                       FontWeight="{DynamicResource AgentUpWeightUiStrong}"
+                                                       Foreground="{DynamicResource AgentUpColorAccentSoftBrush}"/>
+                                            <StackPanel IsVisible="{Binding Agent.CanCollectLoginCode}" Spacing="6">
+                                                <TextBox Classes="au-input"
+                                                         AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AgentLoginCode}"
+                                                         Text="{Binding Agent.LoginCodeInput}"
+                                                         PlaceholderText="Paste the code from the page"
+                                                         IsEnabled="{Binding Agent.CanSubmitLoginCode}"/>
+                                                <Button Classes="au-button au-button--compact"
+                                                        AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AgentSubmitCode}"
+                                                        Content="Submit code"
+                                                        Command="{Binding Agent.SubmitLoginCodeCommand}"
+                                                        IsEnabled="{Binding Agent.CanSubmitLoginCode}"/>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </StackPanel>
+                                    <ScrollViewer Grid.Row="3"
+                                                  x:Name="AgentTranscriptScroll"
+                                                  HorizontalScrollBarVisibility="Disabled"
+                                                  VerticalScrollBarVisibility="Auto"
+                                                  Background="{DynamicResource AgentUpColorCanvasBrush}">
+                                        <ItemsControl x:Name="AgentTranscript" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AgentTranscript}"
+                                                      ItemsSource="{Binding Agent.Transcript}"
+                                                      HorizontalAlignment="Stretch">
+                                            <ItemsControl.ItemsPanel>
+                                                <ItemsPanelTemplate>
+                                                    <StackPanel Spacing="10"/>
+                                                </ItemsPanelTemplate>
+                                            </ItemsControl.ItemsPanel>
+                                        </ItemsControl>
+                                    </ScrollViewer>
+                                    <StackPanel Grid.Row="4" IsVisible="{Binding Agent.HasPermission}" Spacing="8">
+                                        <TextBlock Text="Decision needed" Foreground="{DynamicResource AgentUpColorTextWarningBrush}" FontSize="10"/>
+                                        <TextBlock Text="{Binding Agent.PermissionTitle}" Foreground="{DynamicResource AgentUpColorTextWarningBrush}" FontWeight="Bold" TextWrapping="Wrap"/>
+                                        <TextBlock Text="{Binding Agent.PermissionDetail}" Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}" TextWrapping="Wrap"/>
+                                        <ItemsControl ItemsSource="{Binding Agent.PermissionOptions}">
+                                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="8"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+                                            <ItemsControl.ItemTemplate><DataTemplate DataType="agentVm:AgentOptionViewModel"><Button Classes="au-button au-button--secondary au-button--compact" AutomationProperties.AutomationId="{Binding AutomationId}" Command="{Binding Command}" Content="{Binding Label}"/></DataTemplate></ItemsControl.ItemTemplate>
+                                        </ItemsControl>
+                                    </StackPanel>
+                                    <TextBlock Grid.Row="5" Text="{Binding Agent.Error}" Foreground="{DynamicResource AgentUpColorTextDangerBrush}"/>
+                                    <Grid Grid.Row="6" IsVisible="{Binding Agent.HasSession}" ColumnDefinitions="*,Auto" ColumnSpacing="8"><TextBox Classes="au-input" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AgentMessage}" Text="{Binding Agent.Message}" PlaceholderText="Ask the agent…" AcceptsReturn="True" MaxHeight="100"/><Button Grid.Column="1" Classes="au-button" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AgentSend}" Command="{Binding Agent.SendCommand}" Content="Send"/></Grid>
+                                </Grid>
+                            </Border>
+
+                            <!-- Workspace settings: the same block the command center shows as
+                                 Settings · Chat, so classic and command center agree on where the
+                                 agent, its sessions, and the unattended-loop checklist are kept. -->
+                            <ScrollViewer x:Name="WorkspaceSettingsPane"
+                                          AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.WorkspaceSettings}"
+                                          IsVisible="{Binding ShowWorkspaceSettings}"
+                                          HorizontalScrollBarVisibility="Disabled"
+                                          VerticalScrollBarVisibility="Auto"
+                                          Background="{DynamicResource AgentUpColorCanvasBrush}">
+                                <StackPanel Margin="20" Spacing="14" MaxWidth="760" HorizontalAlignment="Left">
+                                    <StackPanel Spacing="2">
+                                        <TextBlock Classes="au-page-title" Text="Workspace settings"/>
+                                        <TextBlock Classes="au-muted" Text="{Binding Agent.StatusLine}"/>
+                                    </StackPanel>
+                                    <TextBlock Classes="au-field-label" Text="Agent"/>
+                                    <StackPanel x:Name="ChatSettings" Spacing="10">
                                     <Border AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AgentLoop}"
                                             Classes="au-choice"
                                             Padding="12"
@@ -1536,69 +1786,8 @@
                                         </StackPanel>
                                     </StackPanel>
                                     </StackPanel>
-                                    <StackPanel Grid.Row="2" Spacing="8">
-                                        <ItemsControl ItemsSource="{Binding Agent.AuthenticationOptions}">
-                                            <ItemsControl.ItemsPanel>
-                                                <ItemsPanelTemplate>
-                                                    <StackPanel Orientation="Horizontal" Spacing="8"/>
-                                                </ItemsPanelTemplate>
-                                            </ItemsControl.ItemsPanel>
-                                            <ItemsControl.ItemTemplate>
-                                                <DataTemplate DataType="agentVm:AgentOptionViewModel">
-                                                    <Button Classes="au-button au-button--secondary au-button--compact" AutomationProperties.AutomationId="{Binding AutomationId}" Command="{Binding Command}" Content="{Binding Label}"/>
-                                                </DataTemplate>
-                                            </ItemsControl.ItemTemplate>
-                                        </ItemsControl>
-                                        <StackPanel IsVisible="{Binding Agent.HasLoginChallenge}" Spacing="6">
-                                            <TextBlock Text="{Binding Agent.LoginInstructions}" TextWrapping="Wrap" Foreground="{DynamicResource AgentUpColorTextWarningBrush}"/>
-                                            <TextBox Classes="au-input" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AgentLoginUrl}" IsReadOnly="True" Text="{Binding Agent.LoginUrl}" IsVisible="{Binding Agent.HasLoginUrl}"/>
-                                            <TextBlock Classes="au-mono"
-                                                       Text="{Binding Agent.LoginCode}"
-                                                       IsVisible="{Binding Agent.HasLoginCode}"
-                                                       FontSize="{DynamicResource AgentUpFontSizeUiXl}"
-                                                       FontWeight="{DynamicResource AgentUpWeightUiStrong}"
-                                                       Foreground="{DynamicResource AgentUpColorAccentSoftBrush}"/>
-                                            <StackPanel IsVisible="{Binding Agent.CanCollectLoginCode}" Spacing="6">
-                                                <TextBox Classes="au-input"
-                                                         AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AgentLoginCode}"
-                                                         Text="{Binding Agent.LoginCodeInput}"
-                                                         PlaceholderText="Paste the code from the page"
-                                                         IsEnabled="{Binding Agent.CanSubmitLoginCode}"/>
-                                                <Button Classes="au-button au-button--compact"
-                                                        AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AgentSubmitCode}"
-                                                        Content="Submit code"
-                                                        Command="{Binding Agent.SubmitLoginCodeCommand}"
-                                                        IsEnabled="{Binding Agent.CanSubmitLoginCode}"/>
-                                            </StackPanel>
-                                        </StackPanel>
-                                    </StackPanel>
-                                    <ScrollViewer Grid.Row="3"
-                                                  HorizontalScrollBarVisibility="Disabled"
-                                                  VerticalScrollBarVisibility="Auto"
-                                                  Background="{DynamicResource AgentUpColorCanvasBrush}">
-                                        <ItemsControl x:Name="AgentTranscript" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AgentTranscript}"
-                                                      ItemsSource="{Binding Agent.Transcript}"
-                                                      HorizontalAlignment="Stretch">
-                                            <ItemsControl.ItemsPanel>
-                                                <ItemsPanelTemplate>
-                                                    <StackPanel Spacing="10"/>
-                                                </ItemsPanelTemplate>
-                                            </ItemsControl.ItemsPanel>
-                                        </ItemsControl>
-                                    </ScrollViewer>
-                                    <StackPanel Grid.Row="4" IsVisible="{Binding Agent.HasPermission}" Spacing="8">
-                                        <TextBlock Text="Decision needed" Foreground="{DynamicResource AgentUpColorTextWarningBrush}" FontSize="10"/>
-                                        <TextBlock Text="{Binding Agent.PermissionTitle}" Foreground="{DynamicResource AgentUpColorTextWarningBrush}" FontWeight="Bold" TextWrapping="Wrap"/>
-                                        <TextBlock Text="{Binding Agent.PermissionDetail}" Foreground="{DynamicResource AgentUpColorTextPrimaryBrush}" TextWrapping="Wrap"/>
-                                        <ItemsControl ItemsSource="{Binding Agent.PermissionOptions}">
-                                            <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="8"/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
-                                            <ItemsControl.ItemTemplate><DataTemplate DataType="agentVm:AgentOptionViewModel"><Button Classes="au-button au-button--secondary au-button--compact" AutomationProperties.AutomationId="{Binding AutomationId}" Command="{Binding Command}" Content="{Binding Label}"/></DataTemplate></ItemsControl.ItemTemplate>
-                                        </ItemsControl>
-                                    </StackPanel>
-                                    <TextBlock Grid.Row="5" Text="{Binding Agent.Error}" Foreground="{DynamicResource AgentUpColorTextDangerBrush}"/>
-                                    <Grid Grid.Row="6" IsVisible="{Binding Agent.HasSession}" ColumnDefinitions="*,Auto" ColumnSpacing="8"><TextBox Classes="au-input" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AgentMessage}" Text="{Binding Agent.Message}" PlaceholderText="Ask the agent…" AcceptsReturn="True" MaxHeight="100"/><Button Grid.Column="1" Classes="au-button" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.AgentSend}" Command="{Binding Agent.SendCommand}" Content="Send"/></Grid>
-                                </Grid>
-                            </Border>
+                                </StackPanel>
+                            </ScrollViewer>
 
                             <!-- No applications configured -->
                             <StackPanel IsVisible="{Binding ShowNoApplications}"
@@ -2784,9 +2973,9 @@
                     <Grid RowDefinitions="Auto,*,Auto">
                         <Grid ColumnDefinitions="*,Auto">
                             <StackPanel Spacing="4">
-                                <TextBlock Classes="au-page-title" Text="Capability modules"/>
+                                <TextBlock Classes="au-page-title" Text="Capabilities"/>
                                 <TextBlock Classes="au-muted"
-                                           Text="Enable packages on this Server. Desktop never talks to the remote registry."
+                                           Text="Built into this Server. Enable the ones whose software it can find."
                                            TextWrapping="Wrap"/>
                             </StackPanel>
                             <Button Grid.Column="1"
@@ -2809,36 +2998,61 @@
                                 </ItemsControl.ItemsPanel>
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate DataType="capVm:CapabilityModuleCardViewModel">
-                                        <Border Classes="au-card" Padding="14">
-                                            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto">
-                                                <TextBlock Classes="au-heading" Text="{Binding DisplayName}"/>
-                                                <TextBlock Grid.Row="1"
-                                                           Classes="au-muted"
-                                                           Text="{Binding StatusLabel}"
-                                                           Margin="0,4,0,0"/>
-                                                <TextBlock Grid.Row="2"
-                                                           Classes="au-muted"
-                                                           Text="{Binding Summary}"
-                                                           TextWrapping="Wrap"
-                                                           Margin="0,6,12,0"
-                                                           IsVisible="{Binding Summary, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
-                                                <StackPanel Grid.Column="1"
-                                                            Grid.RowSpan="3"
-                                                            Orientation="Horizontal"
-                                                            Spacing="8"
-                                                            VerticalAlignment="Center">
+                                        <Border Classes="au-card" Padding="14" ToolTip.Tip="{Binding Summary}">
+                                            <StackPanel Spacing="12">
+                                                <Grid ColumnDefinitions="*,Auto">
+                                                    <StackPanel Spacing="4" VerticalAlignment="Center">
+                                                        <TextBlock Classes="au-heading" Text="{Binding DisplayName}"/>
+                                                        <TextBlock Classes="au-muted" Text="{Binding StatusLabel}"/>
+                                                    </StackPanel>
+                                                    <StackPanel Grid.Column="1"
+                                                                Orientation="Horizontal"
+                                                                Spacing="8"
+                                                                VerticalAlignment="Center">
+                                                        <Button Classes="au-button au-button--compact"
+                                                                AutomationProperties.AutomationId="{Binding EnableAutomationId}"
+                                                                Command="{Binding EnableCommand}"
+                                                                Content="Enable"
+                                                                IsVisible="{Binding CanEnable}"/>
+                                                        <Button Classes="au-button au-button--secondary au-button--compact"
+                                                                AutomationProperties.AutomationId="{Binding EnableAutomationId}"
+                                                                Content="{Binding EnableLabel}"
+                                                                IsEnabled="False"
+                                                                IsVisible="{Binding IsUnavailable}"/>
+                                                        <Button Classes="au-button au-button--secondary au-button--compact"
+                                                                AutomationProperties.AutomationId="{Binding DisableAutomationId}"
+                                                                Command="{Binding DisableCommand}"
+                                                                Content="Disable"
+                                                                IsVisible="{Binding Enabled}"/>
+                                                    </StackPanel>
+                                                </Grid>
+                                                <StackPanel Spacing="10" IsVisible="{Binding ShowsSettings}">
+                                                    <ItemsControl ItemsSource="{Binding Settings}">
+                                                        <ItemsControl.ItemsPanel>
+                                                            <ItemsPanelTemplate>
+                                                                <StackPanel Spacing="10"/>
+                                                            </ItemsPanelTemplate>
+                                                        </ItemsControl.ItemsPanel>
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate DataType="capVm:CapabilitySettingFieldViewModel">
+                                                                <StackPanel Spacing="4">
+                                                                    <TextBlock Classes="au-field-label" Text="{Binding Label}"/>
+                                                                    <TextBox AutomationProperties.AutomationId="{Binding AutomationId}"
+                                                                             AutomationProperties.Name="{Binding Label}"
+                                                                             Text="{Binding Value}"
+                                                                             PasswordChar="{Binding PasswordChar}"
+                                                                             Watermark="{Binding Placeholder}"/>
+                                                                </StackPanel>
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
                                                     <Button Classes="au-button au-button--compact"
-                                                            AutomationProperties.AutomationId="{Binding EnableAutomationId}"
-                                                            Command="{Binding EnableCommand}"
-                                                            Content="Enable"
-                                                            IsVisible="{Binding !Enabled}"/>
-                                                    <Button Classes="au-button au-button--secondary au-button--compact"
-                                                            AutomationProperties.AutomationId="{Binding DisableAutomationId}"
-                                                            Command="{Binding DisableCommand}"
-                                                            Content="Disable"
-                                                            IsVisible="{Binding Enabled}"/>
+                                                            HorizontalAlignment="Right"
+                                                            AutomationProperties.AutomationId="{Binding SaveAutomationId}"
+                                                            Command="{Binding SaveSettingsCommand}"
+                                                            Content="Save"/>
                                                 </StackPanel>
-                                            </Grid>
+                                            </StackPanel>
                                         </Border>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>

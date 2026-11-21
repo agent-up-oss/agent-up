@@ -522,6 +522,44 @@ public sealed class AgentChatViewModelTests
     }
 
     [Test]
+    public async Task SettingsSummary_namesTheBoundAgentAndCountsOpenLoopChecks()
+    {
+        var fake = new ChatApiFake
+        {
+            Session = DesktopDomain.Session().IdleWith(DesktopDomain.AvailableAgent()).BoundTo("Codex").Build(),
+            Autonomy = new(false, [
+                new("forgeCapabilityEnabled", false, "Enable a forge"),
+                new("agentAvailable", true),
+                new("autonomyEnabled", false, "Enable autonomy")
+            ])
+        };
+        var view = CreateView(fake);
+
+        await view.LoadAsync("ws-1");
+
+        Assert.That(view.SettingsSummary, Is.EqualTo("Codex is bound and not running · Unattended loop · 2 of 3 checks open"));
+        await view.LoadAsync(null);
+    }
+
+    [Test]
+    public async Task SettingsSummary_pointsAtSettingsWhenTheAgentRunsWithoutALoop()
+    {
+        var running = CreateView(new ChatApiFake { Session = DesktopDomain.Session().Ready("Codex", "demo-agent").Build(), Autonomy = new(false, []) });
+        var idle = CreateView(new ChatApiFake { Session = DesktopDomain.Session().IdleWith(DesktopDomain.AvailableAgent()).Build(), Autonomy = new(false, []) });
+
+        await running.LoadAsync("ws-1");
+        await idle.LoadAsync("ws-2");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(running.SettingsSummary, Is.EqualTo("Agent, sessions, and unattended loop are in Settings"));
+            Assert.That(idle.SettingsSummary, Is.EqualTo("No agent running"));
+        });
+        await running.LoadAsync(null);
+        await idle.LoadAsync(null);
+    }
+
+    [Test]
     public async Task LoadAsync_dropsAStaleAutonomyResponseAfterANewerLoad()
     {
         var hang = new TaskCompletionSource();
@@ -748,69 +786,97 @@ public sealed class AgentChatViewModelTests
     }
 
     [Test]
-    public void Run_thatIsStillLive_showsItsWorkExpandedWithoutAHeader()
+    public void Run_drawsTheSectionBeingWorkedInOpenWithoutAHeader()
     {
-        var run = LiveRun();
+        var run = new AgentRunViewModel();
+        run.Items.Add(new AgentChatItemViewModel("Thought", "Looking"));
+        run.Items.Add(new AgentChatItemViewModel("Tool", "Search", "completed", "t1"));
+
+        var section = run.Sections.Single();
 
         Assert.Multiple(() =>
         {
-            Assert.That(run.IsLive, Is.True);
-            Assert.That(run.ShowHeader, Is.False);
-            Assert.That(run.IsExpanded, Is.True);
-            Assert.That(run.Chevron, Is.EqualTo("▾"));
-            Assert.That(run.AutomationId, Is.EqualTo(DesktopAutomationIds.AgentRun));
+            Assert.That(section.IsLive, Is.True);
+            Assert.That(section.ShowHeader, Is.False);
+            Assert.That(section.IsExpanded, Is.True);
+            Assert.That(section.Chevron, Is.EqualTo("⌄"));
+            Assert.That(section.AutomationId, Is.EqualTo(DesktopAutomationIds.AgentRun));
+            Assert.That(run.HasReply, Is.False);
         });
     }
 
     [Test]
-    public void Run_summarisesTheWorkItThoughtAndTheToolsItRan()
+    public void Run_foldsWorkTheAgentHasSpokenAfterAndShowsWhatItSaid()
     {
         var run = LiveRun();
+
+        var section = run.Sections.Single();
 
         Assert.Multiple(() =>
         {
-            Assert.That(run.WorkItems, Has.Count.EqualTo(2));
-            Assert.That(run.Summary, Is.EqualTo("Worked · 1 tool · Thought"));
-        });
-    }
-
-    [Test]
-    public void Run_treatsTheAgentsLastMessageAsItsReply()
-    {
-        var run = LiveRun();
-
-        Assert.That(run.HasReply, Is.True);
-        Assert.That(run.Reply!.Text, Is.EqualTo("Done"));
-    }
-
-    // The first seal is the next question arriving: the run collapses behind a header but
-    // keeps its reply, because that is what the transcript shows above the new question.
-    [Test]
-    public void Run_collapsesBehindAHeaderWhenTheNextQuestionSealsIt()
-    {
-        var run = LiveRun();
-
-        run.Seal();
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(run.ShowHeader, Is.True);
-            Assert.That(run.IsExpanded, Is.False);
-            Assert.That(run.Chevron, Is.EqualTo("▸"));
+            Assert.That(run.Segments, Has.Count.EqualTo(2));
+            Assert.That(section.IsExpanded, Is.False, "the agent moved on to its reply");
+            Assert.That(section.ShowHeader, Is.True);
+            Assert.That(section.Summary, Is.EqualTo("Worked · 1 thought, 1 tool call"));
             Assert.That(run.Reply!.Text, Is.EqualTo("Done"));
+            Assert.That(run.Reply.IsClosing, Is.True, "the closing reply is headed with the agent's name");
         });
     }
 
     [Test]
-    public void Run_stopsBeingLiveOnTheSecondSeal()
+    public void Run_keepsASummaryMidwayOpenBetweenTheSectionsItSeparates()
+    {
+        var run = new AgentRunViewModel();
+        run.Items.Add(new AgentChatItemViewModel("Tool", "Read", "completed", "t1"));
+        run.Items.Add(new AgentChatItemViewModel("Agent", "Found the bug.", displayRole: "Codex"));
+        run.Items.Add(new AgentChatItemViewModel("Tool", "Edit", "pending", "t2"));
+
+        var segments = run.Segments;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(segments.Select(segment => segment.GetType().Name), Is.EqualTo(new[]
+            {
+                nameof(AgentWorkSectionViewModel), nameof(AgentChatItemViewModel), nameof(AgentWorkSectionViewModel)
+            }));
+            Assert.That(((AgentWorkSectionViewModel)segments[0]).IsExpanded, Is.False);
+            Assert.That(((AgentWorkSectionViewModel)segments[2]).IsExpanded, Is.True);
+            Assert.That(run.HasReply, Is.False, "work after the summary means the agent has not finished");
+            Assert.That(((AgentChatItemViewModel)segments[1]).IsClosing, Is.False);
+        });
+    }
+
+    [Test]
+    public void Run_foldsEverySectionWhenTheTurnEnds()
+    {
+        var run = new AgentRunViewModel();
+        run.Items.Add(new AgentChatItemViewModel("Tool", "Read", "completed", "t1"));
+
+        run.Seal();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(run.IsLive, Is.False);
+            Assert.That(run.Sections.Single().IsExpanded, Is.False);
+            Assert.That(run.Sections.Single().Chevron, Is.EqualTo("›"));
+        });
+    }
+
+    [Test]
+    public void Run_keepsASectionTheReaderOpenedOpenAsTheTurnGoesOn()
     {
         var run = LiveRun();
+        var section = run.Sections.Single();
+        section.ToggleCommand.Execute().Subscribe();
+
+        run.Items.Add(new AgentChatItemViewModel("Tool", "Edit", "pending", "t9"));
         run.Seal();
 
-        run.Seal();
-
-        Assert.That(run.IsLive, Is.False);
-        Assert.That(run.ShowHeader, Is.True);
+        Assert.Multiple(() =>
+        {
+            Assert.That(run.Sections.First(), Is.SameAs(section));
+            Assert.That(section.IsExpanded, Is.True);
+        });
     }
 
     /// <summary>A run that thought, ran one tool, and replied - still open.</summary>
@@ -1162,14 +1228,20 @@ internal sealed class RecordingCapabilityModulesApi : ICapabilityModulesApiProvi
     public Task<IReadOnlyList<CapabilityModuleDto>> ListAsync(CancellationToken cancellationToken = default)
         => Task.FromResult<IReadOnlyList<CapabilityModuleDto>>([]);
 
-    public Task<CapabilityModuleDto> EnableAsync(string id, string? version, CancellationToken cancellationToken = default)
+    public Task<CapabilityModuleDto> EnableAsync(string id, CancellationToken cancellationToken = default)
     {
         if (EnableFailure is not null)
             return Task.FromException<CapabilityModuleDto>(EnableFailure);
         EnabledId = id;
-        return Task.FromResult(new CapabilityModuleDto(id, "1.0.0", id, "agent-up", "agent", true, "ready", true, []));
+        return Task.FromResult(DesktopDomain.Capability().Named(id, id, "agent").Enabled().Build());
     }
 
     public Task<CapabilityModuleDto> DisableAsync(string id, CancellationToken cancellationToken = default)
-        => Task.FromResult(new CapabilityModuleDto(id, "1.0.0", id, "agent-up", "agent", false, "disabled", false, []));
+        => Task.FromResult(DesktopDomain.Capability().Named(id, id, "agent").Build());
+
+    public Task<CapabilityModuleDto> UpdateSettingsAsync(
+        string id,
+        IReadOnlyDictionary<string, string> values,
+        CancellationToken cancellationToken = default)
+        => Task.FromResult(DesktopDomain.Capability().Named(id, id, "agent").Enabled().Build());
 }

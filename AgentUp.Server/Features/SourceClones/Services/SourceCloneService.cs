@@ -70,7 +70,19 @@ public sealed class SourceCloneService : IHostedService
             return SourceCloneResult.Failed(ex.Message);
         }
 
-        var registration = await BuildRegistrationAsync(target, cancellationToken);
+        // A repository whose agent-up.json cannot be read is not registered, and its clone is
+        // removed with it: a directory left behind would refuse every later attempt as a duplicate.
+        RegisterWorkspaceRequest registration;
+        try
+        {
+            registration = await BuildRegistrationAsync(target, cancellationToken);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _root.DeleteIfUnderRoot(target.DestinationPath);
+            return SourceCloneResult.Failed($"The repository's agent-up.json could not be read: {ex.Message}");
+        }
+
         var workspace = await _workspaces.RegisterAsync(registration);
         return SourceCloneResult.Success(workspace);
     }

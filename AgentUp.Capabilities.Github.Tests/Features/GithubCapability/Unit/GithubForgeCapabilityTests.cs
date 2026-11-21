@@ -33,4 +33,11 @@ public sealed class GithubForgeCapabilityTests
         Assert.That(GithubApiProvider.IsProtected("refs/heads/master"), Is.True);
         Assert.That(GithubApiProvider.IsProtected("agent-topic"), Is.False);
     }
+
+    [Test]
+    public void A_forge_needs_no_software_on_the_server_host()
+    {
+        Assert.That(new GithubForgeCapability().Software, Is.Empty);
+        Assert.That(new GithubForgeCapability().Kind, Is.EqualTo("forge"));
+    }
 }

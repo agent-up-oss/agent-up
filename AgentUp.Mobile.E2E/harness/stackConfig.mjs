@@ -58,6 +58,10 @@ export function serverEnvironment({ profiles, binDir, idpUrl, publicOrigin, data
     const shim = `${binDir}/${profile.agent}`;
     environment[`Agents__${profile.agentId}__Command`] = shim;
     environment[`Agents__${profile.agentId}__Arguments__0`] = 'acp';
+    // The Server starts an agent with none of its own environment, so what the test agent needs
+    // to reach the identity provider is declared for it, as an operator would.
+    environment[`Agents__${profile.agentId}__Environment__AGENTUP_TEST_IDP_URL`] = idpUrl;
+    environment[`Agents__${profile.agentId}__Environment__AGENTUP_TEST_IDP_PUBLIC_ORIGIN`] = publicOrigin;
     environment[`Agents__${profile.agentId}__LoginCommand`] = shim;
     environment[`Agents__${profile.agentId}__LoginArguments__0`] = 'login';
     environment[`Agents__${profile.agentId}__LoginTransport`] = profile.transport;

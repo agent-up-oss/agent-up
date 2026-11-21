@@ -13,6 +13,8 @@ public sealed record AgentDescriptorDto(
 {
     public const string CapabilityNotEnabled = "capabilityNotEnabled";
     public const string ExecutableNotFound = "executableNotFound";
+    public const string SoftwareNotFound = "softwareNotFound";
+    public const string SettingsRequired = "settingsRequired";
 
     public bool CanEnable =>
         !Available && string.Equals(Unavailability, CapabilityNotEnabled, StringComparison.Ordinal);
@@ -31,7 +33,12 @@ public sealed record AgentDescriptorDto(
         ? "Available"
         : CanEnable
             ? "Not enabled"
-            : "Executable not found";
+            : Unavailability switch
+            {
+                SoftwareNotFound => "Not found",
+                SettingsRequired => "Needs setup",
+                _ => "Executable not found"
+            };
 }
 public sealed record AgentAuthMethodDto(string Id, string Name, string? Description);
 public enum AgentLoginTransport

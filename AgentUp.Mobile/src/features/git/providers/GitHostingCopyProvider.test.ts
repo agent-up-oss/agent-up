@@ -24,7 +24,7 @@ test('null hosting stays hidden until a document arrives', () => {
 test('notInstalled is visible with the server detail and remedy', () => {
   const copy = hostingCopy(hosting('notInstalled', {
     moduleId: null,
-    detail: 'No forge capability package is enabled.',
+    detail: 'No forge capability is enabled.',
     remedy: 'Run: agent-up capabilities bootstrap',
   }));
 

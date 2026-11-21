@@ -202,6 +202,22 @@ public sealed class AcpProcessProviderTests
         Assert.That(exception.Message, Does.Not.Contain("err1 "));
     }
 
+    [Test]
+    public void ErrorText_reads_the_agents_message_and_keeps_the_code()
+    {
+        static JsonElement Parse(string json) => JsonDocument.Parse(json).RootElement.Clone();
+
+        var refused = AcpProcessProvider.ErrorText(Parse("""{"code":-32603,"message":"Internal error: Invalid API key","data":{"errorName":"APIError"}}"""));
+        var signIn = AcpProcessProvider.ErrorText(Parse("""{"code":-32000,"message":"Authentication required"}"""));
+        var bare = AcpProcessProvider.ErrorText(Parse("""{"code":-32000}"""));
+        var text = AcpProcessProvider.ErrorText(Parse("\"plain\""));
+
+        Assert.That(refused, Is.EqualTo("Internal error: Invalid API key (ACP error -32603)"));
+        Assert.That(new AgentSubscriptionAuth().IsExpectedAuthenticationRequired(signIn), Is.True, "Sign-in detection still sees the code.");
+        Assert.That(bare, Does.Contain("-32000"), "An error with no message stays raw.");
+        Assert.That(text, Is.EqualTo("plain"));
+    }
+
     private static AcpProcessProvider Create(string command, params string[] arguments)
     {
         var values = new Dictionary<string, string?> { ["Agents:Codex:Command"] = command };

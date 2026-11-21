@@ -108,6 +108,57 @@ public sealed class ForgejoForgeCapabilityE2ETests
     }
 
     [Test]
+    public async Task AssignIssueAsync_givesTheIssueToTheTeamMembersAccount()
+    {
+        var host = await ForgejoLiveHost.SharedAsync(CancellationToken.None);
+        var repo = await host.CreateRepositoryAsync(UniqueName("assign"), CancellationToken.None);
+        var bob = await host.CreateCollaboratorAsync(repo.Name, "bob", CancellationToken.None);
+        var number = await host.CreateIssueAsync(repo.Name, "Say Ahoy", "", null, CancellationToken.None);
+
+        await host.Capability().AssignIssueAsync(host.Request(repo, "main"), number, bob.Login);
+        var issue = await host.ReadAsync($"repos/{repo.Owner}/{repo.Name}/issues/{number}", CancellationToken.None);
+
+        Assert.That(issue.GetProperty("assignees").EnumerateArray().Select(user => user.GetProperty("login").GetString()), Is.EqualTo(new[] { "bob" }));
+    }
+
+    [Test]
+    public async Task RequestReviewAsync_andTheReviewersLineFinding_areReadBackWithTheirLocation()
+    {
+        var (host, repo, proposal) = await OpenedRepositoryAsync("findings");
+        var hector = await host.CreateCollaboratorAsync(repo.Name, "hector", CancellationToken.None);
+
+        await host.Capability().RequestReviewAsync(host.Request(repo, "topic"), proposal.Number, hector.Login);
+        await host.Capability().SubmitReviewAsync(
+            new ForgeRequest(hector.Token, repo.Owner, repo.Name, "topic"),
+            new ForgeSubmitReviewCommand(proposal.Number, "One thing.", "REQUEST_CHANGES", [new ForgeReviewComment("topic.txt", 1, "Say more.")]));
+        var snapshot = await host.Capability().ReadAsync(host.Request(repo, "topic"));
+        var pull = await host.ReadAsync($"repos/{repo.Owner}/{repo.Name}/pulls/{proposal.Number}", CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(pull.GetProperty("requested_reviewers").EnumerateArray().Select(user => user.GetProperty("login").GetString()), Does.Contain("hector").Or.Empty,
+                "Forgejo lists a requested reviewer until that reviewer has reviewed");
+            Assert.That(snapshot.Threads.Single(thread => thread.Path is not null), Is.EqualTo(snapshot.Threads.Single(thread => thread.Path is not null) with { Path = "topic.txt", Line = 1, Author = "hector", Summary = "Say more." }));
+            Assert.That(snapshot.Reviews!.Single(review => review.Login == "hector").State, Is.EqualTo("REQUEST_CHANGES"));
+            Assert.That(snapshot.Reviews!.Single(review => review.Login == "hector").CommitId, Is.EqualTo(repo.TopicSha));
+            Assert.That(snapshot.Proposal!.HeadSha, Is.EqualTo(repo.TopicSha));
+        });
+    }
+
+    [Test]
+    public async Task AttachAsync_storesAFileAReviewCanLinkTo()
+    {
+        var (host, repo, proposal) = await OpenedRepositoryAsync("attach");
+
+        var attachment = await host.Capability().AttachAsync(host.Request(repo, "topic"), proposal.Number, "shot.png", "image/png", [0x89, 0x50, 0x4E, 0x47]);
+        using var http = new HttpClient();
+        http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("token", host.Token);
+        using var download = await http.GetAsync(attachment!.Url);
+
+        Assert.That(download.IsSuccessStatusCode, Is.True, attachment.Url);
+    }
+
+    [Test]
     public async Task UpdateRefAsync_movesAnUnprotectedBranchToTheRequestedSha()
     {
         var host = await ForgejoLiveHost.SharedAsync(CancellationToken.None);

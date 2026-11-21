@@ -9,9 +9,13 @@ internal sealed class ScriptedTokenGenerator(params string[] completions) : ITok
     public TimeSpan Delay { get; init; }
     public int Calls { get; private set; }
 
+    /// <summary>The last prompt the generator was given, so a test can see what the model read.</summary>
+    public string? LastPrompt { get; private set; }
+
     public async Task<string> CompleteAsync(string prompt, uint seed, CancellationToken cancellationToken)
     {
         Calls++;
+        LastPrompt = prompt;
         cancellationToken.ThrowIfCancellationRequested();
         if (Delay > TimeSpan.Zero)
             await Task.Delay(Delay, cancellationToken);

@@ -17,4 +17,8 @@ public sealed class MemoryAssignedProposalQueue : IAssignedProposalQueue
 
     public void Replace(string workspaceId, IReadOnlyList<AssignedProposal> proposals) =>
         _proposals[workspaceId] = proposals;
+
+    /// <summary>Without a queue there is no other reviewer to lose the proposal to.</summary>
+    public Task<bool> TryTakeAsync(string workspaceId, string id, CancellationToken cancellationToken) =>
+        Task.FromResult(true);
 }

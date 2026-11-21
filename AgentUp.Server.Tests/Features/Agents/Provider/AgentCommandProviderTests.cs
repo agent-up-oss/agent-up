@@ -87,17 +87,10 @@ public sealed class AgentCommandProviderTests
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> {
             ["Agents:Codex:Command"] = "agent-up-missing-configured-cli"
         }).Build();
-        var packages = new FakeEnabledCapabilityPackages(new AgentUp.Capabilities.Abstractions.Features.Capabilities.Models.CapabilityPackageManifest
+        var packages = new FakeEnabledCapabilityPackages(new StubAgentCapability
         {
-            Id = "codex",
-            Version = "1.0.0",
-            DisplayName = "Codex",
-            Kind = "agent",
-            Launch = new AgentUp.Capabilities.Abstractions.Features.Capabilities.Models.CapabilityLaunchTemplate
-            {
-                Command = command,
-                Arguments = []
-            }
+            Identity = new("codex", "1.0.0", "Codex", "agent-up"),
+            LaunchResult = new AgentUp.Sdk.Agent.AgentLaunchResult(command, [])
         });
         var provider = new AgentCommandProvider(configuration, packages);
 
@@ -111,17 +104,10 @@ public sealed class AgentCommandProviderTests
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> {
             ["Agents:Codex:Command"] = Path.Join(Path.GetTempPath(), "agent-up-missing-rooted-cli")
         }).Build();
-        var packages = new FakeEnabledCapabilityPackages(new AgentUp.Capabilities.Abstractions.Features.Capabilities.Models.CapabilityPackageManifest
+        var packages = new FakeEnabledCapabilityPackages(new StubAgentCapability
         {
-            Id = "codex",
-            Version = "1.0.0",
-            DisplayName = "Codex",
-            Kind = "agent",
-            Launch = new AgentUp.Capabilities.Abstractions.Features.Capabilities.Models.CapabilityLaunchTemplate
-            {
-                Command = OperatingSystem.IsWindows() ? "cmd" : "sh",
-                Arguments = []
-            }
+            Identity = new("codex", "1.0.0", "Codex", "agent-up"),
+            LaunchResult = new AgentUp.Sdk.Agent.AgentLaunchResult(OperatingSystem.IsWindows() ? "cmd" : "sh", [])
         });
         var provider = new AgentCommandProvider(configuration, packages);
 
@@ -132,17 +118,10 @@ public sealed class AgentCommandProviderTests
     [Test]
     public async Task IsAvailableAsync_isTrueWhenEnabledPackageCommandExists()
     {
-        var packages = new FakeEnabledCapabilityPackages(new AgentUp.Capabilities.Abstractions.Features.Capabilities.Models.CapabilityPackageManifest
+        var packages = new FakeEnabledCapabilityPackages(new StubAgentCapability
         {
-            Id = "codex",
-            Version = "1.0.0",
-            DisplayName = "Codex",
-            Kind = "agent",
-            Launch = new AgentUp.Capabilities.Abstractions.Features.Capabilities.Models.CapabilityLaunchTemplate
-            {
-                Command = OperatingSystem.IsWindows() ? "cmd" : "sh",
-                Arguments = []
-            }
+            Identity = new("codex", "1.0.0", "Codex", "agent-up"),
+            LaunchResult = new AgentUp.Sdk.Agent.AgentLaunchResult(OperatingSystem.IsWindows() ? "cmd" : "sh", [])
         });
         var available = await new AgentCommandProvider(new ConfigurationBuilder().Build(), packages)
             .IsAvailableAsync("codex", CancellationToken.None);
@@ -289,28 +268,108 @@ public sealed class AgentCommandProviderTests
     }
 
     [Test]
-    public void LaunchCommandName_fallsBackToTheEnabledPackageWhenLaunchFileNameIsBlank()
+    public async Task IsAvailableAsync_trustsNixForAnExecutableTheCapabilityDeliversItself()
     {
-        var packages = new FakeEnabledCapabilityPackages(FakeEnabledCapabilityPackages.Claude())
-            .WithAgents(new StubAgentCapability
-            {
-                Identity = new("claude", "1.0.0", "Claude", "agent-up"),
-                LaunchResult = new AgentUp.Sdk.Agent.AgentLaunchResult("  ", [], null)
-            });
-        var provider = new AgentCommandProvider(new ConfigurationBuilder().Build(), packages);
+        var packages = new FakeEnabledCapabilityPackages(new StubAgentCapability
+        {
+            Identity = new("opencode", "1.0.0", "OpenCode", "agent-up"),
+            Software = [new AgentUp.Sdk.Common.CapabilitySoftware("agent-up-not-on-path-opencode", DeliveredByNix: true)],
+            LaunchResult = new AgentUp.Sdk.Agent.AgentLaunchResult("agent-up-not-on-path-opencode", ["acp"])
+        });
 
-        Assert.That(provider.LaunchCommandName("claude"), Is.EqualTo("claude-agent-acp"));
+        Assert.That(await new AgentCommandProvider(new ConfigurationBuilder().Build(), packages).IsAvailableAsync("opencode", CancellationToken.None), Is.True);
+    }
+
+    [Test]
+    public async Task IsAvailableAsync_isFalseForAnEnabledCapabilityThatStillNeedsSettings()
+    {
+        var packages = new FakeEnabledCapabilityPackages(new StubAgentCapability
+            {
+                Identity = new("opencode", "1.0.0", "OpenCode", "agent-up"),
+                LaunchResult = new AgentUp.Sdk.Agent.AgentLaunchResult(OperatingSystem.IsWindows() ? "cmd" : "sh", ["acp"])
+            })
+            .WithReadiness(new AgentUp.Server.Features.Capabilities.DTOs.CapabilityReadinessDto("opencode", "OpenCode", true, [], ["Endpoint"]));
+
+        Assert.That(await new AgentCommandProvider(new ConfigurationBuilder().Build(), packages).IsAvailableAsync("opencode", CancellationToken.None), Is.False);
+    }
+
+    [Test]
+    public async Task ResolveAsync_addsTheEnvironmentDeclaredForTheAgentOverTheCapabilitysOwn()
+    {
+        var command = OperatingSystem.IsWindows() ? @"C:\Windows\System32\cmd.exe" : "/bin/sh";
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["Agents:opencode:Command"] = command,
+            ["Agents:opencode:Environment:AGENTUP_TEST_IDP_URL"] = "http://localhost:9000",
+            ["Agents:opencode:Environment:OPENCODE_CONFIG_CONTENT"] = "{\"declared\":true}"
+        }).Build();
+        var packages = new FakeEnabledCapabilityPackages(new StubAgentCapability
+        {
+            Identity = new("opencode", "1.0.0", "OpenCode", "agent-up"),
+            LaunchResult = new AgentUp.Sdk.Agent.AgentLaunchResult(
+                "opencode",
+                ["acp"],
+                null,
+                new Dictionary<string, string> { ["OPENCODE_CONFIG_CONTENT"] = "{}", ["KEPT"] = "yes" })
+        });
+
+        var resolved = await new AgentCommandProvider(configuration, packages).ResolveAsync("opencode", CancellationToken.None);
+
+        Assert.That(resolved!.Environment!["AGENTUP_TEST_IDP_URL"], Is.EqualTo("http://localhost:9000"));
+        Assert.That(resolved.Environment["OPENCODE_CONFIG_CONTENT"], Is.EqualTo("{\"declared\":true}"), "the declared value wins");
+        Assert.That(resolved.Environment["KEPT"], Is.EqualTo("yes"));
+    }
+
+    [Test]
+    public async Task ResolveAsync_keepsTheCapabilityArgumentsAndEnvironmentWhenTheCommandIsOverridden()
+    {
+        var command = OperatingSystem.IsWindows() ? @"C:\Windows\System32\cmd.exe" : "/bin/sh";
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["Agents:opencode:Command"] = command
+        }).Build();
+        var packages = new FakeEnabledCapabilityPackages(new StubAgentCapability
+        {
+            Identity = new("opencode", "1.0.0", "OpenCode", "agent-up"),
+            LaunchResult = new AgentUp.Sdk.Agent.AgentLaunchResult(
+                "opencode",
+                ["acp"],
+                null,
+                new Dictionary<string, string> { ["OPENCODE_CONFIG_CONTENT"] = "{}" })
+        });
+
+        var resolved = await new AgentCommandProvider(configuration, packages).ResolveAsync("opencode", CancellationToken.None);
+
+        Assert.That(resolved!.FileName, Is.EqualTo(command));
+        Assert.That(resolved.Arguments, Is.EqualTo(new[] { "acp" }));
+        Assert.That(resolved.Environment!["OPENCODE_CONFIG_CONTENT"], Is.EqualTo("{}"));
+    }
+
+    [Test]
+    public async Task ResolveAsync_carriesTheCapabilityLaunchEnvironment()
+    {
+        var packages = new FakeEnabledCapabilityPackages(new StubAgentCapability
+        {
+            Identity = new("opencode", "1.0.0", "OpenCode", "agent-up"),
+            LaunchResult = new AgentUp.Sdk.Agent.AgentLaunchResult(
+                OperatingSystem.IsWindows() ? "cmd" : "sh",
+                ["acp"],
+                null,
+                new Dictionary<string, string> { ["OPENCODE_CONFIG_CONTENT"] = "{}" })
+        });
+
+        var command = await new AgentCommandProvider(new ConfigurationBuilder().Build(), packages).ResolveAsync("opencode", CancellationToken.None);
+
+        Assert.That(command!.Environment!["OPENCODE_CONFIG_CONTENT"], Is.EqualTo("{}"));
     }
 
     [Test]
     public async Task ResolveAsync_isNullWhenEnabledAgentPackageHasNoCommand()
     {
-        var packages = new FakeEnabledCapabilityPackages(new AgentUp.Capabilities.Abstractions.Features.Capabilities.Models.CapabilityPackageManifest
+        var packages = new FakeEnabledCapabilityPackages(new StubAgentCapability
         {
-            Id = "codex",
-            Version = "1.0.0",
-            DisplayName = "Codex",
-            Kind = "agent"
+            Identity = new("codex", "1.0.0", "Codex", "agent-up"),
+            LaunchResult = new AgentUp.Sdk.Agent.AgentLaunchResult("", [])
         });
         var result = await new AgentCommandProvider(new ConfigurationBuilder().Build(), packages)
             .ResolveAsync("codex", CancellationToken.None);

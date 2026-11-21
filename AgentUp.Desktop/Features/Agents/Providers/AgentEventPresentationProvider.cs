@@ -15,7 +15,14 @@ public sealed record PresentedAgentUpdate(
     string? Mode = null,
     string? Usage = null,
     bool? Compacting = null,
-    IReadOnlyList<AgentPlanEntry>? Entries = null);
+    IReadOnlyList<AgentPlanEntry>? Entries = null,
+    string? ToolKind = null,
+    string? RawInput = null,
+    string? RawOutput = null,
+    string? UnifiedDiff = null,
+    string? DiffPath = null,
+    string? DiffOldText = null,
+    string? DiffNewText = null);
 
 public sealed record AgentPlanEntry(string Content, string Status);
 public sealed record AgentPermissionPrompt(string RequestId, string Title, string? Detail, IReadOnlyList<string> Locations, IReadOnlyList<AgentPermissionChoice> Options);
@@ -106,14 +113,50 @@ public static class AgentEventPresentationProvider
         return state is "ready" or "idle" or null ? "Idle" : state;
     }
 
-    public static string RunSummary(IEnumerable<string> roles)
+    /// <summary>
+    /// What a step counts as in a work section: <c>thought</c>, <c>edit</c>, <c>read</c>,
+    /// <c>search</c>, another <c>tool</c>, or <c>other</c> work such as the plan.
+    /// </summary>
+    public static string WorkKind(string role, string? toolKind) => role switch
     {
-        var list = roles.ToArray();
-        var tools = list.Count(role => role == "Tool");
-        var parts = new List<string> { "Worked" };
-        if (tools == 1) parts.Add("1 tool");
-        else if (tools > 1) parts.Add($"{tools} tools");
-        if (list.Contains("Thought")) parts.Add("Thought");
+        "Thought" => "thought",
+        "Tool" => toolKind switch
+        {
+            "edit" or "delete" or "move" => "edit",
+            "read" => "read",
+            "search" => "search",
+            _ => "tool"
+        },
+        _ => "other"
+    };
+
+    /// <summary>"3 edits, 2 reads, 1 thought": what a stretch of work did, in reading order, zeros left out.</summary>
+    public static string WorkCounts(IEnumerable<string> kinds)
+    {
+        var list = kinds.ToArray();
+        return string.Join(", ", new (string Kind, string One, string Many)[]
+            {
+                ("edit", "edit", "edits"),
+                ("read", "read", "reads"),
+                ("search", "search", "searches"),
+                ("thought", "thought", "thoughts"),
+                ("tool", "tool call", "tool calls")
+            }
+            .Select(entry => (entry, count: list.Count(kind => kind == entry.Kind)))
+            .Where(pair => pair.count > 0)
+            .Select(pair => $"{pair.count} {(pair.count == 1 ? pair.entry.One : pair.entry.Many)}"));
+    }
+
+    /// <summary>
+    /// "Worked for 21s · 3 edits, 2 reads · 1 failed": the line a finished work section folds
+    /// into. A failed call is named, because the folded section otherwise hides it.
+    /// </summary>
+    public static string WorkSummary(IEnumerable<string> kinds, string? duration, int failed)
+    {
+        var parts = new List<string> { duration is null ? "Worked" : $"Worked for {duration}" };
+        var counts = WorkCounts(kinds);
+        if (counts.Length > 0) parts.Add(counts);
+        if (failed > 0) parts.Add($"{failed} failed");
         return string.Join(" · ", parts);
     }
 
@@ -146,7 +189,40 @@ public static class AgentEventPresentationProvider
             Title: StringField(update, "title"),
             Status: StringField(update, "status"),
             Locations: rec.ValueKind == JsonValueKind.Object && rec.TryGetProperty("locations", out _) ? LocationsOf(update) : null,
-            Text: rec.ValueKind == JsonValueKind.Object && rec.TryGetProperty("content", out var content) ? ContentText(content) : null);
+            Text: rec.ValueKind == JsonValueKind.Object && rec.TryGetProperty("content", out var content) ? ContentText(content) : null,
+            ToolKind: StringField(update, "kind"),
+            RawInput: rec.ValueKind == JsonValueKind.Object && rec.TryGetProperty("rawInput", out var input) && input.ValueKind == JsonValueKind.Object && input.EnumerateObject().Any()
+                ? input.GetRawText()
+                : null,
+            RawOutput: RawOutputText(rec),
+            UnifiedDiff: StringField(ObjectProperty(ObjectProperty(rec, "rawOutput"), "metadata"), "diff"),
+            DiffPath: StringField(DiffContent(rec), "path"),
+            DiffOldText: DiffContent(rec) is { } oldDiff && oldDiff.TryGetProperty("oldText", out var oldText) && oldText.ValueKind == JsonValueKind.String ? oldText.GetString() : null,
+            DiffNewText: DiffContent(rec) is { } newDiff && newDiff.TryGetProperty("newText", out var newText) && newText.ValueKind == JsonValueKind.String ? newText.GetString() : null);
+    }
+
+    /// <summary>What the tool printed, as OpenCode reports it beside the visible content.</summary>
+    private static string? RawOutputText(JsonElement update)
+    {
+        if (update.ValueKind != JsonValueKind.Object || !update.TryGetProperty("rawOutput", out var output))
+            return null;
+        return output.ValueKind switch
+        {
+            JsonValueKind.String => output.GetString(),
+            JsonValueKind.Object when output.TryGetProperty("output", out var text) && text.ValueKind == JsonValueKind.String => text.GetString(),
+            _ => null
+        };
+    }
+
+    /// <summary>The ACP diff content item of a tool update, when it carries one.</summary>
+    private static JsonElement? DiffContent(JsonElement update)
+    {
+        if (update.ValueKind != JsonValueKind.Object || !update.TryGetProperty("content", out var content) || content.ValueKind != JsonValueKind.Array)
+            return null;
+        return content.EnumerateArray()
+            .Where(item => item.ValueKind == JsonValueKind.Object && StringField(item, "type") == "diff")
+            .Select(item => (JsonElement?)item)
+            .FirstOrDefault();
     }
 
     private static IReadOnlyList<AgentPlanEntry> PlanEntries(JsonElement update)

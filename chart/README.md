@@ -41,25 +41,21 @@ The Server image includes Nix (non-root) with a persistent store, plus `git`. Ca
 
 ## Capabilities
 
-`capabilities.enabled` is a list of `{ id, version }` package refs written to `/etc/agent-up/enabled.json`. That file seeds Server enablement; later enable/disable calls update the Server data copy.
+`capabilities.enabled` is a list of `{ id }` capability ids written to `/etc/agent-up/enabled.json`. That file seeds Server enablement; later enable/disable calls update the Server data copy.
 
 ```yaml
 capabilities:
   enabled:
     - id: dotnet
-      version: "1.0.0"
     - id: docker
-      version: "1.0.0"
     - id: codex
-      version: "1.0.0"
 ```
 
 ```bash
 helm upgrade --install agent-up ./chart \
   --set ingress.host=agent-up.example.com \
   --set server.existingSecret=agent-up-server-secrets \
-  --set capabilities.enabled[0].id=dotnet \
-  --set capabilities.enabled[0].version=1.0.0
+  --set capabilities.enabled[0].id=dotnet
 ```
 
-The chart defaults enable first-party `dotnet`, `docker`, `codex`, `cursor`, and `claude` packages. The Server volume should stay large enough for the Nix store (default `server.storage` is 40Gi).
+The chart defaults enable first-party `dotnet`, `docker`, `codex`, `cursor`, and `claude` capabilities. The Server volume should stay large enough for the Nix store (default `server.storage` is 40Gi).

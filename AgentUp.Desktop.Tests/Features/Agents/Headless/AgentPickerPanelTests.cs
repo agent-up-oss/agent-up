@@ -16,7 +16,7 @@ public sealed class AgentPickerPanelTests
     {
         var app = await AppDriver.LaunchWithWorkspaceAsync(DesktopDomain.Workspace().Build());
         var viewModel = (MainViewModel)app.Window.DataContext!;
-        viewModel.SelectedShellTab = WorkspaceShellTab.Agent;
+        viewModel.SelectedShellTab = WorkspaceShellTab.Settings;
         viewModel.Agent.Agents.Add(DesktopDomain.AvailableAgent("Codex"));
         viewModel.Agent.Agents.Add(DesktopDomain.Agent().Named("Cursor").ExecutableMissing("agent").Build());
         await HeadlessExtensions.FlushAsync();
@@ -52,7 +52,7 @@ public sealed class AgentPickerPanelTests
     {
         var app = await AppDriver.LaunchWithWorkspaceAsync(DesktopDomain.Workspace().Build());
         var viewModel = (MainViewModel)app.Window.DataContext!;
-        viewModel.SelectedShellTab = WorkspaceShellTab.Agent;
+        viewModel.SelectedShellTab = WorkspaceShellTab.Settings;
         viewModel.Agent.Agents.Add(DesktopDomain.Agent().Named("Claude").PackageDisabled().Build());
         await HeadlessExtensions.FlushAsync();
 

@@ -47,6 +47,8 @@ public static class OperationPermissionMap
         [("AgentsHttp", "GetRole")] = OperationPermissions.AgentRead,
         [("AgentsHttp", "PutRole")] = OperationPermissions.AgentPrompt,
         [("AgentsHttp", "DeleteRole")] = OperationPermissions.AgentPrompt,
+        [("AgentsHttp", "GetMember")] = OperationPermissions.AgentRead,
+        [("AgentsHttp", "PutMember")] = OperationPermissions.AgentPrompt,
         [("AgentsHttp", "PutHostConnection")] = OperationPermissions.AgentPrompt,
         [("AgentsHttp", "PutQueueOrder")] = OperationPermissions.AgentPrompt,
         [("AgentsHttp", "PutAutonomy")] = OperationPermissions.AgentPrompt,
@@ -157,6 +159,7 @@ public static class OperationPermissionMap
         // other server-administration actions rather than with any one workspace's permissions.
         [("CapabilityModulesHttp", "List")] = OperationPermissions.ServerRead,
         [("CapabilityModulesHttp", "Enable")] = OperationPermissions.ServerRead,
-        [("CapabilityModulesHttp", "Disable")] = OperationPermissions.ServerRead
+        [("CapabilityModulesHttp", "Disable")] = OperationPermissions.ServerRead,
+        [("CapabilityModulesHttp", "UpdateSettings")] = OperationPermissions.ServerRead
     };
 }

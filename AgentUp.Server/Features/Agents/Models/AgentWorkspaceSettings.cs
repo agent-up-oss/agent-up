@@ -8,4 +8,5 @@ public sealed record AgentWorkspaceSettings(
     bool HostConnectionAuthorized,
     AssignedIssueOrder QueueOrder,
     LoopStatusSnapshot? Loop,
-    int StandingPolicyReplies = 2);
+    int StandingPolicyReplies = 2,
+    TeamMemberKind Member = TeamMemberKind.Author);

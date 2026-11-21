@@ -1,20 +1,12 @@
 using System.Globalization;
-using System.Text.Json;
 using System.Text.RegularExpressions;
-using AgentUp.Desktop.Shared.Models;
+using AgentUp.Desktop.Shared.Providers;
 
 namespace AgentUp.Desktop.Features.Git.Providers;
 
 public static class GitFileViewerProvider
 {
     public const double LineHeight = 22;
-    private const string Operators = "+-*/%=<>!&|^~?:";
-    private const string Punctuation = "(){}[];,.";
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNameCaseInsensitive = true,
-    };
-    private static readonly Lazy<GitFileViewerGrammarIndex> Grammars = new(LoadGrammars);
     private static readonly Regex HunkHeader = new(@"^@@\s+-(\d+)(?:,\d+)?\s+\+(\d+)(?:,\d+)?\s@@", RegexOptions.CultureInvariant);
 
     public static IReadOnlyList<GitFileViewerLine> ParseDiff(string? diff)
@@ -94,18 +86,7 @@ public static class GitFileViewerProvider
         return lines;
     }
 
-    public static string DetectLanguage(string path)
-    {
-        if (string.IsNullOrWhiteSpace(path))
-            return "plaintext";
-        var name = System.IO.Path.GetFileName(path);
-        if (name is "Dockerfile" or "Makefile")
-            return "shell";
-        var extension = System.IO.Path.GetExtension(name);
-        if (string.IsNullOrEmpty(extension))
-            return "plaintext";
-        return Grammars.Value.ByExtension.TryGetValue(extension, out var id) ? id : "plaintext";
-    }
+    public static string DetectLanguage(string path) => SyntaxHighlightProvider.DetectLanguage(path);
 
     public static IReadOnlyList<GitFileViewerToken> Highlight(string path, GitFileViewerLine line)
     {
@@ -130,147 +111,7 @@ public static class GitFileViewerProvider
     }
 
     public static IReadOnlyList<GitFileViewerToken> Tokenize(string text, string language)
-    {
-        if (string.IsNullOrEmpty(text))
-            return [];
-        if (!Grammars.Value.ById.TryGetValue(language, out var grammar))
-            return [new GitFileViewerToken("plain", text)];
-
-        var keywords = grammar.Keywords.ToHashSet(StringComparer.Ordinal);
-        var types = grammar.Types.ToHashSet(StringComparer.Ordinal);
-        var tokens = new List<GitFileViewerToken>();
-        var index = 0;
-
-        void Push(string kind, string value)
-        {
-            if (value.Length == 0)
-                return;
-            if (tokens.Count > 0 && tokens[^1].Kind == kind)
-                tokens[^1] = tokens[^1] with { Text = tokens[^1].Text + value };
-            else
-                tokens.Add(new GitFileViewerToken(kind, value));
-        }
-
-        while (index < text.Length)
-        {
-            var rest = text[index..];
-            if (!string.IsNullOrEmpty(grammar.LineComment) && rest.StartsWith(grammar.LineComment, StringComparison.Ordinal))
-            {
-                Push("comment", text[index..]);
-                break;
-            }
-
-            if (grammar.BlockComment is { Length: 2 } block && rest.StartsWith(block[0], StringComparison.Ordinal))
-            {
-                var end = text.IndexOf(block[1], index + block[0].Length, StringComparison.Ordinal);
-                var close = end < 0 ? text.Length : end + block[1].Length;
-                Push("comment", text[index..close]);
-                index = close;
-                continue;
-            }
-
-            var quote = grammar.Strings.FirstOrDefault(item => rest.StartsWith(item, StringComparison.Ordinal));
-            if (quote is not null)
-            {
-                var cursor = index + quote.Length;
-                while (cursor < text.Length)
-                {
-                    if (text[cursor] == '\\' && cursor + 1 < text.Length)
-                    {
-                        cursor += 2;
-                        continue;
-                    }
-
-                    if (text.AsSpan(cursor).StartsWith(quote, StringComparison.Ordinal))
-                    {
-                        cursor += quote.Length;
-                        break;
-                    }
-
-                    cursor += 1;
-                }
-
-                Push("string", text[index..cursor]);
-                index = cursor;
-                continue;
-            }
-
-            var current = text[index];
-            if (char.IsAsciiDigit(current) || (current == '.' && index + 1 < text.Length && char.IsAsciiDigit(text[index + 1])))
-            {
-                var cursor = index + 1;
-                if (current == '0' && cursor < text.Length && (text[cursor] is 'x' or 'X'))
-                    cursor += 1;
-                while (cursor < text.Length && IsNumberPart(text[cursor]))
-                    cursor += 1;
-                Push("number", text[index..cursor]);
-                index = cursor;
-                continue;
-            }
-
-            if (IsIdentStart(current))
-            {
-                var cursor = index + 1;
-                while (cursor < text.Length && IsIdentPart(text[cursor]))
-                    cursor += 1;
-                var word = text[index..cursor];
-                var kind = "plain";
-                if (keywords.Contains(word))
-                    kind = "keyword";
-                else if (types.Contains(word))
-                    kind = "type";
-                else
-                {
-                    var look = cursor;
-                    while (look < text.Length && text[look] == ' ')
-                        look += 1;
-                    if (look < text.Length && text[look] == '(')
-                        kind = "function";
-                    else if (index > 0 && text[index - 1] == '.')
-                        kind = "property";
-                }
-
-                Push(kind, word);
-                index = cursor;
-                continue;
-            }
-
-            if (Operators.Contains(current))
-            {
-                Push("operator", current.ToString());
-                index += 1;
-                continue;
-            }
-
-            if (Punctuation.Contains(current))
-            {
-                Push("punctuation", current.ToString());
-                index += 1;
-                continue;
-            }
-
-            Push("plain", current.ToString());
-            index += 1;
-        }
-
-        return tokens;
-    }
-
-    private static GitFileViewerGrammarIndex LoadGrammars()
-    {
-        var file = JsonSerializer.Deserialize<GitFileViewerGrammarFile>(AgentUpSyntaxGrammars.Json, JsonOptions)
-            ?? throw new InvalidOperationException("Design-system syntax grammars are missing.");
-        var byId = new Dictionary<string, GitFileViewerLanguageGrammar>(StringComparer.Ordinal);
-        var byExtension = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var language in file.Languages)
-        {
-            byId[language.Id] = language;
-            foreach (var extension in language.Extensions)
-                byExtension[extension] = language.Id;
-        }
-
-        return new GitFileViewerGrammarIndex(byId, byExtension);
-    }
+        => SyntaxHighlightProvider.Tokenize(text, language).Select(token => new GitFileViewerToken(token.Kind, token.Text)).ToArray();
 
     private static bool IsMeta(string text)
         => text.StartsWith("diff --git", StringComparison.Ordinal)
@@ -283,29 +124,7 @@ public static class GitFileViewerProvider
            || text.StartsWith("rename ", StringComparison.Ordinal)
            || text.StartsWith("\\ ", StringComparison.Ordinal);
 
-    private static bool IsIdentStart(char character)
-        => character is '_' or '$' || char.IsAsciiLetter(character);
-
-    private static bool IsIdentPart(char character) => IsIdentStart(character) || char.IsAsciiDigit(character);
-
-    private static bool IsNumberPart(char character)
-        => char.IsAsciiHexDigit(character) || character is '_' or '.' or 'n';
 }
-
-internal sealed record GitFileViewerGrammarFile(GitFileViewerLanguageGrammar[] Languages);
-
-internal sealed record GitFileViewerLanguageGrammar(
-    string Id,
-    string[] Extensions,
-    string[] Keywords,
-    string[] Types,
-    string LineComment,
-    string[]? BlockComment,
-    string[] Strings);
-
-internal sealed record GitFileViewerGrammarIndex(
-    Dictionary<string, GitFileViewerLanguageGrammar> ById,
-    Dictionary<string, string> ByExtension);
 
 public sealed record GitFileViewerLine(
     int Index,

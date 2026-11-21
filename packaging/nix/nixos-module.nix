@@ -37,6 +37,8 @@ in
       description = "Agent-Up Server";
       after = [ "network.target" ];
       wantedBy = [ "multi-user.target" ];
+      # Every ACP agent runs inside bubblewrap with its team member's permission set.
+      path = [ pkgs.bubblewrap ];
 
       serviceConfig = {
         Type = "simple";

@@ -1,3 +1,4 @@
+using AgentUp.Server.Features.Agents.Controllers;
 using AgentUp.Sdk.Forge;
 using AgentUp.Server.Features.Capabilities.Interfaces;
 using Microsoft.AspNetCore.Http;
@@ -16,8 +17,16 @@ public sealed class ForgeService(
     IForgeOAuthSettings oauth,
     IForgeOAuthStateStore states,
     IForgeOAuthExchange exchange,
-    GithubAppConnectionService? githubApps = null)
+    GithubAppConnectionService? githubApps = null,
+    TeamMemberController? members = null,
+    IForgeGitTransport? transport = null,
+    TimeProvider? time = null)
 {
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, SemaphoreSlim> _refreshes = new(StringComparer.Ordinal);
+
+    /// <summary>The only branches the Server pushes on a team member's behalf.</summary>
+    public const string TaskBranchPrefix = "agent-up/";
+
     public async Task<ForgeHostingDto?> GetHostingAsync(string workspaceId, CancellationToken cancellationToken)
     {
         var workspace = workspaces.GetById(workspaceId);
@@ -39,25 +48,16 @@ public sealed class ForgeService(
             var token = await CredentialAsync(workspaceId, forge, remote, cancellationToken);
             if (string.IsNullOrWhiteSpace(token))
                 return NeedsCredential(forge.Identity.Id, IsLoginConfigured(forge.Identity.Id));
-
-            var snapshot = await forge.ReadAsync(
-                new ForgeRequest(token, remote.Owner, remote.Repository, remote.Branch),
-                cancellationToken);
-            // The workspace has an account whether or not a proposal is open, so both answers carry it.
-            var account = ToAccount(snapshot.Account);
-            if (snapshot.Proposal is null)
-                return NoProposal(forge.Identity.Id, account);
-
-            return Ready(
-                forge.Identity.Id,
-                ToProposal(snapshot.Proposal),
-                [.. snapshot.Checks.Select(ToCheck)],
-                [.. snapshot.Threads.Select(ToThread)],
-                snapshot.Mergeability is null
-                    ? null
-                    : new ForgeMergeabilityDto(snapshot.Mergeability.Mergeable, snapshot.Mergeability.State),
-                account,
-                [.. (snapshot.Reviews ?? []).Select(ToReview)]);
+            try
+            {
+                return await ReadHostingAsync(forge, token, remote, cancellationToken);
+            }
+            catch (HttpRequestException exception) when (exception.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            {
+                // The host no longer accepts this workspace's credential: signing in again is the
+                // remedy, not checking the host URL.
+                return NeedsCredential(forge.Identity.Id, IsLoginConfigured(forge.Identity.Id));
+            }
         }
         catch (HttpRequestException exception)
         {
@@ -67,6 +67,28 @@ public sealed class ForgeService(
         {
             return Unreachable(forge.Identity.Id, exception.Message);
         }
+    }
+
+    private async Task<ForgeHostingDto> ReadHostingAsync(IForgeCapability forge, string token, ForgeGitRemote remote, CancellationToken cancellationToken)
+    {
+        var snapshot = await forge.ReadAsync(
+            new ForgeRequest(token, remote.Owner, remote.Repository, remote.Branch),
+            cancellationToken);
+        // The workspace has an account whether or not a proposal is open, so both answers carry it.
+        var account = ToAccount(snapshot.Account);
+        if (snapshot.Proposal is null)
+            return NoProposal(forge.Identity.Id, account);
+
+        return Ready(
+            forge.Identity.Id,
+            ToProposal(snapshot.Proposal),
+            [.. snapshot.Checks.Select(ToCheck)],
+            [.. snapshot.Threads.Select(ToThread)],
+            snapshot.Mergeability is null
+                ? null
+                : new ForgeMergeabilityDto(snapshot.Mergeability.Mergeable, snapshot.Mergeability.State),
+            account,
+            [.. (snapshot.Reviews ?? []).Select(ToReview)]);
     }
 
     public async Task<ForgeHttpOutcome> StartLoginAsync(
@@ -153,11 +175,31 @@ public sealed class ForgeService(
         if (forge is null)
             return false;
 
-        credentials.Write(
+        credentials.WriteGrant(
             workspaceId,
             forge.Identity.Id,
-            await exchange.ExchangeAsync(code, forge.Host.OAuthTokenUrl, cancellationToken));
+            await exchange.ExchangeGrantAsync(code, forge.Host.OAuthTokenUrl, cancellationToken));
         return true;
+    }
+
+    /// <summary>
+    /// The sign-in callback, answered as the page the browser lands on: signed in, refused by the
+    /// host with its reason, or an unknown sign-in.
+    /// </summary>
+    public async Task<ForgeHttpOutcome> CompleteLoginOutcomeAsync(string code, string state, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await CompleteLoginAsync(code, state, cancellationToken)
+                ? new ForgeHttpOutcome(StatusCodes.Status200OK, new { signedIn = true })
+                : new ForgeHttpOutcome(StatusCodes.Status404NotFound, null);
+        }
+        catch (Exception exception) when (exception is InvalidOperationException or HttpRequestException)
+        {
+            return new ForgeHttpOutcome(
+                StatusCodes.Status502BadGateway,
+                new { title = "Forge sign-in failed", detail = exception.Message });
+        }
     }
 
     public bool HasCredential(string workspaceId)
@@ -274,14 +316,96 @@ public sealed class ForgeService(
             (forge, request) => forge.CommentAsync(request, new ForgeCommentCommand(command.ProposalNumber, command.Body), cancellationToken),
             cancellationToken);
 
-    public async Task SubmitReviewAsync(string workspaceId, ForgeReviewRequest command, CancellationToken cancellationToken)
+    /// <summary>
+    /// A review raises threads another team member must address, so the workspace submitting it
+    /// has to be a reviewer. The check sits here rather than in a client so REST, an in-process
+    /// agent, and any later caller meet the same rule.
+    /// </summary>
+    public async Task<ForgeReviewOutcome> SubmitReviewAsync(string workspaceId, ForgeReviewRequest command, CancellationToken cancellationToken)
+    {
+        var refusal = members?.ReviewRefusal(workspaceId);
+        if (refusal is not null)
+            return new ForgeReviewOutcome(false, refusal);
+        var submitted = await MutateAsync(
+            workspaceId,
+            async (forge, request) =>
+            {
+                await forge.SubmitReviewAsync(
+                    request,
+                    new ForgeSubmitReviewCommand(
+                        command.ProposalNumber,
+                        command.Body,
+                        command.Event,
+                        [.. (command.Findings ?? []).Select(finding => new ForgeReviewComment(finding.Path, finding.Line, finding.Body))]),
+                    cancellationToken);
+                return true;
+            },
+            cancellationToken);
+        return new ForgeReviewOutcome(submitted, null);
+    }
+
+    /// <summary>The account this workspace acts as on its host, which is how the host names that team member.</summary>
+    public async Task<ForgeAccountDto?> ReadAccountAsync(string workspaceId, CancellationToken cancellationToken)
+    {
+        var request = await RequestForAsync(workspaceId, cancellationToken);
+        if (request is null)
+            return null;
+        var snapshot = await request.Value.Forge.ReadAsync(request.Value.Request, cancellationToken);
+        return ToAccount(snapshot.Account);
+    }
+
+    /// <summary>
+    /// Everything the host holds about the proposal from one task branch, read with this
+    /// workspace's credential whatever the workspace has checked out.
+    /// </summary>
+    public async Task<ForgeTaskFeedbackDto?> ReadFeedbackAsync(string workspaceId, string branch, CancellationToken cancellationToken)
+    {
+        var request = await RequestForAsync(workspaceId, cancellationToken);
+        if (request is null)
+            return null;
+        var snapshot = await request.Value.Forge.ReadAsync(request.Value.Request with { Branch = branch }, cancellationToken);
+        return new ForgeTaskFeedbackDto(
+            snapshot.Proposal is null ? null : ToProposal(snapshot.Proposal),
+            snapshot.Proposal?.HeadSha,
+            [.. snapshot.Checks.Select(ToCheck)],
+            [.. snapshot.Threads.Select(ToThread)],
+            [.. (snapshot.Reviews ?? []).Select(ToReview)]);
+    }
+
+    /// <summary>Gives an issue to the account that took it. False when the workspace has no usable forge.</summary>
+    public async Task<bool> AssignIssueAsync(string workspaceId, int issueNumber, string login, CancellationToken cancellationToken)
         => await MutateAsync(
             workspaceId,
-            (forge, request) => forge.SubmitReviewAsync(
-                request,
-                new ForgeSubmitReviewCommand(command.ProposalNumber, command.Body, command.Event),
-                cancellationToken),
+            async (forge, request) =>
+            {
+                await forge.AssignIssueAsync(request, issueNumber, login, cancellationToken);
+                return true;
+            },
             cancellationToken);
+
+    /// <summary>Asks a named account to review a proposal, with this workspace's credential.</summary>
+    public async Task<bool> RequestReviewAsync(string workspaceId, string proposalNumber, string login, CancellationToken cancellationToken)
+        => await MutateAsync(
+            workspaceId,
+            async (forge, request) =>
+            {
+                await forge.RequestReviewAsync(request, proposalNumber, login, cancellationToken);
+                return true;
+            },
+            cancellationToken);
+
+    /// <summary>Stores a file on the host for a comment to link; null when the host has nowhere to put it.</summary>
+    public async Task<string?> AttachAsync(
+        string workspaceId,
+        string number,
+        string fileName,
+        string contentType,
+        byte[] content,
+        CancellationToken cancellationToken)
+        => (await MutateAsync(
+            workspaceId,
+            (forge, request) => forge.AttachAsync(request, number, fileName, contentType, content, cancellationToken),
+            cancellationToken))?.Url;
 
     private async Task<T?> MutateAsync<T>(
         string workspaceId,
@@ -303,6 +427,52 @@ public sealed class ForgeService(
             await action(forge, request);
             return true;
         }, cancellationToken);
+
+    /// <summary>
+    /// Pushes the workspace's HEAD to a task branch with its own credential. Only
+    /// <see cref="TaskBranchPrefix"/> branches are written, so no base branch can ever be moved.
+    /// </summary>
+    public async Task<ForgeTransferOutcome> PushTaskBranchAsync(string workspaceId, string branch, CancellationToken cancellationToken)
+    {
+        if (!branch.StartsWith(TaskBranchPrefix, StringComparison.Ordinal) || branch.Length == TaskBranchPrefix.Length)
+            return ForgeTransferOutcome.Refused($"Agent-Up pushes only {TaskBranchPrefix} branches.");
+        return await TransferAsync(
+            workspaceId,
+            (path, remote, token) => transport!.PushAsync(path, remote, branch, token, cancellationToken),
+            cancellationToken);
+    }
+
+    /// <summary>Fetches the named branches into the workspace's <c>origin</c> tracking refs.</summary>
+    public Task<ForgeTransferOutcome> FetchBranchesAsync(string workspaceId, IReadOnlyList<string> branches, CancellationToken cancellationToken)
+        => TransferAsync(
+            workspaceId,
+            (path, remote, token) => transport!.FetchAsync(path, remote, branches, token, cancellationToken),
+            cancellationToken);
+
+    private async Task<ForgeTransferOutcome> TransferAsync(
+        string workspaceId,
+        Func<string, string, string, Task> transfer,
+        CancellationToken cancellationToken)
+    {
+        if (transport is null)
+            return ForgeTransferOutcome.Refused("This Server has no Git transport for forge credentials.");
+        var workspace = workspaces.GetById(workspaceId);
+        var remote = workspace is null ? null : remotes.Resolve(workspace.WorktreePath);
+        if (workspace is null || remote is null)
+            return ForgeTransferOutcome.Refused("The workspace has no forge remote.");
+        var request = await RequestForAsync(workspaceId, cancellationToken);
+        if (request is null)
+            return ForgeTransferOutcome.Refused("The workspace is not signed in to its forge.");
+        try
+        {
+            await transfer(workspace.WorktreePath, remote.RemoteUrl, request.Value.Request.Token);
+            return ForgeTransferOutcome.Done();
+        }
+        catch (InvalidOperationException exception)
+        {
+            return ForgeTransferOutcome.Refused(exception.Message);
+        }
+    }
 
     /// <summary>
     /// The repository this workspace's checkout points at. No credential is needed: the queue has
@@ -363,7 +533,44 @@ public sealed class ForgeService(
         CancellationToken cancellationToken)
         => UsesGithubApp(forge)
             ? githubApps!.TokenAsync(workspaceId, remote.Repository, cancellationToken)
-            : Task.FromResult(credentials.Read(workspaceId, forge.Identity.Id));
+            : OAuthTokenAsync(workspaceId, forge, cancellationToken);
+
+    /// <summary>
+    /// The workspace's OAuth access token, refreshed first when it is about to expire. Refreshes
+    /// for one workspace run one at a time, because hosts rotate the refresh token and a second
+    /// refresh with the old one would be refused. A refresh the host refuses leaves the old token,
+    /// which the host then answers with 401: the workspace reads as needing to sign in again.
+    /// </summary>
+    private async Task<string?> OAuthTokenAsync(string workspaceId, IForgeCapability forge, CancellationToken cancellationToken)
+    {
+        var grant = credentials.ReadGrant(workspaceId, forge.Identity.Id);
+        var now = (time ?? TimeProvider.System).GetUtcNow();
+        if (grant is null || !grant.NeedsRefresh(now))
+            return grant?.AccessToken;
+
+        var gate = _refreshes.GetOrAdd($"{workspaceId}/{forge.Identity.Id}", _ => new SemaphoreSlim(1, 1));
+        await gate.WaitAsync(cancellationToken);
+        try
+        {
+            grant = credentials.ReadGrant(workspaceId, forge.Identity.Id);
+            if (grant is null || !grant.NeedsRefresh((time ?? TimeProvider.System).GetUtcNow()))
+                return grant?.AccessToken;
+            try
+            {
+                var refreshed = await exchange.RefreshAsync(grant.RefreshToken!, forge.Host.OAuthTokenUrl, cancellationToken);
+                credentials.WriteGrant(workspaceId, forge.Identity.Id, refreshed);
+                return refreshed.AccessToken;
+            }
+            catch (Exception exception) when (exception is InvalidOperationException or HttpRequestException)
+            {
+                return grant.AccessToken;
+            }
+        }
+        finally
+        {
+            gate.Release();
+        }
+    }
 
     private bool IsLoginConfigured(string moduleId)
         => moduleId.Equals("github", StringComparison.OrdinalIgnoreCase) && githubApps is not null
@@ -481,7 +688,7 @@ public sealed class ForgeService(
         => new(ForgeHostingCopy.Ready, moduleId, proposal, checks, threads, mergeability, null, null, account, reviews);
 
     private static ForgeReviewDto ToReview(ForgeReview review)
-        => new(review.Login, review.State);
+        => new(review.Login, review.State, review.CommitId);
 
     private static ForgeAccountDto? ToAccount(ForgeAccount? account)
         => account is null ? null : new ForgeAccountDto(account.Login, account.DisplayName, account.IsBot, account.Url);
@@ -493,5 +700,5 @@ public sealed class ForgeService(
         => new(check.Name, check.Status, check.Conclusion, check.Url);
 
     private static ForgeReviewThreadDto ToThread(ForgeReviewThread thread)
-        => new(thread.Id, thread.Url, thread.Summary, thread.IsResolved);
+        => new(thread.Id, thread.Url, thread.Summary, thread.IsResolved, thread.Path, thread.Line, thread.Author);
 }

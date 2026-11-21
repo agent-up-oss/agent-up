@@ -8,12 +8,15 @@ public sealed class CapabilityModulesController(CapabilityModulesCatalogService 
     public Task<IReadOnlyList<CapabilityModuleDto>> ListAsync(CancellationToken cancellationToken = default)
         => catalog.ListAsync(cancellationToken);
 
-    public Task<CapabilityModuleDto> EnableAsync(
-        string id,
-        string? version,
-        CancellationToken cancellationToken = default)
-        => catalog.EnableAsync(id, version, cancellationToken);
+    public Task<CapabilityModuleDto> EnableAsync(string id, CancellationToken cancellationToken = default)
+        => catalog.EnableAsync(id, cancellationToken);
 
     public Task<CapabilityModuleDto> DisableAsync(string id, CancellationToken cancellationToken = default)
         => catalog.DisableAsync(id, cancellationToken);
+
+    public Task<CapabilityModuleDto> UpdateSettingsAsync(
+        string id,
+        IReadOnlyDictionary<string, string> values,
+        CancellationToken cancellationToken = default)
+        => catalog.UpdateSettingsAsync(id, values, cancellationToken);
 }

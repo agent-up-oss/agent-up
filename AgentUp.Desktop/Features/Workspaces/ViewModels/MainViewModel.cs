@@ -75,7 +75,8 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
     [
         new(WorkspaceShellTab.Overview, "Overview"),
         new(WorkspaceShellTab.Agent, "Agent"),
-        new(WorkspaceShellTab.Git, "Git")
+        new(WorkspaceShellTab.Git, "Git"),
+        new(WorkspaceShellTab.Settings, "Settings")
     ];
 
     public WorkspaceShellTab SelectedShellTab
@@ -91,7 +92,9 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
 
             this.RaiseAndSetIfChanged(ref _selectedShellTab, value);
             Git.IsVisible = value == WorkspaceShellTab.Git;
-            Agent.IsVisible = value == WorkspaceShellTab.Agent;
+            // Settings hosts the agent's choice, sessions, and loop checklist, so it keeps the
+            // agent live the way the Agent tab does.
+            Agent.IsVisible = value is WorkspaceShellTab.Agent or WorkspaceShellTab.Settings;
             SyncShellTabItem();
             RaiseShellVisibility();
             if (value == WorkspaceShellTab.Overview && Sidebar.SelectedWorkspace?.Id is { } overviewId)
@@ -155,6 +158,7 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
     public bool ShowOverview => SelectedShellTab == WorkspaceShellTab.Overview;
     public bool ShowAgent => SelectedShellTab == WorkspaceShellTab.Agent;
     public bool ShowGit => SelectedShellTab == WorkspaceShellTab.Git;
+    public bool ShowWorkspaceSettings => SelectedShellTab == WorkspaceShellTab.Settings;
     public bool ShowApplication => SelectedShellTab == WorkspaceShellTab.Application;
     public bool ShowApplicationChrome => ShowApplication && Applications.SelectedApplication is not null;
     public bool ShowNoApplications => ShowApplication && Applications.SelectedApplication is null;
@@ -178,6 +182,8 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
     public ReactiveCommand<Unit, Unit> BrowserForwardCommand { get; }
     public ReactiveCommand<Unit, Unit> BrowserReloadCommand { get; }
     public ReactiveCommand<Unit, Unit> SwitchServerCommand { get; }
+    /// <summary>Opens the workspace Settings tab, where the agent, its sessions, and the loop checklist live.</summary>
+    public ReactiveCommand<Unit, Unit> OpenWorkspaceSettingsCommand { get; }
 
     /// <summary>Logs out of the connected Server and returns to the connect picker.</summary>
     public ReactiveCommand<Unit, Unit> LogoutCommand { get; }
@@ -235,6 +241,7 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
         BrowserForwardCommand = ReactiveCommand.Create(() => _browserCommands.OnNext(BrowserCommand.Forward));
         BrowserReloadCommand = ReactiveCommand.Create(() => _browserCommands.OnNext(BrowserCommand.Reload));
         SwitchServerCommand = ReactiveCommand.Create(Login.ShowSwitcher);
+        OpenWorkspaceSettingsCommand = ReactiveCommand.Create(() => { SelectedShellTab = WorkspaceShellTab.Settings; });
         LogoutCommand = ReactiveCommand.Create(Logout);
         _chromeServerStatus = new ChromeServerStatusViewModel(sidebar, SwitchServerCommand);
         UpdateChromeLeftItems(Login.IsVisible);
@@ -261,6 +268,7 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
         SubscribeClientSurfaces();
         SubscribeCommandCenter();
         SubscribeOpenedAgent();
+        SubscribeConversationStarts();
         SubscribeSelectedPortProbe(selectedPortTab);
 
         BrowserTabNavigation = CreateBrowserTabNavigation();
@@ -405,6 +413,23 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
                     _ => SelectedShellTab,
                 };
             });
+    }
+
+    /// <summary>
+    /// The agent is chosen, started, or resumed from the Settings tab; the conversation that follows
+    /// is on the Agent tab, so the classic shell goes there. The command center routes its own pages.
+    /// </summary>
+    private void SubscribeConversationStarts()
+    {
+        void ShowConversation()
+        {
+            if (SelectedShellTab == WorkspaceShellTab.Settings && CommandCenter?.Active != true)
+                SelectedShellTab = WorkspaceShellTab.Agent;
+        }
+
+        Agent.SelectAgentCommand.Subscribe(_ => ShowConversation());
+        Agent.StartBoundCommand.Subscribe(_ => ShowConversation());
+        Agent.ResumeSessionCommand.Subscribe(_ => ShowConversation());
     }
 
     private void SubscribeOverviewRefresh()
@@ -979,6 +1004,7 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
         this.RaisePropertyChanged(nameof(ShowOverview));
         this.RaisePropertyChanged(nameof(ShowAgent));
         this.RaisePropertyChanged(nameof(ShowGit));
+        this.RaisePropertyChanged(nameof(ShowWorkspaceSettings));
         this.RaisePropertyChanged(nameof(ShowApplication));
         this.RaisePropertyChanged(nameof(ShowApplicationChrome));
         this.RaisePropertyChanged(nameof(ShowNoApplications));

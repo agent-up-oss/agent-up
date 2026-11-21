@@ -61,6 +61,7 @@ public sealed class TestAgentHostServiceTests
                     new WorktreeToolExecutor(),
                     new FixedLoopInferenceSettings(42))),
             new ScriptedAcpController(new ScriptedAcpService(new EnvironmentScriptedTurnScript())),
+            ModelServerComposition.Controller(new ScriptedTokenGenerator()),
             new TestAgentConsole(input, output, error));
 
         var exitCode = await host.RunAsync(command, CancellationToken.None);
@@ -93,6 +94,7 @@ public sealed class TestAgentHostServiceTests
                     new WorktreeToolExecutor(),
                     new FixedLoopInferenceSettings(42))),
             new ScriptedAcpController(new ScriptedAcpService(new EnvironmentScriptedTurnScript())),
+            ModelServerComposition.Controller(new ScriptedTokenGenerator()),
             new TestAgentConsole(input, output, error));
 
         var exitCode = await host.RunAsync(command, CancellationToken.None);
@@ -153,6 +155,7 @@ public sealed class TestAgentHostServiceTests
                 new WorktreeToolExecutor(),
                 new FixedLoopInferenceSettings(42))),
         new ScriptedAcpController(new ScriptedAcpService(new EnvironmentScriptedTurnScript())),
+        ModelServerComposition.Controller(new ScriptedTokenGenerator()),
         new TestAgentConsole(TextReader.Null, TextWriter.Null, errors),
         signInClient);
 

@@ -49,10 +49,38 @@ public sealed class CapabilityModulesViewModel : ReactiveObject
     /// <summary>Re-reads the Server's modules without opening the dialog, for surfaces that list them inline.</summary>
     public Task RefreshAsync() => ReloadAsync();
 
-    public async Task EnableAsync(string id, string version)
+    public async Task EnableAsync(string id)
     {
         Status = $"Enabling {id}…";
-        await _controller.EnableAsync(id, version);
+        try
+        {
+            await _controller.EnableAsync(id);
+        }
+        catch (HttpRequestException exception)
+        {
+            // The Server refuses to enable a capability whose software it cannot find (409); the
+            // reload below shows why on the card, so the refusal must not escape the command.
+            Status = exception.Message;
+        }
+
+        await ReloadAsync();
+    }
+
+    public async Task SaveSettingsAsync(string id, IReadOnlyDictionary<string, string> values)
+    {
+        if (values.Count == 0)
+            return;
+        Status = $"Saving {id} settings…";
+        try
+        {
+            await _controller.UpdateSettingsAsync(id, values);
+        }
+        catch (HttpRequestException exception)
+        {
+            Status = exception.Message;
+            return;
+        }
+
         await ReloadAsync();
     }
 
@@ -72,7 +100,7 @@ public sealed class CapabilityModulesViewModel : ReactiveObject
             Modules.Clear();
             foreach (var module in modules)
                 Modules.Add(new CapabilityModuleCardViewModel(module, this));
-            Status = modules.Count == 0 ? "No capability modules in the Server registry." : null;
+            Status = modules.Count == 0 ? "The Server reports no capabilities." : null;
         }
         catch (Exception exception) when (exception is HttpRequestException or InvalidOperationException or TaskCanceledException or System.Text.Json.JsonException)
         {

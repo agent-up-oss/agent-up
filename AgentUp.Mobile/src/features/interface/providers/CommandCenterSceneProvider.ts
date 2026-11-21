@@ -1,4 +1,5 @@
-import type { QueuedTask, OfferedIssue } from '../models/TaskQueue';
+import type { QueuedTask, OfferedIssue, ReviewKind } from '../models/TaskQueue';
+import { reviewLine, reviewQueue } from './ReviewQueueProvider';
 import { issueLabel, repositoryLabel, taskLabel } from '../models/TaskQueue';
 import type { TeamStanding, TeamStandingKind } from '../models/TeamStanding';
 
@@ -28,6 +29,9 @@ export type CommandCenterModuleSlot = {
   canRun: boolean;
   state: string;
   messages: string[];
+  /** Whether the Server found the software the capability runs; absent from older Servers, which means yes. */
+  available?: boolean;
+  missing?: string[];
 };
 
 export type CommandCenterSceneInput = {
@@ -46,6 +50,8 @@ export type CommandCenterSceneInput = {
   working: QueuedTask[];
   offered: OfferedIssue[];
   names: Map<string, string>;
+  /** Which of the Tasks board's three queues is open. */
+  tasksTab?: TasksTab;
   flows: CommandCenterFlowSlot[];
   modules?: CommandCenterModuleSlot[];
   /** Settings · Chat: the team as tabs, and the selected workspace's agent and loop fields. */
@@ -55,6 +61,16 @@ export type CommandCenterSceneInput = {
   validationPassed: boolean;
   validationSummary: string;
 };
+
+export type TasksTab = 'issues' | 'dev' | 'pm';
+
+/** The board's tab a scene action opens, or null when the action is not a tab. */
+export function tasksTabFor(action: string): TasksTab | null {
+  if (action === 'tasks-issues') return 'issues';
+  if (action === 'tasks-dev-review') return 'dev';
+  if (action === 'tasks-pm-review') return 'pm';
+  return null;
+}
 
 const laneCopy: Array<[TeamStandingKind, string, string, string]> = [
   ['waiting', 'Wait for approval', 'Needs your decision', 'aun-state-map__branch--waiting'],
@@ -86,6 +102,9 @@ export function commandCenterScene(input: CommandCenterSceneInput): CommandCente
   const state: Record<string, string> = {
     selected: scene === 'mobile-tasks' ? '1' : scene === 'mobile-settings' ? '2' : '0',
   };
+  const tab = input.tasksTab ?? 'issues';
+  state.tasksTab = tab;
+  state[`${tab}Tab`] = '1';
   if (input.chat && input.chat.workspaces.length > 0) state.chatSettings = '1';
   if (input.validationsOpen) state.open = '1';
   if (input.validationRunning) state.running = '1';
@@ -97,6 +116,8 @@ export function commandCenterScene(input: CommandCenterSceneInput): CommandCente
     items: {
       fleet: lanes(input.team),
       queue: tasks(input),
+      devReview: reviews(input, 'devReviewer'),
+      pmReview: reviews(input, 'pmReviewer'),
       modules: (input.modules ?? []).map(moduleRow),
       settingsWorkspaces: input.chat?.workspaces ?? [],
       chatFields: input.chat?.fields ?? [],
@@ -167,17 +188,30 @@ function tasks(input: CommandCenterSceneInput): SceneSlotItem[] {
   ];
 }
 
+/** One kind of reviewer's queue. Review rows carry no action of their own: reviewers take reviews. */
+function reviews(input: CommandCenterSceneInput, kind: ReviewKind): SceneSlotItem[] {
+  const name = (id: string | null) => (id ? input.names.get(id) ?? id : '');
+  return reviewQueue([...input.working, ...input.queue], kind)
+    .map(entry => row(entry.task.id, entry.standing, taskLabel(entry.task), repositoryLabel(entry.task), reviewLine(entry, name(entry.reviewerId))));
+}
+
 function row(id: string, action: string, title: string, repo: string, agent: string): SceneSlotItem {
   return { id, action, parts: agent ? ['agent'] : [], text: { title, repo, agent } };
 }
 
+/** The short status a capability whose software is missing shows on its button. */
+function capabilityButtonLabel(module: CommandCenterModuleSlot): string {
+  return (module.missing ?? []).includes('nix') ? 'Needs Nix' : 'Not found';
+}
+
 /** Which state a capability module is in; the scene words it and picks the button's tone. */
 export function moduleRow(module: CommandCenterModuleSlot): SceneSlotItem {
-  const why = module.messages.join(' ').trim() || module.state;
-  const part = !module.enabled ? 'disabled' : module.canRun ? 'ready' : 'blocked';
+  const available = module.available !== false;
+  const why = available ? module.messages.join(' ').trim() || module.state : capabilityButtonLabel(module);
+  const part = !available || (module.enabled && !module.canRun) ? 'blocked' : module.enabled ? 'ready' : 'disabled';
   return {
     id: module.id,
-    action: module.enabled ? 'disable-module' : 'enable-module',
+    action: module.enabled ? 'disable-module' : available ? 'enable-module' : 'module-unavailable',
     parts: [part],
     text: { name: module.displayName, why },
   };

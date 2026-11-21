@@ -54,6 +54,11 @@ public sealed class AgentsHttpTests
         builder.Services.AddSingleton<WorkspaceRegistry>();
         builder.Services.AddHostedService(provider => provider.GetRequiredService<WorkspaceRegistry>());
         builder.Services.AddSingleton<WorkspaceQueryController>();
+        builder.Services.AddSingleton<AgentUp.Server.Features.Capabilities.Interfaces.IEnabledCapabilityPackages>(
+            new FakeEnabledCapabilityPackages().WithBuiltIn(
+                FakeEnabledCapabilityPackages.Codex(),
+                FakeEnabledCapabilityPackages.Cursor(),
+                FakeEnabledCapabilityPackages.Claude()));
         builder.Services.AddSingleton<AgentCommandProvider>();
         builder.Services.AddSingleton<AgentSubscriptionAuth>();
         builder.Services.AddSingleton(_ => new AgentCliHomeProvider(Path.Join(Path.GetTempPath(), "agent-up-http-agents")));

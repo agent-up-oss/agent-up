@@ -150,24 +150,56 @@ public sealed class FakeBackendServiceTests
     }
 
     [Test]
-    public void Handle_agentPromptPublishesScriptedEvents()
+    public void Handle_anAuthorPlaysTheDemoAgentRunAtItsOwnPaceAndThenEndsTheTurn()
     {
-        var backend = FakeServerTestComposition.Backend();
-        var published = new List<string>();
-        using var subscription = backend.SubscribeAgent("bob", item => published.Add(item.Type));
+        var pending = new List<(int At, Action Work)>();
+        var backend = FakeServerTestComposition.Backend((at, work) => pending.Add((at, work)));
+        var updates = new List<string>();
+        using var subscription = backend.SubscribeAgent("bob", item =>
+        {
+            if (item.Payload?["sessionUpdate"]?.GetValue<string>() is { } update) updates.Add(update);
+        });
 
-        var result = Run(backend, Post("/api/workspaces/bob/agent/messages", """{"message":"status?"}"""));
-        var replayed = backend.AgentEventsAfter("bob", 0);
-        var changes = Json(backend, Get("/api/workspaces/bob/git/changes"));
+        var result = Run(backend, Post("/api/workspaces/bob/agent/messages", """{"message":"add the weekly harbor special"}"""));
+        var beforePlayback = updates.Count;
+        var stateWhilePlaying = Json(backend, Get("/api/workspaces/bob/agent"))["state"]!.GetValue<string>();
+        foreach (var (_, work) in pending.OrderBy(entry => entry.At).ToArray()) work();
+        var replayed = backend.AgentEventsAfter("bob", 0).Select(item => item.Type).ToArray();
 
         Assert.Multiple(() =>
         {
             Assert.That(result.Status, Is.EqualTo(204));
-            Assert.That(published, Does.Contain("user_message"));
-            Assert.That(published, Does.Contain("session_update"));
-            Assert.That(replayed.Select(item => item.Type), Does.Contain("user_message"));
-            Assert.That(changes["fileCount"]!.GetValue<int>(), Is.EqualTo(3));
+            Assert.That(beforePlayback, Is.Zero, "nothing of the run arrives before its first delay");
+            Assert.That(stateWhilePlaying, Is.EqualTo("running"));
+            Assert.That(updates.Count(update => update == "tool_call"), Is.GreaterThanOrEqualTo(10), "the run reads, edits and runs tests");
+            Assert.That(updates, Does.Contain("agent_thought_chunk"));
+            Assert.That(replayed[^2..], Is.EqualTo(new[] { "prompt_result", "state" }));
             Assert.That(Json(backend, Get("/api/workspaces/bob/agent"))["state"]!.GetValue<string>(), Is.EqualTo("ready"));
+            Assert.That(Json(backend, Get("/api/workspaces/bob/git/changes"))["fileCount"]!.GetValue<int>(), Is.EqualTo(3));
+        });
+    }
+
+    [Test]
+    public void Handle_aMessageSentWhileTheDemoRunPlaysSteersItInsteadOfStartingASecondRun()
+    {
+        var pending = new List<(int At, Action Work)>();
+        var backend = FakeServerTestComposition.Backend((at, work) => pending.Add((at, work)));
+
+        Run(backend, Post("/api/workspaces/bob/agent/messages", """{"message":"add the weekly harbor special"}"""));
+        var scheduled = pending.Count;
+        var steer = Run(backend, Post("/api/workspaces/bob/agent/messages", """{"message":"keep the price struck through"}"""));
+        var steeredScheduledNothing = pending.Count == scheduled;
+        foreach (var (_, work) in pending.OrderBy(entry => entry.At).ToArray()) work();
+        var events = backend.AgentEventsAfter("bob", 0);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(steer.Status, Is.EqualTo(204));
+            Assert.That(steeredScheduledNothing, Is.True, "one turn, not two");
+            Assert.That(events.Count(item => item.Type == "user_message"), Is.EqualTo(2));
+            Assert.That(events.Count(item => item.Type == "prompt_result"), Is.EqualTo(1));
+            Assert.That(events.Last(item => item.Type == "session_update").Payload.ToJsonString(),
+                Does.Contain("keep the price struck through"));
         });
     }
 
@@ -332,10 +364,74 @@ public sealed class FakeBackendServiceTests
         var disabled = Json(backend, Post("/api/capabilities/disable/dotnet"));
         var enabled = Json(backend, Post("/api/capabilities/enable", """{"id":"dotnet"}"""));
 
-        Assert.That(listed.Select(item => item!["id"]!.GetValue<string>()), Is.EqualTo(new[] { "dotnet", "docker", "codex", "cursor", "claude" }));
+        Assert.That(listed.Select(item => item!["id"]!.GetValue<string>()), Is.EqualTo(new[] { "dotnet", "docker", "codex", "cursor", "claude", "opencode", "github", "forgejo" }));
         Assert.That(disabled["enabled"]!.GetValue<bool>(), Is.False);
         Assert.That(enabled["enabled"]!.GetValue<bool>(), Is.True);
         Assert.That(enabled["canRun"]!.GetValue<bool>(), Is.True);
+    }
+
+    [Test]
+    public void Handle_capabilitySettingsTakeOpenCodeFromNeedsSetupToReady()
+    {
+        var backend = FakeServerTestComposition.Backend();
+        var enabled = Json(backend, Post("/api/capabilities/enable", """{"id":"opencode"}"""));
+        var saved = Json(backend, Put(
+            "/api/capabilities/opencode/settings",
+            """{"values":{"endpoint":"http://localhost:11434","model":"qwen2.5-coder:7b","token":"sk-demo"}}"""));
+        var token = saved["settings"]!.AsArray().Single(item => item!["key"]!.GetValue<string>() == "token")!;
+
+        Assert.That(enabled["state"]!.GetValue<string>(), Is.EqualTo("needsSetup"));
+        Assert.That(saved["state"]!.GetValue<string>(), Is.EqualTo("ready"));
+        Assert.That(token["value"], Is.Null);
+        Assert.That(token["hasValue"]!.GetValue<bool>(), Is.True);
+    }
+
+    [Test]
+    public void Handle_capabilitySettingsRefuseAnUnknownCapabilityAndIgnoreAMalformedBody()
+    {
+        var backend = FakeServerTestComposition.Backend();
+        Json(backend, Post("/api/capabilities/enable", """{"id":"opencode"}"""));
+
+        var unknown = Run(backend, Put("/api/capabilities/missing/settings", """{"values":{}}"""));
+        var malformed = Json(backend, Put("/api/capabilities/opencode/settings", "{not json"));
+        var cleared = Json(backend, Put("/api/capabilities/opencode/settings", """{"values":{"endpoint":"  "}}"""));
+        var endpoint = cleared["settings"]!.AsArray().Single(item => item!["key"]!.GetValue<string>() == "endpoint")!;
+
+        Assert.That(unknown.Status, Is.EqualTo(404));
+        Assert.That(malformed["state"]!.GetValue<string>(), Is.EqualTo("needsSetup"), "A body that cannot be read changes nothing.");
+        Assert.That(endpoint["hasValue"]!.GetValue<bool>(), Is.False);
+        Assert.That(endpoint["value"], Is.Null, "A blank value clears the setting.");
+    }
+
+    [Test]
+    public void Handle_capabilityWhoseSoftwareIsMissingCannotBeEnabledAndItsAgentSaysWhy()
+    {
+        var backend = BackendFromJson("""
+            {"id":"fake","url":"http://127.0.0.1:9","displayName":"Demo","connection":{},"authentication":{},"entitlements":{},"workspaces":[{"id":"bob","displayName":"Bob","state":"Running","applications":[]}],"agents":{"bob":{"session":{"state":"idle"}}},"capabilities":[{"id":"cursor","displayName":"Cursor","kind":"agent","enabled":false,"available":false,"missing":["cursor-agent"]}]}
+            """);
+
+        var enable = Run(backend, Post("/api/capabilities/enable", """{"id":"cursor"}"""));
+        var cursor = Json(backend, Get("/api/workspaces/bob/agent"))["agents"]!.AsArray().Single()!;
+
+        Assert.That(enable.Status, Is.EqualTo(409));
+        Assert.That(enable.Body, Does.Contain("software not found"));
+        Assert.That(cursor["unavailability"]!.GetValue<string>(), Is.EqualTo("softwareNotFound"));
+        Assert.That(cursor["detail"]!.GetValue<string>(), Does.Contain("cursor-agent"));
+        Assert.That(cursor["remedy"]!.GetValue<string>(), Does.Contain("PATH"));
+    }
+
+    [Test]
+    public void Handle_agentWhoseCapabilityNeedsSettingsSaysWhereToSetThem()
+    {
+        var backend = FakeServerTestComposition.Backend();
+        Json(backend, Post("/api/capabilities/enable", """{"id":"opencode"}"""));
+
+        var opencode = Json(backend, Get("/api/workspaces/bob/agent"))["agents"]!.AsArray()
+            .Single(item => item!["agent"]!.GetValue<string>() == "opencode")!;
+
+        Assert.That(opencode["available"]!.GetValue<bool>(), Is.False);
+        Assert.That(opencode["unavailability"]!.GetValue<string>(), Is.EqualTo("settingsRequired"));
+        Assert.That(opencode["remedy"]!.GetValue<string>(), Does.Contain("Settings"));
     }
 
     [Test]
@@ -349,7 +445,7 @@ public sealed class FakeBackendServiceTests
         Json(backend, Post("/api/capabilities/enable", """{"id":"claude"}"""));
         var scheduled = Json(backend, Post("/api/workspaces/bob/agent", """{"agent":"claude"}"""));
 
-        Assert.That(listed["agents"]!.AsArray().Select(item => item!["agent"]!.GetValue<string>()), Is.EqualTo(new[] { "codex", "cursor", "claude" }));
+        Assert.That(listed["agents"]!.AsArray().Select(item => item!["agent"]!.GetValue<string>()), Is.EqualTo(new[] { "codex", "cursor", "claude", "opencode" }));
         var available = listed["agents"]!.AsArray().Single(item => item!["agent"]!.GetValue<string>() == "codex")!;
         Assert.That(available["available"]!.GetValue<bool>(), Is.True);
         Assert.That(available["unavailability"], Is.Null);
@@ -932,7 +1028,7 @@ public sealed class FakeBackendServiceTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(queue.Select(task => task!["number"]!.GetValue<int>()), Is.EqualTo(new[] { 44, 51, 48 }));
+            Assert.That(queue.Select(task => task!["number"]!.GetValue<int>()), Is.EqualTo(new[] { 44, 51, 48, 39, 36 }));
             Assert.That(queue[0]!["heldByWorkspaceId"]!.GetValue<string>(), Is.EqualTo("bob"));
             Assert.That(queue[1]!["targetWorkspaceId"]!.GetValue<string>(), Is.EqualTo("hector"));
         });
@@ -998,7 +1094,7 @@ public sealed class FakeBackendServiceTests
             Assert.That(moved.Status, Is.EqualTo(204));
             Assert.That(
                 Json(backend, Get("/api/tasks")).AsArray().Select(task => task!["number"]!.GetValue<int>()),
-                Is.EqualTo(new[] { 51, 48, 44 }));
+                Is.EqualTo(new[] { 51, 48, 44, 39, 36 }));
         });
     }
 
@@ -1012,7 +1108,7 @@ public sealed class FakeBackendServiceTests
 
         Assert.That(
             Json(backend, Get("/api/tasks")).AsArray().Select(task => task!["number"]!.GetValue<int>()),
-            Is.EqualTo(new[] { 44, 48, 51 }));
+            Is.EqualTo(new[] { 44, 48, 39, 36, 51 }));
     }
 
     [Test]
@@ -1073,7 +1169,7 @@ public sealed class FakeBackendServiceTests
 
         Assert.That(
             Json(backend, Get("/api/tasks")).AsArray().Select(task => task!["number"]!.GetValue<int>()),
-            Is.EqualTo(new[] { 44, 48, 51 }));
+            Is.EqualTo(new[] { 44, 48, 39, 36, 51 }));
     }
 
     [Test]
@@ -1086,7 +1182,7 @@ public sealed class FakeBackendServiceTests
         Assert.Multiple(() =>
         {
             Assert.That(refused.Status, Is.EqualTo(409));
-            Assert.That(Json(backend, Get("/api/tasks")).AsArray(), Has.Count.EqualTo(3));
+            Assert.That(Json(backend, Get("/api/tasks")).AsArray(), Has.Count.EqualTo(5));
         });
     }
 
@@ -1101,7 +1197,7 @@ public sealed class FakeBackendServiceTests
         Assert.Multiple(() =>
         {
             Assert.That(removed.Status, Is.EqualTo(204));
-            Assert.That(Json(backend, Get("/api/tasks")).AsArray(), Has.Count.EqualTo(2));
+            Assert.That(Json(backend, Get("/api/tasks")).AsArray(), Has.Count.EqualTo(4));
         });
     }
 

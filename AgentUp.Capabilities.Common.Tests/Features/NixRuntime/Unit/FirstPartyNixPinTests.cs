@@ -70,9 +70,9 @@ public sealed class FirstPartyNixPinTests
     }
 
     [Test]
-    public void The_recorded_commit_is_the_one_the_packed_manifest_carries()
+    public void The_generated_shell_fetches_the_recorded_commit()
     {
-        Assert.That(FirstPartyNixPin.Nixpkgs.Rev, Is.EqualTo(FirstPartyNixPin.Rev));
+        Assert.That(FirstPartyNixPin.DefaultNix(["opencode"]), Does.Contain(FirstPartyNixPin.Rev + ".tar.gz"));
     }
 
     // The runtime opens these two by soname rather than through a linked RPATH, so nixpkgs cannot

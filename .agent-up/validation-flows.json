@@ -29,7 +29,7 @@
             "label": null,
             "testId": null,
             "text": "Workspace",
-            "selector": "a[href=\u0027/docs/workspace\u0027]"
+            "selector": "a[href='/docs/workspace']"
           },
           "value": null,
           "expectations": [
@@ -83,7 +83,7 @@
             "label": null,
             "testId": null,
             "text": "Playwright Generation",
-            "selector": "a[href=\u0027/developer-guide/playwright\u0027]"
+            "selector": "a[href='/developer-guide/playwright']"
           },
           "value": null,
           "expectations": [
@@ -129,7 +129,7 @@
             "label": "Server URL",
             "testId": null,
             "text": null,
-            "selector": "input[aria-label=\u0027Server URL\u0027]"
+            "selector": "input[aria-label='Server URL']"
           }
         }
       ],
@@ -144,7 +144,7 @@
             "label": "Server URL",
             "testId": null,
             "text": null,
-            "selector": "input[aria-label=\u0027Server URL\u0027]"
+            "selector": "input[aria-label='Server URL']"
           },
           "value": "ftp://agent-up.example.com",
           "expectations": [
@@ -199,7 +199,7 @@
         },
         {
           "kind": "Text",
-          "value": "Login tokens stay in this client\u0027s local storage.",
+          "value": "Login tokens stay in this client's local storage.",
           "target": null
         }
       ],
@@ -214,7 +214,7 @@
             "label": "Server URL",
             "testId": null,
             "text": null,
-            "selector": "input[aria-label=\u0027Server URL\u0027]"
+            "selector": "input[aria-label='Server URL']"
           },
           "value": "https://agent-up.example.com?token=example",
           "expectations": [
@@ -319,7 +319,7 @@
       "updatedAtUtc": "2026-09-21T03:00:00.0000000+00:00",
       "version": 1
     },
-  {
+    {
       "id": "connect",
       "application": "Desktop",
       "name": "Connect to a Server and see the workspace",
@@ -743,7 +743,7 @@
           "expectations": [
             {
               "kind": "Text",
-              "value": "No forge capability package is enabled.",
+              "value": "No forge capability is enabled.",
               "target": {
                 "testId": "git.hosting.title"
               }
@@ -973,7 +973,7 @@
       "id": "autonomous-loop",
       "application": "Desktop",
       "name": "Read the unattended loop checklist",
-      "description": "A person opens the Chat tab and reads the unattended-loop preconditions. Fixture: isolated Server with no forge module, so Forge capability is not ready. Enable and Activate are not clicked.",
+      "description": "A person opens the Agent tab, follows its one-line loop summary to the workspace Settings tab, and reads the unattended-loop preconditions there. Fixture: isolated Server with no forge module, so Forge capability is not ready. Enable and Activate are not clicked.",
       "surface": "Desktop",
       "initialPath": "login",
       "initialExpectations": [
@@ -1023,10 +1023,34 @@
         },
         {
           "id": "open-agent",
-          "description": "Open the Chat tab",
+          "description": "Open the Agent tab and read the loop summary",
           "action": "Click",
           "target": {
             "testId": "shell.tab.agent"
+          },
+          "expectations": [
+            {
+              "kind": "Visible",
+              "value": "true",
+              "target": {
+                "testId": "agent.settings-summary"
+              }
+            },
+            {
+              "kind": "Visible",
+              "value": "true",
+              "target": {
+                "testId": "agent.open-settings"
+              }
+            }
+          ]
+        },
+        {
+          "id": "open-settings",
+          "description": "Open Settings from the summary",
+          "action": "Click",
+          "target": {
+            "testId": "agent.open-settings"
           },
           "expectations": [
             {
@@ -1053,8 +1077,8 @@
           ]
         }
       ],
-      "updatedAtUtc": "2026-10-24T00:00:00.0000000+00:00",
-      "version": 1
+      "updatedAtUtc": "2026-11-18T00:00:00.0000000+00:00",
+      "version": 2
     }
   ]
 }

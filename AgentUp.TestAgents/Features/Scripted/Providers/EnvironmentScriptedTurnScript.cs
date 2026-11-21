@@ -15,6 +15,13 @@ public sealed class EnvironmentScriptedTurnScript : IScriptedTurnScript
 
     public ScriptedAgentScript Load()
     {
+        // A team's prompts are written by the Server, so its agents answer by what a prompt says
+        // rather than by turn number. The playbook travels in the environment the Server declares
+        // for the agent, which is the only environment the sandbox passes through.
+        var playbook = Environment.GetEnvironmentVariable("AGENTUP_SCRIPTED_PLAYBOOK");
+        if (!string.IsNullOrWhiteSpace(playbook))
+            return new ScriptedAgentScript([], JsonSerializer.Deserialize<IReadOnlyList<ScriptedPlay>>(playbook, Json) ?? []);
+
         var file = Environment.GetEnvironmentVariable("AGENTUP_SCRIPTED_SCRIPT");
         if (!string.IsNullOrWhiteSpace(file) && File.Exists(file))
             return JsonSerializer.Deserialize<ScriptedAgentScript>(File.ReadAllText(file), Json) ?? ScriptedAgentScript.Empty;

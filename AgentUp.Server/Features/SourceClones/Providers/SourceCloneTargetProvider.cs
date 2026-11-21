@@ -19,6 +19,18 @@ public sealed partial class SourceCloneTargetProvider : ISourceCloneTargetProvid
         var revision = NormalizeRevision(request.Revision, request.Branch, request.Derived);
         var directoryName = DeriveDirectoryName(repository, revision, request.Derived);
         var destinationPath = ResolveDestinationPath(directoryName);
+        // A derived clone is disposable and there may be several of one revision - one per
+        // reviewer - so the next takes the next free name. A plain clone of a repository already
+        // cloned is a duplicate, and stays refused.
+        if (request.Derived)
+        {
+            var stem = directoryName;
+            for (var copy = 2; Exists(destinationPath); copy++)
+            {
+                directoryName = $"{stem}-{copy}";
+                destinationPath = ResolveDestinationPath(directoryName);
+            }
+        }
 
         return new SourceCloneTarget(repository, revision, directoryName, destinationPath)
         {
@@ -30,7 +42,9 @@ public sealed partial class SourceCloneTargetProvider : ISourceCloneTargetProvid
         => NormalizeRevision(revision, null, derived: true);
 
     public bool DestinationExists(SourceCloneTarget target)
-        => Directory.Exists(target.DestinationPath) || File.Exists(target.DestinationPath);
+        => Exists(target.DestinationPath);
+
+    private static bool Exists(string path) => Directory.Exists(path) || File.Exists(path);
 
     private string ResolveDestinationPath(string directoryName)
     {

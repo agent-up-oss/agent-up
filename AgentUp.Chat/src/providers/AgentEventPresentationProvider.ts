@@ -7,10 +7,14 @@ import type {
   SessionContext,
   TranscriptItem,
 } from '../models/AgentSession';
+import { durationBetween } from './ToolCallProvider';
 
 export type PresentedUpdate =
   | { kind: 'message'; role: 'agent' | 'thought'; text: string }
-  | { kind: 'tool'; toolCallId: string; title?: string; status?: string; locations?: string[]; detail?: string }
+  | {
+    kind: 'tool'; toolCallId: string; title?: string; status?: string; locations?: string[]; detail?: string; toolKind?: string; rawInput?: string;
+    rawOutput?: string; unifiedDiff?: string; diffPath?: string; diffOldText?: string; diffNewText?: string;
+  }
   | { kind: 'plan'; entries: { content: string; status: string }[] }
   | { kind: 'context'; context: Partial<SessionContext> }
   | { kind: 'ignore' };
@@ -80,6 +84,15 @@ export function agentEventText(value: unknown): string {
   return contentText(value);
 }
 
+/** Caption on a message sent while a turn runs: it steers the next turn, it does not stop this one. */
+export const steeringStatus = 'Steering · next turn';
+
+/** The transcript row for a Server `user_message` event, marking steering sent mid-turn. */
+export function userMessageItem(sequence: number, payload: unknown, timestamp?: string): TranscriptItem {
+  const steering = typeof payload === 'object' && payload !== null && (payload as { steering?: unknown }).steering === true;
+  return { id: `${sequence}`, role: 'user', text: agentEventText(payload), ...(steering ? { status: steeringStatus } : {}), ...(timestamp ? { startedAt: timestamp } : {}) };
+}
+
 export function presentSessionUpdate(update: unknown): PresentedUpdate {
   const kind = sessionUpdateKind(update);
   if (!kind || kind.includes('user_message') || kind.includes('available_commands') || kind.includes('config_option')) {
@@ -118,63 +131,192 @@ export function presentSessionUpdate(update: unknown): PresentedUpdate {
   return { kind: 'ignore' };
 }
 
-export function runSummary(items: TranscriptItem[]): string {
-  const tools = items.filter(item => item.role === 'tool').length;
-  const parts = ['Worked'];
-  if (tools === 1) parts.push('1 tool');
-  else if (tools > 1) parts.push(`${tools} tools`);
-  if (items.some(item => item.role === 'thought')) parts.push('Thought');
+/** What a step counts as in a work section's tally. */
+export type WorkKind = 'thought' | 'edit' | 'read' | 'search' | 'tool' | 'other';
+
+export function workKind(item: TranscriptItem): WorkKind {
+  if (item.role === 'thought') return 'thought';
+  if (item.role !== 'tool') return 'other';
+  switch (item.toolKind) {
+    case 'edit': case 'delete': case 'move': return 'edit';
+    case 'read': return 'read';
+    case 'search': return 'search';
+    default: return 'tool';
+  }
+}
+
+const tallies: [WorkKind, string, string][] = [
+  ['edit', 'edit', 'edits'],
+  ['read', 'read', 'reads'],
+  ['search', 'search', 'searches'],
+  ['thought', 'thought', 'thoughts'],
+  ['tool', 'tool call', 'tool calls'],
+];
+
+/** "3 edits, 2 reads, 1 thought": what a stretch of work did, in reading order, zeros left out. */
+export function workCounts(items: TranscriptItem[]): string {
+  const kinds = items.map(workKind);
+  return tallies
+    .map(([kind, one, many]) => ({ count: kinds.filter(entry => entry === kind).length, one, many }))
+    .filter(entry => entry.count > 0)
+    .map(entry => `${entry.count} ${entry.count === 1 ? entry.one : entry.many}`)
+    .join(', ');
+}
+
+/**
+ * "Worked for 21s · 3 edits, 2 reads · 1 failed": the line a finished work section folds into.
+ * A failed call is named, because the folded section otherwise hides it.
+ */
+export function workSummary(items: TranscriptItem[], duration?: string): string {
+  const parts = [duration ? `Worked for ${duration}` : 'Worked'];
+  const counts = workCounts(items);
+  if (counts) parts.push(counts);
+  const failed = items.filter(item => item.role === 'tool' && item.status === 'failed').length;
+  if (failed > 0) parts.push(`${failed} failed`);
   return parts.join(' · ');
 }
 
+/**
+ * A turn as drawn: what the agent says - summaries midway and its final reply - is always shown,
+ * and the work between those messages is a section that folds once the agent moved past it.
+ */
 export type TranscriptBlock =
   | { type: 'user'; item: TranscriptItem }
-  | { type: 'run'; id: string; items: TranscriptItem[] }
-  | { type: 'reply'; item: TranscriptItem };
+  | { type: 'work'; id: string; items: TranscriptItem[]; duration?: string }
+  | { type: 'summary'; item: TranscriptItem; final: boolean };
 
-export function liveRunId(blocks: TranscriptBlock[]): string | undefined {
-  for (let i = blocks.length - 1; i >= 0; i -= 1) {
-    const block = blocks[i]!;
-    if (block.type === 'user') return undefined;
-    if (block.type === 'run') return block.id;
-  }
-  return undefined;
+/** The section the agent is working in now, which is drawn open; none once the session stops running. */
+export function liveWorkId(blocks: TranscriptBlock[], running = true): string | undefined {
+  if (!running) return undefined;
+  const last = blocks.at(-1);
+  return last?.type === 'work' ? last.id : undefined;
 }
 
 export function groupTranscript(items: TranscriptItem[]): TranscriptBlock[] {
+  // One pass with no per-turn buffers: this runs on every streamed event over the whole transcript.
   const blocks: TranscriptBlock[] = [];
-  let run: TranscriptItem[] = [];
-  const flush = () => {
-    if (run.length === 0) return;
-    let result: TranscriptItem | undefined;
-    let work = run;
-    for (let i = run.length - 1; i >= 0; i -= 1) {
-      if (run[i]!.role !== 'agent') continue;
-      result = run[i];
-      work = run.filter((_, index) => index !== i);
-      break;
-    }
-    if (work.length > 0) blocks.push({ type: 'run', id: work[0]!.id, items: work });
-    if (result) blocks.push({ type: 'reply', item: result });
-    run = [];
+  let work: TranscriptItem[] = [];
+  let workEnd: string | undefined;
+  let first = true;
+  let promptedAt: string | undefined;
+  let lastSummary: { type: 'summary'; item: TranscriptItem; final: boolean } | undefined;
+  const close = () => {
+    if (work.length === 0) return;
+    // The first section's time runs from the prompt, so the model's thinking before its first step counts.
+    const startedAt = first ? promptedAt ?? work[0]!.startedAt : work[0]!.startedAt;
+    const duration = durationBetween(startedAt, workEnd);
+    blocks.push(duration ? { type: 'work', id: work[0]!.id, items: work, duration } : { type: 'work', id: work[0]!.id, items: work });
+    work = [];
+    workEnd = undefined;
+    first = false;
+  };
+  // A summary is the turn's final reply when nothing follows it before the turn ends.
+  const endTurn = () => {
+    if (work.length === 0 && lastSummary) lastSummary.final = true;
+    close();
+    first = true;
+    lastSummary = undefined;
   };
   for (const item of items) {
     if (item.role === 'user') {
-      flush();
+      endTurn();
+      if (!item.status) promptedAt = item.startedAt;
       blocks.push({ type: 'user', item });
+      continue;
+    }
+    if (item.role === 'agent') {
+      close();
+      first = false;
+      lastSummary = { type: 'summary', item, final: false };
+      blocks.push(lastSummary);
     } else {
-      run.push(item);
+      if (work.length === 0) lastSummary = undefined;
+      work.push(item);
+      if (item.endedAt && (!workEnd || item.endedAt > workEnd)) workEnd = item.endedAt;
+    }
+    if (item.turnEnd) {
+      // Steering queued during this turn runs next with no prompt of its own, so it starts its
+      // own sections, timed from when this turn ended.
+      const endedAt = item.endedAt;
+      endTurn();
+      promptedAt = endedAt;
     }
   }
-  flush();
+  endTurn();
   return blocks;
 }
 
-export function applyPresentedUpdate(items: TranscriptItem[], id: string, presented: PresentedUpdate): TranscriptItem[] {
+/** A work section's lines: a run of finished edits, reads, searches and thoughts folds into one count line. */
+export type WorkEntry =
+  | { type: 'item'; item: TranscriptItem }
+  | { type: 'fold'; id: string; title: string; summary: string; items: TranscriptItem[] };
+
+/** Within this many pixels of the end the reader is following along, so new output scrolls into view. */
+export const followThreshold = 80;
+
+/** Whether the transcript should follow new output: only while the reader has not scrolled up. */
+export function isFollowing(offset: number, viewport: number, content: number): boolean {
+  return content - (offset + viewport) <= followThreshold;
+}
+
+/** The entry the agent is working on now - a thought still streaming or a call still running - which is drawn open. */
+export function activeEntryId(items: TranscriptItem[], live: boolean, thinking: boolean): string | undefined {
+  if (!live) return undefined;
+  const last = items.at(-1);
+  if (!last) return undefined;
+  if (last.role === 'thought') return thinking ? last.id : undefined;
+  return last.role === 'tool' && last.status !== 'completed' && last.status !== 'failed' ? last.id : undefined;
+}
+
+export function foldWork(
+  items: TranscriptItem[],
+  summaryOf: (item: TranscriptItem) => string | undefined,
+  activeId?: string,
+): WorkEntry[] {
+  const foldable = (item: TranscriptItem) => item.id !== activeId && (
+    workKind(item) === 'thought'
+    || (['edit', 'read', 'search'].includes(workKind(item)) && item.status === 'completed'));
+  const entries: WorkEntry[] = [];
+  let index = 0;
+  while (index < items.length) {
+    let end = index;
+    while (foldable(items[index]!) && end + 1 < items.length && foldable(items[end + 1]!)) end++;
+    if (end > index) {
+      const run = items.slice(index, end + 1);
+      entries.push({
+        type: 'fold',
+        id: run[0]!.toolCallId ?? run[0]!.id,
+        title: workCounts(run),
+        summary: [...new Set(run.filter(item => item.role === 'tool').map(summaryOf).filter((value): value is string => Boolean(value)))].join(', '),
+        items: run,
+      });
+    } else {
+      entries.push({ type: 'item', item: items[index]! });
+    }
+    index = end + 1;
+  }
+  return entries;
+}
+
+/** "Thinking" while it streams, then "Thought for 4s" once it took long enough to say. */
+export function thoughtLabel(item: TranscriptItem, live: boolean): string {
+  if (live) return 'Thinking';
+  const duration = durationBetween(item.startedAt, item.endedAt);
+  return duration ? `Thought for ${duration}` : 'Thought';
+}
+
+/** Marks the turn that just ended, so the next turn's text starts a new run and reply. */
+export function endTurn(items: TranscriptItem[], at?: string): TranscriptItem[] {
+  const last = items.at(-1);
+  if (!last || last.role === 'user' || last.turnEnd) return items;
+  return [...items.slice(0, -1), { ...last, turnEnd: true, endedAt: last.endedAt ?? at }];
+}
+
+export function applyPresentedUpdate(items: TranscriptItem[], id: string, presented: PresentedUpdate, at?: string): TranscriptItem[] {
   if (presented.kind === 'message') {
     const last = items.at(-1);
-    if (last?.role === presented.role) return [...items.slice(0, -1), { ...last, text: last.text + presented.text }];
-    return [...items, { id, role: presented.role, text: presented.text }];
+    if (last?.role === presented.role && !last.turnEnd) return [...items.slice(0, -1), { ...last, text: last.text + presented.text, ...(at ? { endedAt: at } : {}) }];
+    return [...items, { id, role: presented.role, text: presented.text, ...(at ? { startedAt: at, endedAt: at } : {}) }];
   }
   if (presented.kind === 'tool') {
     const existing = items.findIndex(entry => entry.role === 'tool' && entry.toolCallId === presented.toolCallId);
@@ -184,6 +326,20 @@ export function applyPresentedUpdate(items: TranscriptItem[], id: string, presen
     const locations = presented.locations ?? previous?.locations ?? [];
     const body = presented.detail ?? toolBody(previous);
     const detail = [locations.join(', '), body].filter(Boolean).join('\n');
+    const toolKind = presented.toolKind ?? previous?.toolKind;
+    const rawInput = presented.rawInput ?? previous?.rawInput;
+    const output = presented.detail ?? previous?.output;
+    const name = previous?.name ?? presented.title;
+    const startedAt = previous?.startedAt ?? at;
+    const finished = status === 'completed' || status === 'failed';
+    const endedAt = finished ? previous?.endedAt && previous.status === status ? previous.endedAt : at : undefined;
+    const carried = {
+      rawOutput: presented.rawOutput ?? previous?.rawOutput,
+      unifiedDiff: presented.unifiedDiff ?? previous?.unifiedDiff,
+      diffPath: presented.diffPath ?? previous?.diffPath,
+      diffOldText: presented.diffOldText ?? previous?.diffOldText,
+      diffNewText: presented.diffNewText ?? previous?.diffNewText,
+    };
     const item: TranscriptItem = {
       id: previous?.id ?? id,
       role: 'tool',
@@ -192,6 +348,13 @@ export function applyPresentedUpdate(items: TranscriptItem[], id: string, presen
       status,
       locations,
       text: detail ? `${title}\n${detail}` : title,
+      ...(toolKind ? { toolKind } : {}),
+      ...(rawInput ? { rawInput } : {}),
+      ...(output ? { output } : {}),
+      ...(name ? { name } : {}),
+      ...Object.fromEntries(Object.entries(carried).filter(([, value]) => value !== undefined)),
+      ...(startedAt ? { startedAt } : {}),
+      ...(endedAt ? { endedAt } : {}),
     };
     if (existing < 0) return [...items, item];
     const next = [...items];
@@ -199,7 +362,7 @@ export function applyPresentedUpdate(items: TranscriptItem[], id: string, presen
     return next;
   }
   if (presented.kind === 'plan') {
-    const item: TranscriptItem = { id, role: 'plan', text: presented.entries.map(entry => `${statusMark(entry.status)} ${entry.content}`).join('\n'), entries: presented.entries };
+    const item: TranscriptItem = { ...(at ? { startedAt: at, endedAt: at } : {}), id, role: 'plan', text: presented.entries.map(entry => `${statusMark(entry.status)} ${entry.content}`).join('\n'), entries: presented.entries };
     const existing = items.findIndex(entry => entry.role === 'plan');
     if (existing < 0) return [...items, item];
     const next = [...items];
@@ -247,6 +410,15 @@ export function resolveActivity(input: {
   if (input.state === 'ready') return { kind: 'ready', label: 'Idle' };
   if (input.state === 'idle') return { kind: 'idle', label: 'Idle' };
   return { kind: 'idle', label: input.state ?? 'Loading' };
+}
+
+/**
+ * The open prompt after a `permission_decision` event: closed when the Server decided that
+ * request, whichever client answered it, and left alone for any other request.
+ */
+export function afterPermissionDecision(open: AgentPermission | null, payload: unknown): AgentPermission | null {
+  const requestId = record(payload)?.requestId;
+  return open && typeof requestId === 'string' && requestId === open.requestId ? null : open;
 }
 
 export function parsePermission(payload: unknown): AgentPermission | null {
@@ -306,7 +478,35 @@ function presentTool(update: unknown): PresentedUpdate {
     status: stringField(update, 'status') ?? undefined,
     locations: rec && 'locations' in rec ? locationsOf(update) : undefined,
     detail: rec && 'content' in rec ? contentText(rec.content) : undefined,
+    toolKind: stringField(update, 'kind') ?? undefined,
+    rawInput: rawInputOf(rec),
+    ...toolOutputOf(rec),
   };
+}
+
+/**
+ * What a finished call returned beyond its visible content: the raw output text (a read's file
+ * text lives there), a unified diff from the tool's metadata, and ACP's diff content item.
+ */
+function toolOutputOf(rec: Record<string, unknown> | null | undefined) {
+  const raw = rec?.rawOutput;
+  const rawRecord = record(raw);
+  const rawOutput = typeof raw === 'string' ? raw : typeof rawRecord?.output === 'string' ? rawRecord.output : undefined;
+  const metadataDiff = record(rawRecord?.metadata)?.diff;
+  const diffItem = Array.isArray(rec?.content) ? rec.content.map(record).find(entry => entry?.type === 'diff') : undefined;
+  const values = {
+    rawOutput: rawOutput?.trim() ? rawOutput : undefined,
+    unifiedDiff: typeof metadataDiff === 'string' && metadataDiff.trim() ? metadataDiff : undefined,
+    diffPath: stringField(diffItem, 'path') ?? undefined,
+    diffOldText: typeof diffItem?.oldText === 'string' ? diffItem.oldText : undefined,
+    diffNewText: typeof diffItem?.newText === 'string' ? diffItem.newText : undefined,
+  };
+  return Object.fromEntries(Object.entries(values).filter(([, value]) => value !== undefined)) as Partial<typeof values>;
+}
+
+function rawInputOf(rec: Record<string, unknown> | null | undefined): string | undefined {
+  const input = rec?.rawInput;
+  return input && typeof input === 'object' && !Array.isArray(input) && Object.keys(input).length ? JSON.stringify(input) : undefined;
 }
 
 function toolBody(item: TranscriptItem | undefined): string {

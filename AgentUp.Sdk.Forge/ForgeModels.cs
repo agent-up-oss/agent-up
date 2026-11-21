@@ -13,7 +13,7 @@ public sealed record ForgeHostSnapshot(
 /// three a host distinguishes — approved, changes requested, commented — are exactly the three a
 /// reader needs: settled, blocked, and something worth reading but not blocking.
 /// </summary>
-public sealed record ForgeReview(string Login, string State, DateTimeOffset SubmittedAt);
+public sealed record ForgeReview(string Login, string State, DateTimeOffset SubmittedAt, string? CommitId = null);
 
 /// <summary>
 /// The account a workspace acts as on its repository host. It belongs to the workspace, not to the
@@ -30,11 +30,24 @@ public sealed record ForgeProposal(
     string Url,
     string HeadRef,
     string BaseRef,
-    string State);
+    string State,
+    string? HeadSha = null);
 
 public sealed record ForgeCheck(string Name, string Status, string Conclusion, string Url);
 
-public sealed record ForgeReviewThread(string Id, string Url, string Summary, bool IsResolved);
+/// <summary>
+/// A comment on the proposal. One left on a line of the change carries its <paramref name="Path"/>
+/// and <paramref name="Line"/>; a conversation comment carries neither. <paramref name="Author"/> is
+/// the account that wrote it, so a reader can tell a reviewer's finding from the author's reply.
+/// </summary>
+public sealed record ForgeReviewThread(
+    string Id,
+    string Url,
+    string Summary,
+    bool IsResolved,
+    string? Path = null,
+    int? Line = null,
+    string? Author = null);
 
 public sealed record ForgeMergeability(bool Mergeable, string State);
 
@@ -53,4 +66,14 @@ public sealed record ForgeUpdateRefCommand(string Ref, string Sha);
 
 public sealed record ForgeCommentCommand(string ProposalNumber, string Body);
 
-public sealed record ForgeSubmitReviewCommand(string ProposalNumber, string Body, string Event);
+/// <summary>One finding at a code location: a line of a file in the change, and what to do about it.</summary>
+public sealed record ForgeReviewComment(string Path, int Line, string Body);
+
+public sealed record ForgeSubmitReviewCommand(
+    string ProposalNumber,
+    string Body,
+    string Event,
+    IReadOnlyList<ForgeReviewComment>? Comments = null);
+
+/// <summary>A file the host stores against an issue or proposal, and where a reader opens it.</summary>
+public sealed record ForgeAttachment(string Name, string Url);

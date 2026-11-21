@@ -12,6 +12,14 @@ public sealed class DotnetRuntimeCapability : IRuntimeCapability
 
     public CapabilityIdentity Identity { get; } = new(PackageId, PackageVersion, ".NET", "agent-up");
 
+    public string Kind => CapabilityKind.Runtime;
+
+    public IReadOnlyList<CapabilitySoftware> Software { get; } = [new("dotnet", DeliveredByNix: true)];
+
+    public IReadOnlyList<CapabilitySettingSpec> Settings { get; } = [];
+
+    public IReadOnlyList<string> Provides { get; } = ["dotnet"];
+
     public string SectionName => PackageId;
 
     public IReadOnlyList<NixPackageDeclaration> NixPackages { get; } = [new(DefaultNixPackage)];

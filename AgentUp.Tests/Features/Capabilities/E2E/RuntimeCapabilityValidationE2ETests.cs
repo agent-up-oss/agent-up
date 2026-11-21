@@ -3,6 +3,9 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using AgentUp.Desktop.Features.Validation.Models;
 using AgentUp.Desktop.Features.Validation.Services;
+using AgentUp.Capabilities.Docker.Features.DockerCapability.Services;
+using AgentUp.Capabilities.Dotnet.Features.DotnetCapability.Services;
+using AgentUp.Server.Features.Capabilities.Providers;
 using AgentUp.Server.Features.Applications.DTOs;
 using AgentUp.Server.Features.Orchestration.Services;
 using AgentUp.Tests.Support;
@@ -33,7 +36,7 @@ public sealed class RuntimeCapabilityValidationE2ETests
     private static DesktopStreamingServer? Server;
     private static DesktopBrowserHarness? Desktop;
     private static string? WorkspaceId;
-    private static string? RegistryRoot;
+    private static string? CapabilityRoot;
     private static Exception? StartFailure;
 
     [OneTimeTearDown]
@@ -56,11 +59,11 @@ public sealed class RuntimeCapabilityValidationE2ETests
             await Server.DisposeAsync();
         }
 
-        if (RegistryRoot is not null)
+        if (CapabilityRoot is not null)
         {
             try
             {
-                Directory.Delete(RegistryRoot, recursive: true);
+                Directory.Delete(CapabilityRoot, recursive: true);
             }
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
@@ -133,15 +136,15 @@ public sealed class RuntimeCapabilityValidationE2ETests
         Assert.That(File.Exists(Path.Join(root, "agent-up.json")), Is.True);
 
         Environment.SetEnvironmentVariable("AGENTUP_SKIP_DEV_AGENT_BOOTSTRAP", "1");
-        var registry = PackRuntimeCapabilities(root);
-        var enabledPath = Path.Join(registry, "enabled.json");
+        CapabilityRoot = Directory.CreateTempSubdirectory("agentup-e2e-capabilities").FullName;
+        var enabledPath = Path.Join(CapabilityRoot, "enabled.json");
         await File.WriteAllTextAsync(enabledPath, """{"schemaVersion":"1","modules":[]}""");
-        Stage($"Capability registry ready at {registry}.");
-        PrewarmPackedCapabilityShells(registry);
+        Stage("Capabilities are built into the Server; none is enabled yet.");
+        PrewarmCapabilityShells(CapabilityRoot);
         PullPostgresImage();
 
         var started = Stopwatch.StartNew();
-        Server = await DesktopStreamingServer.StartAsync(registry, enabledPath);
+        Server = await DesktopStreamingServer.StartAsync(enabledPath);
         Server.Client.Timeout = WorkspaceHttpTimeout;
         Stage($"Runtime capability Server listening at {Server.BaseUri}.");
 
@@ -155,8 +158,8 @@ public sealed class RuntimeCapabilityValidationE2ETests
             var modules = Desktop.ViewModel.Modules
                 ?? throw new InvalidOperationException("Desktop did not mount the capability modules catalog.");
             await modules.OpenAsync();
-            await modules.EnableAsync("dotnet", "1.0.0");
-            await modules.EnableAsync("docker", "1.0.0");
+            await modules.EnableAsync("dotnet");
+            await modules.EnableAsync("docker");
             AssertEnabledOnUi("dotnet");
             AssertEnabledOnUi("docker");
             modules.Close();
@@ -294,7 +297,12 @@ public sealed class RuntimeCapabilityValidationE2ETests
         return failed.Any(static value => value);
     }
 
-    private static void PrewarmPackedCapabilityShells(string registry)
+    /// <summary>
+    /// Realises the pinned dotnet and docker closures before the workspace starts, from the same
+    /// package lists the built-in capabilities give the Server. The Server writes its own shell
+    /// files, but the closure they fetch is the expensive part, and it is shared.
+    /// </summary>
+    private static void PrewarmCapabilityShells(string root)
     {
         if (!File.Exists("/etc/NIXOS")
             && string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("AGENTUP_E2E_IMPORT_NIX_SHELL"))
@@ -303,17 +311,15 @@ public sealed class RuntimeCapabilityValidationE2ETests
             return;
         }
 
-        var packages = Path.Join(registry, "packages");
-        if (!Directory.Exists(packages))
-            return;
-
-        var shells = new[] { "dotnet", "docker" }
-            .Select(module => Path.Join(packages, module))
-            .Where(Directory.Exists)
-            .SelectMany(moduleDir => Directory.GetFiles(moduleDir, "default.nix", SearchOption.AllDirectories));
+        var provider = new CapabilityNixShellProvider(root);
+        var shells = new[]
+        {
+            provider.ShellPath("dotnet", new DotnetRuntimeCapability().NixPackages.Select(package => package.Package).ToArray()),
+            provider.ShellPath("docker", new DockerRuntimeCapability().NixPackages.Select(package => package.Package).ToArray())
+        };
         foreach (var shellNix in shells)
         {
-            Stage($"Prewarming packed capability shell {shellNix}.");
+            Stage($"Prewarming capability shell {shellNix}.");
             var start = new ProcessStartInfo
             {
                 FileName = "nix-shell",
@@ -569,33 +575,6 @@ public sealed class RuntimeCapabilityValidationE2ETests
             "Root agent-up.json did not start every declared application. "
             + $"Expected [{string.Join(", ", WorkspaceApplications)}], saw [{string.Join(", ", names.Order(StringComparer.Ordinal))}]."
             + await FormatWorkspaceOutputAsync(workspaceId));
-    }
-
-    private static string PackRuntimeCapabilities(string repoRoot)
-    {
-        var fromEnv = Environment.GetEnvironmentVariable("AGENTUP_CAPABILITY_REGISTRY_PATH");
-        if (!string.IsNullOrWhiteSpace(fromEnv) && File.Exists(Path.Join(fromEnv, "index.json")))
-            return fromEnv;
-
-        RegistryRoot = Path.Join(Path.GetTempPath(), "agentup-e2e-registry-" + Guid.NewGuid().ToString("N"));
-        var script = Path.Join(repoRoot, "scripts", "pack-first-party-capabilities.sh");
-        var start = new ProcessStartInfo
-        {
-            FileName = "bash",
-            WorkingDirectory = repoRoot,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true
-        };
-        start.ArgumentList.Add(script);
-        start.ArgumentList.Add(RegistryRoot);
-        using var process = Process.Start(start)
-            ?? throw new InvalidOperationException("Could not start the first-party capability packer.");
-        var stdout = process.StandardOutput.ReadToEnd();
-        var stderr = process.StandardError.ReadToEnd();
-        process.WaitForExit();
-        if (process.ExitCode != 0)
-            Assert.Fail($"Packing runtime capabilities failed ({process.ExitCode}): {stdout}{stderr}");
-        return RegistryRoot;
     }
 
     private static string? FindRepositoryRoot()

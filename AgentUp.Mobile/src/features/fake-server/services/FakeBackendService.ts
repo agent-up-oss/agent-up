@@ -1,5 +1,6 @@
 import {
   cloneDefinition,
+  type FakeAgentRunStep,
   type FakeOfferedIssue,
   type FakeProductDecision,
   type FakeQueuedTask,
@@ -69,6 +70,16 @@ type WorkspaceRecord = {
   }>;
 };
 
+type CapabilitySettingRecord = {
+  key: string;
+  label: string;
+  kind: string;
+  required: boolean;
+  placeholder?: string | null;
+  value?: string | null;
+  hasValue: boolean;
+};
+
 type CapabilityRecord = {
   id: string;
   version: string;
@@ -76,13 +87,28 @@ type CapabilityRecord = {
   publisher: string;
   kind: string;
   enabled: boolean;
+  available?: boolean;
   state: string;
   canRun: boolean;
+  missing?: string[];
+  settings?: CapabilitySettingRecord[];
   messages: string[];
 };
 
 function describeFakeAgent(module: CapabilityRecord) {
   const available = module.enabled && module.canRun;
+  if (module.available === false) {
+    const missing = (module.missing ?? []).join(', ');
+    return {
+      agent: module.id,
+      available: false,
+      displayName: module.displayName,
+      unavailability: 'softwareNotFound',
+      detail: `${module.displayName} needs ${missing}, which was not found on the Server host.`,
+      remedy: `Install ${missing} and keep it on PATH.`,
+    };
+  }
+
   if (available) {
     return {
       agent: module.id,
@@ -102,6 +128,17 @@ function describeFakeAgent(module: CapabilityRecord) {
       unavailability: 'capabilityNotEnabled',
       detail: `${module.displayName} is not enabled on this Server.`,
       remedy: `Enable the ${module.id} capability.`,
+    };
+  }
+
+  if (module.state === 'needsSetup') {
+    return {
+      agent: module.id,
+      available: false,
+      displayName: module.displayName,
+      unavailability: 'settingsRequired',
+      detail: `${module.displayName} needs its endpoint and model before it can start.`,
+      remedy: `Set them under ${module.displayName} in Settings.`,
     };
   }
 
@@ -142,6 +179,8 @@ export class FakeBackendService {
   private loopGeneration = 0;
   private autonomyEnabled = false;
   private readonly permissionPolicies = new Map<string, unknown[]>();
+  /** Messages sent while the Demo run plays, keyed by workspace; present only while it plays. */
+  private readonly steering = new Map<string, string[]>();
   private cancelLifecycle: (() => void) | null = null;
 
   constructor(definition: FakeServerDefinition, schedule: FakeScheduler = defaultScheduler) {
@@ -212,6 +251,10 @@ export class FakeBackendService {
     if (method === 'POST' && path === '/api/capabilities/enable') return this.enableCapability(request.body);
     if (method === 'POST' && path.startsWith('/api/capabilities/disable/'))
       return this.disableCapability(decodeURIComponent(path.slice('/api/capabilities/disable/'.length)));
+    if (method === 'PUT' && path.startsWith('/api/capabilities/') && path.endsWith('/settings'))
+      return this.updateCapabilitySettings(
+        decodeURIComponent(path.slice('/api/capabilities/'.length, -'/settings'.length)),
+        request.body);
     if (method === 'GET' && path === '/api/tasks') return json(this.taskQueue());
     if (method === 'POST' && path === '/api/tasks') return this.enqueueTask(request.body);
     if (path.startsWith('/api/tasks/')) return this.taskMutation(method, path.slice('/api/tasks/'.length), request.body);
@@ -651,7 +694,7 @@ export class FakeBackendService {
       checks: [],
       threads: [],
       mergeability: null,
-      detail: 'No forge capability package is enabled.',
+      detail: 'No forge capability is enabled.',
       remedy: 'Run: agent-up capabilities bootstrap',
     };
   }
@@ -889,9 +932,24 @@ export class FakeBackendService {
     // the tree.
     const reviewing = reviewsOthersWork(session.session);
     const added = git && !reviewing ? addAgentWorkingTreeFile(git) : null;
+    // A message sent while the run plays is steering, as on a real Server: it is recorded now and
+    // answered when the turn ends, never started as a second turn over the first.
+    const steered = this.steering.get(workspaceId);
+    if (steered) {
+      steered.push(message);
+      this.publishAgent(workspaceId, 'user_message', { text: message });
+      return { status: 204, contentType: 'application/json' };
+    }
     const snapshot = this.liveAgentSession(session.session);
     this.publishAgent(workspaceId, 'user_message', { text: message });
     this.publishAgent(workspaceId, 'state', { ...snapshot, state: 'running' });
+    const run = reviewing ? [] : this.state.agentRun ?? [];
+    if (run.length > 0) {
+      this.recordAgentState(session, 'running');
+      this.steering.set(workspaceId, []);
+      this.playAgentRun(workspaceId, run, snapshot, () => this.recordAgentState(session, 'ready'));
+      return { status: 204, contentType: 'application/json' };
+    }
     const text = added
       ? `I added \`${added.path}\` so the storefront can show the weekly harbor special. It is uncommitted in the working tree.`
       : reviewing
@@ -903,6 +961,37 @@ export class FakeBackendService {
     });
     this.publishAgent(workspaceId, 'state', { ...snapshot, state: 'ready' });
     return { status: 204, contentType: 'application/json' };
+  }
+
+  /**
+   * Plays the definition's agent turn at its own pace, then ends the turn the way a Server does:
+   * a prompt result and the session back to ready.
+   */
+  private playAgentRun(workspaceId: string, run: FakeAgentRunStep[], snapshot: Record<string, unknown>, ended: () => void) {
+    let at = 0;
+    for (const step of run) {
+      at += step.delayMs ?? 0;
+      const type = step.type ?? 'session_update';
+      const payload = structuredClone(step.payload ?? {});
+      this.schedule(at, () => this.publishAgent(workspaceId, type, payload));
+    }
+    this.schedule(at + 300, () => {
+      ended();
+      for (const note of this.steering.get(workspaceId) ?? []) {
+        this.publishAgent(workspaceId, 'session_update', {
+          sessionUpdate: 'agent_message_chunk',
+          content: { type: 'text', text: `Noted for the next pass: ${note}` },
+        });
+      }
+      this.steering.delete(workspaceId);
+      this.publishAgent(workspaceId, 'prompt_result', { stopReason: 'end_turn' });
+      this.publishAgent(workspaceId, 'state', { ...snapshot, state: 'ready' });
+    });
+  }
+
+  /** The session a client reads while the run plays, so one that reconnects mid-turn sees it running. */
+  private recordAgentState(session: { session?: unknown }, state: string) {
+    if (session.session && typeof session.session === 'object') (session.session as Record<string, unknown>).state = state;
   }
 
   private agentEventStream(workspaceId: string, query: string): FakeBackendResponse {
@@ -1050,6 +1139,13 @@ export class FakeBackendService {
     const id = readJsonString(body, 'id');
     const module = this.capabilities().find(item => item.id === id);
     if (!module) return notFound();
+    if (module.available === false) {
+      return {
+        status: 409,
+        contentType: 'application/json',
+        body: JSON.stringify({ title: 'Capability software not found', detail: 'The software this capability runs was not found on the Server host.' }),
+      };
+    }
     this.setCapability(module.id, true);
     return json(this.capabilities().find(item => item.id === module.id));
   }
@@ -1061,17 +1157,33 @@ export class FakeBackendService {
     return json(this.capabilities().find(item => item.id === id));
   }
 
+  private updateCapabilitySettings(id: string, body: string | null): FakeBackendResponse {
+    const module = this.capabilities().find(item => item.id === id);
+    if (!module) return notFound();
+    let values: Record<string, unknown> = {};
+    try {
+      values = (JSON.parse(body ?? '{}') as { values?: Record<string, unknown> }).values ?? {};
+    } catch {
+      values = {};
+    }
+    module.settings = (module.settings ?? []).map(setting => {
+      if (!(setting.key in values)) return setting;
+      const text = String(values[setting.key] ?? '').trim();
+      return { ...setting, hasValue: text.length > 0, value: setting.kind === 'secret' || text.length === 0 ? null : text };
+    });
+    this.setCapability(id, module.enabled);
+    return json(this.capabilities().find(item => item.id === id));
+  }
+
+  /** The Server's state rules: missing software first, then disabled, then a required setting with no value. */
   private setCapability(id: string, enabled: boolean) {
     const modules = this.capabilities();
     const index = modules.findIndex(item => item.id === id);
     if (index < 0) return;
-    modules[index] = {
-      ...modules[index],
-      enabled,
-      state: enabled ? 'ready' : 'disabled',
-      canRun: enabled,
-      messages: [],
-    };
+    const module = modules[index];
+    const needsSetup = (module.settings ?? []).some(setting => setting.required && !setting.hasValue);
+    const state = module.available === false ? 'unavailable' : !enabled ? 'disabled' : needsSetup ? 'needsSetup' : 'ready';
+    modules[index] = { ...module, enabled, state, canRun: state === 'ready', messages: [] };
     this.state.capabilities = modules;
   }
 

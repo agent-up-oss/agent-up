@@ -300,7 +300,12 @@ public sealed class AutonomousWorkspaceServiceTests
         await host.Autonomy.SetRoleAsync(
             host.WorkspaceId,
             new AgentRoleDefinition("Review", [], RoleTriggerKind.ProposalAwaitingReview, RoleTerminationKind.ReviewSubmitted));
-        host.Progress.Record(host.WorkspaceId, RoleTerminationKind.ReviewSubmitted);
+        // The review is submitted during the turn, the way an in-process reviewer's tool does it.
+        host.Process.BeforePromptCompletes = _ =>
+        {
+            host.Progress.Record(host.WorkspaceId, RoleTerminationKind.ReviewSubmitted);
+            return Task.CompletedTask;
+        };
         host.Proposals.Replace(host.WorkspaceId, [
             new AssignedProposal("p1", "Open the review", "body", DateTimeOffset.UnixEpoch, "https://example/p1")
         ]);
@@ -391,11 +396,90 @@ public sealed class AutonomousWorkspaceServiceTests
         await host.Workspaces.UpdateBoundAgentAsync(host.WorkspaceId, "codex");
         host.Settings.Save(host.Settings.Get(host.WorkspaceId) with
         {
-            PolicyRules = [new PermissionRule("all", PermissionRuleKind.WorktreeWrite, true)],
+            PolicyRules = [new PermissionRuleBuilder("all", PermissionRuleKind.WorktreeWrite).Build()],
             HostConnectionAuthorized = true
         });
         Assert.That(host.Autonomy.TryEnableServer(out _), Is.True);
         host.Process.PromptResult = JsonSerializer.SerializeToElement(new { stopReason = "end_turn", completed = true });
+    }
+
+    [Test]
+    public async Task ActivateAsync_waitsForWorkInsteadOfStoppingWhenTheTeamPipelineIsOn()
+    {
+        var waits = 0;
+        var pipeline = new RecordingTaskPipeline();
+        var host = await HostAsync(pipeline: pipeline, waitForWork: async token =>
+        {
+            waits++;
+            await Task.Delay(Timeout.Infinite, token);
+        });
+        await ReadyAsync(host);
+
+        await host.Autonomy.ActivateAsync(host.WorkspaceId, CancellationToken.None);
+        await WaitUntilAsync(() => waits == 1);
+
+        // A reviewer has nothing until an author opens a proposal: the loop stays on and waits.
+        Assert.Multiple(() =>
+        {
+            Assert.That(host.Autonomy.Status(host.WorkspaceId).Active, Is.True);
+            Assert.That(host.Autonomy.Status(host.WorkspaceId).Terminal, Is.EqualTo(LoopTerminal.Idle));
+        });
+        host.Autonomy.Deactivate(host.WorkspaceId);
+        await host.DisposeAsync();
+    }
+
+    [Test]
+    public async Task ActivateAsync_promptsWithThePipelinesPlanInAFreshSessionAndBlocksOnItsOutcome()
+    {
+        var pipeline = new RecordingTaskPipeline { Outcome = TaskTurnOutcome.Blocked("nothing_to_propose", "No file changed.") };
+        var host = await HostAsync(pipeline: pipeline);
+        await ReadyAsync(host);
+        host.Issues.Replace(host.WorkspaceId, [ServerDomain.Issue().Build()]);
+
+        await host.Autonomy.ActivateAsync(host.WorkspaceId, CancellationToken.None);
+        await WaitUntilAsync(() => host.Autonomy.Status(host.WorkspaceId).Phase == "blocked");
+        var status = host.Autonomy.Status(host.WorkspaceId);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(host.Process.Prompts.Single(), Does.Contain("planned prompt"));
+            Assert.That(host.Process.Methods.Count(method => method == "session/new"), Is.EqualTo(2), "the task starts in a session of its own");
+            Assert.That(status.StopReason, Is.EqualTo("nothing_to_propose"));
+            Assert.That(status.BlockReason, Is.EqualTo("No file changed."));
+        });
+        await host.DisposeAsync();
+    }
+
+    [Test]
+    public async Task ActivateAsync_blocksWhenThePipelineCannotPrepareTheClone()
+    {
+        var pipeline = new RecordingTaskPipeline { Plan = TaskTurnPlan.Refused("git fetch failed") };
+        var host = await HostAsync(pipeline: pipeline);
+        await ReadyAsync(host);
+        host.Issues.Replace(host.WorkspaceId, [ServerDomain.Issue().Build()]);
+
+        await host.Autonomy.ActivateAsync(host.WorkspaceId, CancellationToken.None);
+        await WaitUntilAsync(() => host.Autonomy.Status(host.WorkspaceId).Phase == "blocked");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(host.Autonomy.Status(host.WorkspaceId).StopReason, Is.EqualTo("prepare"));
+            Assert.That(host.Process.Prompts, Is.Empty);
+        });
+        await host.DisposeAsync();
+    }
+
+    private sealed class RecordingTaskPipeline : ITaskPipeline
+    {
+        public TaskTurnPlan Plan { get; init; } = TaskTurnPlan.Ready("planned prompt");
+
+        public TaskTurnOutcome Outcome { get; init; } = TaskTurnOutcome.Done();
+
+        public Task<TaskTurnPlan> PrepareAsync(string workspaceId, AgentRoleDefinition role, AssignedIssue task, CancellationToken cancellationToken)
+            => Task.FromResult(Plan);
+
+        public Task<TaskTurnOutcome> FinishAsync(string workspaceId, AgentRoleDefinition role, AssignedIssue task, LoopRunResult result, CancellationToken cancellationToken)
+            => Task.FromResult(Outcome);
     }
 
     [Test]
@@ -436,7 +520,9 @@ public sealed class AutonomousWorkspaceServiceTests
         IAssignedIssueQueue? issues = null,
         InMemoryAgentWorkspaceSettingsRepository? settings = null,
         IEnabledCapabilityPackages? packages = null,
-        IHostConnectionPresence? hostPresence = null)
+        IHostConnectionPresence? hostPresence = null,
+        ITaskPipeline? pipeline = null,
+        Func<CancellationToken, Task>? waitForWork = null)
     {
         var registry = new WorkspaceRegistry(
             new InMemoryWorkspaceRepository(),
@@ -489,7 +575,9 @@ public sealed class AutonomousWorkspaceServiceTests
             workspaces,
             new RoleToolFilterProvider(),
             packages,
-            hostPresence);
+            hostPresence,
+            pipeline,
+            waitForWork);
         return new Host(workspace.Id, workspaces, settings, process, issues, proposals, progress, autonomy, scheduling);
     }
 

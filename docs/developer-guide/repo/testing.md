@@ -119,6 +119,31 @@ fails the suite.
 `test-agent-infer` ACP agent. It is `slow` and `ciOnly`. Keep it out of
 `run-dotnet-tests.sh`, the fast `server` check, and the test-kind watchdog.
 
+`Category=OpencodeInference` runs the real OpenCode binary through the built-in OpenCode
+capability against `test-model-server`. `run-opencode-inference.sh` supplies the binary,
+endpoint, per-run token, and a published Server. One layer runs the loop kernel in process. The
+other starts that Server as a process and drives it only over REST and the agent event stream,
+the way a client does, including an Agent-Up MCP tool call and steering sent mid-turn. The write
+journey also requires OpenCode to report the written content in a form the transcript can draw as
+a diff. It is `slow` and `ciOnly`, and kept out of the same suites.
+
+`Category=AgentMcpE2E` drives a Server from the test output with the sandboxed
+`test-agent-scripted`, whose prompts are MCP directives: it starts a real app through orchestration
+and drives it in the real headless browser, its session reaches only its own workspace, and a dev
+reviewer is refused orchestration writes, the browser, and the commit queue. `run-agent-e2e.sh`
+runs it beside the sandbox category. The OpenCode journeys hold the live CPU-model counterpart.
+
+`Category=AgentSandboxE2E` starts a shell through the agent sandbox with real bubblewrap and
+requires the kernel to refuse what the member may not do. `run-agent-e2e.sh` supplies
+bubblewrap from Nix. It is `slow`, needs `nix`, and is kept out of the same suites. The OpenCode
+journeys put bubblewrap on the published Server's PATH, and one requires a dev reviewer's OpenCode
+to fail a write a person allowed.
+
+A recorded session is the fast regression for that live path.
+`AgentUp.Chat/fixtures/opencode-cpu-session.jsonl` is a real OpenCode session against the CPU
+model. Desktop's `AgentGoldenTranscriptTests` and Chat's `GoldenTranscript.test.ts` replay it
+through each client's own reducers, so both clients are held to the same transcript.
+
 Concurrency and restart for autonomous workspaces run in the normal E2E
 tier. `Category=LoopSoak` is hundreds of scripted tasks plus bounded-growth
 asserts. It is `slow` and `ciOnly`. Keep it out of those same suites.

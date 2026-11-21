@@ -13,12 +13,12 @@ export function WorkspaceAgentChatScreen({
   workspaceId,
   displayName,
   server,
-  loopControls = true,
+  loopControls = false,
 }: {
   workspaceId: string;
   displayName: string;
   server: ServerSession | null;
-  /** The command center keeps the unattended loop in Settings, not above the conversation. */
+  /** The unattended loop lives in the workspace Settings tab, not above the conversation. */
   loopControls?: boolean;
 }) {
   const host = useWorkspaceHost(workspaceId);

@@ -11,9 +11,12 @@ public sealed class CapabilityModulesController(CapabilityModuleService modules)
 {
     public IReadOnlyList<CapabilityModuleDto> List() => modules.List();
 
-    public CapabilityModuleDto Enable(string id, string? version) => modules.Enable(id, version);
+    public CapabilityChangeResult Enable(string id) => modules.Enable(id);
 
-    public CapabilityModuleDto Disable(string id) => modules.Disable(id);
+    public CapabilityChangeResult Disable(string id) => modules.Disable(id);
+
+    public CapabilityChangeResult UpdateSettings(string id, IReadOnlyDictionary<string, string?> values)
+        => modules.UpdateSettings(id, values);
 
     public CapabilityLaunchWrapDto WrapLaunch(string fileName, IReadOnlyList<string> arguments)
         => modules.WrapLaunch(fileName, arguments);

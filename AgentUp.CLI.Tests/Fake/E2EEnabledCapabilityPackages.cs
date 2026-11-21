@@ -18,8 +18,6 @@ internal sealed class E2EEnabledCapabilityPackages : IEnabledCapabilityPackages
         Runtime("python", [new RuntimeAttributeSpec("script", true, "path")])
     ];
 
-    public CapabilityPackageManifest? GetEnabled(string id) => null;
-
     public CapabilityLaunchPlan? AgentLaunch(string id) => null;
 
     public CapabilityLaunchWrapDto WrapLaunch(string fileName, IReadOnlyList<string> arguments)
@@ -37,6 +35,11 @@ internal sealed class E2EEnabledCapabilityPackages : IEnabledCapabilityPackages
 
     public IReadOnlyList<IAgentCapability> ListAgents() => [];
 
+    public IReadOnlyList<IAgentCapability> AllAgents() => [];
+
+    public CapabilityReadinessDto? Readiness(string id)
+        => GetRuntime(id) is { } runtime ? new CapabilityReadinessDto(runtime.Identity.Id, runtime.Identity.DisplayName, true, [], []) : null;
+
     public IForgeCapability? GetForge(string id) => null;
 
     public IReadOnlyList<IForgeCapability> ListForges() => [];
@@ -48,9 +51,17 @@ internal sealed class E2EEnabledCapabilityPackages : IEnabledCapabilityPackages
     {
         public CapabilityIdentity Identity { get; } = new(id, "1.0.0", id, "agent-up");
 
+        public string Kind => CapabilityKind.Runtime;
+
+        public IReadOnlyList<CapabilitySoftware> Software { get; } = [];
+
+        public IReadOnlyList<CapabilitySettingSpec> Settings { get; } = [];
+
         public string SectionName => id;
 
         public IReadOnlyList<NixPackageDeclaration> NixPackages { get; } = [];
+
+        public IReadOnlyList<string> Provides { get; } = [id];
 
         public IReadOnlyList<RuntimeAttributeSpec> ExtraAttributes { get; } = extras;
 

@@ -73,6 +73,24 @@ public sealed class CommandCenterSceneTests
     }
 
     [Test]
+    public void A_capability_whose_software_was_not_found_offers_no_enable_and_says_why()
+    {
+        var binding = CommandCenterScene.Bind(Input([], "settings") with
+        {
+            Modules =
+            [
+                new CommandCenterModuleSlot("dotnet", ".NET", Enabled: false, CanRun: false, "Needs Nix", Available: false),
+                new CommandCenterModuleSlot("docker", "Docker", Enabled: false, CanRun: false, "Off")
+            ]
+        });
+
+        var modules = binding.Items["modules"];
+        Assert.That(modules.Select(item => item.Action), Is.EqualTo(new[] { "module-unavailable", "enable-module" }));
+        Assert.That(modules[0].Parts, Is.EquivalentTo(new[] { "blocked" }));
+        Assert.That(modules[0].Text["why"], Is.EqualTo("Needs Nix"));
+    }
+
+    [Test]
     public void The_application_tabs_are_the_open_workspaces_own_and_the_one_on_screen_is_selected()
     {
         var binding = CommandCenterScene.Bind(Input([], "application") with
@@ -221,6 +239,26 @@ public sealed class CommandCenterSceneTests
             Assert.That(agents.Single(item => item.Id == "cursor").Action, Is.EqualTo("enable-agent"));
             Assert.That(agents.Single(item => item.Id == "claude").Parts, Does.Contain("locked"));
             Assert.That(rows.Single(item => item.Id == "boundAgent").Parts, Does.Contain("locked"));
+        });
+    }
+
+    // The board opens one queue; a review row carries its standing as the action the scene groups by.
+    [Test]
+    public void The_tasks_board_opens_one_queue_and_lists_each_kind_of_review()
+    {
+        var binding = CommandCenterScene.Bind(Input([], sceneId: "tasks") with
+        {
+            DevReviews = [new CommandCenterTaskSlot("I-39", "#39 · Product cards", "example/repository", "Hector · revision 2", "reviewing")],
+            TasksTab = "dev",
+        });
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(binding.State["tasksTab"], Is.EqualTo("dev"));
+            Assert.That(binding.State["devTab"], Is.EqualTo("1"));
+            Assert.That(binding.State.ContainsKey("issuesTab"), Is.False);
+            Assert.That(binding.Items["devReview"].Single().Action, Is.EqualTo("reviewing"));
+            Assert.That(binding.Items["pmReview"], Is.Empty);
         });
     }
 

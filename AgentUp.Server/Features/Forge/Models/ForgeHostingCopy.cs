@@ -12,7 +12,7 @@ public static class ForgeHostingCopy
     public const string NoProposal = "noProposal";
     public const string Ready = "ready";
 
-    public const string NotInstalledDetail = "No forge capability package is enabled.";
+    public const string NotInstalledDetail = "No forge capability is enabled.";
     public const string NotInstalledRemedy = "Run: agent-up capabilities bootstrap";
     public const string NeedsCredentialDetail = "This workspace has no repository host credential.";
     public const string NeedsCredentialRemedy = "Connect this workspace to its repository host.";
@@ -25,7 +25,7 @@ public static class ForgeHostingCopy
     public const string UnreachableRemedy = "Check the repository host URL and retry.";
     public const string NoProposalDetail = "No open proposal on this branch.";
     public const string OAuthUnavailableTitle = "OAuth unavailable";
-    public const string MissingForgeDetail = "No forge capability package is enabled.";
+    public const string MissingForgeDetail = "No forge capability is enabled.";
     public const string MissingToken = "The host did not return an access token.";
     public const string EmptyToken = "The host returned an empty access token.";
 }

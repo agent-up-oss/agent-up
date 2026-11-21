@@ -23,16 +23,15 @@ public sealed class CapabilityModulesControllerTests
     }
 
     [Test]
-    public async Task EnableAsync_mapsIdAndVersionOntoTheService()
+    public async Task EnableAsync_mapsTheIdOntoTheService()
     {
         var client = new FakeCapabilityModulesApiProvider();
         var controller = new CapabilityModulesController(new CapabilityModulesCatalogService(client));
 
-        var module = await controller.EnableAsync("dotnet", "1.0.0");
+        var module = await controller.EnableAsync("dotnet");
 
         Assert.That(module.Enabled, Is.True);
         Assert.That(client.EnabledId, Is.EqualTo("dotnet"));
-        Assert.That(client.EnabledVersion, Is.EqualTo("1.0.0"));
     }
 
     [Test]

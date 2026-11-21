@@ -8,9 +8,17 @@ internal sealed class StubRuntimeCapability : IRuntimeCapability
 {
     public CapabilityIdentity Identity { get; init; } = new("dotnet", "1.0.0", ".NET", "agent-up");
 
+    public string Kind => CapabilityKind.Runtime;
+
+    public IReadOnlyList<CapabilitySoftware> Software { get; init; } = [];
+
+    public IReadOnlyList<CapabilitySettingSpec> Settings { get; init; } = [];
+
     public string SectionName => Identity.Id;
 
-    public IReadOnlyList<NixPackageDeclaration> NixPackages { get; } = [];
+    public IReadOnlyList<NixPackageDeclaration> NixPackages { get; init; } = [];
+
+    public IReadOnlyList<string> Provides { get; init; } = [];
 
     public IReadOnlyList<RuntimeAttributeSpec> ExtraAttributes { get; init; } = [];
 

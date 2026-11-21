@@ -39,6 +39,8 @@ internal sealed class FakeGitWorkingTreeProvider : IGitWorkingTreeProvider
 
     public string? SwitchedBranch { get; private set; }
 
+    public string? StartedBranch { get; private set; }
+
     public bool CreatedBranch { get; private set; }
 
     public string? CheckedOutBranch { get; private set; }
@@ -102,6 +104,64 @@ internal sealed class FakeGitWorkingTreeProvider : IGitWorkingTreeProvider
             await HoldDiscard.Task.WaitAsync(cancellationToken);
         if (Failure is not null)
             throw new InvalidOperationException(Failure);
+    }
+
+    public GitIdentity? CommitAuthor { get; private set; }
+
+    public string? ResetBranch { get; private set; }
+
+    public Task<string?> CommitAllToBranchAsync(string worktreePath, string branch, string message, GitIdentity author, CancellationToken cancellationToken = default)
+    {
+        LastWorktreePath = worktreePath;
+        if (Failure is not null)
+            return Task.FromException<string?>(new InvalidOperationException(Failure));
+        // Like the provider: nothing changed means nothing to commit, and the checkout stays put.
+        if (Changes.Count == 0)
+            return Task.FromResult<string?>(null);
+        Branch = branch;
+        CommittedMessage = message;
+        CommitAuthor = author;
+        CommittedFiles = [.. Changes.Select(change => change.Path)];
+        Changes.Clear();
+        return Task.FromResult<string?>(Commit);
+    }
+
+    public string RangeDiff { get; set; } = string.Empty;
+
+    public Task<string> GetRangeDiffAsync(string worktreePath, string baseRef, string head, CancellationToken cancellationToken = default)
+    {
+        LastWorktreePath = worktreePath;
+        return Failure is null ? Task.FromResult(RangeDiff) : Task.FromException<string>(new InvalidOperationException(Failure));
+    }
+
+    /// <summary>The commit each ref names; a ref that is not here resolves to nothing.</summary>
+    public Dictionary<string, string> Refs { get; } = new(StringComparer.Ordinal);
+
+    public Task<string?> ResolveCommitAsync(string worktreePath, string reference, CancellationToken cancellationToken = default)
+    {
+        LastWorktreePath = worktreePath;
+        if (Failure is not null)
+            return Task.FromException<string?>(new InvalidOperationException(Failure));
+        return Task.FromResult(reference == "HEAD" && !Refs.ContainsKey("HEAD") ? Commit : Refs.GetValueOrDefault(reference));
+    }
+
+    public Task ResetToRemoteBranchAsync(string worktreePath, string branch, CancellationToken cancellationToken = default)
+    {
+        LastWorktreePath = worktreePath;
+        if (Failure is not null)
+            return Task.FromException(new InvalidOperationException(Failure));
+        ResetBranch = branch;
+        Branch = branch;
+        return Task.CompletedTask;
+    }
+
+    public Task StartBranchAsync(string worktreePath, string branch, CancellationToken cancellationToken = default)
+    {
+        LastWorktreePath = worktreePath;
+        StartedBranch = branch;
+        if (Failure is null)
+            Branch = branch;
+        return Failure is null ? Task.CompletedTask : Task.FromException(new InvalidOperationException(Failure));
     }
 
     public Task SwitchBranchAsync(string worktreePath, string name, bool create, CancellationToken cancellationToken = default)

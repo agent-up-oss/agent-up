@@ -24,6 +24,12 @@ public sealed class TaskSourceService(
     IForgeOAuthSettings oauth,
     IForgeOAuthExchange exchange)
 {
+    /// <summary>
+    /// Where the host returns the reader. It is this slice's own callback, on the same Server as
+    /// the forge sign-in's, so the OAuth application registers both redirect URIs.
+    /// </summary>
+    public const string CallbackPath = "/api/task-source/callback";
+
     public TaskSourceSetting? Read() => store.Read();
 
     /// <summary>What the clients draw: the source, whether it can be read, and what is missing.</summary>
@@ -107,7 +113,7 @@ public sealed class TaskSourceService(
                   + separator
                   + "response_type=code"
                   + $"&client_id={Uri.EscapeDataString(configuration.ClientId)}"
-                  + $"&redirect_uri={Uri.EscapeDataString(configuration.RedirectUri)}"
+                  + $"&redirect_uri={Uri.EscapeDataString(configuration.RedirectTo(CallbackPath))}"
                   + $"&state={Uri.EscapeDataString(state)}"
                   + "&scope=repo";
         return new TaskSourceOutcome(StatusCodes.Status200OK, new TaskSourceLoginDto(url));
@@ -130,12 +136,13 @@ public sealed class TaskSourceService(
 
         try
         {
-            var token = await exchange.ExchangeAsync(code, forge.Host.OAuthTokenUrl, cancellationToken);
+            var token = await exchange.ExchangeAsync(code, forge.Host.OAuthTokenUrl, oauth.Read().RedirectTo(CallbackPath), cancellationToken);
             if (string.IsNullOrWhiteSpace(token)) return false;
             credentials.Write(moduleId, token);
             return true;
         }
-        catch (Exception failure) when (failure is HttpRequestException or TaskCanceledException)
+        // The exchange reports a host that refused the code as an invalid operation.
+        catch (Exception failure) when (failure is HttpRequestException or TaskCanceledException or InvalidOperationException)
         {
             return false;
         }

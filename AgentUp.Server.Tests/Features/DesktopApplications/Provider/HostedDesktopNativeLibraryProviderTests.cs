@@ -70,10 +70,10 @@ public sealed class HostedDesktopNativeLibraryProviderTests
     }
 
     [Test, CancelAfter(180000)]
-    public void CreateEnvironment_ResolvesSkiaSharpNativeDependenciesWhenTheServerHasNoInheritedLibraryPath()
+    public async Task CreateEnvironment_ResolvesSkiaSharpNativeDependenciesWhenTheServerHasNoInheritedLibraryPath()
     {
         var repositoryRoot = RequireRepositoryRoot();
-        EnsureLinuxDesktopBuilt(repositoryRoot);
+        await EnsureLinuxDesktopBuiltAsync(repositoryRoot);
         var nativeLibrary = FindLibSkiaSharp(repositoryRoot);
         Assert.That(nativeLibrary, Is.Not.Null, "dotnet build did not produce libSkiaSharp.so.");
 
@@ -95,7 +95,7 @@ public sealed class HostedDesktopNativeLibraryProviderTests
     public async Task PrepareAsync_StartsTheSampleAvaloniaAppWhenTheServerHasNoInheritedLibraryPath()
     {
         var repositoryRoot = RequireRepositoryRoot();
-        EnsureLinuxDesktopBuilt(repositoryRoot);
+        await EnsureLinuxDesktopBuiltAsync(repositoryRoot);
         PreloadHostDisplayLibraries(repositoryRoot);
 
         var displays = new LinuxX11DesktopDisplayProvider(new PngFrameProvider());
@@ -217,7 +217,7 @@ public sealed class HostedDesktopNativeLibraryProviderTests
         || output.Contains("liblibSkiaSharp", StringComparison.Ordinal)
         || output.Contains("Unable to load shared library", StringComparison.OrdinalIgnoreCase);
 
-    private static void EnsureLinuxDesktopBuilt(string repositoryRoot)
+    private static async Task EnsureLinuxDesktopBuiltAsync(string repositoryRoot)
     {
         var nativeLibrary = FindLibSkiaSharp(repositoryRoot);
         var runtimeConfig = Path.Join(
@@ -247,10 +247,13 @@ public sealed class HostedDesktopNativeLibraryProviderTests
 
         using var process = new Process { StartInfo = startInfo! };
         process.Start();
-        var stderr = process.StandardError.ReadToEnd();
-        var stdout = process.StandardOutput.ReadToEnd();
-        process.WaitForExit();
-        Assert.That(process.ExitCode, Is.EqualTo(0), $"{stdout}{stderr}");
+        // Both streams drain at once: reading one to its end first deadlocks as soon as the build
+        // fills the other pipe, and a whole build's output easily does.
+        var stdout = process.StandardOutput.ReadToEndAsync();
+        var stderr = process.StandardError.ReadToEndAsync();
+        await Task.WhenAll(stdout, stderr);
+        await process.WaitForExitAsync();
+        Assert.That(process.ExitCode, Is.EqualTo(0), $"{await stdout}{await stderr}");
     }
 
     private static string? FindLibSkiaSharp(string repositoryRoot)

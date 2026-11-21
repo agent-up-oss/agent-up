@@ -10,8 +10,6 @@ internal sealed class FakeCapabilityModulesApi : ICapabilityModulesApi
 
     public string? EnabledId { get; private set; }
 
-    public string? EnabledVersion { get; private set; }
-
     public string? DisabledId { get; private set; }
 
     public Exception? ListError { get; set; }
@@ -25,13 +23,15 @@ internal sealed class FakeCapabilityModulesApi : ICapabilityModulesApi
             ? Task.FromResult<IReadOnlyList<CapabilityModuleDto>>(Modules)
             : Task.FromException<IReadOnlyList<CapabilityModuleDto>>(ListError);
 
-    public Task<CapabilityModuleDto> EnableAsync(string id, string? version, CancellationToken cancellationToken = default)
+    public List<string> EnabledIds { get; } = [];
+
+    public Task<CapabilityModuleDto> EnableAsync(string id, CancellationToken cancellationToken = default)
     {
         if (EnableError is not null)
             return Task.FromException<CapabilityModuleDto>(EnableError);
 
         EnabledId = id;
-        EnabledVersion = version;
+        EnabledIds.Add(id);
         var enabled = CliDomain.Capability().Named(id).Enabled().Build();
         Replace(enabled);
         return Task.FromResult(enabled);

@@ -73,13 +73,17 @@ public sealed record CommandCenterSceneInput(
     IReadOnlyList<CommandCenterSettingSlot>? ChatSettings = null,
     string? SelectedApplication = null,
     IReadOnlyList<CommandCenterModuleSlot>? Modules = null,
-    IReadOnlyList<CommandCenterApplicationSlot>? Applications = null);
+    IReadOnlyList<CommandCenterApplicationSlot>? Applications = null,
+    IReadOnlyList<CommandCenterTaskSlot>? DevReviews = null,
+    IReadOnlyList<CommandCenterTaskSlot>? PmReviews = null,
+    string TasksTab = "issues");
 
 /// <summary>One application of the open workspace, as its tab shows it.</summary>
 public sealed record CommandCenterApplicationSlot(string Name, bool Running);
 
 /// <summary>One capability module on the Server, as Settings lists it.</summary>
-public sealed record CommandCenterModuleSlot(string Id, string DisplayName, bool Enabled, bool CanRun, string State);
+/// <param name="Available">Whether the Server found the software the capability runs; one that is not offers no Enable.</param>
+public sealed record CommandCenterModuleSlot(string Id, string DisplayName, bool Enabled, bool CanRun, string State, bool Available = true);
 
 /// <summary>Text, repeated rows, and states for one scene. The view applies this and nothing else.</summary>
 public sealed class CommandCenterSceneBinding
@@ -111,6 +115,11 @@ public static class CommandCenterScene
         binding.Items["settingsWorkspaces"] = team.Select(standing => SettingsWorkspace(standing, input.SettingsWorkspaceId ?? input.OpenWorkspaceId)).ToArray();
         binding.Items["fleet"] = Lanes(team).ToArray();
         binding.Items["queue"] = input.Tasks.Select(Task).ToArray();
+        binding.Items["devReview"] = (input.DevReviews ?? []).Select(Task).ToArray();
+        binding.Items["pmReview"] = (input.PmReviews ?? []).Select(Task).ToArray();
+        // The Tasks board shows one of its three queues; the scene marks the tab and the page.
+        binding.State["tasksTab"] = input.TasksTab;
+        binding.State[$"{input.TasksTab}Tab"] = "1";
         binding.Items["flows"] = input.Flows.Select(Flow).ToArray();
         binding.Items["chatFields"] = (input.ChatSettings ?? []).Select(Setting).ToArray();
         binding.Items["modules"] = (input.Modules ?? []).Select(Module).ToArray();
@@ -362,8 +371,11 @@ public static class CommandCenterScene
     private static NewUiSlotItem Module(CommandCenterModuleSlot module) => new()
     {
         Id = module.Id,
-        Action = module.Enabled ? "disable-module" : "enable-module",
-        Parts = new HashSet<string>(StringComparer.Ordinal) { !module.Enabled ? "disabled" : module.CanRun ? "ready" : "blocked" },
+        Action = module.Enabled ? "disable-module" : module.Available ? "enable-module" : "module-unavailable",
+        Parts = new HashSet<string>(StringComparer.Ordinal)
+        {
+            !module.Available || (module.Enabled && !module.CanRun) ? "blocked" : module.Enabled ? "ready" : "disabled"
+        },
         Text = new Dictionary<string, string>(StringComparer.Ordinal) { ["name"] = module.DisplayName, ["why"] = module.State },
     };
 

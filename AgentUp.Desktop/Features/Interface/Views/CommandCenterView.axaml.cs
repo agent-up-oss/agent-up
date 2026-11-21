@@ -27,6 +27,8 @@ public partial class CommandCenterView : UserControl
     private readonly Dictionary<Control, (Panel Parent, int Index)> _homes = new();
     private bool _validationsOpen;
     private string? _runningFlowId;
+    /// <summary>Which of the Tasks board's three queues is open.</summary>
+    private string _tasksTab = "issues";
     private string? _applied;
     private string? _heldScene;
     private string? _heldChrome;
@@ -144,10 +146,13 @@ public partial class CommandCenterView : UserControl
             main.Sidebar.SelectedWorkspace?.Id ?? center.Agent?.WorkspaceId,
             ChatSettingsOf(main.Agent),
             main.Applications.SelectedApplication?.Name,
-            main.Modules?.Modules.Select(module => new CommandCenterModuleSlot(module.Id, module.DisplayName, module.Enabled, module.CanRun, module.StatusLabel)).ToArray(),
+            main.Modules?.Modules.Select(module => new CommandCenterModuleSlot(module.Id, module.DisplayName, module.Enabled, module.CanRun, module.Available ? module.StatusLabel : module.EnableLabel, module.Available)).ToArray(),
             main.Applications.Applications.Select(application => new CommandCenterApplicationSlot(
                 application.Name,
-                string.Equals(application.State, "Running", StringComparison.OrdinalIgnoreCase))).ToArray()));
+                string.Equals(application.State, "Running", StringComparison.OrdinalIgnoreCase))).ToArray(),
+            ReviewsOf(center.Tasks, team, TaskReviewQueue.DevReviewer),
+            ReviewsOf(center.Tasks, team, TaskReviewQueue.PmReviewer),
+            _tasksTab));
         binding.State["chatSettings"] = "1";
         var stamp = Stamp(center.SceneId, binding);
         if (stamp == _applied) return;
@@ -315,6 +320,15 @@ public partial class CommandCenterView : UserControl
                 break;
             case "nav-tasks":
                 center.ShowNav(1);
+                break;
+            case "tasks-issues":
+                ShowTasksTab("issues");
+                break;
+            case "tasks-dev-review":
+                ShowTasksTab("dev");
+                break;
+            case "tasks-pm-review":
+                ShowTasksTab("pm");
                 break;
             case "nav-settings":
                 center.ShowNav(2);
@@ -495,6 +509,18 @@ public partial class CommandCenterView : UserControl
         _validationsOpen = false;
         flow.RunCommand.Execute().Subscribe(_ => Apply());
         Apply();
+    }
+
+    private void ShowTasksTab(string tab)
+    {
+        _tasksTab = tab;
+        Apply();
+    }
+
+    private static IReadOnlyList<CommandCenterTaskSlot> ReviewsOf(TaskQueueViewModel? tasks, IReadOnlyList<TeamStanding> team, string kind)
+    {
+        if (tasks is null) return [];
+        return TaskReviewQueue.Rows(tasks.Tasks, kind, id => team.FirstOrDefault(standing => standing.WorkspaceId == id)?.DisplayName ?? id ?? "");
     }
 
     private static IReadOnlyList<CommandCenterTaskSlot> TasksOf(TaskQueueViewModel? tasks, IReadOnlyList<TeamStanding> team)

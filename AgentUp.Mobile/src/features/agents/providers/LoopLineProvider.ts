@@ -1,4 +1,4 @@
-import type { AgentDescriptor, AgentId, AgentLoopStatus } from '@agent-up/chat';
+import type { AgentDescriptor, AgentId, AgentLoopStatus, ServerAutonomy } from '@agent-up/chat';
 
 export function formatLoopLine(loop: AgentLoopStatus | null | undefined): string | null {
   if (!loop) return null;
@@ -17,4 +17,15 @@ export function boundAgentActionLabel(
     ?? boundAgent;
   const current = currentAgent?.toLowerCase() === boundAgent.toLowerCase();
   return current ? `Open ${displayName}` : `Start ${displayName}`;
+}
+
+/**
+ * The one line Agents shows for the unattended loop, whose checklist and actions live in the
+ * workspace Settings tab. Null when the Server reports no autonomy chain.
+ */
+export function loopSettingsSummary(autonomy: ServerAutonomy | null | undefined): string | null {
+  const items = autonomy?.preconditions ?? [];
+  if (items.length === 0) return null;
+  const open = items.filter(item => !item.satisfied).length;
+  return open === 0 ? 'Unattended loop ready' : `Unattended loop · ${open} of ${items.length} checks open`;
 }

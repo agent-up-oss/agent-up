@@ -117,14 +117,13 @@ public static class CliRunnerFactory
         var capabilitiesApi = new CapabilityModulesApiClient(http);
         var capabilitiesService = new CapabilitiesService(
             capabilitiesApi,
-            new FirstPartyCapabilityPacker(new CapabilityPackProcessRunner()),
             new CapabilitiesArgParser());
         var capabilitiesOutput = new CapabilitiesOutputService(writer);
         var capabilities = new CapabilitiesController(
-            new CapabilitiesListCommand(capabilitiesService, capabilitiesOutput, workingDirectory),
-            new CapabilitiesEnableCommand(capabilitiesService, capabilitiesOutput, workingDirectory),
-            new CapabilitiesDisableCommand(capabilitiesService, capabilitiesOutput, workingDirectory),
-            new CapabilitiesBootstrapCommand(capabilitiesService, capabilitiesOutput, workingDirectory),
+            new CapabilitiesListCommand(capabilitiesService, capabilitiesOutput),
+            new CapabilitiesEnableCommand(capabilitiesService, capabilitiesOutput),
+            new CapabilitiesDisableCommand(capabilitiesService, capabilitiesOutput),
+            new CapabilitiesBootstrapCommand(capabilitiesService, capabilitiesOutput),
             capabilitiesOutput);
 
         var verification = new VerificationController(

@@ -14,36 +14,30 @@ if ! command -v docker >/dev/null 2>&1; then
   exit 1
 fi
 
-# Agent CLIs are capability packages. Do not let shell.nix download Cursor/Codex/Claude
-# as a side effect of the Linux fixture importing native libraries.
+# This job enables only the dotnet and docker capabilities. Do not let shell.nix download the
+# Cursor/Codex/Claude ACP adapters as a side effect of the Linux fixture importing native libraries.
 export AGENTUP_SKIP_DEV_AGENT_BOOTSTRAP=1
-
-registry="${AGENTUP_CAPABILITY_REGISTRY_PATH:-$root/.agent-up-dev/capability-registry}"
-./scripts/pack-first-party-capabilities.sh "$registry"
-export AGENTUP_CAPABILITY_REGISTRY_PATH="$registry"
 
 results="artifacts/test-results/runtime-capability-e2e"
 mkdir -p "$results"
 
-# Every wrapped launch enters the packed nix-shell, and on a cold runner the first one pays for
-# the nixpkgs tarball and the whole SDK closure. The workspace starts its applications together,
-# so the rest then queue on that one fetch rather than installing. Realise the two shells this
-# test enables now, in the background, so the download overlaps the Release build that dotnet
-# test does before its first assertion. A failure here is not fatal: the launch would do the
-# same work itself, only later.
+# Every wrapped launch enters the capability's pinned nix-shell, and on a cold runner the first
+# one pays for the nixpkgs tarball and the whole SDK closure. The workspace starts its applications
+# together, so the rest then queue on that one fetch rather than installing. Realise the closure the
+# dotnet and docker capabilities deliver now, in the background, so the download overlaps the
+# Release build that dotnet test does before its first assertion. The pin and the package names
+# are the ones FirstPartyNixPin and the two capabilities declare. A failure here is not fatal: the
+# launch would do the same work itself, only later.
 prewarm_log="$results/nix-prewarm.log"
 prewarm_pid=""
 if command -v nix-shell >/dev/null 2>&1; then
+  rev="$(sed -n 's/.*public const string Rev = "\([0-9a-f]*\)";.*/\1/p' AgentUp.Capabilities.Common/Features/NixRuntime/Models/FirstPartyNixPin.cs)"
   (
-    for module in dotnet docker; do
-      for shell_nix in "$registry"/packages/"$module"/*/default.nix; do
-        echo "prewarming $shell_nix"
-        nix-shell "$shell_nix" --run true
-      done
-    done
+    echo "prewarming nixpkgs $rev: dotnet-sdk_10 icu openssl docker"
+    nix-shell -E "with import (builtins.fetchTarball \"https://github.com/NixOS/nixpkgs/archive/$rev.tar.gz\") {}; mkShellNoCC { packages = [ dotnet-sdk_10 icu openssl.out docker ]; }" --run true
   ) >"$prewarm_log" 2>&1 &
   prewarm_pid=$!
-  echo "Warming the packed dotnet and docker shells in the background (log: $prewarm_log)."
+  echo "Warming the pinned dotnet and docker closure in the background (log: $prewarm_log)."
 fi
 
 docker pull postgres:16

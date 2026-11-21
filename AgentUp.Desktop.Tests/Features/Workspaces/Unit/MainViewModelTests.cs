@@ -338,6 +338,37 @@ public class MainViewModelTests
     }
 
     [Test]
+    public async Task OpenWorkspaceSettings_showsSettingsAndKeepsTheAgentLive()
+    {
+        var vm = CreateVm(FakeWorkspaceClient([DesktopDomain.WorkspaceServing(3000).Build()]));
+        await vm.InitializeAsync();
+        vm.SelectedShellTab = WorkspaceShellTab.Agent;
+
+        await vm.OpenWorkspaceSettingsCommand.Execute().FirstAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(vm.SelectedShellTab, Is.EqualTo(WorkspaceShellTab.Settings));
+            Assert.That(vm.ShowWorkspaceSettings, Is.True);
+            Assert.That(vm.ShowAgent, Is.False);
+            Assert.That(vm.Agent.IsVisible, Is.True, "Settings hosts the agent's loop checklist, so the agent stays live there.");
+            Assert.That(vm.SelectedShellTabItem?.AutomationId, Is.EqualTo(DesktopAutomationIds.ShellTabSettings));
+        });
+    }
+
+    [Test]
+    public async Task StartingTheBoundAgentFromSettings_returnsToTheConversation()
+    {
+        var vm = CreateVm(FakeWorkspaceClient([DesktopDomain.WorkspaceServing(3000).Build()]));
+        await vm.InitializeAsync();
+        await vm.OpenWorkspaceSettingsCommand.Execute().FirstAsync();
+
+        await vm.Agent.StartBoundCommand.Execute().FirstAsync();
+
+        Assert.That(vm.SelectedShellTab, Is.EqualTo(WorkspaceShellTab.Agent));
+    }
+
+    [Test]
     public async Task SelectingAnApplicationTab_showsApplicationContentWithoutClearingSelectionOnShellTabs()
     {
         var dto = DesktopDomain.WorkspaceServing(3000).Build();
@@ -375,7 +406,7 @@ public class MainViewModelTests
             Assert.That(vm.ShowValidation, Is.False);
             Assert.That(vm.IsValidationOpen, Is.False);
             Assert.That(vm.Validation!.IsCollapsed, Is.True);
-            Assert.That(vm.ShellTabs.Select(tab => tab.Label), Is.EqualTo(new[] { "Overview", "Agent", "Git" }));
+            Assert.That(vm.ShellTabs.Select(tab => tab.Label), Is.EqualTo(new[] { "Overview", "Agent", "Git", "Settings" }));
         });
 
         vm.SelectedShellTab = WorkspaceShellTab.Application;

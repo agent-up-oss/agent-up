@@ -16,6 +16,7 @@ public static class TestAgentCommandParser
     public const string LocalInferenceName = "test-agent-infer";
     public const string ScriptedName = "test-agent-scripted";
     public const string IdentityProviderName = "test-idp";
+    public const string ModelServerName = "test-model-server";
 
     public static TestAgentCommand Parse(string programName, IReadOnlyList<string> arguments)
     {
@@ -27,7 +28,8 @@ public static class TestAgentCommandParser
             verb,
             ReadOption(arguments, "--idp") ?? Environment.GetEnvironmentVariable("AGENTUP_TEST_IDP_URL"),
             ReadPort(arguments),
-            ReadOption(arguments, "--public-origin") ?? Environment.GetEnvironmentVariable("AGENTUP_TEST_IDP_PUBLIC_ORIGIN"));
+            ReadOption(arguments, "--public-origin") ?? Environment.GetEnvironmentVariable("AGENTUP_TEST_IDP_PUBLIC_ORIGIN"),
+            ReadApiKey(arguments));
     }
 
     /// <summary>
@@ -52,9 +54,10 @@ public static class TestAgentCommandParser
         if (name.StartsWith(SilentPollName, StringComparison.Ordinal)) return TestAgentSchema.SilentPoll;
         if (name.StartsWith(LocalInferenceName, StringComparison.Ordinal)) return TestAgentSchema.LocalInference;
         if (name.StartsWith(ScriptedName, StringComparison.Ordinal)) return TestAgentSchema.Scripted;
+        if (name.StartsWith(ModelServerName, StringComparison.Ordinal)) return TestAgentSchema.ModelServer;
         if (name.StartsWith(IdentityProviderName, StringComparison.Ordinal)) return TestAgentSchema.DeviceCode;
         throw new InvalidOperationException(
-            $"'{programName}' is not a test agent. Publish it as {LoopbackRedirectName}, {DeviceCodeName}, {PastedCodeName}, {SilentPollName}, {LocalInferenceName}, {ScriptedName}, or {IdentityProviderName}.");
+            $"'{programName}' is not a test agent. Publish it as {LoopbackRedirectName}, {DeviceCodeName}, {PastedCodeName}, {SilentPollName}, {LocalInferenceName}, {ScriptedName}, {ModelServerName}, or {IdentityProviderName}.");
     }
 
     internal static TestAgentVerb ReadVerb(IReadOnlyList<string> arguments)
@@ -76,6 +79,13 @@ public static class TestAgentCommandParser
     {
         var value = ReadOption(arguments, "--port") ?? Environment.GetEnvironmentVariable("AGENTUP_TEST_IDP_PORT");
         return int.TryParse(value, out var port) && port is > 0 and <= 65535 ? port : 0;
+    }
+
+    /// <summary>The model server's required bearer token, from <c>--api-key</c> or <c>AGENTUP_TEST_MODEL_API_KEY</c>.</summary>
+    internal static string? ReadApiKey(IReadOnlyList<string> arguments)
+    {
+        var value = ReadOption(arguments, "--api-key") ?? Environment.GetEnvironmentVariable("AGENTUP_TEST_MODEL_API_KEY");
+        return string.IsNullOrWhiteSpace(value) ? null : value;
     }
 
     internal static string? ReadOption(IReadOnlyList<string> arguments, string name)

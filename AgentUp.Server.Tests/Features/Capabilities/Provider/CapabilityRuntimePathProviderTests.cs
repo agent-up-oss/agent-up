@@ -6,36 +6,44 @@ namespace AgentUp.Server.Tests.Features.Capabilities.Provider;
 public sealed class CapabilityRuntimePathProviderTests
 {
     [Test]
-    public void Directories_includes_package_bin_and_registry_sibling_bins()
+    public void Directories_are_the_dev_root_bins_that_exist()
     {
-        var root = Directory.CreateTempSubdirectory("agent-up-runtime-path");
+        var root = Directory.CreateTempSubdirectory("agent-up-dev-root");
         try
         {
-            var registry = Path.Join(root.FullName, "capability-registry");
-            var packageBin = Path.Join(root.FullName, "packages", "codex", "1.0.0", "bin");
+            var bin = Path.Join(root.FullName, "bin");
             var npmBin = Path.Join(root.FullName, "npm", "node_modules", ".bin");
-            Directory.CreateDirectory(packageBin);
+            Directory.CreateDirectory(bin);
             Directory.CreateDirectory(npmBin);
 
-            var directories = new CapabilityRuntimePathProvider()
-                .Directories(registry, [Path.GetDirectoryName(packageBin)!]);
+            var provider = new CapabilityRuntimePathProvider(root.FullName);
 
-            Assert.That(directories, Does.Contain(packageBin));
-            Assert.That(directories, Does.Contain(npmBin));
+            Assert.That(provider.Directories(), Is.EqualTo(new[] { bin, npmBin }));
+            Assert.That(provider.DevRoot, Is.EqualTo(root.FullName));
         }
         finally { root.Delete(true); }
     }
 
     [Test]
-    public void DevRoot_is_the_registry_parent_when_dev_bins_exist()
+    public void A_missing_dev_root_adds_nothing()
     {
-        var root = Directory.CreateTempSubdirectory("agent-up-runtime-root");
+        var provider = new CapabilityRuntimePathProvider(Path.Join(Path.GetTempPath(), "agent-up-absent-" + Guid.NewGuid().ToString("N")));
+
+        Assert.That(provider.DevRoot, Is.Null);
+        Assert.That(provider.Directories(), Is.Empty);
+    }
+
+    [Test]
+    public void Resolve_finds_the_nearest_dev_root_above_a_search_root()
+    {
+        var root = Directory.CreateTempSubdirectory("agent-up-dev-walk");
         try
         {
-            var registry = Path.Join(root.FullName, "capability-registry");
-            Directory.CreateDirectory(Path.Join(root.FullName, "bin"));
+            var devRoot = Directory.CreateDirectory(Path.Join(root.FullName, ".agent-up-dev")).FullName;
+            var nested = Directory.CreateDirectory(Path.Join(root.FullName, "AgentUp.Server", "bin")).FullName;
 
-            Assert.That(new CapabilityRuntimePathProvider().DevRoot(registry), Is.EqualTo(root.FullName));
+            Assert.That(CapabilityRuntimePathProvider.Resolve(null, nested), Is.EqualTo(devRoot));
+            Assert.That(CapabilityRuntimePathProvider.Resolve("/opt/dev", nested), Is.EqualTo(Path.GetFullPath("/opt/dev")));
         }
         finally { root.Delete(true); }
     }

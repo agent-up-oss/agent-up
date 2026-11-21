@@ -1,6 +1,7 @@
 using AgentUp.Desktop.Features.Capabilities.DTOs;
 using AgentUp.Desktop.Features.Capabilities.Interfaces;
 using AgentUp.Desktop.Features.Capabilities.Services;
+using AgentUp.Desktop.Tests.Support;
 
 namespace AgentUp.Desktop.Tests.Features.Capabilities.Unit;
 
@@ -22,16 +23,26 @@ public sealed class CapabilityModulesCatalogServiceTests
     }
 
     [Test]
-    public async Task EnableAsync_forwardsThePackageIdentity()
+    public async Task EnableAsync_forwardsTheCapabilityId()
     {
         var client = new FakeCapabilityModulesApiProvider { Modules = [DotnetModule(enabled: false)] };
         var service = new CapabilityModulesCatalogService(client);
 
-        var enabled = await service.EnableAsync("dotnet", "1.0.0");
+        var enabled = await service.EnableAsync("dotnet");
 
         Assert.That(enabled.Enabled, Is.True);
         Assert.That(client.EnabledId, Is.EqualTo("dotnet"));
-        Assert.That(client.EnabledVersion, Is.EqualTo("1.0.0"));
+    }
+
+    [Test]
+    public async Task UpdateSettingsAsync_forwardsOnlyTheGivenValues()
+    {
+        var client = new FakeCapabilityModulesApiProvider();
+
+        await new CapabilityModulesCatalogService(client).UpdateSettingsAsync("opencode", new Dictionary<string, string> { ["endpoint"] = "http://a.test" });
+
+        Assert.That(client.SavedId, Is.EqualTo("opencode"));
+        Assert.That(client.SavedValues!["endpoint"], Is.EqualTo("http://a.test"));
     }
 
     [Test]
@@ -46,7 +57,7 @@ public sealed class CapabilityModulesCatalogServiceTests
     }
 
     internal static CapabilityModuleDto DotnetModule(bool enabled)
-        => new("dotnet", "1.0.0", ".NET", "agent-up", "runtime", enabled, enabled ? "ready" : "disabled", enabled, enabled ? [] : ["not enabled"]);
+        => enabled ? DesktopDomain.Capability().Enabled().Build() : DesktopDomain.Capability().Build();
 }
 
 internal sealed class FakeCapabilityModulesApiProvider : ICapabilityModulesApiProvider
@@ -57,7 +68,9 @@ internal sealed class FakeCapabilityModulesApiProvider : ICapabilityModulesApiPr
 
     public string? EnabledId { get; private set; }
 
-    public string? EnabledVersion { get; private set; }
+    public string? SavedId { get; private set; }
+
+    public IReadOnlyDictionary<string, string>? SavedValues { get; private set; }
 
     public string? DisabledId { get; private set; }
 
@@ -67,10 +80,9 @@ internal sealed class FakeCapabilityModulesApiProvider : ICapabilityModulesApiPr
         return Task.FromResult(Modules);
     }
 
-    public Task<CapabilityModuleDto> EnableAsync(string id, string? version, CancellationToken cancellationToken = default)
+    public Task<CapabilityModuleDto> EnableAsync(string id, CancellationToken cancellationToken = default)
     {
         EnabledId = id;
-        EnabledVersion = version;
         return Task.FromResult(CapabilityModulesCatalogServiceTests.DotnetModule(true));
     }
 
@@ -78,5 +90,15 @@ internal sealed class FakeCapabilityModulesApiProvider : ICapabilityModulesApiPr
     {
         DisabledId = id;
         return Task.FromResult(CapabilityModulesCatalogServiceTests.DotnetModule(false));
+    }
+
+    public Task<CapabilityModuleDto> UpdateSettingsAsync(
+        string id,
+        IReadOnlyDictionary<string, string> values,
+        CancellationToken cancellationToken = default)
+    {
+        SavedId = id;
+        SavedValues = values;
+        return Task.FromResult(CapabilityModulesCatalogServiceTests.DotnetModule(true));
     }
 }

@@ -85,9 +85,9 @@ programs.agent-up.enable = true;
 
 Home Manager also registers a `systemd --user` service named `agent-up-server.service` by default, so a Home Manager-only install has a local Server for Desktop and CLI. Set `programs.agent-up.server.enable = false` if the Server is already provided by the NixOS module.
 
-Home Manager installs can declare enabled packages with `programs.agent-up.capabilities` using the same shape. The generated `enabled.json` seeds Server enablement.
+Home Manager installs can declare enabled capabilities with `programs.agent-up.capabilities` using the same shape. The generated `enabled.json` seeds Server enablement.
 
-The Nix package includes `agent-up-installer`. On NixOS this opens the same dashboard used on other platforms, but it is lookup-only: it shows installed Agent-Up commands. Enable capability packages through Server APIs or NixOS/Home Manager `capabilities` seeds, not installer zip-modules.
+The Nix package includes `agent-up-installer`. On NixOS this opens the same dashboard used on other platforms, but it is lookup-only: it shows installed Agent-Up commands. Capabilities are built into the Server; enable them from Settings, the CLI, or NixOS/Home Manager `capabilities` seeds, not installer zip-modules.
 
 The tarball also exports `packages.x86_64-linux.agent-up`, `packages.x86_64-linux.default`, and `overlays.default`.
 

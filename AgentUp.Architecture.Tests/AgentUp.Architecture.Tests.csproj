@@ -26,7 +26,6 @@
     <ProjectReference Include="..\AgentUp.Desktop\AgentUp.Desktop.csproj" />
     <ProjectReference Include="..\AgentUp.InstallerApp\AgentUp.InstallerApp.csproj" />
     <ProjectReference Include="..\AgentUp.Server\AgentUp.Server.csproj" />
-    <ProjectReference Include="..\AgentUp.Registry\AgentUp.Registry.csproj" />
     <ProjectReference Include="..\AgentUp.Sdk.Common\AgentUp.Sdk.Common.csproj" />
     <ProjectReference Include="..\AgentUp.Sdk.Runtime\AgentUp.Sdk.Runtime.csproj" />
     <ProjectReference Include="..\AgentUp.Sdk.Agent\AgentUp.Sdk.Agent.csproj" />
@@ -36,6 +35,7 @@
     <ProjectReference Include="..\AgentUp.Capabilities.Codex\AgentUp.Capabilities.Codex.csproj" />
     <ProjectReference Include="..\AgentUp.Capabilities.Cursor\AgentUp.Capabilities.Cursor.csproj" />
     <ProjectReference Include="..\AgentUp.Capabilities.Claude\AgentUp.Capabilities.Claude.csproj" />
+    <ProjectReference Include="..\AgentUp.Capabilities.Opencode\AgentUp.Capabilities.Opencode.csproj" />
     <ProjectReference Include="..\AgentUp.Capabilities.Github\AgentUp.Capabilities.Github.csproj" />
     <ProjectReference Include="..\AgentUp.Capabilities.Forgejo\AgentUp.Capabilities.Forgejo.csproj" />
     <ProjectReference Include="..\AgentUp.TestAgents\AgentUp.TestAgents.csproj" />

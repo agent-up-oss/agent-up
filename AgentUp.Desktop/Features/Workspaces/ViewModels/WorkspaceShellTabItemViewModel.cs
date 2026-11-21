@@ -13,6 +13,7 @@ public sealed class WorkspaceShellTabItemViewModel(WorkspaceShellTab kind, strin
         WorkspaceShellTab.Overview => DesktopAutomationIds.ShellTabOverview,
         WorkspaceShellTab.Agent => DesktopAutomationIds.ShellTabAgent,
         WorkspaceShellTab.Git => DesktopAutomationIds.ShellTabGit,
+        WorkspaceShellTab.Settings => DesktopAutomationIds.ShellTabSettings,
         _ => $"shell.tab.{Kind}".ToLowerInvariant()
     };
 }

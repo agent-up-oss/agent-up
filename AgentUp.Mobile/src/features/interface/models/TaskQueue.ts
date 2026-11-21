@@ -13,7 +13,27 @@ export type QueuedTask = {
   targetWorkspaceId: string | null;
   /** The workspace carrying it, or null while it is still free. */
   heldByWorkspaceId: string | null;
+  /** Where it is between author and reviewers; absent from Servers that predate stages. */
+  stage?: TaskStage;
+  proposal?: TaskProposal | null;
+  reviews?: TaskReview[] | null;
+  /** The dev reviewer that holds this task's review for every revision, once one took it. */
+  devReviewerWorkspaceId?: string | null;
+  /** The product reviewer that holds it the same way. */
+  pmReviewerWorkspaceId?: string | null;
+  /** The kinds of review the open revision still waits on. */
+  needsReview?: ReviewKind[] | null;
 };
+
+export type TaskStage = 'queued' | 'implementing' | 'inReview' | 'changesRequested' | 'approved';
+
+export type ReviewKind = 'devReviewer' | 'pmReviewer';
+
+/** The proposal an author's work became; each push is the next revision. */
+export type TaskProposal = { number: string; url: string; branch: string; baseBranch: string; revision: number; head?: string | null };
+
+/** One reviewer's verdict on one revision. */
+export type TaskReview = { workspaceId: string; verdict: 'approve' | 'requestChanges' | 'comment'; revision: number; body: string; kind?: ReviewKind };
 
 /** An open issue on a workspace's repository, offered for picking. */
 export type OfferedIssue = {

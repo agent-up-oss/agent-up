@@ -6,6 +6,9 @@ namespace AgentUp.Server.Features.Forge.Controllers;
 
 public sealed class ForgeController(ForgeService service)
 {
+    /// <summary>The only branches the Server pushes on a team member's behalf.</summary>
+    public const string TaskBranchPrefix = ForgeService.TaskBranchPrefix;
+
     public Task<ForgeHostingDto?> GetHostingAsync(string workspaceId, CancellationToken cancellationToken = default)
         => service.GetHostingAsync(workspaceId, cancellationToken);
 
@@ -24,6 +27,9 @@ public sealed class ForgeController(ForgeService service)
     public Task<bool> CompleteGithubInstallationAsync(
         string key, long installationId, CancellationToken cancellationToken = default)
         => service.CompleteGithubInstallationAsync(key, installationId, cancellationToken);
+
+    public Task<ForgeHttpOutcome> CompleteLoginOutcomeAsync(string code, string state, CancellationToken cancellationToken = default)
+        => service.CompleteLoginOutcomeAsync(code, state, cancellationToken);
 
     public Task<bool> CompleteLoginAsync(string code, string state, CancellationToken cancellationToken = default)
         => service.CompleteLoginAsync(code, state, cancellationToken);
@@ -62,6 +68,27 @@ public sealed class ForgeController(ForgeService service)
     public Task CommentAsync(string workspaceId, ForgeCommentRequest command, CancellationToken cancellationToken = default)
         => service.CommentAsync(workspaceId, command, cancellationToken);
 
-    public Task SubmitReviewAsync(string workspaceId, ForgeReviewRequest command, CancellationToken cancellationToken = default)
+    public Task<ForgeTransferOutcome> PushTaskBranchAsync(string workspaceId, string branch, CancellationToken cancellationToken = default)
+        => service.PushTaskBranchAsync(workspaceId, branch, cancellationToken);
+
+    public Task<ForgeTransferOutcome> FetchBranchesAsync(string workspaceId, IReadOnlyList<string> branches, CancellationToken cancellationToken = default)
+        => service.FetchBranchesAsync(workspaceId, branches, cancellationToken);
+
+    public Task<ForgeReviewOutcome> SubmitReviewAsync(string workspaceId, ForgeReviewRequest command, CancellationToken cancellationToken = default)
         => service.SubmitReviewAsync(workspaceId, command, cancellationToken);
+
+    public Task<ForgeAccountDto?> ReadAccountAsync(string workspaceId, CancellationToken cancellationToken = default)
+        => service.ReadAccountAsync(workspaceId, cancellationToken);
+
+    public Task<ForgeTaskFeedbackDto?> ReadFeedbackAsync(string workspaceId, string branch, CancellationToken cancellationToken = default)
+        => service.ReadFeedbackAsync(workspaceId, branch, cancellationToken);
+
+    public Task<bool> AssignIssueAsync(string workspaceId, int issueNumber, string login, CancellationToken cancellationToken = default)
+        => service.AssignIssueAsync(workspaceId, issueNumber, login, cancellationToken);
+
+    public Task<bool> RequestReviewAsync(string workspaceId, string proposalNumber, string login, CancellationToken cancellationToken = default)
+        => service.RequestReviewAsync(workspaceId, proposalNumber, login, cancellationToken);
+
+    public Task<string?> AttachAsync(string workspaceId, string number, string fileName, string contentType, byte[] content, CancellationToken cancellationToken = default)
+        => service.AttachAsync(workspaceId, number, fileName, contentType, content, cancellationToken);
 }

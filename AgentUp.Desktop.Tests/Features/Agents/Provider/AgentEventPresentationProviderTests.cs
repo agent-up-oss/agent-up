@@ -17,12 +17,40 @@ public sealed class AgentEventPresentationProviderTests
     }
 
     [Test]
-    public void RunSummary_namesToolsAndThoughts()
+    public void Present_readsWhatAToolReturnedBeyondItsVisibleContent()
     {
-        Assert.That(AgentEventPresentationProvider.RunSummary([]), Is.EqualTo("Worked"));
-        Assert.That(AgentEventPresentationProvider.RunSummary(["Agent"]), Is.EqualTo("Worked"));
-        Assert.That(AgentEventPresentationProvider.RunSummary(["Thought", "Tool", "Tool", "Agent"]), Is.EqualTo("Worked · 2 tools · Thought"));
-        Assert.That(AgentEventPresentationProvider.RunSummary(["Tool"]), Is.EqualTo("Worked · 1 tool"));
+        var unified = Present("""{"sessionUpdate":"tool_call_update","toolCallId":"t1","status":"completed","rawOutput":{"output":"Edit applied.","metadata":{"diff":"@@ -1 +1 @@\n-a\n+b"}}}""");
+        var snippet = Present("""{"sessionUpdate":"tool_call_update","toolCallId":"t2","status":"completed","content":[{"type":"content","content":{"type":"text","text":"ok"}},{"type":"diff","path":"/repo/a.ts","oldText":"a","newText":"b"}]}""");
+        var plain = Present("""{"sessionUpdate":"tool_call_update","toolCallId":"t3","status":"completed","rawOutput":"file text","content":"not a list"}""");
+        var other = Present("""{"sessionUpdate":"tool_call_update","toolCallId":"t4","status":"completed","rawOutput":42}""");
+
+        Assert.That((unified.RawOutput, unified.UnifiedDiff), Is.EqualTo(("Edit applied.", "@@ -1 +1 @@\n-a\n+b")));
+        Assert.That((snippet.DiffPath, snippet.DiffOldText, snippet.DiffNewText), Is.EqualTo(("/repo/a.ts", "a", "b")));
+        Assert.That((plain.RawOutput, plain.DiffPath), Is.EqualTo(("file text", (string?)null)));
+        Assert.That(other.RawOutput, Is.Null, "Raw output that is neither text nor an object with text says nothing.");
+    }
+
+    [TestCase("Thought", null, "thought")]
+    [TestCase("Tool", "edit", "edit")]
+    [TestCase("Tool", "delete", "edit")]
+    [TestCase("Tool", "read", "read")]
+    [TestCase("Tool", "search", "search")]
+    [TestCase("Tool", "execute", "tool")]
+    [TestCase("Plan", null, "other")]
+    public void WorkKind_namesWhatAStepCountsAs(string role, string? toolKind, string expected)
+    {
+        Assert.That(AgentEventPresentationProvider.WorkKind(role, toolKind), Is.EqualTo(expected));
+    }
+
+    [Test]
+    public void WorkSummary_countsEachKindInReadingOrderAndNamesFailures()
+    {
+        Assert.That(AgentEventPresentationProvider.WorkSummary([], null, 0), Is.EqualTo("Worked"));
+        Assert.That(AgentEventPresentationProvider.WorkSummary(["other"], null, 0), Is.EqualTo("Worked"));
+        Assert.That(
+            AgentEventPresentationProvider.WorkSummary(["thought", "read", "edit", "read", "tool", "search", "edit", "thought"], "57s", 0),
+            Is.EqualTo("Worked for 57s · 2 edits, 2 reads, 1 search, 2 thoughts, 1 tool call"));
+        Assert.That(AgentEventPresentationProvider.WorkSummary(["tool", "tool"], "9s", 1), Is.EqualTo("Worked for 9s · 2 tool calls · 1 failed"));
     }
 
     [Test]

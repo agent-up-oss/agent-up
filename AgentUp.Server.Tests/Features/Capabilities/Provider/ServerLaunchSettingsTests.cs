@@ -6,7 +6,7 @@ namespace AgentUp.Server.Tests.Features.Capabilities.Provider;
 public sealed class ServerLaunchSettingsTests
 {
     [Test]
-    public void Repository_profile_uses_the_agent_up_dev_capability_registry()
+    public void Repository_profile_seeds_the_enabled_set_from_agent_up_dev_and_names_no_registry()
     {
         var json = File.ReadAllText(LaunchSettingsPath());
         using var document = JsonDocument.Parse(json);
@@ -14,9 +14,7 @@ public sealed class ServerLaunchSettingsTests
         var environment = http.GetProperty("environmentVariables");
 
         Assert.That(http.GetProperty("workingDirectory").GetString(), Is.EqualTo(".."));
-        Assert.That(
-            environment.GetProperty("AGENTUP_CAPABILITY_REGISTRY_PATH").GetString(),
-            Is.EqualTo(".agent-up-dev/capability-registry"));
+        Assert.That(environment.TryGetProperty("AGENTUP_CAPABILITY_REGISTRY_PATH", out _), Is.False);
         Assert.That(
             environment.GetProperty("AGENTUP_CAPABILITY_ENABLED_PATH").GetString(),
             Is.EqualTo(".agent-up-dev/enabled.json"));

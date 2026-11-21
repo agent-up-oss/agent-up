@@ -1,4 +1,6 @@
+using System.Text.Json;
 using AgentUp.Server.Features.Forge.Interfaces;
+using AgentUp.Server.Features.Forge.Models;
 
 namespace AgentUp.Server.Features.Forge.Providers;
 
@@ -19,17 +21,63 @@ public sealed class ForgeCredentialStore : IForgeCredentialStore
 
     public void Write(string workspaceId, string moduleId, string token)
     {
-        var path = PathFor(workspaceId, moduleId);
-        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        File.WriteAllText(path, token);
+        WriteSecret(PathFor(workspaceId, moduleId), token);
+        // A token written on its own replaces any earlier grant, so a stale refresh token is never paired with it.
+        Remove(RefreshPathFor(workspaceId, moduleId));
     }
 
     public void Delete(string workspaceId, string moduleId)
     {
-        var path = PathFor(workspaceId, moduleId);
+        Remove(PathFor(workspaceId, moduleId));
+        Remove(RefreshPathFor(workspaceId, moduleId));
+    }
+
+    public ForgeOAuthGrant? ReadGrant(string workspaceId, string moduleId)
+    {
+        var token = Read(workspaceId, moduleId);
+        if (token is null)
+            return null;
+        var refreshPath = RefreshPathFor(workspaceId, moduleId);
+        if (!File.Exists(refreshPath))
+            return new ForgeOAuthGrant(token, null, null);
+        try
+        {
+            var refresh = JsonSerializer.Deserialize<ForgeStoredRefresh>(File.ReadAllText(refreshPath));
+            return new ForgeOAuthGrant(token, refresh?.RefreshToken, refresh?.ExpiresAt);
+        }
+        catch (JsonException)
+        {
+            return new ForgeOAuthGrant(token, null, null);
+        }
+    }
+
+    public void WriteGrant(string workspaceId, string moduleId, ForgeOAuthGrant grant)
+    {
+        WriteSecret(PathFor(workspaceId, moduleId), grant.AccessToken);
+        var refreshPath = RefreshPathFor(workspaceId, moduleId);
+        if (grant.RefreshToken is null)
+            Remove(refreshPath);
+        else
+            WriteSecret(refreshPath, JsonSerializer.Serialize(new ForgeStoredRefresh(grant.RefreshToken, grant.ExpiresAt)));
+    }
+
+    /// <summary>Credentials are readable by the Server's own user only.</summary>
+    private static void WriteSecret(string path, string value)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+        File.WriteAllText(path, value);
+        if (!OperatingSystem.IsWindows())
+            File.SetUnixFileMode(path, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+    }
+
+    private static void Remove(string path)
+    {
         if (File.Exists(path))
             File.Delete(path);
     }
+
+    private string RefreshPathFor(string workspaceId, string moduleId) => PathFor(workspaceId, moduleId) + ".refresh";
+
 
     private string PathFor(string workspaceId, string moduleId)
     {

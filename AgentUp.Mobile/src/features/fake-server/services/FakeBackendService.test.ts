@@ -57,8 +57,38 @@ test('binding records the workspace agent', () => {
   assert.equal(unbound.boundAgent, null);
 });
 
-test('agent prompts add a working-tree file and say so', () => {
-  const service = backend();
+test('an author plays the Demo agent run at its own pace and then ends the turn', () => {
+  const { service, step } = queuedBackend();
+  const updates: string[] = [];
+  const types: string[] = [];
+  const unsubscribe = service.subscribeAgent('bob', event => {
+    types.push(event.type);
+    const update = event.payload as { sessionUpdate?: string };
+    if (update?.sessionUpdate) updates.push(update.sessionUpdate);
+  });
+  const result = service.handle({
+    method: 'POST',
+    path: '/api/workspaces/bob/agent/messages',
+    query: '',
+    body: JSON.stringify({ message: 'add the weekly harbor special' }),
+  });
+  const beforePlayback = updates.length;
+  const stateWhilePlaying = json(service, 'GET', '/api/workspaces/bob/agent').state;
+  for (let index = 0; index < 500 && !types.includes('prompt_result'); index += 1) step();
+  unsubscribe();
+  const changes = json(service, 'GET', '/api/workspaces/bob/git/changes');
+  assert.equal(result.status, 204);
+  assert.equal(beforePlayback, 0, 'nothing of the run arrives before its first delay');
+  assert.equal(stateWhilePlaying, 'running');
+  assert.equal(json(service, 'GET', '/api/workspaces/bob/agent').state, 'ready');
+  assert.ok(updates.filter(update => update === 'tool_call').length >= 10, 'the run reads, edits and runs tests');
+  assert.ok(updates.includes('agent_thought_chunk'));
+  assert.deepEqual(types.slice(-2), ['prompt_result', 'state']);
+  assert.equal(changes.fileCount, 3);
+});
+
+test('a message sent while the Demo run plays steers it instead of starting a second run', () => {
+  const { service, step } = queuedBackend();
   const types: string[] = [];
   const texts: string[] = [];
   const unsubscribe = service.subscribeAgent('bob', event => {
@@ -66,19 +96,18 @@ test('agent prompts add a working-tree file and say so', () => {
     const payload = event.payload as { content?: { text?: string } };
     if (payload?.content?.text) texts.push(payload.content.text);
   });
-  const result = service.handle({
-    method: 'POST',
-    path: '/api/workspaces/bob/agent/messages',
-    query: '',
-    body: JSON.stringify({ message: 'add a promo banner' }),
+  const send = (message: string) => service.handle({
+    method: 'POST', path: '/api/workspaces/bob/agent/messages', query: '', body: JSON.stringify({ message }),
   });
+  send('add the weekly harbor special');
+  step();
+  const steer = send('keep the price struck through');
+  for (let index = 0; index < 500 && !types.includes('prompt_result'); index += 1) step();
   unsubscribe();
-  const changes = json(service, 'GET', '/api/workspaces/bob/git/changes');
-  assert.equal(result.status, 204);
-  assert.ok(types.includes('user_message'));
-  assert.ok(types.includes('session_update'));
-  assert.match(texts.join('\n'), /PromoBanner/);
-  assert.equal(changes.fileCount, 3);
+  assert.equal(steer.status, 204);
+  assert.equal(types.filter(type => type === 'prompt_result').length, 1, 'one turn, not two');
+  assert.equal(types.filter(type => type === 'user_message').length, 2);
+  assert.match(texts.at(-1) ?? '', /keep the price struck through/);
 });
 
 test('application tickets serve interactive storefront HTML', () => {
@@ -98,10 +127,28 @@ test('capability modules list first-party packages and toggle', () => {
   const listed = json(service, 'GET', '/api/capabilities');
   const disabled = json(service, 'POST', '/api/capabilities/disable/dotnet');
   const enabled = json(service, 'POST', '/api/capabilities/enable', JSON.stringify({ id: 'dotnet' }));
-  assert.deepEqual(listed.map((item: { id: string }) => item.id), ['dotnet', 'docker', 'codex', 'cursor', 'claude']);
+  assert.deepEqual(listed.map((item: { id: string }) => item.id), ['dotnet', 'docker', 'codex', 'cursor', 'claude', 'opencode', 'github', 'forgejo']);
   assert.equal(disabled.enabled, false);
   assert.equal(enabled.enabled, true);
   assert.equal(enabled.canRun, true);
+});
+
+test('OpenCode needs setup once enabled and is ready after its settings are saved', () => {
+  const service = backend();
+  const enabled = json(service, 'POST', '/api/capabilities/enable', JSON.stringify({ id: 'opencode' }));
+  const blocked = json(service, 'GET', '/api/workspaces/bob/agent').agents.find((item: { agent: string }) => item.agent === 'opencode');
+  const saved = service.handle({
+    method: 'PUT',
+    path: '/api/capabilities/opencode/settings',
+    query: '',
+    body: JSON.stringify({ values: { endpoint: 'http://localhost:11434', model: 'qwen2.5-coder:7b', token: 'sk-demo' } }),
+  });
+  const module = JSON.parse(saved.body ?? '{}');
+  assert.equal(enabled.state, 'needsSetup');
+  assert.equal(blocked.unavailability, 'settingsRequired');
+  assert.equal(module.state, 'ready');
+  assert.equal(module.settings.find((item: { key: string }) => item.key === 'token').value, null);
+  assert.doesNotMatch(saved.body ?? '', /sk-demo/);
 });
 
 test('agent list follows enabled agent capabilities', () => {
@@ -117,7 +164,7 @@ test('agent list follows enabled agent capabilities', () => {
   });
   json(service, 'POST', '/api/capabilities/enable', JSON.stringify({ id: 'claude' }));
   const scheduled = json(service, 'POST', '/api/workspaces/bob/agent', JSON.stringify({ agent: 'claude' }));
-  assert.deepEqual(listed.agents.map((item: { agent: string }) => item.agent), ['codex', 'cursor', 'claude']);
+  assert.deepEqual(listed.agents.map((item: { agent: string }) => item.agent), ['codex', 'cursor', 'claude', 'opencode']);
   const disabled = afterDisable.agents.find((item: { agent: string }) => item.agent === 'claude');
   assert.equal(disabled.available, false);
   assert.equal(disabled.unavailability, 'capabilityNotEnabled');
@@ -565,7 +612,7 @@ test('messaging a reviewer leaves the author\'s branch alone', () => {
 test('the demo serves the picked queue in the order it will be worked', () => {
   const service = backend();
   const queue = json(service, 'GET', '/api/tasks');
-  assert.deepEqual(queue.map((task: { number: number }) => task.number), [44, 51, 48]);
+  assert.deepEqual(queue.map((task: { number: number }) => task.number), [44, 51, 48, 39, 36]);
   assert.equal(queue[0].heldByWorkspaceId, 'bob');
   assert.equal(queue[1].targetWorkspaceId, 'hector');
 });
@@ -602,7 +649,7 @@ test('a task a workspace is carrying is not removed, but can be released first',
   service.handle({ method: 'POST', path: '/api/tasks/example/repository/I-44/release', query: '', body: null });
   const removed = service.handle({ method: 'DELETE', path: '/api/tasks/example/repository/I-44', query: '', body: null });
   assert.equal(removed.status, 204);
-  assert.equal(json(service, 'GET', '/api/tasks').length, 2);
+  assert.equal(json(service, 'GET', '/api/tasks').length, 4);
 });
 
 test('dragging a task to a position rewrites the order the demo serves', () => {
@@ -615,7 +662,7 @@ test('dragging a task to a position rewrites the order the demo serves', () => {
   assert.equal(moved.status, 204);
   assert.deepEqual(
     json(service, 'GET', '/api/tasks').map((task: { number: number }) => task.number),
-    [51, 48, 44],
+    [51, 48, 44, 39, 36],
   );
 });
 
@@ -628,7 +675,7 @@ test('a position past the end of the queue parks the task at the end', () => {
 
   assert.deepEqual(
     json(service, 'GET', '/api/tasks').map((task: { number: number }) => task.number),
-    [44, 48, 51],
+    [44, 48, 39, 36, 51],
   );
 });
 
@@ -679,6 +726,6 @@ test('a dequeued task can be picked into the queue again', () => {
   assert.equal(picked.status, 200);
   assert.deepEqual(
     json(service, 'GET', '/api/tasks').map((task: { number: number }) => task.number),
-    [44, 48, 51],
+    [44, 48, 39, 36, 51],
   );
 });

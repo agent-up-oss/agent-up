@@ -1072,6 +1072,172 @@ const agentUpTheme = Object.freeze({
       paddingVertical: 12,
       backgroundColor: "#00000000",
     }),
+    chatReply: Object.freeze({
+      color: "#f5fbf7",
+      backgroundColor: "#00000000",
+    }),
+    chatReplyAgent: Object.freeze({
+      color: "#8a9a92",
+      fontSize: 11,
+      fontWeight: '600',
+    }),
+    mdParagraph: Object.freeze({
+      color: "#f5fbf7",
+      fontSize: 14,
+    }),
+    mdHeading: Object.freeze({
+      color: "#f5fbf7",
+      fontSize: 22,
+      fontWeight: '600',
+    }),
+    mdHeadingMinor: Object.freeze({
+      fontSize: 14,
+    }),
+    mdListItem: Object.freeze({
+      paddingHorizontal: 0,
+      paddingVertical: 0,
+      backgroundColor: "#00000000",
+    }),
+    mdMarker: Object.freeze({
+      color: "#8a9a92",
+      fontSize: 14,
+    }),
+    mdQuote: Object.freeze({
+      paddingHorizontal: 0,
+      paddingVertical: 0,
+      color: "#c2d2ca",
+      backgroundColor: "#00000000",
+      borderLeftWidth: 2,
+      borderLeftColor: "#ffffff29",
+    }),
+    mdCodeBlock: Object.freeze({
+      paddingHorizontal: 12,
+      paddingVertical: 12,
+      backgroundColor: "#121416",
+      borderWidth: 1,
+      borderColor: "#ffffff14",
+      borderRadius: 8,
+    }),
+    mdCodeText: Object.freeze({
+      color: "#c2d2ca",
+      fontSize: 12,
+    }),
+    mdCodeLabel: Object.freeze({
+      color: "#718077",
+      fontSize: 11,
+    }),
+    mdInlineCode: Object.freeze({
+      paddingHorizontal: 4,
+      paddingVertical: 0,
+      color: "#f5fbf7",
+      backgroundColor: "#191c1f",
+      borderRadius: 6,
+      fontSize: 13,
+    }),
+    mdLink: Object.freeze({
+      color: "#8bb7ff",
+    }),
+    mdTable: Object.freeze({
+      backgroundColor: "#00000000",
+      borderWidth: 1,
+      borderColor: "#ffffff14",
+      borderRadius: 8,
+    }),
+    mdTableRow: Object.freeze({
+      backgroundColor: "#00000000",
+      borderTopWidth: 1,
+      borderTopColor: "#ffffff14",
+    }),
+    mdTableHead: Object.freeze({
+      backgroundColor: "#121416",
+    }),
+    mdTableHeaderCell: Object.freeze({
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      color: "#f5fbf7",
+      fontSize: 13,
+      fontWeight: '600',
+    }),
+    mdTableCell: Object.freeze({
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      color: "#c2d2ca",
+      fontSize: 13,
+    }),
+    toolCall: Object.freeze({
+      paddingHorizontal: 8,
+      paddingVertical: 4,
+      color: "#c2d2ca",
+      backgroundColor: "#00000000",
+      borderWidth: 0,
+      borderColor: "#00000000",
+      borderRadius: 8,
+      fontSize: 12,
+      fontWeight: '500',
+    }),
+    toolCallGlyph: Object.freeze({
+      color: "#8a9a92",
+      fontSize: 12,
+    }),
+    toolCallGlyphRunning: Object.freeze({
+      color: "#00b850",
+    }),
+    toolCallGlyphFailed: Object.freeze({
+      color: "#d84f4f",
+    }),
+    toolCallTitle: Object.freeze({
+      color: "#f5fbf7",
+      fontSize: 12,
+      fontWeight: '600',
+    }),
+    toolCallSource: Object.freeze({
+      paddingHorizontal: 4,
+      paddingVertical: 0,
+      color: "#8a9a92",
+      backgroundColor: "#00000000",
+      borderWidth: 1,
+      borderColor: "#ffffff14",
+      borderRadius: 6,
+      fontSize: 11,
+    }),
+    toolCallSummary: Object.freeze({
+      color: "#8a9a92",
+      fontSize: 11,
+    }),
+    toolCallDetail: Object.freeze({
+      paddingHorizontal: 0,
+      paddingVertical: 4,
+      backgroundColor: "#00000000",
+      borderLeftWidth: 1,
+      borderLeftColor: "#ffffff14",
+    }),
+    toolCallLabel: Object.freeze({
+      color: "#718077",
+      fontSize: 11,
+      fontWeight: '600',
+    }),
+    toolCallOutput: Object.freeze({
+      paddingHorizontal: 12,
+      paddingVertical: 8,
+      backgroundColor: "#121416",
+      borderWidth: 1,
+      borderColor: "#ffffff14",
+      borderRadius: 8,
+    }),
+    toolCallOutputFailed: Object.freeze({
+      borderColor: "#d84f4f4d",
+    }),
+    toolCallOutputText: Object.freeze({
+      color: "#c2d2ca",
+      fontSize: 11,
+    }),
+    toolCallOutputTextFailed: Object.freeze({
+      color: "#e48989",
+    }),
+    toolCallMore: Object.freeze({
+      color: "#8a9a92",
+      fontSize: 11,
+    }),
     tabSep: Object.freeze({
       width: 1,
       height: 18,

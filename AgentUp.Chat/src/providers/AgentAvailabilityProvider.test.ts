@@ -39,3 +39,24 @@ test('presentAgentRow blocks a missing executable without an enable action', () 
   assert.equal(row.isBlocked, true);
   assert.equal(row.status, 'Executable not found');
 });
+
+test('presentAgentRow names missing software and missing settings without offering enable', () => {
+  const missing = presentAgentRow({
+    agent: 'opencode',
+    available: false,
+    displayName: 'OpenCode',
+    unavailability: 'softwareNotFound',
+    detail: 'OpenCode needs nix, which was not found on the Server host.',
+    remedy: 'Install Nix: https://nixos.org/download',
+  });
+  const setup = presentAgentRow({
+    agent: 'opencode',
+    available: false,
+    displayName: 'OpenCode',
+    unavailability: 'settingsRequired',
+    detail: 'OpenCode needs Endpoint and Model before it can start.',
+    remedy: 'Set them under OpenCode in Settings.',
+  });
+  assert.deepEqual([missing.status, missing.canEnable, missing.isBlocked], ['Not found', false, true]);
+  assert.deepEqual([setup.status, setup.canEnable], ['Needs setup', false]);
+});

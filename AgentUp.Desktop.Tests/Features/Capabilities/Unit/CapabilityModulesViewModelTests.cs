@@ -6,6 +6,8 @@ using AgentUp.Desktop.Features.Capabilities.Services;
 using AgentUp.Desktop.Features.Capabilities.ViewModels;
 using AgentUp.Desktop.Shared.Providers;
 using AgentUp.Desktop.Tests.Features.Capabilities.Unit;
+using AgentUp.Desktop.Tests.Support;
+using System.Reactive.Linq;
 
 namespace AgentUp.Desktop.Tests.Features.Capabilities.Unit;
 
@@ -42,7 +44,7 @@ public sealed class CapabilityModulesViewModelTests
         var viewModel = new CapabilityModulesViewModel(
             new CapabilityModulesController(new CapabilityModulesCatalogService(client)));
 
-        await viewModel.EnableAsync("dotnet", "1.0.0");
+        await viewModel.EnableAsync("dotnet");
 
         Assert.That(client.EnabledId, Is.EqualTo("dotnet"));
         Assert.That(client.ListCalls, Is.GreaterThanOrEqualTo(1));
@@ -79,17 +81,17 @@ public sealed class CapabilityModulesViewModelTests
         Assert.That(viewModel.Modules, Is.Not.Empty);
     }
 
-    // An empty registry is the state a Server that has never packed a capability is in, so it
-    // has to read as an explanation rather than an empty panel.
+    // An empty list only happens against a Server that predates built-in capabilities, so it has
+    // to read as an explanation rather than an empty panel.
     [Test]
-    public async Task OpenAsync_saysSoWhenTheServerRegistryIsEmpty()
+    public async Task OpenAsync_saysSoWhenTheServerListsNoCapabilities()
     {
         var viewModel = CreateViewModel(new FakeCapabilityModulesApiProvider());
 
         await viewModel.OpenAsync();
 
         Assert.That(viewModel.Modules, Is.Empty);
-        Assert.That(viewModel.Status, Is.EqualTo("No capability modules in the Server registry."));
+        Assert.That(viewModel.Status, Is.EqualTo("The Server reports no capabilities."));
     }
 
     [Test]
@@ -143,29 +145,20 @@ public sealed class CapabilityModulesViewModelTests
             Assert.That(ready.Publisher, Is.EqualTo("agent-up"));
             Assert.That(ready.Version, Is.EqualTo("1.0.0"));
             Assert.That(ready.Enabled, Is.True);
-            Assert.That(disabled.StatusLabel, Is.EqualTo("disabled"));
+            Assert.That(disabled.StatusLabel, Is.EqualTo("Off"));
             Assert.That(disabled.Summary, Is.EqualTo("not enabled"));
             Assert.That(disabled.CanRun, Is.False);
         });
     }
 
     [Test]
-    public async Task Cards_showTheNixInstallUrlWhenTheServerSaysNixIsMissing()
+    public async Task Cards_keepTheNixInstallUrlInTheTooltipWhenTheServerSaysNixIsMissing()
     {
         var client = new FakeCapabilityModulesApiProvider
         {
             Modules =
             [
-                CapabilityModulesCatalogServiceTests.DotnetModule(true) with
-                {
-                    CanRun = false,
-                    State = "error",
-                    Messages =
-                    [
-                        "Capability 'dotnet' needs Nix to provide the .NET SDK, and Nix was not found.",
-                        "Install Nix: https://nixos.org/download"
-                    ]
-                }
+                DesktopDomain.Capability().Missing("nix").Enabled().Build()
             ]
         };
         var viewModel = CreateViewModel(client);
@@ -181,6 +174,78 @@ public sealed class CapabilityModulesViewModelTests
         });
     }
 
+    [Test]
+    public async Task A_capability_whose_software_is_missing_cannot_be_enabled_and_says_so_in_the_button()
+    {
+        var viewModel = CreateViewModel(new FakeCapabilityModulesApiProvider
+        {
+            Modules =
+            [
+                DesktopDomain.Capability().Missing("nix").Build(),
+                DesktopDomain.Capability().Named("cursor", "Cursor", "agent").Missing("agent").Build()
+            ]
+        });
+
+        await viewModel.OpenAsync();
+
+        var dotnet = viewModel.Modules.Single(card => card.Id == "dotnet");
+        var cursor = viewModel.Modules.Single(card => card.Id == "cursor");
+        Assert.Multiple(() =>
+        {
+            Assert.That(dotnet.EnableLabel, Is.EqualTo("Needs Nix"));
+            Assert.That(cursor.EnableLabel, Is.EqualTo("Not found"));
+            Assert.That(cursor.StatusLabel, Is.EqualTo("Missing agent"));
+            Assert.That(cursor.IsUnavailable && !cursor.CanEnable, Is.True);
+            Assert.That(dotnet.EnableCommand.CanExecute.FirstAsync().Wait(), Is.False);
+        });
+    }
+
+    [Test]
+    public async Task Settings_expand_only_once_the_capability_is_enabled()
+    {
+        var viewModel = CreateViewModel(new FakeCapabilityModulesApiProvider
+        {
+            Modules =
+            [
+                DesktopDomain.Capability().Named("opencode", "OpenCode", "agent").WithSetting("endpoint", "url").Build(),
+                DesktopDomain.Capability().Named("claude", "Claude", "agent").WithSetting("endpoint", "url").Enabled().NeedsSetup().Build()
+            ]
+        });
+
+        await viewModel.OpenAsync();
+
+        Assert.That(viewModel.Modules.Single(card => card.Id == "opencode").ShowsSettings, Is.False);
+        Assert.That(viewModel.Modules.Single(card => card.Id == "claude").ShowsSettings, Is.True);
+        Assert.That(viewModel.Modules.Single(card => card.Id == "claude").StatusLabel, Is.EqualTo("Needs setup"));
+    }
+
+    [Test]
+    public async Task Saving_settings_sends_changed_values_and_leaves_an_untouched_secret_out()
+    {
+        var client = new FakeCapabilityModulesApiProvider
+        {
+            Modules =
+            [
+                DesktopDomain.Capability().Named("opencode", "OpenCode", "agent")
+                    .WithSetting("endpoint", "url", "http://old.test")
+                    .WithSetting("token", "secret", hasValue: true)
+                    .WithSetting("model", "text", "qwen")
+                    .Enabled()
+                    .Build()
+            ]
+        };
+        var viewModel = CreateViewModel(client);
+        await viewModel.OpenAsync();
+        var card = viewModel.Modules.Single();
+        card.Settings.Single(field => field.Key == "endpoint").Value = "http://new.test";
+
+        await card.SaveSettingsCommand.Execute();
+
+        Assert.That(client.SavedValues, Is.EqualTo(new Dictionary<string, string> { ["endpoint"] = "http://new.test" }));
+        Assert.That(card.Settings.Single(field => field.Key == "token").Placeholder, Is.EqualTo("Stored"));
+        Assert.That(card.Settings.Single(field => field.Key == "token").PasswordChar, Is.Not.EqualTo('\0'));
+    }
+
     private static CapabilityModulesViewModel CreateViewModel(ICapabilityModulesApiProvider client)
         => new(new CapabilityModulesController(new CapabilityModulesCatalogService(client)));
 }
@@ -190,7 +255,13 @@ internal sealed class UnreachableCapabilityModulesApiProvider : ICapabilityModul
     public Task<IReadOnlyList<CapabilityModuleDto>> ListAsync(CancellationToken cancellationToken = default)
         => throw new HttpRequestException("Server unreachable");
 
-    public Task<CapabilityModuleDto> EnableAsync(string id, string? version, CancellationToken cancellationToken = default)
+    public Task<CapabilityModuleDto> EnableAsync(string id, CancellationToken cancellationToken = default)
+        => throw new HttpRequestException("Server unreachable");
+
+    public Task<CapabilityModuleDto> UpdateSettingsAsync(
+        string id,
+        IReadOnlyDictionary<string, string> values,
+        CancellationToken cancellationToken = default)
         => throw new HttpRequestException("Server unreachable");
 
     public Task<CapabilityModuleDto> DisableAsync(string id, CancellationToken cancellationToken = default)

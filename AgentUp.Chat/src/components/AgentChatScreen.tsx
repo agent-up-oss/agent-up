@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type ScrollViewInstance } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { ServerSession } from '@agent-up/server-client';
@@ -10,12 +10,23 @@ import { AgentLoopControls } from './AgentLoopControls';
 import { presentAgentRow } from '../providers/AgentAvailabilityProvider';
 import { shouldShowLoopControls } from '../providers/LoopSurfaceProvider';
 import { AgentSignIn } from './AgentSignIn';
+import { MarkdownView } from './MarkdownView';
+import { Arrive, Reveal, useReducedMotion } from './Motion';
+import { followAfterScroll } from '../providers/MotionProvider';
+import { presentToolItem, ToolCallRow, WorkFoldRow } from './ToolCallRow';
 import {
   activityHint,
+  afterPermissionDecision,
   agentEventText,
+  userMessageItem,
   applyPresentedUpdate,
   groupTranscript,
-  liveRunId,
+  foldWork,
+  activeEntryId,
+  endTurn,
+  thoughtLabel,
+  liveWorkId,
+  isFollowing,
   mergeAgentSession,
   mergeContext,
   parsePermission,
@@ -23,7 +34,7 @@ import {
   permissionOptionTone,
   presentSessionUpdate,
   resolveActivity,
-  runSummary,
+  workSummary,
   unwrapSessionUpdate,
   visibleText,
 } from '../providers/AgentEventPresentationProvider';
@@ -78,9 +89,11 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent, on
       if (next.state !== 'running') setHint(null);
       return;
     }
+    if (event.type === 'prompt_result') { setItems(current => endTurn(current, event.timestamp)); return; }
     if (event.type === 'permission_request') { setPermission(parsePermission(event.payload)); return; }
+    if (event.type === 'permission_decision') { setPermission(current => afterPermissionDecision(current, event.payload)); return; }
     if (event.type === 'user_message') {
-      setItems(current => [...current, { id: `${event.sequence}`, role: 'user', text: agentEventText(event.payload) }]);
+      setItems(current => [...current, userMessageItem(event.sequence, event.payload, event.timestamp)]);
       return;
     }
     if (event.type !== 'session_update') return;
@@ -89,7 +102,7 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent, on
     if (presented.kind === 'ignore') return;
     const nextHint = activityHint(presented);
     if (nextHint) setHint(current => nextHint.kind === 'tool' && !nextHint.toolTitle ? { ...nextHint, toolTitle: current?.toolTitle } : nextHint);
-    setItems(current => applyPresentedUpdate(current, `${event.sequence}`, presented));
+    setItems(current => applyPresentedUpdate(current, `${event.sequence}`, presented, event.timestamp));
   }, []);
 
   useEffect(() => {
@@ -179,7 +192,12 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent, on
   const selectedAgentName = session?.agents.find(agent => agent.agent === session.agent)?.displayName ?? session?.agent ?? 'Agent';
   const waiting = busy || session?.state === 'running' || Boolean(permission) || session?.state === 'authentication_required' || session?.state === 'authenticating';
   const blocks = useMemo(() => groupTranscript(items), [items]);
-  const openRunId = liveRunId(blocks);
+  const openWorkId = liveWorkId(blocks, session?.state === 'running' || Boolean(permission));
+  // The transcript follows new output while the reader is at the end, and stays put once they scroll up.
+  const scroll = useRef<ScrollViewInstance>(null);
+  const following = useRef(true);
+  const lastOffset = useRef(0);
+  const reducedMotion = useReducedMotion();
   const choose = async (agent: AgentId) => {
     if (!server) return; setBusy(true); setError(null);
     try {
@@ -209,8 +227,11 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent, on
     }
     catch (cause) { setError(readError(cause)); }
   };
+  // A running turn does not block sending: the Server queues the message as steering for the next turn.
+  const steering = session?.state === 'running' && !permission;
+  const sendBlocked = waiting && !steering;
   const send = async () => {
-    const text = message.trim(); if (!server || !text || waiting) return;
+    const text = message.trim(); if (!server || !text || sendBlocked) return;
     setMessage(''); setBusy(true); setError(null);
     try { await sendAgentMessage(server, workspace.id, text); }
     catch (cause) { setMessage(text); setError(readError(cause)); }
@@ -277,24 +298,46 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent, on
             {session.state === 'authenticating' && loginApi && <AgentSignIn challenge={session.loginChallenge} api={loginApi} copy={copyToClipboard} onError={setError} />}
             {session.state === 'authentication_required' && session.authMethods?.map(method => <Pressable key={method.id} testID={`agent-auth-method-${method.id}`} style={styles.option} onPress={() => void authenticate(method.id)}><Text style={styles.optionText}>{method.name}</Text>{method.description && <Text style={styles.meta}>{method.description}</Text>}</Pressable>)}
           </View>}
-          <ScrollView style={styles.messages} contentContainerStyle={styles.messageContent}>
+          <ScrollView
+            ref={scroll}
+            style={styles.messages}
+            contentContainerStyle={styles.messageContent}
+            scrollEventThrottle={100}
+            onScroll={event => {
+              const { contentOffset, layoutMeasurement, contentSize } = event.nativeEvent;
+              following.current = followAfterScroll(following.current, lastOffset.current, contentOffset.y, layoutMeasurement.height, contentSize.height);
+              lastOffset.current = contentOffset.y;
+            }}
+            onContentSizeChange={() => { if (following.current) scroll.current?.scrollToEnd({ animated: !reducedMotion }); }}>
             {blocks.map(block => {
               if (block.type === 'user') {
-                return <View key={block.item.id} style={styles.userBubble}><Text style={styles.userText}>{visibleText(block.item.text)}</Text></View>;
+                return <Arrive key={block.item.id}><View style={styles.userBlock}>
+                  {block.item.status ? <Text style={styles.steering}>{block.item.status}</Text> : null}
+                  <View style={styles.userBubble}><Text style={styles.userText}>{visibleText(block.item.text)}</Text></View>
+                </View></Arrive>;
               }
-              if (block.type === 'reply') {
-                return <View key={block.item.id} style={styles.bubble}><Text style={styles.role}>{selectedAgentName}</Text><Text style={styles.body}>{visibleText(block.item.text)}</Text></View>;
+              // What the agent says - midway or at the end - is prose on the canvas and never folds.
+              if (block.type === 'summary') {
+                return <Arrive key={block.item.id}><View style={styles.reply} testID={block.final ? 'agent-reply' : 'agent-summary'}>
+                  {block.final ? <Text style={styles.replyAgent}>{selectedAgentName}</Text> : null}
+                  <MarkdownView markdown={block.item.text} />
+                </View></Arrive>;
               }
-              const live = block.id === openRunId;
-              const open = live || Boolean(expandedRuns[block.id]);
-              return <View key={block.id} style={styles.run}>
-                {!live && <Pressable onPress={() => setExpandedRuns(current => ({ ...current, [block.id]: !open }))} style={styles.runHeader}><Text style={styles.runSummary}>{runSummary(block.items)}</Text><Text style={styles.runSummary}>{open ? '▾' : '▸'}</Text></Pressable>}
-                {open && block.items.map((item, index) => {
-                  const liveThought = live && item.role === 'thought' && index === block.items.length - 1 && activity.kind === 'thinking';
-                  const thoughtOpen = isExpanded(item, liveThought, expanded);
-                  return <TranscriptRow key={item.id} item={item} expanded={thoughtOpen} live={liveThought} onToggle={() => setExpanded(current => ({ ...current, [item.id]: !isExpanded(item, liveThought, current) }))} />;
-                })}
-              </View>;
+              const live = block.id === openWorkId;
+              const open = expandedRuns[block.id] ?? live;
+              const activeId = activeEntryId(block.items, live, activity.kind === 'thinking');
+              const renderItem = (item: TranscriptItem) => {
+                const active = item.id === activeId;
+                const thoughtOpen = isExpanded(item, active, expanded);
+                return <Arrive key={item.id}><TranscriptRow item={item} expanded={thoughtOpen} active={active} onToggle={() => setExpanded(current => ({ ...current, [item.id]: !isExpanded(item, active, current) }))} /></Arrive>;
+              };
+              return <Arrive key={block.id}><View style={styles.run} testID="agent-work">
+                {!live && <Pressable accessibilityRole="button" onPress={() => setExpandedRuns(current => ({ ...current, [block.id]: !open }))} style={styles.runHeader}><Text style={styles.runSummary}>{workSummary(block.items, block.duration)}</Text><Text style={styles.runSummary}>{open ? '▾' : '▸'}</Text></Pressable>}
+                <Reveal open={open}><View style={styles.runEntries}>{foldWork(block.items, item => presentToolItem(item).summary, activeId).map(entry =>
+                  entry.type === 'fold'
+                    ? <WorkFoldRow key={entry.id} entry={entry} renderItem={renderItem} />
+                    : renderItem(entry.item))}</View></Reveal>
+              </View></Arrive>;
             })}
           </ScrollView>
           {permission && <View style={styles.permission}>
@@ -304,13 +347,13 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent, on
             {permission.locations.map(path => <Text key={path} style={styles.location}>{path}</Text>)}
             <View style={styles.options}>{permission.options.map(option => {
               const tone = permissionOptionTone(option.kind);
-              return <Pressable key={option.optionId} style={[styles.option, tone === 'allow' && styles.allow, tone === 'reject' && styles.reject]} onPress={() => void decide(option.optionId)}><Text style={[styles.optionText, tone === 'allow' && styles.allowText, tone === 'reject' && styles.rejectText]}>{permissionOptionLabel(option)}</Text></Pressable>;
+              return <Pressable key={option.optionId} accessibilityRole="button" accessibilityLabel={permissionOptionLabel(option)} style={[styles.option, tone === 'allow' && styles.allow, tone === 'reject' && styles.reject]} onPress={() => void decide(option.optionId)}><Text style={[styles.optionText, tone === 'allow' && styles.allowText, tone === 'reject' && styles.rejectText]}>{permissionOptionLabel(option)}</Text></Pressable>;
             })}</View>
           </View>}
           {error && <Text style={styles.error}>{error}</Text>}
           {session?.sessionId && <View style={styles.composer}>
             <TextInput accessibilityLabel="Message the agent" multiline value={message} onChangeText={setMessage} editable={!waiting} placeholder={permission ? 'Choose an option to continue…' : 'Ask the agent…'} placeholderTextColor={agentUpTheme.colors.textFaint} style={styles.input}/>
-            <Pressable accessibilityRole="button" disabled={waiting || !message.trim()} onPress={() => void send()} style={[styles.send, (waiting || !message.trim()) && styles.disabled]}>{session?.state === 'running' && !permission ? <ActivityIndicator color={agentUpTheme.colors.onAccent} /> : <Text style={styles.sendText}>Send</Text>}</Pressable>
+            <Pressable accessibilityRole="button" accessibilityLabel={steering ? 'Steer' : 'Send'} disabled={sendBlocked || busy || !message.trim()} onPress={() => void send()} style={[styles.send, (sendBlocked || busy || !message.trim()) && styles.disabled]}>{busy ? <ActivityIndicator color={agentUpTheme.colors.onAccent} /> : <Text style={styles.sendText}>{steering ? 'Steer' : 'Send'}</Text>}</Pressable>
           </View>}
         </View>}
     </View>
@@ -318,20 +361,20 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent, on
   </View>;
 }
 
-function TranscriptRow({ item, expanded, live, onToggle }: { item: TranscriptItem; expanded: boolean; live: boolean; onToggle: () => void }) {
+function TranscriptRow({ item, expanded, active, onToggle }: { item: TranscriptItem; expanded: boolean; active: boolean; onToggle: () => void }) {
   if (item.role === 'thought') {
-    return <Pressable onPress={onToggle} style={styles.thought}>
-      <Text style={styles.role}>{live ? 'Thinking' : 'Thought'}</Text>
-      {expanded ? <Text style={styles.thoughtBody}>{visibleText(item.text)}</Text> : null}
+    // A thought is one line until it is opened, then its raw text as plain text.
+    return <Pressable accessibilityRole="button" onPress={onToggle} style={styles.thought}>
+      <Text style={styles.thoughtLabel}>{thoughtLabel(item, active)}</Text>
+      <Reveal open={expanded}><Text style={styles.thoughtBody}>{visibleText(item.text)}</Text></Reveal>
     </Pressable>;
   }
-  if (item.role === 'tool') {
-    return <View style={styles.work}><View style={styles.toolHeader}><Text style={styles.role}>Tool</Text><Text style={styles.toolStatus}>{item.status ?? 'pending'}</Text></View><Text style={styles.workBody}>{item.title ?? item.text}</Text>{toolDetail(item) ? <Text style={styles.meta}>{toolDetail(item)}</Text> : null}</View>;
-  }
+  if (item.role === 'tool') return <ToolCallRow item={item} active={active} />;
   if (item.role === 'plan') {
     return <View style={styles.work}><Text style={styles.role}>Plan</Text>{item.entries?.map(entry => <Text key={entry.content} style={styles.planEntry}>{statusMark(entry.status)} {entry.content}</Text>) ?? <Text style={styles.workBody}>{item.text}</Text>}</View>;
   }
-  return <View style={styles.work}><Text style={styles.role}>Agent</Text><Text style={styles.workBody}>{visibleText(item.text)}</Text></View>;
+  // What the agent says between steps reads as prose, like the reply.
+  return <MarkdownView markdown={item.text} />;
 }
 
 function isExpanded(item: TranscriptItem, live: boolean, expanded: Record<string, boolean>) {
@@ -339,7 +382,6 @@ function isExpanded(item: TranscriptItem, live: boolean, expanded: Record<string
   return expanded[item.id] ?? live;
 }
 function hasContext(context: SessionContext) { return Boolean(context.title || context.mode || context.usage || context.compacting); }
-function toolDetail(item: TranscriptItem) { const separator = item.text.indexOf('\n'); return separator < 0 ? '' : item.text.slice(separator + 1); }
 function statusMark(status: string) { return status === 'completed' ? '✓' : status === 'in_progress' ? '●' : '○'; }
 function readError(value: unknown) { return value instanceof Error ? value.message : String(value); }
 function delay(ms: number) { return new Promise(resolve => setTimeout(resolve, ms)); }
@@ -391,21 +433,25 @@ const styles = StyleSheet.create({
   disabled: { opacity: 0.4 },
   messages: { flex: 1 },
   messageContent: { gap: 10, paddingVertical: 10 },
+  reply: { ...auBox('chatReply'), gap: 6 },
+  replyAgent: auText('chatReplyAgent'),
+  // The row spans the transcript and pushes the bubble right: shrinking the row instead made the
+  // bubble's 80% a fraction of its own text, so short messages wrapped word by word.
+  userBlock: { alignSelf: 'stretch', alignItems: 'flex-end', gap: 4 },
+  steering: auText('muted'),
   userBubble: { ...auBox('chatUser'), alignSelf: 'flex-end' },
   userText: { ...auText('workspaceName'), lineHeight: 20 },
   run: { gap: 8 },
+  runEntries: { gap: 8 },
   runHeader: { ...auBox('chatRun'), flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   runSummary: auText('muted'),
-  bubble: auBox('card'),
   thought: auBox('chatThought'),
   thoughtBody: auText('chatThoughtBody'),
   work: { ...auBox('chatWork'), gap: 2 },
-  toolHeader: { flexDirection: 'row', justifyContent: 'space-between' },
-  toolStatus: { ...auText('fieldLabel'), color: agentUpTheme.colors.textWarning },
   planEntry: { ...auText('muted'), lineHeight: 20 },
   workBody: { ...auText('muted'), lineHeight: 20 },
   role: { ...auText('fieldLabel') },
-  body: { ...auText('workspaceName'), lineHeight: 20 },
+  thoughtLabel: auText('toolCallSummary'),
   meta: { ...auText('muted'), marginTop: 4 },
   permission: { ...auBox('card'), borderColor: agentUpTheme.colors.borderDanger, gap: 8 },
   auth: { ...auBox('card'), gap: 8 },

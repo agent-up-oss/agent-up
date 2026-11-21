@@ -178,6 +178,13 @@ public sealed partial class GitWorkingTreeProvider : IGitWorkingTreeProvider
             await RunGitAsync(repoRoot, ["switch", "--", branch], cancellationToken);
     }
 
+    public async Task StartBranchAsync(string worktreePath, string branch, CancellationToken cancellationToken = default)
+    {
+        var repoRoot = await RunGitAsync(worktreePath, ["rev-parse", "--show-toplevel"], cancellationToken);
+        await RunGitAsync(repoRoot, ["check-ref-format", "--branch", branch], cancellationToken);
+        await RunGitAsync(repoRoot, ["switch", "-C", branch], cancellationToken);
+    }
+
     public async Task CheckoutRemoteAsync(
         string worktreePath,
         string name,
@@ -544,6 +551,68 @@ public sealed partial class GitWorkingTreeProvider : IGitWorkingTreeProvider
         return value;
     }
 
+    public async Task<string?> CommitAllToBranchAsync(
+        string worktreePath,
+        string branch,
+        string message,
+        GitIdentity author,
+        CancellationToken cancellationToken = default)
+    {
+        var commitMessage = NormalizeCommitMessage(message);
+        var repoRoot = await RunGitAsync(worktreePath, ["rev-parse", "--show-toplevel"], cancellationToken);
+        await RunGitAsync(repoRoot, ["check-ref-format", "--branch", branch], cancellationToken);
+        // Nothing changed means nothing to commit, and the checkout stays where it was.
+        var pending = await RunGitAsync(repoRoot, ["status", "--porcelain", "--untracked-files=all"], cancellationToken);
+        if (pending.Length == 0)
+            return null;
+        var current = await RunGitAsync(repoRoot, ["rev-parse", "--abbrev-ref", "HEAD"], cancellationToken);
+        if (!string.Equals(current, branch, StringComparison.Ordinal))
+        {
+            var exists = await RunGitCoreAsync(repoRoot, ["rev-parse", "--verify", "--quiet", $"refs/heads/{branch}"], cancellationToken);
+            // Uncommitted work travels with a switch, so the author's changes land on the task branch.
+            await RunGitAsync(repoRoot, exists.ExitCode == 0 ? ["switch", "--", branch] : ["switch", "-c", branch], cancellationToken);
+        }
+
+        await RunGitAsync(repoRoot, ["add", "--all"], cancellationToken);
+        var staged = await RunGitCoreAsync(repoRoot, ["diff", "--cached", "--quiet"], cancellationToken);
+        if (staged.ExitCode == 0)
+            return null;
+
+        var identity = new Dictionary<string, string>
+        {
+            ["GIT_AUTHOR_NAME"] = author.Name,
+            ["GIT_AUTHOR_EMAIL"] = author.Email,
+            ["GIT_COMMITTER_NAME"] = author.Name,
+            ["GIT_COMMITTER_EMAIL"] = author.Email
+        };
+        var committed = await RunGitCoreAsync(repoRoot, ["commit", "--no-verify", "--message", commitMessage], cancellationToken, environment: identity);
+        if (committed.ExitCode != 0)
+            throw new InvalidOperationException(MapGitError("commit", committed.Stderr));
+        return await RunGitAsync(repoRoot, ["rev-parse", "HEAD"], cancellationToken);
+    }
+
+    public async Task<string> GetRangeDiffAsync(string worktreePath, string baseRef, string head, CancellationToken cancellationToken = default)
+    {
+        var repoRoot = await RunGitAsync(worktreePath, ["rev-parse", "--show-toplevel"], cancellationToken);
+        await RunGitAsync(repoRoot, ["rev-parse", "--verify", "--quiet", "--end-of-options", baseRef], cancellationToken);
+        await RunGitAsync(repoRoot, ["rev-parse", "--verify", "--quiet", "--end-of-options", head], cancellationToken);
+        return await RunGitAsync(repoRoot, ["diff", "--no-color", "--no-ext-diff", $"{baseRef}...{head}", "--"], cancellationToken, trimOutput: false);
+    }
+
+    public async Task<string?> ResolveCommitAsync(string worktreePath, string reference, CancellationToken cancellationToken = default)
+    {
+        var repoRoot = await RunGitAsync(worktreePath, ["rev-parse", "--show-toplevel"], cancellationToken);
+        var (exitCode, stdout, _) = await RunGitCoreAsync(repoRoot, ["rev-parse", "--verify", "--quiet", "--end-of-options", $"{reference}^{{commit}}"], cancellationToken);
+        return exitCode == 0 && stdout.Trim() is { Length: > 0 } commit ? commit : null;
+    }
+
+    public async Task ResetToRemoteBranchAsync(string worktreePath, string branch, CancellationToken cancellationToken = default)
+    {
+        var repoRoot = await RunGitAsync(worktreePath, ["rev-parse", "--show-toplevel"], cancellationToken);
+        await RunGitAsync(repoRoot, ["check-ref-format", "--branch", branch], cancellationToken);
+        await RunGitAsync(repoRoot, ["switch", "--discard-changes", "-C", branch, $"refs/remotes/origin/{branch}"], cancellationToken);
+    }
+
     private async Task RunRemoteAsync(
         string worktreePath,
         IReadOnlyList<string> arguments,
@@ -649,7 +718,8 @@ public sealed partial class GitWorkingTreeProvider : IGitWorkingTreeProvider
         string worktreePath,
         IReadOnlyList<string> arguments,
         CancellationToken cancellationToken,
-        bool disablePrompt = false)
+        bool disablePrompt = false,
+        IReadOnlyDictionary<string, string>? environment = null)
     {
         var safeWorktreePath = NormalizeWorktreePath(worktreePath);
         ValidateGitArguments(arguments);
@@ -664,6 +734,8 @@ public sealed partial class GitWorkingTreeProvider : IGitWorkingTreeProvider
         SanitizeGitEnvironment(psi.Environment);
         if (disablePrompt)
             psi.Environment["GIT_TERMINAL_PROMPT"] = "0";
+        foreach (var (key, value) in environment ?? new Dictionary<string, string>())
+            psi.Environment[key] = value;
         psi.ArgumentList.Add("-C");
         psi.ArgumentList.Add(safeWorktreePath);
         foreach (var argument in arguments)

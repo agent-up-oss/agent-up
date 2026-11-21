@@ -203,6 +203,64 @@ public sealed class AgentChatViewModelStreamTests
         await view.LoadAsync(null);
     }
 
+    // Replaying the stream after another client answered must not leave a prompt nobody can answer.
+    [AvaloniaTest]
+    public async Task Stream_closesAPromptThatWasDecidedElsewhereAndKeepsAnUndecidedOne()
+    {
+        var hang = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var fake = new StreamApiFake
+        {
+            EventsHang = hang,
+            Events =
+            [
+                Event(1, "permission_request", """{"requestId":"req-1","request":{"title":"Write?","options":[{"optionId":"allow","name":"Allow","kind":"allow_once"}]}}"""),
+                Event(2, "permission_decision", """{"requestId":"other","optionId":"allow"}"""),
+                Event(3, "user_message", """{"text":"after unrelated decision"}"""),
+                Event(4, "permission_decision", """{"requestId":"req-1","optionId":"allow"}"""),
+                Event(5, "user_message", """{"text":"after own decision"}"""),
+            ]
+        };
+        var view = new AgentChatViewModel(new AgentsController(new AgentChatService(fake)));
+
+        await view.LoadAsync("ws-1");
+        await WaitUntilAsync(() => view.Messages.Any(item => item.Text == "after own decision"));
+
+        Assert.That(view.HasPermission, Is.False);
+        Assert.That(view.PermissionOptions, Is.Empty);
+
+        hang.TrySetResult();
+        await view.LoadAsync(null);
+    }
+
+    // A message sent mid-turn steers the next turn; the transcript says so instead of treating it as a new question.
+    [AvaloniaTest]
+    public async Task Stream_marksSteeringSentWhileATurnRuns()
+    {
+        var hang = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var fake = new StreamApiFake
+        {
+            EventsHang = hang,
+            Events =
+            [
+                Event(1, "user_message", """{"text":"list the workspaces"}"""),
+                Event(2, "user_message", """{"text":"only the running ones","steering":true}"""),
+            ]
+        };
+        var view = new AgentChatViewModel(new AgentsController(new AgentChatService(fake)));
+
+        await view.LoadAsync("ws-1");
+        await WaitUntilAsync(() => view.Messages.Any(item => item.Text == "only the running ones"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(view.Messages.Single(item => item.Text == "only the running ones").Status, Is.EqualTo(AgentChatViewModel.SteeringStatus));
+            Assert.That(view.Messages.Single(item => item.Text == "list the workspaces").Status, Is.Null);
+        });
+
+        hang.TrySetResult();
+        await view.LoadAsync(null);
+    }
+
     [AvaloniaTest]
     public async Task Stream_reconnectsAfterAnIdleHttpTimeout()
     {
@@ -248,16 +306,45 @@ public sealed class AgentChatViewModelStreamTests
         await WaitUntilAsync(() => view.Messages.Count(item => item.Role == "You") == 2);
 
         var run = view.Transcript.OfType<AgentRunViewModel>().Single();
+        var section = run.Sections.Single();
         Assert.Multiple(() =>
         {
-            Assert.That(run.ShowHeader, Is.True);
-            Assert.That(run.IsExpanded, Is.False);
+            Assert.That(section.ShowHeader, Is.True);
+            Assert.That(section.IsExpanded, Is.False);
             Assert.That(run.HasReply, Is.True);
             Assert.That(run.Reply!.Text, Is.EqualTo("Done"));
-            Assert.That(run.WorkItems.Select(item => item.Role), Is.EqualTo(["Thought", "Tool"]));
-            Assert.That(run.Summary, Is.EqualTo("Worked · 1 tool · Thought"));
+            Assert.That(section.Items.Select(item => item.Role), Is.EqualTo(["Thought", "Tool"]));
+            Assert.That(section.Summary, Does.StartWith("Worked").And.EndWith("1 thought, 1 tool call"));
             Assert.That(view.Messages.Single(item => item.Role == "Agent").Text, Is.EqualTo("Done"));
         });
+
+        hang.TrySetResult();
+        await view.LoadAsync(null);
+    }
+
+    [AvaloniaTest]
+    public async Task Stream_givesASteeringTurnItsOwnReplyAfterTheTurnBeforeEnds()
+    {
+        var hang = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var fake = new StreamApiFake
+        {
+            EventsHang = hang,
+            Events =
+            [
+                Event(1, "user_message", """{"text":"Edit it"}"""),
+                Event(2, "user_message", """{"text":"Then show code","steering":true}"""),
+                Event(3, "session_update", """{"sessionUpdate":"agent_message_chunk","content":{"text":"Edited."}}"""),
+                Event(4, "prompt_result", """{"stopReason":"end_turn"}"""),
+                Event(5, "session_update", """{"sessionUpdate":"agent_message_chunk","content":{"text":"```ts\nconst port = 4000;\n```"}}"""),
+            ]
+        };
+        var view = new AgentChatViewModel(new AgentsController(new AgentChatService(fake)));
+
+        await view.LoadAsync("ws-1");
+        await WaitUntilAsync(() => view.Transcript.OfType<AgentRunViewModel>().Count() == 2);
+
+        var replies = view.Transcript.OfType<AgentRunViewModel>().Select(run => run.Reply?.Text).ToArray();
+        Assert.That(replies, Is.EqualTo(new[] { "Edited.", "```ts\nconst port = 4000;\n```" }));
 
         hang.TrySetResult();
         await view.LoadAsync(null);

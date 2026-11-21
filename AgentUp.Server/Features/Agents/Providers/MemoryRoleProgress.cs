@@ -12,6 +12,8 @@ public sealed class MemoryRoleProgress : IRoleProgress
     public void Record(string workspaceId, RoleTerminationKind kind) =>
         _recorded.GetOrAdd(workspaceId, _ => new()).TryAdd(kind, 0);
 
+    public void Reset(string workspaceId) => _recorded.TryRemove(workspaceId, out _);
+
     public bool Satisfied(string workspaceId, RoleTerminationKind kind) =>
         _recorded.TryGetValue(workspaceId, out var set) && set.ContainsKey(kind);
 }

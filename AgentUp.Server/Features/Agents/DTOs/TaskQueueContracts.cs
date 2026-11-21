@@ -1,6 +1,10 @@
 namespace AgentUp.Server.Features.Agents.DTOs;
 
-/// <summary>One picked task, as the Tasks tab shows it.</summary>
+/// <summary>
+/// One picked task, as the Tasks tab shows it. The two reviewer ids are who holds each kind of
+/// review for every revision; <paramref name="NeedsReview"/> names the kinds -
+/// <c>devReviewer</c>, <c>pmReviewer</c> - the open revision still waits on.
+/// </summary>
 public sealed record QueuedTaskDto(
     string Id,
     string Owner,
@@ -11,7 +15,23 @@ public sealed record QueuedTaskDto(
     string Url,
     DateTimeOffset QueuedAt,
     string? TargetWorkspaceId,
-    string? HeldByWorkspaceId);
+    string? HeldByWorkspaceId,
+    string Stage = "queued",
+    TaskProposalDto? Proposal = null,
+    IReadOnlyList<TaskReviewDto>? Reviews = null,
+    string? DevReviewerWorkspaceId = null,
+    string? PmReviewerWorkspaceId = null,
+    IReadOnlyList<string>? NeedsReview = null);
+
+/// <summary>The proposal a task's author opened, and which revision of it is under review.</summary>
+/// <summary>A proposal revision; <paramref name="Head"/> is the commit that revision is.</summary>
+public sealed record TaskProposalDto(string Number, string Url, string Branch, string BaseBranch, int Revision, string? Head = null);
+
+/// <summary>
+/// One reviewer's verdict on one revision: <c>approve</c>, <c>requestChanges</c> or <c>comment</c>,
+/// and whether it was a <c>devReviewer</c> or <c>pmReviewer</c> review.
+/// </summary>
+public sealed record TaskReviewDto(string WorkspaceId, string Verdict, int Revision, string Body, string Kind = "devReviewer");
 
 /// <summary>Picks one of the repository's open issues into the queue.</summary>
 /// <summary>

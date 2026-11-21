@@ -99,6 +99,112 @@ public sealed class GitChangeTreeService
             GitCommitResult.Failed,
             cancellationToken);
 
+    /// <summary>The commit a ref names in the workspace's repository, or null when it names none.</summary>
+    public async Task<string?> ResolveCommitAsync(string workspaceId, string reference, CancellationToken cancellationToken = default)
+    {
+        var workspace = _workspaces.GetById(workspaceId);
+        if (workspace is null)
+            return null;
+        try
+        {
+            return await _git.ResolveCommitAsync(workspace.WorktreePath, reference, cancellationToken);
+        }
+        catch (InvalidOperationException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>What a branch adds since it left its base, or null when either ref is unknown.</summary>
+    public async Task<string?> GetRangeDiffAsync(string workspaceId, string baseRef, string head, CancellationToken cancellationToken = default)
+    {
+        var workspace = _workspaces.GetById(workspaceId);
+        if (workspace is null)
+            return null;
+        try
+        {
+            return await _git.GetRangeDiffAsync(workspace.WorktreePath, baseRef, head, cancellationToken);
+        }
+        catch (InvalidOperationException)
+        {
+            return null;
+        }
+    }
+
+    /// <summary>Commits everything in the workspace onto a task branch. A null commit means nothing changed.</summary>
+    public Task<GitCommitResult> CommitAllToBranchAsync(
+        string workspaceId,
+        string branch,
+        string message,
+        GitIdentity author,
+        CancellationToken cancellationToken = default) =>
+        MutateAsync(
+            workspaceId,
+            async workspace =>
+            {
+                try
+                {
+                    var commit = await _git.CommitAllToBranchAsync(workspace.WorktreePath, branch, message, author, cancellationToken);
+                    await RefreshIdentityAsync(workspace, cancellationToken);
+                    return commit is null ? GitCommitResult.Unchanged() : GitCommitResult.Success(commit);
+                }
+                catch (InvalidOperationException ex)
+                {
+                    return GitCommitResult.Failed(ex.Message);
+                }
+            },
+            GitCommitResult.NotFound,
+            GitCommitResult.Failed,
+            cancellationToken);
+
+    /// <summary>Starts a task branch at the commit now checked out, so the work has a home before it has a commit.</summary>
+    public Task<GitMutationResult> StartBranchAsync(
+        string workspaceId,
+        string branch,
+        CancellationToken cancellationToken = default) =>
+        MutateAsync(
+            workspaceId,
+            async workspace =>
+            {
+                try
+                {
+                    await _git.StartBranchAsync(workspace.WorktreePath, branch, cancellationToken);
+                    await RefreshIdentityAsync(workspace, cancellationToken);
+                    return GitMutationResult.Success();
+                }
+                catch (InvalidOperationException ex)
+                {
+                    return GitMutationResult.Failed(ex.Message);
+                }
+            },
+            GitMutationResult.NotFound,
+            GitMutationResult.Failed,
+            cancellationToken);
+
+    /// <summary>Checks out the fetched remote branch exactly, discarding nothing but the old local copy of it.</summary>
+    public Task<GitMutationResult> ResetToRemoteBranchAsync(
+        string workspaceId,
+        string branch,
+        CancellationToken cancellationToken = default) =>
+        MutateAsync(
+            workspaceId,
+            async workspace =>
+            {
+                try
+                {
+                    await _git.ResetToRemoteBranchAsync(workspace.WorktreePath, branch, cancellationToken);
+                    await RefreshIdentityAsync(workspace, cancellationToken);
+                    return GitMutationResult.Success();
+                }
+                catch (InvalidOperationException ex)
+                {
+                    return GitMutationResult.Failed(ex.Message);
+                }
+            },
+            GitMutationResult.NotFound,
+            GitMutationResult.Failed,
+            cancellationToken);
+
     public Task<GitMutationResult> DiscardAsync(
         string workspaceId,
         GitFilesRequest request,

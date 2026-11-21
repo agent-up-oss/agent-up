@@ -4,7 +4,7 @@ namespace AgentUp.Server.Tests.Features.Orchestration.Provider;
 
 /// <summary>
 /// Starting a workspace re-registers it from this file, so what the Server reads here decides
-/// which applications the workspace keeps. A Server with no capability packages enabled is the
+/// which applications the workspace keeps. A Server with no capabilities enabled is the
 /// ordinary case for an installed service, and it must still read the sections.
 /// </summary>
 [TestFixture]

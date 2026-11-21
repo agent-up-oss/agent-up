@@ -1,19 +1,6 @@
 # AgentUp.Sdk.Forge
 
-MSBuild SDK for Agent-Up **forge** capability modules. A forge module talks to a
-repository host. It has no Nix closure to deliver and no ACP session to run.
-Enablement is Server-owned; forge modules do not add `agent-up.json` sections.
-
-## In-repo consumption
-
-```xml
-<Project>
-  <Import Project="..\AgentUp.Sdk.Forge\Sdk\Sdk.props" />
-  <!-- project body -->
-  <Import Project="..\AgentUp.Sdk.Forge\Sdk\Sdk.targets" />
-</Project>
-```
-
-Packed NuGet consumers use `<Project Sdk="AgentUp.Sdk.Forge">`.
-
-Implement `ForgeCapabilityProjectDefinition` and register an `IForgeCapability`.
+The contract every built-in **forge** capability implements. A forge capability talks to a
+repository host. It has no Nix closure to deliver and no ACP session to run, so it needs no
+software on the Server host. Forge capabilities are compiled into the Server; enablement is
+Server-owned and forge capabilities add no `agent-up.json` sections.

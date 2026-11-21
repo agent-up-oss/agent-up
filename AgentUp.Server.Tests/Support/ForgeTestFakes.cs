@@ -6,6 +6,17 @@ namespace AgentUp.Server.Tests.Support;
 internal sealed class MemoryForgeCredentialStore : IForgeCredentialStore
 {
     private readonly Dictionary<string, string> _tokens = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, ForgeOAuthGrant> _grants = new(StringComparer.Ordinal);
+
+    public ForgeOAuthGrant? ReadGrant(string workspaceId, string moduleId)
+        => _grants.GetValueOrDefault(Key(workspaceId, moduleId))
+           ?? (Read(workspaceId, moduleId) is { } token ? new ForgeOAuthGrant(token, null, null) : null);
+
+    public void WriteGrant(string workspaceId, string moduleId, ForgeOAuthGrant grant)
+    {
+        _grants[Key(workspaceId, moduleId)] = grant;
+        _tokens[Key(workspaceId, moduleId)] = grant.AccessToken;
+    }
 
     public string? Read(string workspaceId, string moduleId)
         => _tokens.GetValueOrDefault(Key(workspaceId, moduleId));
@@ -29,13 +40,31 @@ internal sealed class FixedForgeOAuthSettings(ForgeOAuthConfiguration configurat
     public ForgeOAuthConfiguration Read() => configuration;
 }
 
-internal sealed class FixedForgeOAuthExchange(string token) : IForgeOAuthExchange
+internal sealed class FixedForgeOAuthExchange(string token, string? refusal = null, ForgeOAuthGrant? refreshed = null) : IForgeOAuthExchange
 {
     public string? LastTokenUrl { get; private set; }
+
+    public List<string> RefreshedWith { get; } = [];
+
+    public Task<ForgeOAuthGrant> RefreshAsync(string refreshToken, string tokenUrl, CancellationToken cancellationToken)
+    {
+        RefreshedWith.Add(refreshToken);
+        return refreshed is null
+            ? Task.FromException<ForgeOAuthGrant>(new InvalidOperationException("The host refused the refresh token."))
+            : Task.FromResult(refreshed);
+    }
+
+    public string? LastRedirectUri { get; private set; }
+
+    public Task<string> ExchangeAsync(string code, string tokenUrl, string redirectUri, CancellationToken cancellationToken)
+    {
+        LastRedirectUri = redirectUri;
+        return ExchangeAsync(code, tokenUrl, cancellationToken);
+    }
 
     public Task<string> ExchangeAsync(string code, string tokenUrl, CancellationToken cancellationToken)
     {
         LastTokenUrl = tokenUrl;
-        return Task.FromResult(token);
+        return refusal is null ? Task.FromResult(token) : Task.FromException<string>(new InvalidOperationException(refusal));
     }
 }
