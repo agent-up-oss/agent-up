@@ -73,6 +73,10 @@ describe('agent sign-in', () => {
 
     beforeEach(async () => {
       await stack.control.reset();
+      // Again per case: a hosted emulator that drops its adb transport takes every reverse with
+      // it, and the next case would then launch an app that cannot reach the Server. adb reverse
+      // replaces an existing mapping, so this is a no-op when nothing was lost.
+      await reverseHostPorts(stack.hostPorts);
       // Fresh app state per case: a credential left over from a previous one would make this pass
       // for the wrong reason.
       await device.launchApp({

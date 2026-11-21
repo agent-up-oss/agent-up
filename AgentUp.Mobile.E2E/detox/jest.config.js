@@ -10,7 +10,8 @@ module.exports = {
   maxWorkers: 1,
   globalSetup: 'detox/runners/jest/globalSetup',
   globalTeardown: 'detox/runners/jest/globalTeardown',
-  testEnvironment: 'detox/runners/jest/testEnvironment',
+  // Detox's environment plus idempotent adb reverse removal; see detox/missingReverse.js.
+  testEnvironment: '<rootDir>/detox/environment.js',
   reporters: ['default', ['jest-junit', { outputDirectory: 'artifacts', outputName: 'detox-results.xml' }]],
   verbose: true,
   // No retries. A retry hides a flake instead of surfacing it, which is the opposite of what this
