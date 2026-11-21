@@ -56,7 +56,10 @@ public sealed class ScreenReadyProbeProviderTests
         {
             using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(2) };
             await Probe(http, new FakeProcessRunner()).WaitForUrlAsync(prefix, CancellationToken.None);
-            Assert.That(started.IsCompleted, Is.True);
+            // The probe returns as soon as the response arrives, which can be a moment before the
+            // host's own task finishes closing it; waiting for it is what proves the host answered.
+            await started.WaitAsync(TimeSpan.FromSeconds(5));
+            Assert.That(started.IsCompletedSuccessfully, Is.True);
         }
         finally
         {
