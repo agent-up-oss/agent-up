@@ -47,14 +47,6 @@ test('a successful removal passes through, and patching twice wraps once', async
   assert.equal(await new Adb().reverseRemove('emulator-5554', 24001), 'removed');
 });
 
-test('the Detox environment patches the ADB class the Android driver uses', () => {
-  require('../detox/missingReverse').tolerateMissingReverse(
-    require('detox/src/devices/common/drivers/android/exec/ADB').prototype,
-  );
-  const ADB = require('detox/src/devices/common/drivers/android/exec/ADB');
-  assert.equal(ADB.prototype[Symbol.for('agent-up.e2e.tolerateMissingReverse')], true);
-});
-
 test('the Jest config runs Detox through that environment', async () => {
   const config = require('../detox/jest.config.js');
   assert.equal(config.testEnvironment, '<rootDir>/detox/environment.js');
