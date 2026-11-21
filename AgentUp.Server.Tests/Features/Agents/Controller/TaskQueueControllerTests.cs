@@ -33,6 +33,21 @@ public sealed class TaskQueueControllerTests
         });
     }
 
+    // A reader can tell which commit is under review, not only which revision number.
+    [Test]
+    public async Task List_namesTheCommitEachProposalRevisionIs()
+    {
+        var (controller, tasks, workspaceId) = await ArrangeAsync(Issue("7", 3));
+        await controller.EnqueueAsync(new EnqueueTaskRequest(workspaceId, "7"));
+        tasks.TryClaim(workspaceId, "acme", "widgets", "7");
+        tasks.Begin(workspaceId, "acme", "widgets", "7", "main");
+        tasks.Propose(workspaceId, "acme", "widgets", "7", "9", "https://example.test/pulls/9", "agent-up/issue-3", "main", "abc123");
+
+        var proposal = controller.List().Single().Proposal;
+
+        Assert.That(proposal, Is.EqualTo(new TaskProposalDto("9", "https://example.test/pulls/9", "agent-up/issue-3", "main", 1, "abc123")));
+    }
+
     [Test]
     public async Task EnqueueAsync_refusesAnIssueTheHostDoesNotServe()
     {

@@ -44,7 +44,7 @@ public sealed class TaskQueueController(TaskQueueService queue, TaskPickingServi
         JsonNamingPolicy.CamelCase.ConvertName(Enum.GetName(task.Stage)!),
         task.Proposal is null
             ? null
-            : new TaskProposalDto(task.Proposal.Number, task.Proposal.Url, task.Proposal.Branch, task.Proposal.BaseBranch, task.Proposal.Revision),
+            : new TaskProposalDto(task.Proposal.Number, task.Proposal.Url, task.Proposal.Branch, task.Proposal.BaseBranch, task.Proposal.Revision, task.Proposal.Head),
         [.. (task.Reviews ?? []).Select(review => new TaskReviewDto(
             review.WorkspaceId,
             JsonNamingPolicy.CamelCase.ConvertName(Enum.GetName(review.Verdict)!),

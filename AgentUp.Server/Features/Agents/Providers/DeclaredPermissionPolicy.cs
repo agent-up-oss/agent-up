@@ -39,7 +39,10 @@ public sealed class DeclaredPermissionPolicy(IReadOnlyList<PermissionRule> rules
             || title.Contains("fetch", StringComparison.OrdinalIgnoreCase)
             || title.Contains("http", StringComparison.OrdinalIgnoreCase))
             return PermissionRuleKind.Network;
-        if (kind.Contains("execute", StringComparison.OrdinalIgnoreCase)
+        // A call that carries a command runs it, whatever kind the agent labelled it: OpenCode
+        // sends its shell tool as "other", and reading that as a write refused a reviewer's git.
+        if (HasCommand(request)
+            || kind.Contains("execute", StringComparison.OrdinalIgnoreCase)
             || kind.Contains("command", StringComparison.OrdinalIgnoreCase)
             || title.Contains("bash", StringComparison.OrdinalIgnoreCase)
             || title.Contains("shell", StringComparison.OrdinalIgnoreCase)
@@ -117,6 +120,12 @@ public sealed class DeclaredPermissionPolicy(IReadOnlyList<PermissionRule> rules
     /// Claude Code), some at the top of the tool call; the title is only a fallback, because agents
     /// title a command call with the tool's name as often as with the command.
     /// </summary>
+    private static bool HasCommand(JsonElement request) =>
+        request.TryGetProperty("toolCall", out var tool) && tool.ValueKind == JsonValueKind.Object
+        && ((tool.TryGetProperty("rawInput", out var raw) && raw.ValueKind == JsonValueKind.Object
+                && raw.TryGetProperty("command", out var rawCommand) && rawCommand.ValueKind == JsonValueKind.String)
+            || (tool.TryGetProperty("command", out var command) && command.ValueKind == JsonValueKind.String));
+
     private static string ReadCommand(JsonElement request)
     {
         if (!request.TryGetProperty("toolCall", out var tool) || tool.ValueKind != JsonValueKind.Object)

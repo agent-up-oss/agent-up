@@ -90,6 +90,24 @@ public sealed class DeclaredPermissionPolicyTests
         });
     }
 
+    // OpenCode labels its shell call "other"; it is still a command, not a write to the clone.
+    [Test]
+    public void Decide_treatsACallCarryingACommandAsExecuteWhateverItsKind()
+    {
+        var policy = new DeclaredPermissionPolicy([
+            new PermissionRuleBuilder("review-git", PermissionRuleKind.Execute).Scoped("git").Build()
+        ]);
+        var gitDiff = JsonSerializer.Deserialize<JsonElement>("""
+            {"options":[{"optionId":"once","kind":"allow_once"}],"toolCall":{"kind":"other","title":"git diff --name-only src/greeting.js","rawInput":{"command":"git diff --name-only src/greeting.js"}}}
+            """);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(DeclaredPermissionPolicy.Classify(gitDiff), Is.EqualTo(PermissionRuleKind.Execute));
+            Assert.That(policy.Decide(gitDiff)!.RuleId, Is.EqualTo("review-git"));
+        });
+    }
+
     [Test]
     public void Decide_returnsNullWhenOptionsAreMissing()
     {

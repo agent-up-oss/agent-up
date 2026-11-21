@@ -17,7 +17,8 @@ public sealed record QueuedTaskDto(
     IReadOnlyList<TaskReviewDto>? Reviews = null);
 
 /// <summary>The proposal a task's author opened, and which revision of it is under review.</summary>
-public sealed record TaskProposalDto(string Number, string Url, string Branch, string BaseBranch, int Revision);
+/// <summary>A proposal revision; <paramref name="Head"/> is the commit that revision is.</summary>
+public sealed record TaskProposalDto(string Number, string Url, string Branch, string BaseBranch, int Revision, string? Head = null);
 
 /// <summary>One reviewer's verdict on one revision: <c>approve</c>, <c>requestChanges</c> or <c>comment</c>.</summary>
 public sealed record TaskReviewDto(string WorkspaceId, string Verdict, int Revision, string Body);
