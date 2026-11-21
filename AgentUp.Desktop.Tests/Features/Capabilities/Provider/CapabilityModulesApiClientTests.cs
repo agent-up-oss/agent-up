@@ -11,7 +11,7 @@ public sealed class CapabilityModulesApiClientTests
     public async Task ListAsync_readsTheServerCatalog()
     {
         using var handler = new RecordingCapabilityHandler(HttpStatusCode.OK,
-            """[{"id":"dotnet","version":"1.0.0","displayName":".NET","publisher":"agent-up","kind":"runtime","enabled":true,"state":"ready","canRun":true,"messages":[]}]""");
+            """[{"id":"opencode","version":"1.0.0","displayName":"OpenCode","publisher":"agent-up","kind":"agent","enabled":true,"available":true,"state":"needsSetup","canRun":false,"missing":[],"settings":[{"key":"token","label":"Token","kind":"secret","required":false,"placeholder":null,"value":null,"hasValue":true}],"messages":[]}]""");
         using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
         var client = new CapabilityModulesApiClient(http);
 
@@ -19,29 +19,46 @@ public sealed class CapabilityModulesApiClientTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(modules.Single().Id, Is.EqualTo("dotnet"));
-            Assert.That(modules.Single().CanRun, Is.True);
+            Assert.That(modules.Single().Id, Is.EqualTo("opencode"));
+            Assert.That(modules.Single().Available, Is.True);
+            Assert.That(modules.Single().Settings.Single().HasValue, Is.True);
             Assert.That(handler.LastUri!.PathAndQuery, Is.EqualTo("/api/capabilities"));
         });
     }
 
     [Test]
-    public async Task EnableAsync_postsThePackageIdAndVersion()
+    public async Task EnableAsync_postsTheCapabilityId()
     {
         using var handler = new RecordingCapabilityHandler(HttpStatusCode.OK,
             """{"id":"docker","version":"1.0.0","displayName":"Docker","publisher":"agent-up","kind":"runtime","enabled":true,"state":"ready","canRun":true,"messages":[]}""");
         using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
         var client = new CapabilityModulesApiClient(http);
 
-        var module = await client.EnableAsync("docker", "1.0.0");
+        var module = await client.EnableAsync("docker");
 
         Assert.Multiple(() =>
         {
             Assert.That(module.Enabled, Is.True);
             Assert.That(handler.LastUri!.PathAndQuery, Is.EqualTo("/api/capabilities/enable"));
             Assert.That(handler.LastRequestBody, Does.Contain("\"id\":\"docker\""));
-            Assert.That(handler.LastRequestBody, Does.Contain("\"version\":\"1.0.0\""));
+            Assert.That(handler.LastRequestBody, Does.Not.Contain("version"));
         });
+    }
+
+    [Test]
+    public async Task UpdateSettingsAsync_putsTheValuesUnderTheCapability()
+    {
+        using var handler = new RecordingCapabilityHandler(HttpStatusCode.OK,
+            """{"id":"opencode","version":"1.0.0","displayName":"OpenCode","publisher":"agent-up","kind":"agent","enabled":true,"available":true,"state":"ready","canRun":true,"missing":[],"settings":[],"messages":[]}""");
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
+
+        var module = await new CapabilityModulesApiClient(http).UpdateSettingsAsync(
+            "opencode",
+            new Dictionary<string, string> { ["endpoint"] = "http://localhost:11434" });
+
+        Assert.That(module.CanRun, Is.True);
+        Assert.That(handler.LastUri!.PathAndQuery, Is.EqualTo("/api/capabilities/opencode/settings"));
+        Assert.That(handler.LastRequestBody, Does.Contain("\"values\":{\"endpoint\":\"http://localhost:11434\"}"));
     }
 
     [Test]

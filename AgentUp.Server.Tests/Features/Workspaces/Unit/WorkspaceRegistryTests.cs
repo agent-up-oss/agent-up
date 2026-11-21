@@ -26,6 +26,49 @@ public class WorkspaceRegistryTests
         Assert.That(_registry.GetAll(), Is.Empty);
     }
 
+    // Every start re-registers the path from agent-up.json; that must not undo what the
+    // registry alone knows: that the clone is a derived review workspace, and its bound agent.
+    [Test]
+    public async Task Register_again_keepsTheDerivationAndBindingTheRefreshDoesNotCarry()
+    {
+        var registry = CreateRegistry(FakeEnabledCapabilityPackages.FirstParty());
+        var derived = await registry.RegisterAsync(ServerDomain.Workspace()
+            .Named("Review · main")
+            .AsDerived("https://example.test/acme/widgets.git", "main")
+            .Build());
+        await registry.UpdateBoundAgentAsync(derived.Id, "ollama");
+
+        var refreshed = await registry.RegisterAsync(ServerDomain.Workspace().Named("Widgets").Build());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(refreshed.Id, Is.EqualTo(derived.Id));
+            Assert.That(refreshed.Derived, Is.True);
+            Assert.That(refreshed.DisplayName, Is.EqualTo("Review · main"));
+            Assert.That(refreshed.SourceRevision, Is.EqualTo("main"));
+            Assert.That(refreshed.BoundAgentModuleId, Is.EqualTo("ollama"));
+        });
+    }
+
+    // Team members check out one repository; starting one must not rename it after the repository,
+    // while an explicit display.name in agent-up.json still renames it.
+    [Test]
+    public async Task Register_again_keepsTheMembersNameOverTheRepositorysButNotOverADisplayName()
+    {
+        var registry = CreateRegistry(FakeEnabledCapabilityPackages.FirstParty());
+        var hector = await registry.RegisterAsync(ServerDomain.Workspace().Named("hector").Build());
+
+        var started = await registry.RegisterAsync(ServerDomain.Workspace().Named("Harbor storefront").Build() with { NameIsRepositoryName = true });
+        var renamed = await registry.RegisterAsync(ServerDomain.Workspace().Named("Hector's checkout").Build());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(started.Id, Is.EqualTo(hector.Id));
+            Assert.That(started.DisplayName, Is.EqualTo("hector"));
+            Assert.That(renamed.DisplayName, Is.EqualTo("Hector's checkout"));
+        });
+    }
+
     [Test]
     public async Task Register_ReturnsWorkspace_WithAllSuppliedFields()
     {

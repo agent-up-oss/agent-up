@@ -3,9 +3,6 @@ using AgentUp.CommitPolicy.Features.CommitPolicy.Providers;
 using AgentUp.Capabilities.Common.Features.NixRuntime.Controllers;
 using AgentUp.Capabilities.Common.Features.NixRuntime.Providers;
 using AgentUp.Capabilities.Common.Features.NixRuntime.Services;
-using AgentUp.Registry.Composition;
-using AgentUp.Registry.Features.RemoteCatalog.Interfaces;
-using AgentUp.Registry.Features.RemoteCatalog.Providers;
 using AgentUp.Server.Features.Training.Controllers;
 using AgentUp.Server.Features.TaskSource.Interfaces;
 using AgentUp.Server.Features.TaskSource.Providers;
@@ -145,6 +142,7 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<SelfHostedEntitlementsProvider>();
         builder.Services.AddSingleton<EntitlementsService>();
         builder.Services.AddTransient<IMcpNetworkRestrictionMiddleware, McpNetworkRestrictionMiddleware>();
+        builder.Services.AddTransient<IAgentMcpSessionMiddleware, AgentMcpSessionMiddleware>();
         var mcpRemoteAccess = new McpRemoteAccessProvider(builder.Configuration);
         var mcpResourceMetadata = new McpProtectedResourceMetadataProvider(builder.Configuration);
         builder.Services.AddSingleton(mcpRemoteAccess);
@@ -193,6 +191,7 @@ public static class ServiceRegistration
             .WithTools<DiagnosticsMcpTools>()
             .WithTools<CapabilityModulesMcpTools>()
             .WithTools<TrainingMcpTools>()
+            .WithTools<TaskMcpTools>()
             .WithResources<OrchestrationMcpResources>()
             .AddAuthorizationFilters();
 #pragma warning restore MCP9004
@@ -209,10 +208,25 @@ public static class ServiceRegistration
         builder.Services.AddHttpClient("agent-login-callback");
         builder.Services.AddSingleton<AgentLoginCallbackRelay>();
         builder.Services.AddSingleton<IAgentSubscriptionLoginProvider, AgentSubscriptionLoginProvider>();
+        builder.Services.AddHttpClient(OllamaChatModelProvider.HttpClientName, client => client.Timeout = TimeSpan.FromMinutes(5));
+        builder.Services.AddHttpClient(LoopbackMcpClientProvider.HttpClientName, client => client.Timeout = TimeSpan.FromMinutes(2));
+        builder.Services.AddSingleton<IInProcessChatModel, OllamaChatModelProvider>();
+        builder.Services.AddSingleton<ILoopbackMcpClient, LoopbackMcpClientProvider>();
+        builder.Services.AddSingleton<InProcessToolCatalogProvider>();
+        builder.Services.AddSingleton<TeamMemberService>();
+        builder.Services.AddSingleton<TeamMemberController>();
+        builder.Services.AddSingleton<IInProcessToolHost, InProcessAgentToolService>();
+        builder.Services.AddSingleton<IAgentSandbox>(provider => new BubblewrapAgentSandboxProvider(
+            provider.GetRequiredService<AgentCliHomeProvider>(),
+            dataDir,
+            provider.GetService<IAgentRuntimePathProvider>()));
         builder.Services.AddSingleton<IAgentProcessFactory, AgentProcessFactory>();
         builder.Services.AddSingleton<AgentEventFrameProvider>();
         builder.Services.AddSingleton<AgentEventService>();
         builder.Services.AddSingleton<IAgentSessionRepository>(_ => new AgentSessionRepository(dataDir));
+        builder.Services.AddSingleton<AgentMcpServerProvider>();
+        builder.Services.AddSingleton<AgentMcpSessionService>();
+        builder.Services.AddSingleton<AgentMcpSessionController>();
         builder.Services.AddSingleton<AgentSchedulingService>();
         builder.Services.AddSingleton<AgentsController>();
         builder.Services.AddSingleton<LoopInvariantGuard>();
@@ -227,6 +241,7 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<GithubAppApiProvider>();
         builder.Services.AddSingleton<GithubAppConnectionService>();
         builder.Services.AddSingleton<IForgeGitRemoteResolver, ForgeGitRemoteResolver>();
+        builder.Services.AddSingleton<IForgeGitTransport, ForgeGitTransportProvider>();
         builder.Services.AddSingleton<IForgeOAuthSettings, ForgeOAuthSettingsProvider>();
         builder.Services.AddSingleton<IForgeOAuthStateStore, ForgeOAuthStateStore>();
         builder.Services.AddSingleton<IForgeOAuthExchange, ForgeOAuthExchangeProvider>();
@@ -255,8 +270,20 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<TrainingController>();
         // The loop draws from the picked queue, never from whatever the host happens to have open.
         builder.Services.AddSingleton<IAssignedIssueQueue, CuratedIssueQueue>();
-        builder.Services.AddSingleton<IAssignedProposalQueue, MemoryAssignedProposalQueue>();
+        // Reviewers are offered the picked tasks whose open revision they have not reviewed.
+        builder.Services.AddSingleton<IAssignedProposalQueue, CuratedProposalQueue>();
+        builder.Services.AddSingleton<IReviewBrowser, WorkspaceReviewBrowserProvider>();
+        builder.Services.AddSingleton<IReviewApplicationHost>(sp => new WorkspaceReviewApplicationProvider(
+            sp.GetRequiredService<WorkspaceLifecycleController>(),
+            sp.GetRequiredService<WorkspaceQueryController>(),
+            sp.GetRequiredService<IReviewBrowser>()));
         builder.Services.AddSingleton<IRoleProgress, MemoryRoleProgress>();
+        builder.Services.AddSingleton<TaskReviewRequirementService>();
+        builder.Services.AddSingleton<TaskPipelineService>();
+        builder.Services.AddSingleton<ITaskPipeline>(provider => provider.GetRequiredService<TaskPipelineService>());
+        builder.Services.AddSingleton<IReviewEvidenceSource, AuditReviewEvidenceProvider>();
+        builder.Services.AddSingleton<TaskWorkService>();
+        builder.Services.AddSingleton<TaskWorkController>();
         builder.Services.AddSingleton<ILoopBackoff, LoopBackoffProvider>();
         builder.Services.AddSingleton<IEnabledAgentInspector, EnabledAgentInspector>();
         builder.Services.AddSingleton<IRoleToolFilter, RoleToolFilterProvider>();
@@ -274,7 +301,8 @@ public static class ServiceRegistration
                 sp.GetRequiredService<WorkspaceQueryController>(),
                 sp.GetRequiredService<IRoleToolFilter>(),
                 sp.GetService<IEnabledCapabilityPackages>(),
-                sp.GetService<IHostConnectionPresence>()).ReconcileAfterRestart());
+                sp.GetService<IHostConnectionPresence>(),
+                sp.GetRequiredService<ITaskPipeline>()).ReconcileAfterRestart());
         builder.Services.AddSingleton<LoopScenarioCatalog>();
         builder.Services.AddSingleton<LoopOutcomeBaselineStore>();
         builder.Services.AddSingleton<WorkspaceEventFrameProvider>();
@@ -335,32 +363,23 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<ApplicationProxyFallbackController>();
         builder.Services.AddSingleton<WorkspaceRegistry>();
         builder.Services.AddHostedService(sp => sp.GetRequiredService<WorkspaceRegistry>());
-        var registryRoot = CapabilityRegistryRootResolver.Resolve(
-            builder.Configuration["AGENTUP_CAPABILITY_REGISTRY_PATH"]
-            ?? Environment.GetEnvironmentVariable("AGENTUP_CAPABILITY_REGISTRY_PATH"),
-            dataDir,
+        var devRoot = CapabilityRuntimePathProvider.Resolve(
+            builder.Configuration["AGENT_UP_DEV_ROOT"] ?? Environment.GetEnvironmentVariable("AGENT_UP_DEV_ROOT"),
             Environment.CurrentDirectory,
             AppContext.BaseDirectory);
-        RegistryServiceRegistration.Configure(builder, registryRoot);
-        var remoteRegistryUrl = builder.Configuration["AGENTUP_CAPABILITY_REGISTRY_URL"]
-            ?? Environment.GetEnvironmentVariable("AGENTUP_CAPABILITY_REGISTRY_URL");
-        if (!string.IsNullOrWhiteSpace(remoteRegistryUrl))
-        {
-            builder.Services.AddHttpClient<IRemoteRegistryClient, RemoteRegistryHttpClient>(client =>
-            {
-                client.BaseAddress = new Uri(remoteRegistryUrl.TrimEnd('/') + "/");
-            });
-        }
-
         builder.Services.AddSingleton<NixCapabilityCommandBuilder>();
         builder.Services.AddSingleton<CapabilityIndexMergeProvider>();
         builder.Services.AddSingleton<NixCapabilityEnvironmentService>();
         builder.Services.AddSingleton<NixCapabilityEnvironmentController>();
         builder.Services.AddSingleton<ICapabilityEnabledSetStore>(_ => new CapabilityEnabledSetStore(dataDir));
         builder.Services.AddSingleton<INixPresenceProvider, NixPresenceProvider>();
-        builder.Services.AddSingleton<CapabilityRuntimePathProvider>();
-        builder.Services.AddSingleton<CapabilityModuleLoadProvider>();
-        builder.Services.AddSingleton<ICapabilityModuleLoader>(sp => sp.GetRequiredService<CapabilityModuleLoadProvider>());
+        builder.Services.AddSingleton(_ => new CapabilityRuntimePathProvider(devRoot));
+        builder.Services.AddSingleton<ICapabilityCatalog, FirstPartyCapabilityCatalog>();
+        builder.Services.AddSingleton<ICapabilitySettingsStore>(_ => new CapabilitySettingsStore(dataDir));
+        builder.Services.AddSingleton<ICapabilityNixShellProvider>(_ => new CapabilityNixShellProvider(dataDir));
+        builder.Services.AddSingleton<ICapabilitySoftwareProbe>(sp => new CapabilitySoftwareProbe(
+            sp.GetRequiredService<INixPresenceProvider>(),
+            sp.GetRequiredService<CapabilityRuntimePathProvider>()));
         builder.Services.AddSingleton<CapabilityModuleService>();
         builder.Services.AddSingleton<IEnabledCapabilityPackages>(sp => sp.GetRequiredService<CapabilityModuleService>());
         builder.Services.AddSingleton<CapabilityModulesController>();
@@ -510,6 +529,7 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<IWorkspacePromptGuard, WorkspaceAgentPromptGuard>();
         builder.Services.AddSingleton<GitChangeTreeService>();
         builder.Services.AddSingleton<GitQueryController>();
+        builder.Services.AddSingleton<GitWorkspaceController>();
         builder.Services.AddSingleton<ISourceCloneRootProvider>(_ => new SourceCloneRootProvider(dataDir));
         builder.Services.AddSingleton<ISourceCloneTargetProvider, SourceCloneTargetProvider>();
         builder.Services.AddSingleton<ISourceCloneGitProvider, GitSourceCloneProvider>();

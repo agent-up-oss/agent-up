@@ -1,3 +1,4 @@
+using AgentUp.Server.Features.Capabilities.DTOs;
 using AgentUp.Server.Features.Applications.DTOs;
 using AgentUp.Server.Features.Capabilities.Controllers;
 using AgentUp.Server.Features.Capabilities.Services;
@@ -37,7 +38,7 @@ public sealed class CapabilitiesControllerTests
     public async Task ReconcileDotnetAsync_names_nix_when_it_is_missing()
     {
         var controller = new CapabilitiesController(new CapabilityReconciliationService(
-            nix: new CapabilityModuleHarness.FixedNixPresence(false)));
+            new FakeEnabledCapabilityPackages().WithReadiness(new CapabilityReadinessDto("dotnet", ".NET", false, ["nix"], []))));
 
         var result = await controller.ReconcileDotnetAsync(
             new DotnetApplicationDefinition("web", null, new DotnetRunDefinition("Web.csproj")), [], []);

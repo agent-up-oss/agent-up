@@ -82,6 +82,24 @@ public sealed class TeamStandingServiceTests
         });
     }
 
+    // An active member between tasks waits for work; an empty queue is not a reason worth showing.
+    [Test]
+    public async Task ReadAsync_anActiveLoopWaitingOnAnEmptyQueueIsIdleWithNoReason()
+    {
+        var agents = new StandingAgentFake();
+        agents.Sessions["waiting"] = TeamStandingComposition.Session(
+            "waiting",
+            loop: TeamStandingComposition.Loop(true, "idle", stopReason: "queue_empty"));
+
+        var standing = (await Read(agents, new StandingForgeFake(), "waiting")).Single();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(standing.Kind, Is.EqualTo(TeamStandingKind.Idle));
+            Assert.That(standing.Reason, Is.Null);
+        });
+    }
+
     [Test]
     public async Task ReadAsync_anEmptyQueueIsIdleRatherThanHalted()
     {

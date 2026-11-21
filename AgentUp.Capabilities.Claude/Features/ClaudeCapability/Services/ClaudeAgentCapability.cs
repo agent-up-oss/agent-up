@@ -10,13 +10,19 @@ public sealed class ClaudeAgentCapability : IAgentCapability
 
     public CapabilityIdentity Identity { get; } = new(PackageId, PackageVersion, "Claude", "agent-up");
 
-    public IReadOnlyList<NixPackageDeclaration> NixPackages { get; } = [new("nodejs_22")];
+    public string Kind => CapabilityKind.Agent;
 
-    public bool CanRun => true;
+    /// <summary>Nix delivers Node.js; the ACP adapter itself has to be on the Server's search path.</summary>
+    public IReadOnlyList<CapabilitySoftware> Software { get; } =
+        [new("node", DeliveredByNix: true), new("claude-agent-acp", DeliveredByNix: false)];
+
+    public IReadOnlyList<CapabilitySettingSpec> Settings { get; } = [];
+
+    public IReadOnlyList<NixPackageDeclaration> NixPackages { get; } = [new("nodejs_22")];
 
     public bool SupportsPermissionRequests => true;
 
     public AgentLoginSpec? Login { get; } = new("claude", ["setup-token"], "code");
 
-    public AgentLaunchResult Launch() => new("claude-agent-acp", [], "nodejs_22");
+    public AgentLaunchResult Launch(IReadOnlyDictionary<string, string> settings) => new("claude-agent-acp", [], "nodejs_22");
 }

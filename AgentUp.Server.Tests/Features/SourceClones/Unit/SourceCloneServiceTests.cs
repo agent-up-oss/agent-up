@@ -69,6 +69,25 @@ public sealed class SourceCloneServiceTests
     }
 
     [Test]
+    public async Task CloneAsync_removesTheCloneWhenItsAgentUpJsonCannotBeRead()
+    {
+        var root = new FakeSourceCloneRootProvider("/clones");
+        var registry = ServerTestComposition.CreateRegistry();
+        var service = CreateService(root: root, registry: registry, configurationError: "agent-up.json requires 'name'.");
+
+        var result = await service.CloneAsync(new CloneSourceRequest("https://example.test/acme/widgets.git", "main"));
+
+        // Left behind, the directory would refuse every retry as a duplicate.
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Succeeded, Is.False);
+            Assert.That(result.Error, Does.Contain("agent-up.json").And.Contain("requires 'name'"));
+            Assert.That(root.DeletedPaths, Is.EqualTo(new[] { Destination }));
+            Assert.That(registry.GetAll(), Is.Empty);
+        });
+    }
+
+    [Test]
     public async Task CloneAsync_reportsGitFailuresAsStructuredErrors()
     {
         var git = new FakeSourceCloneGitProvider { CloneError = "Remote branch 'nope' not found." };
@@ -299,7 +318,8 @@ public sealed class SourceCloneServiceTests
         AgentUpConfiguration? configuration = null,
         FakeWorkspaceIdentityProvider? identity = null,
         FakeSourceCloneRootProvider? root = null,
-        AgentUp.Server.Features.Workspaces.Services.WorkspaceRegistry? registry = null)
+        AgentUp.Server.Features.Workspaces.Services.WorkspaceRegistry? registry = null,
+        string? configurationError = null)
     {
         identity ??= new FakeWorkspaceIdentityProvider(new WorkspaceIdentity(Destination, "main", "abc123"));
         return new(
@@ -308,7 +328,7 @@ public sealed class SourceCloneServiceTests
             root ?? new FakeSourceCloneRootProvider("/clones"),
             identity,
             new OrchestrationRegistrationController(new OrchestrationRegistrationService(
-                new FakeAgentUpConfigurationProvider(configuration),
+                new FakeAgentUpConfigurationProvider(configuration, configurationError),
                 identity)),
             new WorkspaceQueryController(registry ?? ServerTestComposition.CreateRegistry()));
     }

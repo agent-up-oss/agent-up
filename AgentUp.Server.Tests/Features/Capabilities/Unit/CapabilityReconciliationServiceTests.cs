@@ -59,20 +59,6 @@ public sealed class CapabilityReconciliationServiceTests
         });
     }
 
-    [Test]
-    public async Task Enabled_dotnet_package_maps_agent_up_json_project_onto_the_launch_template()
-    {
-        var packages = new EnabledPackages(CapabilityModuleHarness.DotnetManifest());
-        var templates = new AgentUp.Registry.Features.Packages.Controllers.CapabilityPackageController(
-            new AgentUp.Registry.Features.Packages.Services.CapabilityPackageValidator(),
-            new AgentUp.Registry.Features.Packages.Services.CapabilityTemplateRenderer());
-        var result = await new CapabilityReconciliationService(packages, templates).ReconcileDotnetAsync(
-            new DotnetApplicationDefinition("api", "10.0", new DotnetRunDefinition("Api.csproj")), [], []);
-
-        Assert.That(result.CapabilityStatus!.CanRun, Is.True);
-        Assert.That(result.Command, Does.Contain("dotnet"));
-        Assert.That(result.Command, Does.Contain("Api.csproj"));
-    }
 
     [Test]
     public async Task Enabled_runtime_module_hosts_dotnet_from_the_sdk_contract()
@@ -86,7 +72,7 @@ public sealed class CapabilityReconciliationServiceTests
                 new RuntimeAttributeSpec("arguments", false, "string")
             ]
         };
-        var packages = new EnabledPackages(CapabilityModuleHarness.DotnetManifest(), runtime);
+        var packages = new FakeEnabledCapabilityPackages(runtime);
         var result = await new CapabilityReconciliationService(packages).ReconcileDotnetAsync(
             new DotnetApplicationDefinition("api", "10.0.x", new DotnetRunDefinition("Api.csproj", ["--no-launch-profile"])), [], []);
 
@@ -112,7 +98,7 @@ public sealed class CapabilityReconciliationServiceTests
                 new RuntimeAttributeSpec("command", false, "array")
             ]
         };
-        var packages = new EnabledPackages(FakeEnabledCapabilityPackages.Docker(), runtime);
+        var packages = new FakeEnabledCapabilityPackages(runtime);
         var result = await new CapabilityReconciliationService(packages).ReconcileDockerAsync(
             new DockerCapabilityDefinition("db", "postgres:17"), [], []);
 
@@ -129,12 +115,7 @@ public sealed class CapabilityReconciliationServiceTests
             Identity = new("python", "1.0.0", "Python", "agent-up"),
             ExtraAttributes = [new RuntimeAttributeSpec("script", true, "path")]
         };
-        var packages = new EnabledPackages(new CapabilityPackageManifest
-        {
-            Id = "python",
-            Version = "1.0.0",
-            Kind = "runtime"
-        }, runtime);
+        var packages = new FakeEnabledCapabilityPackages(runtime);
         var item = new RuntimeSectionItem(
             "api",
             Parameters: new Dictionary<string, string> { ["script"] = "main.py" },
@@ -164,7 +145,7 @@ public sealed class CapabilityReconciliationServiceTests
             Identity = new("python", "1.0.0", "Python", "agent-up"),
             ExtraAttributes = [new RuntimeAttributeSpec("script", true, "path")]
         };
-        var packages = new EnabledPackages(PythonManifest(), runtime);
+        var packages = new FakeEnabledCapabilityPackages(runtime);
         var item = new RuntimeSectionItem(
             "worker",
             Path: "services/worker",
@@ -196,7 +177,7 @@ public sealed class CapabilityReconciliationServiceTests
             ExtraAttributes = [new RuntimeAttributeSpec("script", true, "path")],
             CanDeliver = false
         };
-        var packages = new EnabledPackages(PythonManifest(), runtime);
+        var packages = new FakeEnabledCapabilityPackages(runtime);
         var item = new RuntimeSectionItem(
             "worker",
             Attributes: new Dictionary<string, JsonElement>
@@ -226,7 +207,7 @@ public sealed class CapabilityReconciliationServiceTests
             ExtraAttributes = [new RuntimeAttributeSpec("image", true, "string")],
             CanDeliver = false
         };
-        var packages = new EnabledPackages(FakeEnabledCapabilityPackages.Docker(), runtime);
+        var packages = new FakeEnabledCapabilityPackages(runtime);
 
         var result = await new CapabilityReconciliationService(packages).ReconcileDockerAsync(
             new DockerCapabilityDefinition("db", "postgres:17"), [], []);
@@ -242,7 +223,7 @@ public sealed class CapabilityReconciliationServiceTests
     [Test]
     public async Task Missing_nix_fails_with_a_named_nix_message_instead_of_not_enabled()
     {
-        var result = await new CapabilityReconciliationService(nix: new CapabilityModuleHarness.FixedNixPresence(false))
+        var result = await new CapabilityReconciliationService(NixMissing("dotnet"))
             .ReconcileDotnetAsync(
                 new DotnetApplicationDefinition("Example API", "10.0", new DotnetRunDefinition("Api.csproj")), [], []);
 
@@ -260,10 +241,8 @@ public sealed class CapabilityReconciliationServiceTests
     public async Task Enabled_runtime_without_nix_cannot_host()
     {
         var runtime = new StubRuntimeCapability();
-        var packages = new EnabledPackages(CapabilityModuleHarness.DotnetManifest(), runtime);
-        var result = await new CapabilityReconciliationService(
-            packages,
-            nix: new CapabilityModuleHarness.FixedNixPresence(false))
+        var packages = new FakeEnabledCapabilityPackages(runtime);
+        var result = await new CapabilityReconciliationService(packages.WithReadiness(new CapabilityReadinessDto("dotnet", ".NET", true, ["nix"], [])))
             .ReconcileDotnetAsync(
                 new DotnetApplicationDefinition("api", "10.0.x", new DotnetRunDefinition("Api.csproj")), [], []);
 
@@ -278,8 +257,7 @@ public sealed class CapabilityReconciliationServiceTests
     [Test]
     public async Task Present_nix_does_not_block_a_missing_package()
     {
-        var result = await new CapabilityReconciliationService(
-                nix: new CapabilityModuleHarness.FixedNixPresence(true))
+        var result = await new CapabilityReconciliationService(new FakeEnabledCapabilityPackages().WithBuiltIn(FakeEnabledCapabilityPackages.Dotnet()))
             .ReconcileDotnetAsync(
                 new DotnetApplicationDefinition("api", "10.0", new DotnetRunDefinition("Api.csproj")), [], []);
 
@@ -294,8 +272,7 @@ public sealed class CapabilityReconciliationServiceTests
     [Test]
     public async Task Missing_nix_fails_docker_with_a_named_nix_message()
     {
-        var result = await new CapabilityReconciliationService(
-                nix: new CapabilityModuleHarness.FixedNixPresence(false))
+        var result = await new CapabilityReconciliationService(NixMissing("docker"))
             .ReconcileDockerAsync(new DockerCapabilityDefinition("db", "postgres:16"), [], []);
 
         Assert.Multiple(() =>
@@ -310,8 +287,7 @@ public sealed class CapabilityReconciliationServiceTests
     [Test]
     public async Task Missing_nix_fails_an_agent_module_id_with_the_agent_cli_wording()
     {
-        var result = await new CapabilityReconciliationService(
-                nix: new CapabilityModuleHarness.FixedNixPresence(false))
+        var result = await new CapabilityReconciliationService(NixMissing("claude"))
             .ReconcileRuntimeAsync("claude", new RuntimeSectionItem("chat"), [], []);
 
         Assert.Multiple(() =>
@@ -322,41 +298,6 @@ public sealed class CapabilityReconciliationServiceTests
         });
     }
 
-    private static CapabilityPackageManifest PythonManifest()
-        => new()
-        {
-            Id = "python",
-            Version = "1.0.0",
-            Kind = "runtime"
-        };
-
-    private sealed class EnabledPackages(
-        CapabilityPackageManifest manifest,
-        IRuntimeCapability? runtime = null) : IEnabledCapabilityPackages
-    {
-        public CapabilityPackageManifest? GetEnabled(string id)
-            => manifest.Id.Equals(id, StringComparison.OrdinalIgnoreCase) ? manifest : null;
-
-        public CapabilityLaunchPlan? AgentLaunch(string id) => null;
-
-        public CapabilityLaunchWrapDto WrapLaunch(string fileName, IReadOnlyList<string> arguments)
-            => new(fileName, arguments);
-
-        public CapabilityLaunchWrapDto WrapModule(string id, string fileName, IReadOnlyList<string> arguments)
-            => new(fileName, arguments);
-
-        public IRuntimeCapability? GetRuntime(string id)
-            => runtime is not null && runtime.Identity.Id.Equals(id, StringComparison.OrdinalIgnoreCase) ? runtime : null;
-
-        public IReadOnlyList<IRuntimeCapability> ListRuntimes()
-            => runtime is null ? [] : [runtime];
-
-        public IAgentCapability? GetAgent(string id) => null;
-
-        public IReadOnlyList<IAgentCapability> ListAgents() => [];
-
-        public AgentUp.Sdk.Forge.IForgeCapability? GetForge(string id) => null;
-
-        public IReadOnlyList<AgentUp.Sdk.Forge.IForgeCapability> ListForges() => [];
-    }
+    private static FakeEnabledCapabilityPackages NixMissing(string id)
+        => new FakeEnabledCapabilityPackages().WithReadiness(new CapabilityReadinessDto(id, id, false, ["nix"], []));
 }

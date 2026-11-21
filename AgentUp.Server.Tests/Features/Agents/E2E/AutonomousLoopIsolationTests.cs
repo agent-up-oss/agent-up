@@ -124,7 +124,7 @@ public sealed class AutonomousLoopIsolationTests
         await host.Workspaces.UpdateBoundAgentAsync(workspace.Id, "codex");
         host.Settings.Save(host.Settings.Get(workspace.Id) with
         {
-            PolicyRules = [new PermissionRule("rule", policy, true)],
+            PolicyRules = [new PermissionRuleBuilder("rule", policy).Build()],
             HostConnectionAuthorized = true
         });
         host.Issues.Replace(workspace.Id, [ServerDomain.Issue().Numbered(issueNumber).Build()]);

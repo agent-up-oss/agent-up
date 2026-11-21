@@ -1,4 +1,5 @@
 using System.Net;
+using AgentUp.Server.Features.Agents.Controllers;
 using AgentUp.Server.Features.Authentication.Controllers;
 using AgentUp.Server.Features.Orchestration.DTOs;
 using AgentUp.Server.Features.Orchestration.Providers;
@@ -90,6 +91,13 @@ public sealed class McpEndpointSessionProvider
         "train_decision_categories"
     };
 
+    private static readonly HashSet<string> TaskTools = new(StringComparer.Ordinal)
+    {
+        "get_task",
+        "submit_work",
+        "submit_review"
+    };
+
     private static readonly HashSet<string> CapabilityTools = new(StringComparer.Ordinal)
     {
         "list_capability_modules",
@@ -112,6 +120,9 @@ public sealed class McpEndpointSessionProvider
     private const string TrainingInstructions =
         "Agent-Up product decision MCP server. Record a product decision you have taken so the product owner can judge it later. Recording never blocks and never returns a verdict: write it down and carry on with your work.";
 
+    private const string TasksInstructions =
+        "Agent-Up task MCP server. get_task reads the task you are on: the issue, the proposal, every review, findings at their lines, check results with links to their logs, and comments. An author changes files and calls submit_work; a reviewer calls submit_review with its verdict, findings and screenshots. Never commit, push, open a proposal or post a review yourself: Agent-Up does that for you with your team member's own account.";
+
     private const string CapabilitiesInstructions =
         "Agent-Up capability modules MCP server. List, enable, and disable registry packages on this Server. Enabling wraps later application and agent launches through nix. Desktop and Mobile never call the remote registry.";
 
@@ -128,9 +139,27 @@ public sealed class McpEndpointSessionProvider
         ConfigureEndpoint(context, options, instructions);
         context.RequestServices.GetService<McpToolPermissionController>()?.Restrict(context, options);
         binding?.Pin(context, options);
+        var bound = binding?.BoundWorkspace(context);
         context.RequestServices.GetService<AgentUp.Server.Features.Agents.Services.AutonomousWorkspaceService>()
-            ?.RestrictRoleTools(options, binding?.BoundWorkspace(context));
+            ?.RestrictRoleTools(options, bound);
+        RestrictTeamMember(context, options, bound);
         return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// A session pinned to a workspace also gets that workspace's team member grant: a reviewer
+    /// pinned session loses the write tools, a PM pinned session loses the repository tools.
+    /// Like the other narrowings it only removes.
+    /// </summary>
+    private static void RestrictTeamMember(HttpContext context, McpServerOptions options, string? boundWorkspace)
+    {
+        if (string.IsNullOrWhiteSpace(boundWorkspace))
+            return;
+        var members = context.RequestServices.GetService<TeamMemberController>();
+        var permissions = context.RequestServices.GetService<McpToolPermissionController>();
+        if (members is null || permissions is null)
+            return;
+        permissions.RestrictTo(options, members.OperationPermissions(boundWorkspace));
     }
 
     private static void ConfigureEndpoint(HttpContext context, McpServerOptions options, McpInstructionContext instructions)
@@ -168,6 +197,12 @@ public sealed class McpEndpointSessionProvider
         {
             options.ServerInstructions = AgentUpMcpGuidance.ForEndpoint(TrainingInstructions, instructions);
             KeepTools(options, TrainingTools);
+        }
+        else if (IsEndpoint(context, "/mcp/tasks"))
+        {
+            options.ServerInstructions = AgentUpMcpGuidance.ForEndpoint(TasksInstructions, instructions);
+            KeepTools(options, TaskTools);
+            options.ResourceCollection?.Clear();
         }
         else if (IsEndpoint(context, "/mcp/capabilities"))
         {

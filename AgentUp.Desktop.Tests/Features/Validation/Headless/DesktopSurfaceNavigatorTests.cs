@@ -52,6 +52,8 @@ public sealed class DesktopSurfaceNavigatorTests
             Assert.That(viewModel.SelectedShellTab, Is.EqualTo(WorkspaceShellTab.Agent));
             Assert.That(navigator.Navigate(viewModel, DesktopNamedRoutes.WorkspaceGit), Is.Null);
             Assert.That(viewModel.SelectedShellTab, Is.EqualTo(WorkspaceShellTab.Git));
+            Assert.That(navigator.Navigate(viewModel, DesktopNamedRoutes.WorkspaceSettings), Is.Null);
+            Assert.That(viewModel.SelectedShellTab, Is.EqualTo(WorkspaceShellTab.Settings));
         });
     }
 }

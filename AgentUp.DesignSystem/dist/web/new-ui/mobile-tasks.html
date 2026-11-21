@@ -18,15 +18,39 @@
         <div class="aun-phone__head-copy"><h1 class="au-page-title">Tasks</h1></div>
       </div></header>
       <div class="aun-phone__body"><div class="aun-task-board">
-        <div class="aun-group" data-au-demo="queue" data-au-repeat="task-row" data-au-groups="stop:In progress; dequeue:Queue; queue:Open issues">
+        <div class="au-cluster aun-task-tabs" role="tablist">
+          <button class="au-app-tab au-app-tab--selected" type="button" data-au-action="tasks-issues" data-au-selection="tasksTab:issues:au-app-tab--selected">Issues</button>
+          <button class="au-app-tab" type="button" data-au-action="tasks-dev-review" data-au-selection="tasksTab:dev:au-app-tab--selected">Dev review</button>
+          <button class="au-app-tab" type="button" data-au-action="tasks-pm-review" data-au-selection="tasksTab:pm:au-app-tab--selected">PM review</button>
+        </div>
+        <div class="aun-group" data-au-when="issuesTab">
+          <div class="aun-group" data-au-demo="queue" data-au-repeat="task-row" data-au-groups="stop:In progress; dequeue:Queue; queue:Open issues">
     <div class="aun-group">
-      <p class="au-field-label">In progress · 1</p>
+      <p class="au-field-label">In progress · 3</p>
       
     <div class="aun-task-row">
       
       <span class="aun-task-row__body">
         <span class="aun-task-row__title">#44 · Restock featured products</span>
         <span class="aun-task-row__agent">Bob</span>
+        <span class="aun-task-row__repo">example/repository</span>
+      </span>
+      <button class="aun-btn aun-btn--danger" type="button">Stop</button>
+    </div>
+    <div class="aun-task-row">
+      
+      <span class="aun-task-row__body">
+        <span class="aun-task-row__title">#39 · Product cards cut off long names</span>
+        <span class="aun-task-row__agent">Frank</span>
+        <span class="aun-task-row__repo">example/repository</span>
+      </span>
+      <button class="aun-btn aun-btn--danger" type="button">Stop</button>
+    </div>
+    <div class="aun-task-row">
+      
+      <span class="aun-task-row__body">
+        <span class="aun-task-row__title">#36 · Search forgets the last query</span>
+        <span class="aun-task-row__agent">Mia</span>
         <span class="aun-task-row__repo">example/repository</span>
       </span>
       <button class="aun-btn aun-btn--danger" type="button">Stop</button>
@@ -70,6 +94,7 @@
         <button class="aun-btn aun-btn--primary" type="button">Queue</button>
       </div>
     </div></div>
+        </div>
       </div></div>
       
       <div class="aun-session">

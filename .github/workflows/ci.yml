@@ -382,7 +382,7 @@ jobs:
     permissions:
       contents: read
       checks: write
-    timeout-minutes: 40
+    timeout-minutes: 75
     steps:
       - uses: actions/checkout@v7
 
@@ -399,19 +399,38 @@ jobs:
         shell: bash
         run: ./.github/scripts/run-loop-inference.sh
 
+      # The OpenCode capability delivers OpenCode through Nix, so the Server refuses to enable it
+      # on a host without Nix: the journeys need it the way a real Server host does.
+      - uses: DeterminateSystems/nix-installer-action@v23
+
+      # Real bubblewrap and real mounts: reviewers cannot write their clone, no agent sees the
+      # Server's data, another workspace, or the Server's secrets. Then a sandboxed agent drives
+      # a real app in the real browser through the MCP servers it is offered.
+      - name: Run agents against the real sandbox, MCP servers, app and browser
+        shell: bash
+        run: ./.github/scripts/run-agent-e2e.sh
+
+      # Real OpenCode through the built-in OpenCode capability, against the same pinned model
+      # served by test-model-server. It reuses this job's GGUF cache and .NET toolchain.
+      - name: Run OpenCode against the in-process model
+        shell: bash
+        run: ./.github/scripts/run-opencode-inference.sh
+
       - name: Test Report
         uses: dorny/test-reporter@v3
         if: ${{ !cancelled() }}
         with:
           name: Loop CPU Inference (Agent-Up)
-          path: artifacts/test-results/loop-inference/*.trx
+          path: artifacts/test-results/loop-inference/*.trx,artifacts/test-results/agent-e2e/*.trx,artifacts/test-results/opencode-inference/*.trx
           reporter: dotnet-trx
 
       - uses: actions/upload-artifact@v7
         if: ${{ !cancelled() }}
         with:
           name: loop-inference-results
-          path: artifacts/test-results/loop-inference
+          path: |
+            artifacts/test-results/loop-inference
+            artifacts/test-results/opencode-inference
           if-no-files-found: error
           retention-days: 7
 
@@ -545,7 +564,7 @@ jobs:
             AgentUp.Capabilities.Forgejo.Tests \
             AgentUp.Capabilities.Docker.Tests \
             AgentUp.Capabilities.Dotnet.Tests \
-            AgentUp.Registry.Tests \
+            AgentUp.Capabilities.Opencode.Tests \
             AgentUp.Browser.Streaming.Tests \
             AgentUp.CommitPolicy.Tests \
             AgentUp.Desktop.Tests \
@@ -788,14 +807,14 @@ jobs:
           fail_ci_if_error: true
           disable_search: true
 
-      - name: Upload AgentUp.Registry.Tests coverage
+      - name: Upload AgentUp.Capabilities.Opencode.Tests coverage
         if: ${{ !cancelled() && env.CODECOV_TOKEN != '' }}
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: ${{ steps.coverage-reports.outputs.agentup_registry_tests }}
-          flags: agentup-registry-tests
-          name: AgentUp.Registry.Tests
+          files: ${{ steps.coverage-reports.outputs.agentup_capabilities_opencode_tests }}
+          flags: agentup-capabilities-opencode-tests
+          name: AgentUp.Capabilities.Opencode.Tests
           fail_ci_if_error: true
           disable_search: true
 
@@ -1215,13 +1234,12 @@ jobs:
           fi
           # This step validates a native package and the service it installs. The runners
           # that reach it (Ubuntu and Windows; macOS and NixOS are skipped in the smoke
-          # itself) provision no capabilities: no Nix, no packed capability registry, and
-          # no enabled set seeded into the installed service's data directory. Since dotnet
-          # and docker became capability packages rather than Server built-ins, a launch
-          # needs all three, so launching one here fails on provisioning the package does
-          # not own and asserts nothing about the package. Real capability launches are
-          # proven by the Runtime capability E2E job, which installs Nix, packs the
-          # first-party packages and enables them.
+          # itself) provision no capabilities: no Nix and no enabled set seeded into the
+          # installed service's data directory. The dotnet and docker capabilities are built
+          # into the Server but deliver their toolchains through Nix, so a launch needs both,
+          # and launching one here fails on provisioning the package does not own and asserts
+          # nothing about the package. Real capability launches are proven by the Runtime
+          # capability E2E job, which installs Nix and enables them.
           export AGENTUP_CAPABILITY_SMOKE_SKIP_REAL=1
           export AGENTUP_PACKAGE_SMOKE_COMMAND="$PWD/dotnet-ci/tools/${{ matrix.rid }}/package-smoke/AgentUp.PackageSmoke$tool_suffix"
           ./.github/scripts/smoke-installed-service.sh "${{ matrix.platform }}" "${{ matrix.rid }}" "release-artifacts"

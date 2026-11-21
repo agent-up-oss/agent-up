@@ -25,6 +25,33 @@ public sealed class ForgeCredentialStoreTests
     }
 
     [Test]
+    public void WriteGrant_keepsTheRefreshTokenReadableOnlyByTheServer()
+    {
+        var root = Path.Join(TestContext.CurrentContext.WorkDirectory, $"forge-creds-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(root);
+        try
+        {
+            var store = new ForgeCredentialStore(root);
+            var expires = new DateTimeOffset(2026, 11, 20, 9, 0, 0, TimeSpan.Zero);
+            store.WriteGrant("Primary", "forgejo", new AgentUp.Server.Features.Forge.Models.ForgeOAuthGrant("access", "refresh", expires));
+            var grant = store.ReadGrant("Primary", "forgejo");
+            store.Write("Primary", "forgejo", "replaced");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(grant, Is.EqualTo(new AgentUp.Server.Features.Forge.Models.ForgeOAuthGrant("access", "refresh", expires)));
+                Assert.That(File.GetUnixFileMode(Path.Join(root, "forge-credentials", "Primary", "forgejo")),
+                    Is.EqualTo(UnixFileMode.UserRead | UnixFileMode.UserWrite));
+                Assert.That(store.ReadGrant("Primary", "forgejo")!.RefreshToken, Is.Null, "a token written alone drops the old refresh token");
+            });
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Test]
     public void Delete_removesTheStoredToken()
     {
         var root = Path.Join(TestContext.CurrentContext.WorkDirectory, $"forge-creds-{Guid.NewGuid():N}");

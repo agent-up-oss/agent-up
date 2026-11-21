@@ -2,13 +2,9 @@ using AgentUp.Sdk.Common;
 
 namespace AgentUp.Sdk.Agent;
 
-public interface IAgentCapability
+public interface IAgentCapability : ICapability
 {
-    CapabilityIdentity Identity { get; }
-
     IReadOnlyList<NixPackageDeclaration> NixPackages { get; }
-
-    bool CanRun { get; }
 
     /// <summary>
     /// Whether this module emits ACP <c>session/request_permission</c>. A module that never
@@ -16,7 +12,11 @@ public interface IAgentCapability
     /// </summary>
     bool SupportsPermissionRequests { get; }
 
-    AgentLaunchResult Launch();
+    /// <summary>
+    /// The ACP process to start. <paramref name="settings"/> holds the values a user configured
+    /// for this capability, secrets included, keyed by <see cref="CapabilitySettingSpec.Key"/>.
+    /// </summary>
+    AgentLaunchResult Launch(IReadOnlyDictionary<string, string> settings);
 
     AgentLoginSpec? Login { get; }
 }

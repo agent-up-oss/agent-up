@@ -1,5 +1,4 @@
 using AgentUp.Capabilities.Abstractions.Features.Capabilities.Models;
-using AgentUp.Registry.Features.Packages.Controllers;
 using AgentUp.Sdk.Runtime;
 using AgentUp.Server.Features.Applications.DTOs;
 using AgentUp.Server.Features.Capabilities.DTOs;
@@ -10,10 +9,11 @@ using System.Text.Json;
 
 namespace AgentUp.Server.Features.Capabilities.Services;
 
-public sealed class CapabilityReconciliationService(
-    IEnabledCapabilityPackages? packages = null,
-    CapabilityPackageController? templates = null,
-    INixPresenceProvider? nix = null)
+/// <summary>
+/// Turns one <c>agent-up.json</c> runtime-section item into an application the Server can launch,
+/// through the built-in runtime capability that owns the section.
+/// </summary>
+public sealed class CapabilityReconciliationService(IEnabledCapabilityPackages? packages = null)
 {
     public Task<ApplicationInstance> ReconcileDotnetAsync(
         DotnetApplicationDefinition definition,
@@ -33,15 +33,15 @@ public sealed class CapabilityReconciliationService(
         IReadOnlyList<PortDeclaration> ports,
         IReadOnlyList<PortMapping> allocatedPorts)
     {
-        var nixBlock = NixBlock(moduleId);
-        if (nixBlock is not null)
+        var blocked = Blocked(moduleId, item.Name);
+        if (blocked is not null)
         {
             return Task.FromResult(Unrunnable(
                 moduleId,
                 item,
                 ports,
                 allocatedPorts,
-                nixBlock));
+                blocked));
         }
 
         var bound = Bind(moduleId, item);
@@ -108,29 +108,12 @@ public sealed class CapabilityReconciliationService(
             }
         }
 
-        var resolved = Reconcile(new CapabilityDeclaration(
-            item.Name,
+        return Task.FromResult(Unrunnable(
             moduleId,
-            SdkRequirements(item.TechnologyVersion),
-            parameters));
-        return Task.FromResult(new ApplicationInstance
-        {
-            Name = item.Name,
-            Path = item.Path,
-            Command = resolved.Plan.Command,
-            ServiceType = parameters.ContainsKey("image") ? ServiceType.Docker : ServiceType.Process,
-            Image = parameters.GetValueOrDefault("image"),
-            Ports = ports,
-            AllocatedPorts = allocatedPorts,
-            Environment = item.Environment,
-            EnvironmentFiles = item.EnvironmentFiles,
-            Volumes = volumes,
-            Args = extra,
-            CapabilityId = moduleId,
-            CapabilityVersionRequirement = item.TechnologyVersion,
-            CapabilityStatus = resolved.Status,
-            Database = item.Database
-        });
+            item,
+            ports,
+            allocatedPorts,
+            CapabilityPrerequisiteMessages.NotEnabled(moduleId, item.Name)));
     }
 
     private RuntimeBindResult? Bind(string moduleId, RuntimeSectionItem item)
@@ -154,6 +137,7 @@ public sealed class CapabilityReconciliationService(
         {
             Name = item.Name,
             Path = item.Path,
+            Command = "",
             CapabilityId = moduleId,
             CapabilityVersionRequirement = item.TechnologyVersion,
             CapabilityStatus = new CapabilityStatusDto(moduleId, item.TechnologyVersion, false, messages),
@@ -230,62 +214,6 @@ public sealed class CapabilityReconciliationService(
     private static string Join(string fileName, IReadOnlyList<string> arguments)
         => string.Join(" ", new[] { fileName }.Concat(arguments));
 
-    private ResolvedCapability Reconcile(CapabilityDeclaration declaration)
-    {
-        var manifest = packages?.GetEnabled(declaration.CapabilityId);
-        if (manifest is null)
-        {
-            var status = new CapabilityStatusDto(
-                declaration.CapabilityId,
-                RequiredVersion(declaration),
-                false,
-                CapabilityPrerequisiteMessages.NotEnabled(declaration.CapabilityId, declaration.Name));
-            return new ResolvedCapability(new CapabilityLaunchPlan(""), status);
-        }
-
-        var messages = ValidateParameters(manifest, declaration);
-        var canRun = messages.Count == 0;
-        var plan = canRun ? CreatePlan(manifest, declaration) : new CapabilityLaunchPlan("");
-        return new ResolvedCapability(
-            plan,
-            new CapabilityStatusDto(declaration.CapabilityId, RequiredVersion(declaration), canRun, messages));
-    }
-
-    private CapabilityLaunchPlan CreatePlan(CapabilityPackageManifest manifest, CapabilityDeclaration declaration)
-    {
-        if (manifest.Launch is null)
-            return new CapabilityLaunchPlan("");
-
-        var values = new CapabilityTemplateValues(declaration.Parameters, new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase));
-        var command = templates is null ? manifest.Launch.Command : templates.Render(manifest.Launch.Command, values);
-        var arguments = templates is null
-            ? manifest.Launch.Arguments
-            : templates.RenderAll(manifest.Launch.Arguments, values);
-        var extra = ExtraArguments(declaration.Parameters);
-        var rendered = extra.Count == 0 ? arguments : arguments.Concat(extra).ToArray();
-        return new CapabilityLaunchPlan(string.Join(" ", new[] { command }.Concat(rendered)));
-    }
-
-    private static List<string> ValidateParameters(CapabilityPackageManifest manifest, CapabilityDeclaration declaration)
-    {
-        var messages = new List<string>();
-        foreach (var (name, spec) in manifest.Parameters)
-        {
-            if (spec.Required && (!declaration.Parameters.TryGetValue(name, out var value) || string.IsNullOrWhiteSpace(value)))
-                messages.Add($"Capability '{manifest.Id}' requires parameter '{name}'.");
-        }
-
-        return messages;
-    }
-
-    private static IReadOnlyList<string> ExtraArguments(IReadOnlyDictionary<string, string> parameters)
-    {
-        if (!parameters.TryGetValue("arguments", out var extra) || string.IsNullOrWhiteSpace(extra))
-            return [];
-        var parsed = ParseList(parameters, "arguments");
-        return parsed ?? extra.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-    }
-
     private static IReadOnlyList<string>? ParseList(IReadOnlyDictionary<string, string> parameters, string name)
     {
         if (!parameters.TryGetValue(name, out var raw) || string.IsNullOrWhiteSpace(raw))
@@ -306,19 +234,17 @@ public sealed class CapabilityReconciliationService(
         return null;
     }
 
-    private static Dictionary<string, string> SdkRequirements(string? sdk)
+    /// <summary>
+    /// Why the runtime cannot host this item at all: its software is missing, or it is not enabled.
+    /// Software comes first, because enabling cannot help until it is found.
+    /// </summary>
+    private IReadOnlyList<string>? Blocked(string moduleId, string applicationName)
     {
-        var requirements = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        if (!string.IsNullOrWhiteSpace(sdk))
-            requirements["sdk"] = sdk;
-        return requirements;
+        var readiness = packages?.Readiness(moduleId);
+        if (readiness is null)
+            return CapabilityPrerequisiteMessages.NotEnabled(moduleId, applicationName);
+        if (!readiness.Available)
+            return CapabilityPrerequisiteMessages.SoftwareMissing(moduleId, readiness.MissingSoftware);
+        return readiness.Enabled ? null : CapabilityPrerequisiteMessages.NotEnabled(moduleId, applicationName);
     }
-
-    private static string? RequiredVersion(CapabilityDeclaration declaration)
-        => declaration.Requirements.TryGetValue("sdk", out var sdk) ? sdk : null;
-
-    private IReadOnlyList<string>? NixBlock(string capabilityId)
-        => nix is { IsAvailable: false }
-            ? CapabilityPrerequisiteMessages.NixMissing(capabilityId)
-            : null;
 }

@@ -33,6 +33,12 @@ public sealed class FakeServerDefinition
 
     public JsonNode? Agents => Root["agents"];
 
+    /// <summary>
+    /// The agent turn an author plays when prompted: ACP events, each after a delay from the one
+    /// before, so the Demo shows a real run's thinking, reads, edits, summaries and timings.
+    /// </summary>
+    public JsonArray? AgentRun => Root["agentRun"] as JsonArray;
+
     public JsonNode? Pages => Root["pages"];
 
     public JsonNode? Capabilities => Root["capabilities"];

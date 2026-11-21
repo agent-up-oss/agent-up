@@ -10,7 +10,6 @@ internal sealed class DesktopStreamingServer : IAsyncDisposable
 {
     private readonly WebApplication _app;
     private readonly string _dataDir;
-    private readonly string? _previousRegistry;
     private readonly string? _previousEnabled;
     private readonly string? _previousAuth;
 
@@ -18,13 +17,11 @@ internal sealed class DesktopStreamingServer : IAsyncDisposable
         WebApplication app,
         string dataDir,
         Uri baseUri,
-        string? previousRegistry,
         string? previousEnabled,
         string? previousAuth)
     {
         _app = app;
         _dataDir = dataDir;
-        _previousRegistry = previousRegistry;
         _previousEnabled = previousEnabled;
         _previousAuth = previousAuth;
         BaseUri = baseUri;
@@ -36,19 +33,14 @@ internal sealed class DesktopStreamingServer : IAsyncDisposable
 
     internal T GetRequiredService<T>() where T : notnull => _app.Services.GetRequiredService<T>();
 
-    internal static async Task<DesktopStreamingServer> StartAsync(
-        string? capabilityRegistryPath = null,
-        string? capabilityEnabledPath = null)
+    internal static async Task<DesktopStreamingServer> StartAsync(string? capabilityEnabledPath = null)
     {
         var dataDir = Path.Join(Path.GetTempPath(), "agentup-e2e-server-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(dataDir);
 
         var previousAuth = Environment.GetEnvironmentVariable("AGENTUP_AUTH_DISABLED");
-        var previousRegistry = Environment.GetEnvironmentVariable("AGENTUP_CAPABILITY_REGISTRY_PATH");
         var previousEnabled = Environment.GetEnvironmentVariable("AGENTUP_CAPABILITY_ENABLED_PATH");
         Environment.SetEnvironmentVariable("AGENTUP_AUTH_DISABLED", "true");
-        if (capabilityRegistryPath is not null)
-            Environment.SetEnvironmentVariable("AGENTUP_CAPABILITY_REGISTRY_PATH", capabilityRegistryPath);
         if (capabilityEnabledPath is not null)
             Environment.SetEnvironmentVariable("AGENTUP_CAPABILITY_ENABLED_PATH", capabilityEnabledPath);
 
@@ -60,7 +52,6 @@ internal sealed class DesktopStreamingServer : IAsyncDisposable
         {
             ["AGENTUP_AUTH_DISABLED"] = "true",
             ["Storage:DataDirectory"] = dataDir,
-            ["AGENTUP_CAPABILITY_REGISTRY_PATH"] = capabilityRegistryPath,
             ["AGENTUP_CAPABILITY_ENABLED_PATH"] = capabilityEnabledPath
         });
         ServiceRegistration.Configure(builder, dataDir);
@@ -75,7 +66,7 @@ internal sealed class DesktopStreamingServer : IAsyncDisposable
 
         var url = app.Urls.Single().TrimEnd('/') + "/";
         var baseUri = new Uri(url);
-        return new DesktopStreamingServer(app, dataDir, baseUri, previousRegistry, previousEnabled, previousAuth);
+        return new DesktopStreamingServer(app, dataDir, baseUri, previousEnabled, previousAuth);
     }
 
     public async ValueTask DisposeAsync()
@@ -84,7 +75,6 @@ internal sealed class DesktopStreamingServer : IAsyncDisposable
         await _app.StopAsync();
         await _app.DisposeAsync();
         Environment.SetEnvironmentVariable("AGENTUP_AUTH_DISABLED", _previousAuth);
-        Environment.SetEnvironmentVariable("AGENTUP_CAPABILITY_REGISTRY_PATH", _previousRegistry);
         Environment.SetEnvironmentVariable("AGENTUP_CAPABILITY_ENABLED_PATH", _previousEnabled);
         try
         {

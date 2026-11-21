@@ -13,5 +13,6 @@ HTTP routes owned by the Capabilities slice.
 | Method | Path | Operation |
 |---|---|---|
 | `GET` | `/api/capabilities` | List |
+| `PUT` | `/api/capabilities/{id}/settings` | UpdateSettings |
 | `POST` | `/api/capabilities/disable/{id}` | Disable |
 | `POST` | `/api/capabilities/enable` | Enable |

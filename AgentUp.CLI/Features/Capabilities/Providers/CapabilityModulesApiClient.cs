@@ -21,14 +21,11 @@ public sealed class CapabilityModulesApiClient(HttpClient http) : ICapabilityMod
         return modules ?? [];
     }
 
-    public async Task<CapabilityModuleDto> EnableAsync(
-        string id,
-        string? version,
-        CancellationToken cancellationToken = default)
+    public async Task<CapabilityModuleDto> EnableAsync(string id, CancellationToken cancellationToken = default)
     {
         using var response = await http.PostAsJsonAsync(
             "/api/capabilities/enable",
-            new EnableCapabilityModuleRequest(id, version),
+            new EnableCapabilityModuleRequest(id),
             Options,
             cancellationToken);
         await ServerApiResponseGuard.EnsureSuccessAsync(response);

@@ -75,6 +75,12 @@ public static class McpToolPermissionMap
         ["play_validation_flow"] = OperationPermissions.ApplicationOperate,
         ["delete_validation_flow"] = OperationPermissions.ApplicationOperate,
 
+        // Reading the task and submitting a review are open to every member: the task service
+        // itself refuses a review from an author. Submitting work commits and pushes.
+        ["get_task"] = OperationPermissions.WorkspaceRead,
+        ["submit_review"] = OperationPermissions.WorkspaceRead,
+        ["submit_work"] = OperationPermissions.GitWrite,
+
         ["train_record_decision"] = OperationPermissions.AgentPrompt,
         ["train_list_decisions"] = OperationPermissions.AgentRead,
         ["train_get_decision"] = OperationPermissions.AgentRead,

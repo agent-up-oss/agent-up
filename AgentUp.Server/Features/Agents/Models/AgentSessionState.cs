@@ -23,6 +23,12 @@ public sealed class AgentSessionState
     public IReadOnlyList<AgentAuthMethodDto> AuthMethods { get; set; } = [];
     public AgentLoginChallengeDto? LoginChallenge { get; set; }
 
+    /// <summary>Whether the agent advertised HTTP MCP at <c>initialize</c>, so Agent-Up's MCP servers can be offered.</summary>
+    public bool SupportsHttpMcp { get; set; }
+
+    /// <summary>The credential this session presents on the Agent-Up MCP servers it is offered.</summary>
+    public string? McpSessionToken { get; set; }
+
     /// <summary>
     /// Open while a sign-in is running, so a code or an intercepted redirect posted over HTTP
     /// reaches the CLI that is already waiting for it.
@@ -40,4 +46,15 @@ public sealed class AgentSessionState
     public ConcurrentQueue<string> Steering { get; } = new();
     public int ConsecutiveNoProgress { get; set; }
     public bool SawToolCall { get; set; }
+
+    /// <summary>The latest update the agent sent for each tool call in the running turn.</summary>
+    public ConcurrentDictionary<string, JsonElement> ToolCalls { get; } = new(StringComparer.Ordinal);
+
+    /// <summary>The last tool failure, and how many times in a row the agent has repeated it.</summary>
+    public string? LastFailure { get; set; }
+
+    public int RepeatedFailures { get; set; }
+
+    /// <summary>What the agent said in the turn that ran last, so a review can carry its verdict.</summary>
+    public System.Text.StringBuilder LastReply { get; } = new();
 }

@@ -31,13 +31,13 @@ test('the docs import canonical product and marketing styles', async () => {
   assert.doesNotMatch(css, /\.theme-doc-markdown h1 \{[^}]*--au-font-size-ui-xl/);
 });
 
-test('the showcase is intro, then assembled screens, then the catalog', async () => {
+test('the showcase is intro, then assembled screens, then the components those screens use', async () => {
   const page = await readFile(new URL('../src/pages/design-system/index.js', import.meta.url), 'utf8');
   const css = await readFile(new URL('../src/pages/design-system/index.module.css', import.meta.url), 'utf8');
   const intro = page.indexOf('One design schema');
   const screens = page.indexOf('id="screens"');
-  const catalogMark = page.indexOf('id="catalog"');
-  assert.ok(intro > -1 && screens > intro && catalogMark > screens);
+  const components = page.indexOf('id="components"');
+  assert.ok(intro > -1 && screens > intro && components > screens);
   assert.match(page, /screenshots\.screens/);
   assert.match(page, /dangerouslySetInnerHTML=\{\{ __html: scene\.html \}\}/);
   // A scene that declares a sequence has to actually play it here, or the motion the design
@@ -105,16 +105,16 @@ test('the new UI chips are screens, and the other space is Old UI', async () => 
   assert.match(page, /<NewUiPreview scene=\{mobile\} \/>/);
 });
 
-test('the showcase is a tabbed catalog of every public design-system surface', async () => {
+test('each screen lists the catalog components it is built from', async () => {
+  // The showcase lists components under the screen that uses them rather than as a separate
+  // tabbed catalog; every public surface still has to exist in the catalog it draws from.
   const page = await readFile(new URL('../src/pages/design-system/index.js', import.meta.url), 'utf8');
-  const css = await readFile(new URL('../src/pages/design-system/index.module.css', import.meta.url), 'utf8');
   assert.match(page, /role="tablist"/);
-  assert.match(page, /aria-orientation="vertical"/);
   assert.match(page, /role="tabpanel"/);
-  assert.match(page, /catalog\.surfaces/);
-  assert.match(page, /item\.intro/);
-  assert.match(css, /grid-template-columns: minmax\(16rem, 22rem\) minmax\(0, 1fr\)/);
-  assert.doesNotMatch(css, /\.catalog \{[^}]*overflow-x:\s*auto/);
+  assert.match(page, /function ScreenComponents/);
+  assert.match(page, /Components on this screen/);
+  assert.match(page, /<ScreenComponents ids=\{screen\.components \?\? \[\]\} byId=\{catalogById\}/);
+  assert.doesNotMatch(page, /id="catalog"/);
   for (const id of requiredSurfaces) {
     assert.ok(catalog.surfaces.some(surface => surface.id === id), `catalog is missing surface ${id}`);
   }

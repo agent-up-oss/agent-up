@@ -37,14 +37,14 @@ public sealed class LoopPreconditionProvider(
         var hostAuthorized = HostAuthorized(workspaceId, current.HostConnectionAuthorized);
 
         var head = await git.GetHeadAsync(workspaceId, cancellationToken);
-        var branch = head is not null
+        var branch = head is { IsRepository: true }
             && !string.IsNullOrWhiteSpace(head.Branch)
             && !string.Equals(head.Branch, "not on a git branch", StringComparison.Ordinal);
         var pushed = branch && head!.Ahead == 0;
 
         // A folder that is not a repository has no commit and no commit queue to read. Its unmet
         // git branch already blocks activation and says why, so the queue checks are not asked.
-        var repository = head is { Commit.Length: > 0 };
+        var repository = head is { IsRepository: true, Commit.Length: > 0 };
         var noEdit = true;
         var assigned = true;
         if (repository)

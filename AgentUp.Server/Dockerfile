@@ -9,7 +9,7 @@ RUN chmod +x /tmp/install-runtime-tools.sh \
     && rm /tmp/install-runtime-tools.sh \
     && rm -rf /tmp/runtime-tools \
     && apt-get update \
-    && apt-get install -y --no-install-recommends xvfb libx11-6 libxtst6 xfonts-base xz-utils \
+    && apt-get install -y --no-install-recommends xvfb libx11-6 libxtst6 xfonts-base xz-utils bubblewrap \
     && rm -rf /var/lib/apt/lists/* \
     && mkdir -p /var/lib/agent-up /nix /home/app/.config/nix \
     && chown -R $APP_UID:$APP_UID /var/lib/agent-up /nix /home/app
@@ -17,7 +17,6 @@ ENV HOME=/home/app
 ENV USER=app
 ENV PATH="/home/app/.nix-profile/bin:/nix/var/nix/profiles/default/bin:/opt/agent-up/bin:${PATH}"
 ENV NIX_SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
-ENV AGENTUP_CAPABILITY_REGISTRY_PATH=/var/lib/agent-up/capability-registry
 ENV AGENTUP_CAPABILITY_ENABLED_PATH=/var/lib/agent-up/capabilities/enabled.json
 USER $APP_UID
 RUN curl -L https://nixos.org/nix/install | sh -s -- --no-daemon \
@@ -33,7 +32,18 @@ COPY ["AgentUp.CommitPolicy/AgentUp.CommitPolicy.csproj", "AgentUp.CommitPolicy/
 COPY ["AgentUp.Verification/AgentUp.Verification.csproj", "AgentUp.Verification/"]
 COPY ["AgentUp.Capabilities.Abstractions/AgentUp.Capabilities.Abstractions.csproj", "AgentUp.Capabilities.Abstractions/"]
 COPY ["AgentUp.Capabilities.Common/AgentUp.Capabilities.Common.csproj", "AgentUp.Capabilities.Common/"]
-COPY ["AgentUp.Registry/AgentUp.Registry.csproj", "AgentUp.Registry/"]
+COPY ["AgentUp.Sdk.Common/AgentUp.Sdk.Common.csproj", "AgentUp.Sdk.Common/"]
+COPY ["AgentUp.Sdk.Runtime/AgentUp.Sdk.Runtime.csproj", "AgentUp.Sdk.Runtime/"]
+COPY ["AgentUp.Sdk.Agent/AgentUp.Sdk.Agent.csproj", "AgentUp.Sdk.Agent/"]
+COPY ["AgentUp.Sdk.Forge/AgentUp.Sdk.Forge.csproj", "AgentUp.Sdk.Forge/"]
+COPY ["AgentUp.Capabilities.Dotnet/AgentUp.Capabilities.Dotnet.csproj", "AgentUp.Capabilities.Dotnet/"]
+COPY ["AgentUp.Capabilities.Docker/AgentUp.Capabilities.Docker.csproj", "AgentUp.Capabilities.Docker/"]
+COPY ["AgentUp.Capabilities.Codex/AgentUp.Capabilities.Codex.csproj", "AgentUp.Capabilities.Codex/"]
+COPY ["AgentUp.Capabilities.Cursor/AgentUp.Capabilities.Cursor.csproj", "AgentUp.Capabilities.Cursor/"]
+COPY ["AgentUp.Capabilities.Claude/AgentUp.Capabilities.Claude.csproj", "AgentUp.Capabilities.Claude/"]
+COPY ["AgentUp.Capabilities.Opencode/AgentUp.Capabilities.Opencode.csproj", "AgentUp.Capabilities.Opencode/"]
+COPY ["AgentUp.Capabilities.Github/AgentUp.Capabilities.Github.csproj", "AgentUp.Capabilities.Github/"]
+COPY ["AgentUp.Capabilities.Forgejo/AgentUp.Capabilities.Forgejo.csproj", "AgentUp.Capabilities.Forgejo/"]
 COPY ["AgentUp.InstallerConfig/AgentUp.InstallerConfig.csproj", "AgentUp.InstallerConfig/"]
 RUN dotnet restore "AgentUp.Server/AgentUp.Server.csproj"
 COPY . .

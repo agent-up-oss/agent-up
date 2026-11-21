@@ -8,23 +8,6 @@ namespace AgentUp.Capabilities.Common.Tests.Features.NixRuntime.Provider;
 public sealed class CapabilityIndexMergeProviderTests
 {
     [Test]
-    public void Merge_keeps_the_first_duplicate_package()
-    {
-        var first = new CapabilityRegistryIndex
-        {
-            Packages = [new CapabilityRegistryIndexEntry("dotnet", "1.0.0", ".NET", "agent-up", "runtime")]
-        };
-        var second = new CapabilityRegistryIndex
-        {
-            Packages = [new CapabilityRegistryIndexEntry("dotnet", "1.0.0", "Other", "other", "runtime")]
-        };
-
-        var merged = new CapabilityIndexMergeProvider().Merge(first, second);
-
-        Assert.That(merged.Packages.Single().DisplayName, Is.EqualTo(".NET"));
-    }
-
-    [Test]
     public void MergeEnvironments_unions_packages_and_keeps_the_first_default_nix()
     {
         var merged = new CapabilityIndexMergeProvider().MergeEnvironments(

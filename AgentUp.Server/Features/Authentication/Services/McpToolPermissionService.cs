@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using AgentUp.Server.Features.Authentication.Interfaces;
+using AgentUp.Server.Features.Authentication.Providers;
 using ModelContextProtocol.Server;
 
 namespace AgentUp.Server.Features.Authentication.Services;
@@ -22,4 +23,14 @@ public sealed class McpToolPermissionService(IMcpToolPermissionFilterProvider fi
 
         filters.Apply(options, granted);
     }
+
+    /// <summary>
+    /// Narrows a session to a grant that does not come from the caller's token, such as the
+    /// workspace's team member kind. Like the token path it only removes tools.
+    /// </summary>
+    public void RestrictTo(McpServerOptions options, IReadOnlySet<string> granted)
+        => filters.Apply(options, granted);
+
+    public string? RequiredPermission(string tool)
+        => McpToolPermissionMap.For(tool);
 }

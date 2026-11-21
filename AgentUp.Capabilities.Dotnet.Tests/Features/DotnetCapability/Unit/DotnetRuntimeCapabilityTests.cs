@@ -118,4 +118,13 @@ public sealed class DotnetRuntimeCapabilityTests
         Assert.That(result.Arguments, Is.EqualTo(new[] { "run", "--project", "Api.csproj", "--no-launch-profile" }));
         Assert.That(result.NixPackage, Is.EqualTo("dotnet-sdk_10"));
     }
+
+    [Test]
+    public void Nix_delivers_the_command_the_capability_provides()
+    {
+        var runtime = new DotnetRuntimeCapability();
+
+        Assert.That(runtime.Provides, Is.EqualTo(new[] { "dotnet" }));
+        Assert.That(runtime.Software.Single(), Is.EqualTo(new AgentUp.Sdk.Common.CapabilitySoftware("dotnet", DeliveredByNix: true)));
+    }
 }

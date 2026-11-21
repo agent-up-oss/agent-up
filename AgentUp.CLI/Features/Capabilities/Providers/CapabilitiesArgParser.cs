@@ -22,28 +22,12 @@ public sealed class CapabilitiesArgParser : ICapabilitiesArgParser
 
     private static (CapabilitiesCommand? Command, string? Error) ParseEnable(string[] args)
     {
-        string? id = null;
-        string? version = null;
-        for (var index = 0; index < args.Length; index++)
-        {
-            if (args[index] == "--version" && index + 1 < args.Length)
-            {
-                version = args[++index];
-                continue;
-            }
-
-            if (args[index].StartsWith("--", StringComparison.Ordinal))
-                return (null, $"Unknown argument: {args[index]}");
-
-            if (id is not null)
-                return (null, "Usage: agent-up capabilities enable <id> [--version <v>]");
-
-            id = args[index];
-        }
-
-        return string.IsNullOrWhiteSpace(id)
-            ? (null, "Usage: agent-up capabilities enable <id> [--version <v>]")
-            : (new CapabilitiesCommand("enable", id, version), null);
+        var unknown = args.FirstOrDefault(argument => argument.StartsWith("--", StringComparison.Ordinal));
+        if (unknown is not null)
+            return (null, $"Unknown argument: {unknown}");
+        return args.Length == 1 && !string.IsNullOrWhiteSpace(args[0])
+            ? (new CapabilitiesCommand("enable", args[0]), null)
+            : (null, "Usage: agent-up capabilities enable <id>");
     }
 
     private static (CapabilitiesCommand? Command, string? Error) ParseDisable(string[] args)

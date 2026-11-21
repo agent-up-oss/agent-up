@@ -21,7 +21,7 @@ public sealed class CapabilityModulesApiClientTests
     }
 
     [Test]
-    public async Task EnableAsync_postsThePackageIdentity()
+    public async Task EnableAsync_postsTheCapabilityId()
     {
         HttpRequestMessage? posted = null;
         using var handler = new StubHandler(request =>
@@ -31,7 +31,7 @@ public sealed class CapabilityModulesApiClientTests
         });
         using var http = new HttpClient(handler, disposeHandler: false) { BaseAddress = new Uri("http://localhost") };
 
-        var enabled = await new CapabilityModulesApiClient(http).EnableAsync(CliDomain.CapabilityId, CliDomain.CapabilityVersion);
+        var enabled = await new CapabilityModulesApiClient(http).EnableAsync(CliDomain.CapabilityId);
 
         Assert.Multiple(() =>
         {

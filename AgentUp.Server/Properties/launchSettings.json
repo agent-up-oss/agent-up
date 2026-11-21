@@ -9,7 +9,6 @@
       "workingDirectory": "..",
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
-        "AGENTUP_CAPABILITY_REGISTRY_PATH": ".agent-up-dev/capability-registry",
         "AGENTUP_CAPABILITY_ENABLED_PATH": ".agent-up-dev/enabled.json"
       }
     }

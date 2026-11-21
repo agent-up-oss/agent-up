@@ -15,10 +15,12 @@ public sealed class DesktopSurfaceRoutesTests
                 DesktopSurfaceRoutes.WorkspaceOverview,
                 DesktopSurfaceRoutes.WorkspaceApplications,
                 DesktopSurfaceRoutes.WorkspaceGit,
-                DesktopSurfaceRoutes.WorkspaceAgents
+                DesktopSurfaceRoutes.WorkspaceAgents,
+                DesktopSurfaceRoutes.WorkspaceSettings
             ]));
 
     [TestCase(DesktopSurfaceRoutes.Login)]
+    [TestCase(DesktopSurfaceRoutes.WorkspaceSettings)]
     [TestCase(DesktopSurfaceRoutes.WorkspacesList)]
     [TestCase(DesktopSurfaceRoutes.WorkspaceOverview)]
     [TestCase(DesktopSurfaceRoutes.WorkspaceApplications)]

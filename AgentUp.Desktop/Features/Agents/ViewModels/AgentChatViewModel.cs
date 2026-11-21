@@ -116,6 +116,26 @@ public sealed class AgentChatViewModel : ReactiveObject
         ? null
         : string.Join(" · ", new[] { Loop.Phase, Loop.TaskTitle, Loop.Terminal, Loop.StopReason }.Where(part => !string.IsNullOrWhiteSpace(part)));
     public bool HasLoop => !string.IsNullOrWhiteSpace(LoopLine);
+    /// <summary>
+    /// One line on the Agent tab standing in for what lives in Settings: which agent to run, the
+    /// saved sessions, and the unattended-loop checklist. The conversation keeps the rest of the tab.
+    /// </summary>
+    public string SettingsSummary
+    {
+        get
+        {
+            var parts = new List<string>();
+            if (!HasAgent)
+                parts.Add(HasBoundAgent ? $"{BoundAgentDisplayName} is bound and not running" : "No agent running");
+            if (HasAutonomy)
+            {
+                var open = Preconditions.Count(item => !item.Satisfied);
+                parts.Add(open == 0 ? "Unattended loop ready" : $"Unattended loop · {open} of {Preconditions.Count} checks open");
+            }
+
+            return parts.Count == 0 ? "Agent, sessions, and unattended loop are in Settings" : string.Join(" · ", parts);
+        }
+    }
     public string StatusLine => HasAgent
         ? $"{SelectedAgentDisplayName} · {ActivityLabel}"
         : HasBoundAgent
@@ -194,13 +214,13 @@ public sealed class AgentChatViewModel : ReactiveObject
     {
         if (_modules is null)
         {
-            Error = "This Server cannot enable capability packages.";
+            Error = "This Server cannot enable capabilities.";
             return;
         }
 
         await RunAsync(async id =>
         {
-            await _modules.EnableAsync(agent, version: null);
+            await _modules.EnableAsync(agent);
             Apply(await _controller.GetAsync(id, CancellationToken.None));
         });
     }
@@ -259,7 +279,7 @@ public sealed class AgentChatViewModel : ReactiveObject
             Sessions.Clear();
             foreach (var saved in session.Sessions ?? [])
                 Sessions.Add(new AgentSessionRowViewModel(saved, IsCurrentSession(saved, session), session.State));
-            if (session.Agents.Count > 0)
+            if (session.Agents is { Count: > 0 })
             {
                 Agents.Clear();
                 foreach (var agent in session.Agents)
@@ -323,13 +343,31 @@ public sealed class AgentChatViewModel : ReactiveObject
             return;
         _lastSequence = item.Sequence;
         if (item.Type == "state") { Apply(item.Payload.Deserialize<AgentSessionDto>(new JsonSerializerOptions { PropertyNameCaseInsensitive = true })); return; }
-        if (item.Type == "user_message") { AddUser(Text(item.Payload)); return; }
+        if (item.Type == "user_message")
+        {
+            var steering = IsSteering(item.Payload);
+            AddUser(Text(item.Payload), steering);
+            // A turn's time runs from the prompt, so the model's thinking before its first step counts.
+            if (!steering) _turnStartedAt = item.Timestamp;
+            return;
+        }
+        if (item.Type == "prompt_result")
+        {
+            // A finished turn closes its run. Steering that was queued meanwhile runs as the next
+            // turn with no prompt of its own, so it starts its own run, reply and timing here.
+            SealCurrentRun();
+            _turnStartedAt = item.Timestamp;
+            return;
+        }
         if (item.Type == "permission_request") { AddPermission(item.Payload); return; }
+        if (item.Type == "permission_decision") { ClosePermission(item.Payload); return; }
         if (item.Type != "session_update") return;
-        ApplyPresented(AgentEventPresentationProvider.Present(AgentEventPresentationProvider.Unwrap(item.Payload)));
+        ApplyPresented(AgentEventPresentationProvider.Present(AgentEventPresentationProvider.Unwrap(item.Payload)), item.Timestamp);
     }
-    private void ApplyPresented(PresentedAgentUpdate presented)
+    private void ApplyPresented(PresentedAgentUpdate presented, DateTimeOffset? at = null)
     {
+        if (presented.Kind is "tool" or "message" or "plan")
+            CurrentRun().Touch(at);
         if (presented.Kind == "ignore") return;
         if (presented.Kind == "context")
         {
@@ -342,7 +380,7 @@ public sealed class AgentChatViewModel : ReactiveObject
             else if (presented.Compacting == false && _hintKind == "Compacting") { _hintKind = null; RefreshActivity(); }
             return;
         }
-        if (presented.Kind == "tool") { UpsertTool(presented); _hintKind = "Tool"; _hintTool = presented.Title ?? _hintTool; RefreshActivity(); return; }
+        if (presented.Kind == "tool") { UpsertTool(presented, at); _hintKind = "Tool"; _hintTool = presented.Title ?? _hintTool; RefreshActivity(); return; }
         if (presented.Kind == "plan")
         {
             var text = presented.Text ?? "";
@@ -353,12 +391,12 @@ public sealed class AgentChatViewModel : ReactiveObject
         }
         if (presented.Kind == "message" && !string.IsNullOrWhiteSpace(presented.Text) && presented.Role is not null)
         {
-            Append(presented.Role, presented.Text);
+            Append(presented.Role, presented.Text, at);
             _hintKind = presented.Role;
             RefreshActivity();
         }
     }
-    private void UpsertTool(PresentedAgentUpdate presented)
+    private void UpsertTool(PresentedAgentUpdate presented, DateTimeOffset? at = null)
     {
         var run = CurrentRun();
         var existing = run.Items.ToList().FindIndex(item => item.Role == "Tool" && item.ToolCallId == presented.ToolCallId);
@@ -368,17 +406,39 @@ public sealed class AgentChatViewModel : ReactiveObject
         var body = presented.Text ?? (previous is null ? "" : string.Join('\n', previous.Text.Split('\n').Skip(1)));
         var text = string.IsNullOrWhiteSpace(body) ? title : $"{title}\n{body}";
         if (previous is null)
-            run.Items.Add(new("Tool", text, status, presented.ToolCallId));
+        {
+            previous = new("Tool", text, status, presented.ToolCallId);
+            run.Items.Add(previous);
+        }
         else
         {
             previous.Text = text;
             previous.Status = status;
         }
+
+        previous.SetTool(presented, at);
     }
+    /// <summary>
+    /// Closes the open prompt once the Server says its request was decided - by this window, another
+    /// client, or a turn that ended first - so a replayed stream never leaves a stale prompt.
+    /// </summary>
+    private void ClosePermission(JsonElement payload)
+    {
+        var requestId = payload.ValueKind == JsonValueKind.Object && payload.TryGetProperty("requestId", out var id) ? id.GetString() : null;
+        if (requestId is null || requestId != _permissionRequestId)
+            return;
+        _permissionRequestId = null;
+        PermissionOptions.Clear();
+        PermissionTitle = PermissionDetail = null;
+        this.RaisePropertyChanged(nameof(HasPermission));
+        NotifyComputedChatState();
+    }
+    private string? _permissionRequestId;
     private void AddPermission(JsonElement payload)
     {
         PermissionOptions.Clear();
         var prompt = AgentEventPresentationProvider.ParsePermission(payload);
+        _permissionRequestId = prompt?.RequestId;
         PermissionTitle = prompt?.Title;
         PermissionDetail = prompt?.Detail;
         if (prompt is null) { this.RaisePropertyChanged(nameof(HasPermission)); RefreshActivity(); return; }
@@ -421,15 +481,22 @@ public sealed class AgentChatViewModel : ReactiveObject
             || error.Contains("Authentication required", StringComparison.OrdinalIgnoreCase)
             || error.Contains("-32000", StringComparison.Ordinal);
     }
-    private void Append(string role, string text)
+    private void Append(string role, string text, DateTimeOffset? at = null)
     {
         if (string.IsNullOrWhiteSpace(text)) return;
         var run = CurrentRun();
         var last = run.Items.LastOrDefault();
         if (last is { } item && item.Role == role && role is "Agent" or "Thought")
+        {
             item.Text += text;
+            item.Touch(at);
+        }
         else
-            run.Items.Add(new(role, text, displayRole: role == "Agent" ? SelectedAgentDisplayName : null));
+        {
+            var added = new AgentChatItemViewModel(role, text, displayRole: role == "Agent" ? SelectedAgentDisplayName : null);
+            added.Touch(at);
+            run.Items.Add(added);
+        }
     }
     private void RefreshActivity()
     {
@@ -438,31 +505,56 @@ public sealed class AgentChatViewModel : ReactiveObject
         RefreshThoughts();
     }
 
+    /// <summary>
+    /// Marks the one entry the agent is working on now - a thought still streaming or a call
+    /// still running - so it is drawn open and everything else folds, then lets the turn re-read
+    /// its sections.
+    /// </summary>
     private void RefreshThoughts()
     {
         var run = _currentRun;
         if (run is null)
             return;
-        for (var i = 0; i < run.WorkItems.Count; i++)
+        var last = run.Items.LastOrDefault();
+        foreach (var item in run.Items)
         {
-            var item = run.WorkItems[i];
-            if (!item.IsThought)
-                continue;
-            item.SetLive(run.IsLive && i == run.WorkItems.Count - 1 && State == "running" && _hintKind == "Thought");
+            var active = ReferenceEquals(item, last)
+                         && run.IsLive
+                         && State == "running"
+                         && (item.IsThought ? _hintKind == "Thought" : item.IsTool && item.Tool.State == "running");
+            item.SetLive(active);
         }
+
+        run.Refresh();
     }
 
-    private void AddUser(string text)
+    /// <summary>
+    /// A message sent while a turn runs is steering for the next turn: the running turn keeps its
+    /// place in the transcript, and the message says when it will be read.
+    /// </summary>
+    private void AddUser(string text, bool steering = false)
     {
-        SealCurrentRun();
-        Transcript.Add(new AgentChatItemViewModel("You", text));
+        if (!steering)
+            SealCurrentRun();
+        Transcript.Add(new AgentChatItemViewModel("You", text, steering ? SteeringStatus : null));
     }
+
+    public const string SteeringStatus = "Steering · next turn";
+
+    private static bool IsSteering(JsonElement payload) =>
+        payload.ValueKind == JsonValueKind.Object
+        && payload.TryGetProperty("steering", out var steering)
+        && steering.ValueKind == JsonValueKind.True;
+
+    private DateTimeOffset? _turnStartedAt;
 
     private AgentRunViewModel CurrentRun()
     {
         if (_currentRun is not null)
             return _currentRun;
         _currentRun = new AgentRunViewModel();
+        _currentRun.Touch(_turnStartedAt);
+        _turnStartedAt = null;
         Transcript.Add(_currentRun);
         return _currentRun;
     }
@@ -569,6 +661,7 @@ public sealed class AgentChatViewModel : ReactiveObject
 
     private void NotifyLoopSurface()
     {
+        this.RaisePropertyChanged(nameof(SettingsSummary));
         this.RaisePropertyChanged(nameof(HasAutonomy));
         this.RaisePropertyChanged(nameof(CanEnableAutonomy));
         this.RaisePropertyChanged(nameof(CanActivateLoop));

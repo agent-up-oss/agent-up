@@ -9,4 +9,6 @@ public sealed record LoopInspection(
     bool CompletedTask,
     string? StopReason,
     string? BlockReason,
-    bool SawToolCall = false);
+    bool SawToolCall = false,
+    string? LastReply = null,
+    int RepeatedFailures = 0);

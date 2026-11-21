@@ -17,14 +17,11 @@ public sealed class CapabilityModulesApiClient(HttpClient http) : ICapabilityMod
         return modules ?? [];
     }
 
-    public async Task<CapabilityModuleDto> EnableAsync(
-        string id,
-        string? version,
-        CancellationToken cancellationToken = default)
+    public async Task<CapabilityModuleDto> EnableAsync(string id, CancellationToken cancellationToken = default)
     {
         using var response = await http.PostAsJsonAsync(
             "/api/capabilities/enable",
-            new EnableCapabilityModuleRequestDto(id, version),
+            new EnableCapabilityModuleRequestDto(id),
             cancellationToken);
         response.EnsureSuccessStatusCode();
         return await ReadModuleAsync(response, cancellationToken);
@@ -35,6 +32,19 @@ public sealed class CapabilityModulesApiClient(HttpClient http) : ICapabilityMod
         using var response = await http.PostAsync(
             $"/api/capabilities/disable/{Uri.EscapeDataString(id)}",
             null,
+            cancellationToken);
+        response.EnsureSuccessStatusCode();
+        return await ReadModuleAsync(response, cancellationToken);
+    }
+
+    public async Task<CapabilityModuleDto> UpdateSettingsAsync(
+        string id,
+        IReadOnlyDictionary<string, string> values,
+        CancellationToken cancellationToken = default)
+    {
+        using var response = await http.PutAsJsonAsync(
+            $"/api/capabilities/{Uri.EscapeDataString(id)}/settings",
+            new UpdateCapabilitySettingsRequestDto(values),
             cancellationToken);
         response.EnsureSuccessStatusCode();
         return await ReadModuleAsync(response, cancellationToken);

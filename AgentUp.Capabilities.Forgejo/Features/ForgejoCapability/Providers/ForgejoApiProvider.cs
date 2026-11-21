@@ -30,8 +30,12 @@ public sealed class ForgejoApiProvider(HttpMessageHandler? handler = null, strin
         var proposal = ReadProposal(pull);
         var sha = pull.GetProperty("head").GetProperty("sha").GetString() ?? "";
         var checks = await ReadChecksAsync(client, request, sha, cancellationToken);
-        var threads = await ReadThreadsAsync(client, request, proposal.Number, cancellationToken);
-        var reviews = await ReadReviewsAsync(client, request, proposal.Number, cancellationToken);
+        var history = await ReadJsonAsync(
+            client,
+            $"repos/{request.Owner}/{request.Repository}/pulls/{proposal.Number}/reviews?limit=100",
+            cancellationToken);
+        var threads = await ReadThreadsAsync(client, request, proposal.Number, history, cancellationToken);
+        var reviews = Reviews(history);
         var mergeability = new ForgeMergeability(
             pull.TryGetProperty("mergeable", out var mergeable) && mergeable.ValueKind == JsonValueKind.True,
             pull.TryGetProperty("mergeable_state", out var state) ? state.GetString() ?? "unknown" : "unknown");
@@ -153,12 +157,85 @@ public sealed class ForgejoApiProvider(HttpMessageHandler? handler = null, strin
         CancellationToken cancellationToken)
     {
         using var client = CreateClient(request.Token);
+        // A finding sits on a line of the new side of the change, which Forgejo calls new_position.
+        var comments = (command.Comments ?? [])
+            .Select(comment => new { path = comment.Path, body = comment.Body, new_position = comment.Line })
+            .ToArray();
+        // Forgejo moves a pull's head after a push asynchronously; naming the reviewed commit keeps
+        // a review that lands in between on the revision it is about.
+        var review = new System.Text.Json.Nodes.JsonObject
+        {
+            ["body"] = command.Body,
+            ["event"] = ReviewEvent(command.Event),
+            ["comments"] = JsonSerializer.SerializeToNode(comments)
+        };
+        if (!string.IsNullOrWhiteSpace(command.CommitId))
+            review["commit_id"] = command.CommitId;
         using var response = await client.PostAsJsonAsync(
             $"repos/{request.Owner}/{request.Repository}/pulls/{command.ProposalNumber}/reviews",
-            new { body = command.Body, @event = command.Event },
+            review,
             cancellationToken);
         response.EnsureSuccessStatusCode();
     }
+
+    public async Task AssignIssueAsync(ForgeRequest request, int issueNumber, string login, CancellationToken cancellationToken)
+    {
+        using var client = CreateClient(request.Token);
+        using var response = await client.PatchAsJsonAsync(
+            $"repos/{request.Owner}/{request.Repository}/issues/{issueNumber}",
+            new { assignees = new[] { login } },
+            cancellationToken);
+        response.EnsureSuccessStatusCode();
+    }
+
+    public async Task RequestReviewAsync(ForgeRequest request, string proposalNumber, string login, CancellationToken cancellationToken)
+    {
+        using var client = CreateClient(request.Token);
+        using var response = await client.PostAsJsonAsync(
+            $"repos/{request.Owner}/{request.Repository}/pulls/{proposalNumber}/requested_reviewers",
+            new { reviewers = new[] { login } },
+            cancellationToken);
+        response.EnsureSuccessStatusCode();
+    }
+
+    public async Task<ForgeAttachment?> AttachAsync(
+        ForgeRequest request,
+        string issueNumber,
+        string fileName,
+        string contentType,
+        byte[] content,
+        CancellationToken cancellationToken)
+    {
+        using var client = CreateClient(request.Token);
+        // An asset on the issue itself lists under its first post, which is the author's. The file
+        // belongs to whoever shared it, so it goes on a comment of theirs that shows it.
+        using var comment = await client.PostAsJsonAsync(
+            $"repos/{request.Owner}/{request.Repository}/issues/{issueNumber}/comments",
+            new { body = $"Screenshot for my review: {fileName}" },
+            Json,
+            cancellationToken);
+        comment.EnsureSuccessStatusCode();
+        var commentId = (await comment.Content.ReadFromJsonAsync<JsonElement>(Json, cancellationToken)).GetProperty("id").GetRawText();
+        using var form = new MultipartFormDataContent();
+        using var file = new ByteArrayContent(content);
+        file.Headers.ContentType = new MediaTypeHeaderValue(contentType);
+        form.Add(file, "attachment", fileName);
+        using var response = await client.PostAsync(
+            $"repos/{request.Owner}/{request.Repository}/issues/comments/{commentId}/assets?name={Uri.EscapeDataString(fileName)}",
+            form,
+            cancellationToken);
+        response.EnsureSuccessStatusCode();
+        var asset = await response.Content.ReadFromJsonAsync<JsonElement>(Json, cancellationToken);
+        var url = asset.TryGetProperty("browser_download_url", out var link) ? link.GetString() : null;
+        return string.IsNullOrWhiteSpace(url) ? null : new ForgeAttachment(fileName, url);
+    }
+
+    /// <summary>
+    /// Forgejo names an approval <c>APPROVED</c>; the Server's neutral name is <c>APPROVE</c>, the
+    /// same as GitHub's. Other events pass through.
+    /// </summary>
+    public static string ReviewEvent(string @event) =>
+        string.Equals(@event, "APPROVE", StringComparison.OrdinalIgnoreCase) ? "APPROVED" : @event.ToUpperInvariant();
 
     public static bool IsProtected(string @ref)
     {
@@ -199,22 +276,40 @@ public sealed class ForgejoApiProvider(HttpMessageHandler? handler = null, strin
             .ToArray();
     }
 
+    /// <summary>
+    /// Findings on lines of the change belong to the review that raised them, so each review's own
+    /// comments are read; the conversation is the issue comments. Forgejo has no flat list of a
+    /// pull's line comments.
+    /// </summary>
     private async Task<IReadOnlyList<ForgeReviewThread>> ReadThreadsAsync(
         HttpClient client,
         ForgeRequest request,
         string number,
+        JsonElement history,
         CancellationToken cancellationToken)
     {
-        var inline = await ReadJsonAsync(
-            client,
-            $"repos/{request.Owner}/{request.Repository}/pulls/{number}/comments",
-            cancellationToken);
+        var threads = new List<ForgeReviewThread>();
+        var withFindings = (history.ValueKind == JsonValueKind.Array ? history.EnumerateArray() : Enumerable.Empty<JsonElement>())
+            .Where(HasFindings);
+        foreach (var review in withFindings)
+        {
+            var inline = await ReadJsonAsync(
+                client,
+                $"repos/{request.Owner}/{request.Repository}/pulls/{number}/reviews/{review.GetProperty("id").GetRawText()}/comments",
+                cancellationToken);
+            threads.AddRange(Threads(inline));
+        }
+
         var conversation = await ReadJsonAsync(
             client,
             $"repos/{request.Owner}/{request.Repository}/issues/{number}/comments",
             cancellationToken);
-        return Threads(inline).Concat(Threads(conversation)).ToArray();
+        threads.AddRange(Threads(conversation));
+        return threads;
     }
+
+    private static bool HasFindings(JsonElement review)
+        => review.TryGetProperty("comments_count", out var count) && count.ValueKind == JsonValueKind.Number && count.GetInt32() > 0;
 
     private static IEnumerable<ForgeReviewThread> Threads(JsonElement comments)
     {
@@ -226,25 +321,35 @@ public sealed class ForgejoApiProvider(HttpMessageHandler? handler = null, strin
                 comment.GetProperty("id").GetRawText(),
                 comment.TryGetProperty("html_url", out var url) ? url.GetString() ?? "" : "",
                 comment.TryGetProperty("body", out var body) ? body.GetString() ?? "" : "",
-                false));
+                false,
+                comment.TryGetProperty("path", out var path) ? path.GetString() : null,
+                Line(comment),
+                comment.TryGetProperty("user", out var user) && user.ValueKind == JsonValueKind.Object ? ReadLogin(user) : null));
     }
 
-    private async Task<IReadOnlyList<ForgeReview>> ReadReviewsAsync(
-        HttpClient client,
-        ForgeRequest request,
-        string proposalNumber,
-        CancellationToken cancellationToken)
+    /// <summary>The line on the new side; a comment left on the old side falls back to that one.</summary>
+    private static int? Line(JsonElement comment)
     {
-        var reviews = await ReadJsonAsync(
-            client,
-            $"repos/{request.Owner}/{request.Repository}/pulls/{proposalNumber}/reviews?limit=100",
-            cancellationToken);
+        var line = new[] { "position", "original_position" }
+            .Select(name => comment.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.Number ? value.GetInt32() : 0)
+            .FirstOrDefault(value => value > 0);
+        return line > 0 ? line : null;
+    }
+
+    /// <summary>
+    /// Each reviewer's standing verdict. Requesting a reviewer adds an entry with no verdict of its
+    /// own, so only approvals, change requests and comments count.
+    /// </summary>
+    private static IReadOnlyList<ForgeReview> Reviews(JsonElement reviews)
+    {
         if (reviews.ValueKind != JsonValueKind.Array)
             return [];
 
         return reviews.EnumerateArray()
             .Select(ReadReview)
             .OfType<ForgeReview>()
+            .Where(review => !review.State.Equals("REQUEST_REVIEW", StringComparison.OrdinalIgnoreCase)
+                && !review.State.Equals("PENDING", StringComparison.OrdinalIgnoreCase))
             .GroupBy(review => review.Login, StringComparer.OrdinalIgnoreCase)
             .Select(reviewer => Verdict([.. reviewer.OrderBy(review => review.SubmittedAt)]))
             .ToArray();
@@ -268,7 +373,8 @@ public sealed class ForgejoApiProvider(HttpMessageHandler? handler = null, strin
         var submitted = review.TryGetProperty("submitted_at", out var at) && at.ValueKind == JsonValueKind.String
             ? at.GetDateTimeOffset()
             : DateTimeOffset.MinValue;
-        return new ForgeReview(login, state, submitted);
+        var commit = review.TryGetProperty("commit_id", out var sha) && sha.ValueKind == JsonValueKind.String ? sha.GetString() : null;
+        return new ForgeReview(login, state, submitted, commit);
     }
 
     private static async Task<ForgeAccount?> ReadAccountAsync(HttpClient client, CancellationToken cancellationToken)
@@ -337,7 +443,8 @@ public sealed class ForgejoApiProvider(HttpMessageHandler? handler = null, strin
             pull.GetProperty("html_url").GetString() ?? "",
             pull.GetProperty("head").GetProperty("ref").GetString() ?? "",
             pull.GetProperty("base").GetProperty("ref").GetString() ?? "",
-            pull.GetProperty("state").GetString() ?? "");
+            pull.GetProperty("state").GetString() ?? "",
+            pull.GetProperty("head").TryGetProperty("sha", out var head) ? head.GetString() : null);
 
     private static string TrimHeads(string @ref)
         => @ref.StartsWith("refs/heads/", StringComparison.Ordinal) ? @ref["refs/heads/".Length..] : @ref;

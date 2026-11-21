@@ -115,6 +115,27 @@ public sealed class AutonomousLoopServiceTests
         await harness.Scheduling.DisposeAsync();
     }
 
+    // A member that called its task tool has handed the task over, whatever its reply says after.
+    [Test]
+    public async Task RunAsync_completesOnceTheMemberSubmittedThroughItsTaskTool()
+    {
+        var harness = await HarnessAsync();
+        harness.Process.PromptResult = JsonSerializer.SerializeToElement(new { stopReason = "end_turn" });
+        await harness.Scheduling.ScheduleAsync(harness.Workspace.Id, "codex", CancellationToken.None);
+
+        var result = await harness.Loop.RunAsync(
+            Request(harness.Workspace.Id, maxIterations: 4) with { ReplyCompletes = true, Submitted = () => true },
+            CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Terminal, Is.EqualTo(LoopTerminal.Completed));
+            Assert.That(result.StopReason, Is.EqualTo("submitted"));
+            Assert.That(result.Iterations, Is.EqualTo(1), "no verdict nudge after the review is in");
+        });
+        await harness.Scheduling.DisposeAsync();
+    }
+
     [Test]
     public async Task RunAsync_stopsAsBlockedRateLimitedAfterBackoffRetries()
     {
@@ -173,6 +194,151 @@ public sealed class AutonomousLoopServiceTests
         });
         await harness.Scheduling.DisposeAsync();
     }
+
+    [Test]
+    public async Task RunAsync_completesWhenARealAgentStopsUsingToolsAfterWorking()
+    {
+        var harness = await HarnessAsync();
+        var turn = 0;
+        harness.Process.PromptResult = JsonSerializer.SerializeToElement(new { stopReason = "end_turn" });
+        harness.Process.BeforePromptCompletes = _ => ++turn == 1
+            ? harness.Process.SendNotificationAsync("session/update", Update(new { sessionUpdate = "tool_call", toolCallId = "edit-1" }))
+            : harness.Process.SendNotificationAsync("session/update", Update(new { sessionUpdate = "agent_message_chunk", content = new { type = "text", text = "Done: the special is live." } }));
+        await harness.Scheduling.ScheduleAsync(harness.Workspace.Id, "codex", CancellationToken.None);
+
+        var result = await harness.Loop.RunAsync(Request(harness.Workspace.Id), CancellationToken.None);
+
+        // No vendor ACP agent reports "completed"; stopping after the work is how it hands back.
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Terminal, Is.EqualTo(LoopTerminal.Completed));
+            Assert.That(result.StopReason, Is.EqualTo("settled"));
+            Assert.That(result.Iterations, Is.EqualTo(2));
+            Assert.That(result.Reply, Is.EqualTo("Done: the special is live."));
+        });
+        await harness.Scheduling.DisposeAsync();
+    }
+
+    [Test]
+    public async Task RunAsync_keepsWaitingWhileTheAgentKeepsWritingPastTheSilenceWindow()
+    {
+        var harness = await HarnessAsync();
+        harness.Process.PromptResult = JsonSerializer.SerializeToElement(new { stopReason = "end_turn", completed = true });
+        harness.Process.BeforePromptCompletes = async cancellationToken =>
+        {
+            for (var beat = 0; beat < 12; beat++)
+            {
+                await harness.Process.SendNotificationAsync("session/update", Update(new { sessionUpdate = "agent_thought_chunk", content = new { type = "text", text = "." } }));
+                await Task.Delay(20, cancellationToken);
+            }
+        };
+        await harness.Scheduling.ScheduleAsync(harness.Workspace.Id, "codex", CancellationToken.None);
+
+        var result = await harness.Loop.RunAsync(
+            Request(harness.Workspace.Id) with { PromptTimeoutMs = 100 },
+            CancellationToken.None);
+
+        // The turn lasts about 240ms against a 100ms window, but it never goes quiet for 100ms.
+        Assert.That(result.Terminal, Is.EqualTo(LoopTerminal.Completed));
+        await harness.Scheduling.DisposeAsync();
+    }
+
+    [Test]
+    public async Task RunAsync_stopsATurnThatKeepsRepeatingOneFailingToolCall()
+    {
+        var harness = await HarnessAsync();
+        harness.Process.HoldPrompt = true;
+        harness.Process.BeforePromptCompletes = async _ =>
+        {
+            for (var attempt = 0; attempt < 5; attempt++)
+                await harness.Process.SendNotificationAsync("session/update", Update(new
+                {
+                    sessionUpdate = "tool_call_update",
+                    toolCallId = $"fetch-{attempt}",
+                    title = "webfetch",
+                    status = "failed",
+                    rawOutput = new { error = "invalid arguments" }
+                }));
+        };
+        await harness.Scheduling.ScheduleAsync(harness.Workspace.Id, "codex", CancellationToken.None);
+
+        var result = await harness.Loop.RunAsync(Request(harness.Workspace.Id), CancellationToken.None);
+
+        // Each failure is an event, so the silence window alone would never end this turn.
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Terminal, Is.EqualTo(LoopTerminal.Failed));
+            Assert.That(result.StopReason, Is.EqualTo("stuck"));
+            Assert.That(result.BlockReason, Does.Contain("5 times"));
+        });
+        await harness.Scheduling.DisposeAsync();
+    }
+
+    [Test]
+    public async Task StartFreshSessionAsync_opensANewAcpSessionOnTheRunningProcess()
+    {
+        var harness = await HarnessAsync();
+        var missing = await harness.Scheduling.StartFreshSessionAsync(harness.Workspace.Id, "#1", CancellationToken.None);
+        await harness.Scheduling.ScheduleAsync(harness.Workspace.Id, "codex", CancellationToken.None);
+
+        var fresh = await harness.Scheduling.StartFreshSessionAsync(harness.Workspace.Id, "#1 Say Ahoy", CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(missing.Found, Is.False);
+            Assert.That(fresh.Error, Is.Null);
+            Assert.That(harness.Process.Methods.Count(method => method == "session/new"), Is.EqualTo(2));
+            Assert.That(harness.Process.Methods.Count(method => method == "initialize"), Is.EqualTo(1), "the agent process is reused");
+        });
+        await harness.Scheduling.DisposeAsync();
+    }
+
+    [Test]
+    public async Task RunAsync_completesAReviewThatRepliesWithoutATool()
+    {
+        var harness = await HarnessAsync();
+        harness.Process.PromptResult = JsonSerializer.SerializeToElement(new { stopReason = "end_turn" });
+        harness.Process.BeforePromptCompletes = _ => harness.Process.SendNotificationAsync("session/update",
+            Update(new { sessionUpdate = "agent_message_chunk", content = new { type = "text", text = "Correct.\nVERDICT: APPROVE" } }));
+        await harness.Scheduling.ScheduleAsync(harness.Workspace.Id, "codex", CancellationToken.None);
+
+        var review = await harness.Loop.RunAsync(Request(harness.Workspace.Id) with { ReplyCompletes = true }, CancellationToken.None);
+        var author = await harness.Loop.RunAsync(Request(harness.Workspace.Id), CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That((review.Terminal, review.StopReason), Is.EqualTo((LoopTerminal.Completed, "replied")));
+            Assert.That(review.Reply, Does.EndWith("VERDICT: APPROVE"));
+            Assert.That(author.Terminal, Is.Not.EqualTo(LoopTerminal.Completed), "an author has to change something");
+        });
+        await harness.Scheduling.DisposeAsync();
+    }
+
+    // A small model often answers a review without the verdict line; it is asked for that line,
+    // not told to "continue", which it reads as a reason to call more tools.
+    [Test]
+    public async Task RunAsync_asksAReviewerForItsVerdictUntilItGivesOne()
+    {
+        var harness = await HarnessAsync();
+        harness.Process.PromptResult = JsonSerializer.SerializeToElement(new { stopReason = "end_turn" });
+        var replies = new Queue<string>(["Looks fine to me.", "Fine.\nVERDICT: APPROVE"]);
+        harness.Process.BeforePromptCompletes = _ => harness.Process.SendNotificationAsync("session/update",
+            Update(new { sessionUpdate = "agent_message_chunk", content = new { type = "text", text = replies.Dequeue() } }));
+        await harness.Scheduling.ScheduleAsync(harness.Workspace.Id, "codex", CancellationToken.None);
+
+        var review = await harness.Loop.RunAsync(Request(harness.Workspace.Id) with { ReplyCompletes = true }, CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That((review.Terminal, review.StopReason), Is.EqualTo((LoopTerminal.Completed, "replied")));
+            Assert.That(review.Iterations, Is.EqualTo(2));
+            Assert.That(harness.Process.Prompts[^1], Does.Contain("VERDICT: APPROVE or VERDICT: REQUEST_CHANGES"));
+        });
+        await harness.Scheduling.DisposeAsync();
+    }
+
+    private static JsonElement Update(object update) =>
+        JsonSerializer.SerializeToElement(new { sessionId = "session-1", update });
 
     [Test]
     public async Task RunAsync_failsWhenTheWorkspaceAgentIsNotScheduled()

@@ -7,9 +7,13 @@ internal sealed class StubAgentCapability : IAgentCapability
 {
     public CapabilityIdentity Identity { get; init; } = new("codex", "1.0.0", "Codex", "agent-up");
 
-    public IReadOnlyList<NixPackageDeclaration> NixPackages { get; } = [];
+    public string Kind => CapabilityKind.Agent;
 
-    public bool CanRun { get; init; } = true;
+    public IReadOnlyList<CapabilitySoftware> Software { get; init; } = [];
+
+    public IReadOnlyList<CapabilitySettingSpec> Settings { get; init; } = [];
+
+    public IReadOnlyList<NixPackageDeclaration> NixPackages { get; init; } = [];
 
     public bool SupportsPermissionRequests { get; init; } = true;
 
@@ -17,5 +21,12 @@ internal sealed class StubAgentCapability : IAgentCapability
 
     public AgentLaunchResult LaunchResult { get; init; } = new("codex-acp", [], null);
 
-    public AgentLaunchResult Launch() => LaunchResult;
+    /// <summary>The settings the last launch was given, so a test can see what the Server passed.</summary>
+    public IReadOnlyDictionary<string, string>? LaunchedWith { get; private set; }
+
+    public AgentLaunchResult Launch(IReadOnlyDictionary<string, string> settings)
+    {
+        LaunchedWith = settings;
+        return LaunchResult;
+    }
 }

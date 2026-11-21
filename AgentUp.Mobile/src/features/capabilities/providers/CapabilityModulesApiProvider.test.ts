@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { disableCapabilityModule, enableCapabilityModule, listCapabilityModules } from './CapabilityModulesApiProvider';
+import { disableCapabilityModule, enableCapabilityModule, listCapabilityModules, updateCapabilitySettings } from './CapabilityModulesApiProvider';
 
 type Recorded = { url: string; init: RequestInit };
 
@@ -34,12 +34,11 @@ test('listCapabilityModules requests the Server catalog', async () => {
   assert.equal(recorded[0].url, 'http://localhost:5000/api/capabilities');
 });
 
-test('enableCapabilityModule posts the package identity', async () => {
+test('enableCapabilityModule posts the capability id', async () => {
   const recorded: Recorded[] = [];
   const module = await enableCapabilityModule(
     { url: 'http://localhost:5000' },
     'dotnet',
-    '1.0.0',
     fakeFetch(200, moduleBody, recorded),
   );
 
@@ -58,4 +57,18 @@ test('disableCapabilityModule posts the escaped package id', async () => {
   );
 
   assert.equal(recorded[0].url, 'http://localhost:5000/api/capabilities/disable/dot%20net');
+});
+
+test('updateCapabilitySettings puts the changed values under the capability', async () => {
+  const recorded: Recorded[] = [];
+  await updateCapabilitySettings(
+    { url: 'http://localhost:5000' },
+    'opencode',
+    { endpoint: 'http://localhost:11434' },
+    fakeFetch(200, moduleBody, recorded),
+  );
+
+  assert.equal(recorded[0].url, 'http://localhost:5000/api/capabilities/opencode/settings');
+  assert.equal(recorded[0].init.method, 'PUT');
+  assert.match(String(recorded[0].init.body), /"values":\{"endpoint":"http:\/\/localhost:11434"\}/);
 });

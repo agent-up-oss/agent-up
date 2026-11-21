@@ -107,6 +107,8 @@ public sealed class TaskQueueService
 
             if (task.HeldByWorkspaceId is not null)
                 return string.Equals(task.HeldByWorkspaceId, workspaceId, StringComparison.Ordinal);
+            if (task.Stage != TaskStage.Queued)
+                return false;
 
             _tasks[_tasks.IndexOf(task)] = task with { HeldByWorkspaceId = workspaceId };
             Persist();
@@ -114,12 +116,186 @@ public sealed class TaskQueueService
         }
     }
 
-    /// <summary>The task this workspace is carrying, if any.</summary>
+    /// <summary>
+    /// The task this workspace is carrying, if any. An approved task is no longer carried: its
+    /// author is free for the next one while the host decides whether to merge.
+    /// </summary>
     public QueuedTask? Held(string workspaceId)
     {
         lock (_gate)
             return _tasks.FirstOrDefault(task =>
-                string.Equals(task.HeldByWorkspaceId, workspaceId, StringComparison.Ordinal));
+                string.Equals(task.HeldByWorkspaceId, workspaceId, StringComparison.Ordinal)
+                && task.Stage != TaskStage.Approved);
+    }
+
+    /// <summary>One task by its host id within a repository.</summary>
+    public QueuedTask? Get(string owner, string repository, string id)
+    {
+        lock (_gate)
+            return Find(owner, repository, id);
+    }
+
+    /// <summary>The author has started changing the code for a task it holds, from this base branch.</summary>
+    public bool Begin(string workspaceId, string owner, string repository, string id, string baseBranch)
+    {
+        lock (_gate)
+            return ReplaceHeld(workspaceId, owner, repository, id, task => task.Stage is TaskStage.Queued
+                ? task with { Stage = TaskStage.Implementing, BaseBranch = task.BaseBranch ?? baseBranch }
+                : task);
+    }
+
+    /// <summary>
+    /// The author's work is on the host as a proposal. Each push is a new revision, and every
+    /// reviewer owes a review of it, whatever they said about the one before. A head a reviewer
+    /// already saw arrive is that same revision, not another.
+    /// </summary>
+    public bool Propose(string workspaceId, string owner, string repository, string id, string number, string url, string branch, string baseBranch, string? head = null)
+    {
+        lock (_gate)
+            return ReplaceHeld(workspaceId, owner, repository, id, task => task with
+            {
+                Stage = TaskStage.InReview,
+                Proposal = new TaskProposal(
+                    number,
+                    url,
+                    branch,
+                    baseBranch,
+                    head is not null && task.Proposal?.Head == head ? task.Proposal.Revision : (task.Proposal?.Revision ?? 0) + 1,
+                    head)
+            });
+    }
+
+    /// <summary>
+    /// The proposal's branch moved on the host. Whoever pushed - the author's loop or a person -
+    /// that is a new revision: it goes back in front of every reviewer, and no verdict on the code
+    /// before it decides anything. Returns the task when the push opened a revision.
+    /// </summary>
+    public QueuedTask? Pushed(string owner, string repository, string id, string head)
+    {
+        lock (_gate)
+        {
+            var task = Find(owner, repository, id);
+            if (task?.Proposal is null
+                || task.Stage is not (TaskStage.InReview or TaskStage.ChangesRequested or TaskStage.Approved)
+                || string.Equals(task.Proposal.Head, head, StringComparison.Ordinal))
+                return null;
+
+            var next = task with
+            {
+                Stage = TaskStage.InReview,
+                Proposal = task.Proposal with { Revision = task.Proposal.Revision + 1, Head = head }
+            };
+            _tasks[_tasks.IndexOf(task)] = next;
+            Persist();
+            return next;
+        }
+    }
+
+    /// <summary>The tasks on a repository that have a proposal open on the host, in queue order.</summary>
+    public IReadOnlyList<QueuedTask> Proposed(string owner, string repository)
+    {
+        lock (_gate)
+            return [.. _tasks.Where(task => task.Proposal is not null
+                && task.Stage is TaskStage.InReview or TaskStage.ChangesRequested or TaskStage.Approved
+                && string.Equals(task.Owner, owner, StringComparison.OrdinalIgnoreCase)
+                && string.Equals(task.Repository, repository, StringComparison.OrdinalIgnoreCase))];
+    }
+
+    /// <summary>
+    /// The tasks whose open revision needs a review of this reviewer's kind and that are free or
+    /// already this reviewer's, in queue order.
+    /// </summary>
+    public IReadOnlyList<QueuedTask> AwaitingReview(string workspaceId, TeamMemberKind kind, string owner, string repository)
+    {
+        lock (_gate)
+            return [.. _tasks.Where(task => task.AwaitsReviewFrom(workspaceId, kind)
+                && string.Equals(task.Owner, owner, StringComparison.OrdinalIgnoreCase)
+                && string.Equals(task.Repository, repository, StringComparison.OrdinalIgnoreCase))];
+    }
+
+    /// <summary>
+    /// Takes a task's review of this kind for one reviewer. The first reviewer of a kind keeps it
+    /// for every later revision, so of two reviewers reaching for the same review exactly one gets
+    /// it, and nobody else of that kind is offered the task again. True for the reviewer that
+    /// already holds it.
+    /// </summary>
+    public bool TryClaimReview(string workspaceId, TeamMemberKind kind, string owner, string repository, string id)
+    {
+        lock (_gate)
+        {
+            var task = Find(owner, repository, id);
+            if (task is null || kind is not (TeamMemberKind.DevReviewer or TeamMemberKind.PmReviewer))
+                return false;
+            var holder = task.ReviewerFor(kind);
+            if (holder is not null)
+                return string.Equals(holder, workspaceId, StringComparison.Ordinal);
+            if (task.Stage != TaskStage.InReview)
+                return false;
+
+            _tasks[_tasks.IndexOf(task)] = task.WithReviewer(kind, workspaceId);
+            Persist();
+            return true;
+        }
+    }
+
+    /// <summary>
+    /// Records one reviewer's verdict on the open revision. Any request for changes sends the task
+    /// back to its author at once; it is approved only when the reviewer holding each required
+    /// kind of review approved the same revision. A comment decides nothing. A review of a kind
+    /// another reviewer holds is not this reviewer's to give and is ignored.
+    ///
+    /// A review that lands after another reviewer already sent the revision back is still kept:
+    /// the author reads every finding on the revision, not only the first.
+    /// </summary>
+    public QueuedTask? Review(string owner, string repository, string id, TaskReview review, IReadOnlyCollection<TeamMemberKind> required)
+    {
+        lock (_gate)
+        {
+            var task = Find(owner, repository, id);
+            if (task?.Proposal is null
+                || task.Stage is not (TaskStage.InReview or TaskStage.ChangesRequested)
+                || review.Revision != task.Proposal.Revision)
+                return null;
+            var holder = task.ReviewerFor(review.Kind);
+            if (holder is not null && !string.Equals(holder, review.WorkspaceId, StringComparison.Ordinal))
+                return null;
+
+            var reviewed = (holder is null ? task.WithReviewer(review.Kind, review.WorkspaceId) : task)
+                with { Reviews = [.. (task.Reviews ?? []), review] };
+            var current = reviewed.CurrentReviews;
+            var stage = task.Stage == TaskStage.ChangesRequested || current.Any(item => item.Verdict == TaskReviewVerdict.RequestChanges)
+                ? TaskStage.ChangesRequested
+                : required.Count > 0 && required.All(kind => current.Any(item =>
+                    string.Equals(item.WorkspaceId, reviewed.ReviewerFor(kind), StringComparison.Ordinal) && item.Verdict == TaskReviewVerdict.Approve))
+                    ? TaskStage.Approved
+                    : TaskStage.InReview;
+            var next = reviewed with { Stage = stage };
+            _tasks[_tasks.IndexOf(task)] = next;
+            Persist();
+            return next;
+        }
+    }
+
+    /// <summary>
+    /// The host's checks failed on the revision under review. That is feedback like a request for
+    /// changes: the task goes back to its author, whose next push is the next revision. A failure
+    /// on an older head decides nothing.
+    /// </summary>
+    public QueuedTask? ChecksFailed(string owner, string repository, string id, string head)
+    {
+        lock (_gate)
+        {
+            var task = Find(owner, repository, id);
+            if (task?.Proposal is null
+                || task.Stage != TaskStage.InReview
+                || !string.Equals(task.Proposal.Head, head, StringComparison.Ordinal))
+                return null;
+
+            var next = task with { Stage = TaskStage.ChangesRequested };
+            _tasks[_tasks.IndexOf(task)] = next;
+            Persist();
+            return next;
+        }
     }
 
     /// <summary>Takes a finished task out of the queue. Only its holder can finish it.</summary>
@@ -146,6 +322,17 @@ public sealed class TaskQueueService
     {
         lock (_gate)
             return Replace(owner, repository, id, task => task with { HeldByWorkspaceId = null });
+    }
+
+    private bool ReplaceHeld(string workspaceId, string owner, string repository, string id, Func<QueuedTask, QueuedTask> change)
+    {
+        var task = Find(owner, repository, id);
+        if (task is null || !string.Equals(task.HeldByWorkspaceId, workspaceId, StringComparison.Ordinal))
+            return false;
+
+        _tasks[_tasks.IndexOf(task)] = change(task);
+        Persist();
+        return true;
     }
 
     private bool Replace(string owner, string repository, string id, Func<QueuedTask, QueuedTask> change)

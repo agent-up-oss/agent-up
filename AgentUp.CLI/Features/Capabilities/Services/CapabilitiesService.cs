@@ -7,10 +7,9 @@ namespace AgentUp.CLI.Features.Capabilities.Services;
 
 public sealed class CapabilitiesService(
     ICapabilityModulesApi api,
-    ICapabilityPacker packer,
     ICapabilitiesArgParser parser)
 {
-    public Task<CapabilitiesCommandResult> RunAsync(string[] args, string workingDirectory, CancellationToken cancellationToken = default)
+    public Task<CapabilitiesCommandResult> RunAsync(string[] args, CancellationToken cancellationToken = default)
     {
         var (command, error) = parser.Parse(args);
         if (command is null)
@@ -22,9 +21,9 @@ public sealed class CapabilitiesService(
         return command.Verb switch
         {
             "list" => ListAsync(cancellationToken),
-            "enable" => EnableAsync(command.Id!, command.Version, cancellationToken),
+            "enable" => EnableAsync(command.Id!, cancellationToken),
             "disable" => DisableAsync(command.Id!, cancellationToken),
-            "bootstrap" => BootstrapAsync(workingDirectory, cancellationToken),
+            "bootstrap" => BootstrapAsync(cancellationToken),
             _ => Task.FromResult(CapabilitiesCommandResult.Fail(CapabilitiesHelp.Text, exitCode: 0))
         };
     }
@@ -46,18 +45,19 @@ public sealed class CapabilitiesService(
         }
     }
 
-    private async Task<CapabilitiesCommandResult> EnableAsync(string id, string? version, CancellationToken cancellationToken)
+    private async Task<CapabilitiesCommandResult> EnableAsync(string id, CancellationToken cancellationToken)
     {
         try
         {
-            var listed = await api.ListAsync(cancellationToken);
-            var match = Find(listed, id, version);
+            var match = Find(await api.ListAsync(cancellationToken), id);
             if (match is null)
-                return CapabilitiesCommandResult.Fail(UnknownCapability(id, version));
+                return CapabilitiesCommandResult.Fail(UnknownCapability(id));
             if (match.Enabled)
                 return CapabilitiesCommandResult.Ok($"Capability '{match.Id}' is already enabled.");
+            if (!match.Available)
+                return CapabilitiesCommandResult.Fail(NotFound(match));
 
-            var enabled = await api.EnableAsync(id, version, cancellationToken);
+            var enabled = await api.EnableAsync(match.Id, cancellationToken);
             return CapabilitiesCommandResult.Ok($"Enabled {enabled.Id} {enabled.Version}.");
         }
         catch (AuthenticationRequiredException ex)
@@ -74,12 +74,11 @@ public sealed class CapabilitiesService(
     {
         try
         {
-            var listed = await api.ListAsync(cancellationToken);
-            var match = Find(listed, id);
+            var match = Find(await api.ListAsync(cancellationToken), id);
             if (match is null)
-                return CapabilitiesCommandResult.Fail($"Error: Capability '{id}' is not in the local registry.");
+                return CapabilitiesCommandResult.Fail(UnknownCapability(id));
 
-            var disabled = await api.DisableAsync(id, cancellationToken);
+            var disabled = await api.DisableAsync(match.Id, cancellationToken);
             return CapabilitiesCommandResult.Ok($"Disabled {disabled.Id}.");
         }
         catch (AuthenticationRequiredException ex)
@@ -92,34 +91,35 @@ public sealed class CapabilitiesService(
         }
     }
 
-    private async Task<CapabilitiesCommandResult> BootstrapAsync(string workingDirectory, CancellationToken cancellationToken)
+    /// <summary>
+    /// Enables every built-in capability whose software the Server finds. One the Server cannot
+    /// run is listed with what is missing rather than failing the command, so a host without, say,
+    /// a Cursor CLI still gets everything else.
+    /// </summary>
+    private async Task<CapabilitiesCommandResult> BootstrapAsync(CancellationToken cancellationToken)
     {
-        var packed = await packer.PackFirstPartyAsync(workingDirectory, cancellationToken);
-        if (!packed.Succeeded)
-            return CapabilitiesCommandResult.Fail(packed.Message);
-
-        var lines = new List<string> { packed.Message };
+        var lines = new List<string>();
         try
         {
-            foreach (var id in FirstPartyCapabilities.Ids)
+            foreach (var module in await api.ListAsync(cancellationToken))
             {
-                var listed = await api.ListAsync(cancellationToken);
-                var match = Find(listed, id);
-                if (match is null)
-                    return CapabilitiesCommandResult.Fail(
-                        string.Join(Environment.NewLine, lines.Append($"Error: Capability '{id}' is not in the local registry.")));
-
-                if (match.Enabled)
+                if (module.Enabled)
                 {
-                    lines.Add($"Capability '{match.Id}' is already enabled.");
+                    lines.Add($"Capability '{module.Id}' is already enabled.");
                     continue;
                 }
 
-                var enabled = await api.EnableAsync(id, null, cancellationToken);
+                if (!module.Available)
+                {
+                    lines.Add($"Skipped {module.Id}: {string.Join(", ", module.Missing)} not found.");
+                    continue;
+                }
+
+                var enabled = await api.EnableAsync(module.Id, cancellationToken);
                 lines.Add($"Enabled {enabled.Id} {enabled.Version}.");
             }
 
-            return CapabilitiesCommandResult.Ok(string.Join(Environment.NewLine, lines));
+            return CapabilitiesCommandResult.Ok(lines.Count == 0 ? "The Server reports no capabilities." : string.Join(Environment.NewLine, lines));
         }
         catch (AuthenticationRequiredException ex)
         {
@@ -127,21 +127,20 @@ public sealed class CapabilitiesService(
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
         {
-            return CapabilitiesCommandResult.Fail($"Error: Failed to enable packed capabilities: {ex.Message}");
+            return CapabilitiesCommandResult.Fail(
+                string.Join(Environment.NewLine, lines.Append($"Error: Failed to enable capabilities: {ex.Message}")));
         }
     }
 
-    private static CapabilityModuleDto? Find(
-        IReadOnlyList<CapabilityModuleDto> modules,
-        string id,
-        string? version = null)
-        => modules.FirstOrDefault(module =>
-            module.Id.Equals(id, StringComparison.OrdinalIgnoreCase)
-            && (string.IsNullOrWhiteSpace(version)
-                || module.Version.Equals(version, StringComparison.Ordinal)));
+    private static CapabilityModuleDto? Find(IReadOnlyList<CapabilityModuleDto> modules, string id)
+        => modules.FirstOrDefault(module => module.Id.Equals(id, StringComparison.OrdinalIgnoreCase));
 
-    private static string UnknownCapability(string id, string? version)
-        => string.IsNullOrWhiteSpace(version)
-            ? $"Error: Capability '{id}' is not in the local registry."
-            : $"Error: Capability '{id}' version '{version}' is not in the local registry.";
+    private static string UnknownCapability(string id)
+        => $"Error: Capability '{id}' is not built into this Server.";
+
+    private static string NotFound(CapabilityModuleDto module)
+        => string.Join(
+            Environment.NewLine,
+            new[] { $"Error: Capability '{module.Id}' cannot be enabled: {string.Join(", ", module.Missing)} not found." }
+                .Concat(module.Messages.Select(message => "  " + message)));
 }

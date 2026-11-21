@@ -111,6 +111,33 @@ public sealed class SourceCloneTargetProviderTests
         Assert.That(target.DestinationPath, Is.EqualTo(Path.Join(Path.GetFullPath(_root), "widgets-review-feature-login")));
     }
 
+    // Two reviewers of the same revision each get their own derived clone.
+    [Test]
+    public void Resolve_givesASecondDerivedCloneOfARevisionTheNextFreeDirectory()
+    {
+        var provider = CreateProvider();
+        var request = new CloneSourceRequest("https://example.test/acme/widgets.git", "main") { Derived = true };
+        Directory.CreateDirectory(Path.Join(_root, "widgets-review-main"));
+
+        var second = provider.Resolve(request);
+        Directory.CreateDirectory(second.DestinationPath);
+        var third = provider.Resolve(request);
+
+        Assert.That(second.DirectoryName, Is.EqualTo("widgets-review-main-2"));
+        Assert.That(third.DirectoryName, Is.EqualTo("widgets-review-main-3"));
+    }
+
+    [Test]
+    public void Resolve_keepsAPlainCloneOfAClonedRepositoryAtItsOwnName()
+    {
+        var provider = CreateProvider();
+        Directory.CreateDirectory(Path.Join(_root, "widgets"));
+
+        var target = provider.Resolve(new CloneSourceRequest("https://example.test/acme/widgets.git", "main"));
+
+        Assert.That(provider.DestinationExists(target), Is.True, "a duplicate plain clone is refused, not renamed");
+    }
+
     [Test]
     public void Resolve_requiresARevisionForADerivedWorkspace()
     {

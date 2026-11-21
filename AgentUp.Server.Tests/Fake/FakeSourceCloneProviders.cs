@@ -104,9 +104,11 @@ internal sealed class FakeWorkspaceIdentityProvider(WorkspaceIdentity identity) 
         => Task.FromResult(Identity);
 }
 
-internal sealed class FakeAgentUpConfigurationProvider(AgentUpConfiguration? configuration = null)
+internal sealed class FakeAgentUpConfigurationProvider(AgentUpConfiguration? configuration = null, string? error = null)
     : IAgentUpConfigurationProvider
 {
     public Task<AgentUpConfiguration?> LoadAsync(string worktreePath, CancellationToken cancellationToken)
-        => Task.FromResult(configuration);
+        => error is null
+            ? Task.FromResult(configuration)
+            : Task.FromException<AgentUpConfiguration?>(new InvalidOperationException(error));
 }

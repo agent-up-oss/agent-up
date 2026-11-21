@@ -33,4 +33,20 @@ public sealed class ForgejoForgeCapabilityTests
         Assert.That(ForgejoApiProvider.IsProtected("refs/heads/master"), Is.True);
         Assert.That(ForgejoApiProvider.IsProtected("agent-topic"), Is.False);
     }
+
+    [TestCase("APPROVE", "APPROVED")]
+    [TestCase("approve", "APPROVED")]
+    [TestCase("REQUEST_CHANGES", "REQUEST_CHANGES")]
+    [TestCase("comment", "COMMENT")]
+    public void ReviewEvent_mapsTheServersNeutralApprovalToForgejosName(string neutral, string forgejo)
+    {
+        Assert.That(ForgejoApiProvider.ReviewEvent(neutral), Is.EqualTo(forgejo));
+    }
+
+    [Test]
+    public void A_forge_needs_no_software_on_the_server_host()
+    {
+        Assert.That(new ForgejoForgeCapability().Software, Is.Empty);
+        Assert.That(new ForgejoForgeCapability().Kind, Is.EqualTo("forge"));
+    }
 }

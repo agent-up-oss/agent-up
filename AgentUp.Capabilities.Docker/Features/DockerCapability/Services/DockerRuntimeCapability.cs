@@ -12,6 +12,14 @@ public sealed class DockerRuntimeCapability : IRuntimeCapability
 
     public CapabilityIdentity Identity { get; } = new(PackageId, PackageVersion, "Docker", "agent-up");
 
+    public string Kind => CapabilityKind.Runtime;
+
+    public IReadOnlyList<CapabilitySoftware> Software { get; } = [new("docker", DeliveredByNix: true)];
+
+    public IReadOnlyList<CapabilitySettingSpec> Settings { get; } = [];
+
+    public IReadOnlyList<string> Provides { get; } = ["docker"];
+
     public string SectionName => PackageId;
 
     public IReadOnlyList<NixPackageDeclaration> NixPackages { get; } = [new(NixPackage)];

@@ -1,3 +1,6 @@
+using AgentUp.Server.Features.Agents.Services;
+using AgentUp.Server.Features.Agents.Models;
+using AgentUp.Server.Features.Agents.Controllers;
 using AgentUp.Sdk.Forge;
 using AgentUp.Server.Features.Forge.DTOs;
 using AgentUp.Server.Features.Forge.Interfaces;
@@ -254,6 +257,104 @@ public sealed class ForgeServiceTests
         Assert.That(completed, Is.True);
         Assert.That(credentials.Read(workspaceId, "github"), Is.EqualTo("exchanged"));
         Assert.That(exchange.LastTokenUrl, Is.EqualTo("https://example.test/login/oauth/access_token"));
+    }
+
+    [Test]
+    public async Task CompleteLoginOutcomeAsync_reportsTheHostsRefusalInsteadOfThrowing()
+    {
+        var credentials = new MemoryForgeCredentialStore();
+        var states = new ForgeOAuthStateStore();
+        var (service, workspaceId) = await ArrangeAsync(
+            new StubForgeCapability(),
+            credentials,
+            oauth: new ForgeOAuthConfiguration("client", "secret", "http://localhost/callback"),
+            states: states,
+            exchange: new FixedForgeOAuthExchange("unused", "The host refused the sign-in code (400): unsupported_grant_type"));
+        var state = states.Issue(workspaceId);
+
+        var outcome = await service.CompleteLoginOutcomeAsync("code", state, CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(outcome.StatusCode, Is.EqualTo(502));
+            Assert.That(System.Text.Json.JsonSerializer.Serialize(outcome.Body), Does.Contain("unsupported_grant_type"));
+            Assert.That(credentials.Read(workspaceId, "github"), Is.Null);
+        });
+    }
+
+    [Test]
+    public async Task GetHostingAsync_refreshesAnExpiringOAuthTokenBeforeReadingTheHost()
+    {
+        var clock = new StubTimeProvider();
+        var credentials = new MemoryForgeCredentialStore();
+        var forge = new StubForgeCapability();
+        var exchange = new FixedForgeOAuthExchange("unused", refreshed: new ForgeOAuthGrant("fresh", "next-refresh", clock.UtcNow.AddHours(1)));
+        var (service, workspaceId) = await ArrangeAsync(forge, credentials, exchange: exchange, time: clock);
+        credentials.WriteGrant(workspaceId, "github", new ForgeOAuthGrant("stale", "refresh-1", clock.UtcNow.AddSeconds(30)));
+
+        await service.GetHostingAsync(workspaceId, CancellationToken.None);
+
+        // Forgejo expires access tokens after an hour; without this the workspace loses its host.
+        Assert.Multiple(() =>
+        {
+            Assert.That(exchange.RefreshedWith, Is.EqualTo(new[] { "refresh-1" }));
+            Assert.That(forge.LastReadToken, Is.EqualTo("fresh"));
+            Assert.That(credentials.ReadGrant(workspaceId, "github")!.RefreshToken, Is.EqualTo("next-refresh"));
+        });
+    }
+
+    [Test]
+    public async Task GetHostingAsync_leavesAFreshTokenAlone()
+    {
+        var clock = new StubTimeProvider();
+        var credentials = new MemoryForgeCredentialStore();
+        var exchange = new FixedForgeOAuthExchange("unused", refreshed: new ForgeOAuthGrant("never", null, null));
+        var (service, workspaceId) = await ArrangeAsync(new StubForgeCapability(), credentials, exchange: exchange, time: clock);
+        credentials.WriteGrant(workspaceId, "github", new ForgeOAuthGrant("current", "refresh-1", clock.UtcNow.AddMinutes(30)));
+
+        await service.GetHostingAsync(workspaceId, CancellationToken.None);
+
+        Assert.That(exchange.RefreshedWith, Is.Empty);
+    }
+
+    [Test]
+    public async Task GetHostingAsync_asksToSignInAgainWhenTheHostRefusesTheCredential()
+    {
+        var credentials = new MemoryForgeCredentialStore();
+        var (service, workspaceId) = await ArrangeAsync(
+            new StubForgeCapability { ReadFailure = new HttpRequestException("Unauthorized", null, System.Net.HttpStatusCode.Unauthorized) },
+            credentials);
+        credentials.Write(workspaceId, "github", "expired");
+
+        var hosting = await service.GetHostingAsync(workspaceId, CancellationToken.None);
+
+        // "Check the repository host URL" is the wrong remedy for an expired sign-in.
+        Assert.That(hosting!.Availability, Is.EqualTo("needsCredential"));
+    }
+
+    [Test]
+    public async Task PushTaskBranchAsync_neverWritesABranchOutsideTheTaskPrefix()
+    {
+        var (service, workspaceId) = await ArrangeAsync(new StubForgeCapability());
+
+        var main = await service.PushTaskBranchAsync(workspaceId, "main", CancellationToken.None);
+        var bare = await service.PushTaskBranchAsync(workspaceId, "agent-up/", CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(main.Error, Does.Contain("only agent-up/ branches"));
+            Assert.That(bare.Succeeded, Is.False);
+        });
+    }
+
+    [Test]
+    public async Task FetchBranchesAsync_needsASignedInWorkspace()
+    {
+        var (service, workspaceId) = await ArrangeAsync(new StubForgeCapability());
+
+        var fetched = await service.FetchBranchesAsync(workspaceId, ["main"], CancellationToken.None);
+
+        Assert.That(fetched.Error, Is.Not.Null);
     }
 
     [Test]
@@ -572,6 +673,104 @@ public sealed class ForgeServiceTests
         Assert.That(forge.ReviewCalls, Is.EqualTo(1));
     }
 
+    // Every team write the Server makes names the member's own host account and goes out with
+    // that workspace's credential; a finding keeps its file and line on the way to the host.
+    [Test]
+    public async Task TeamWrites_goOutWithTheWorkspacesCredentialAndKeepEachFindingsLine()
+    {
+        var credentials = new MemoryForgeCredentialStore();
+        var forge = new StubForgeCapability { Attachment = new AgentUp.Sdk.Forge.ForgeAttachment("shot.png", "https://example.test/attachments/1") };
+        forge.Accounts["token"] = "hector";
+        var (service, workspaceId) = await ArrangeAsync(forge, credentials, member: TeamMemberKind.DevReviewer);
+        credentials.Write(workspaceId, "github", "token");
+
+        var account = await service.ReadAccountAsync(workspaceId, CancellationToken.None);
+        await service.AssignIssueAsync(workspaceId, 3, "bob", CancellationToken.None);
+        await service.RequestReviewAsync(workspaceId, "42", "hector", CancellationToken.None);
+        var link = await service.AttachAsync(workspaceId, "42", "shot.png", "image/png", [1], CancellationToken.None);
+        await service.SubmitReviewAsync(workspaceId, new ForgeReviewRequest("42", "One thing.", "REQUEST_CHANGES", [new ForgeReviewFindingDto("src/a.js", 4, "Keep it.")]), CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(account!.Login, Is.EqualTo("hector"));
+            Assert.That(forge.TeamWrites, Is.EqualTo(new[] { "token: assign #3 -> bob", "token: review !42 -> hector", "token: attach shot.png to 42" }));
+            Assert.That(link, Is.EqualTo("https://example.test/attachments/1"));
+            Assert.That(forge.LastReview!.Comments, Is.EqualTo(new[] { new AgentUp.Sdk.Forge.ForgeReviewComment("src/a.js", 4, "Keep it.") }));
+        });
+    }
+
+    // What the author is called back with: the proposal on its task branch, whatever is checked out.
+    [Test]
+    public async Task ReadFeedbackAsync_readsTheTaskBranchsProposalWithItsFindingsAndChecks()
+    {
+        var credentials = new MemoryForgeCredentialStore();
+        var forge = new StubForgeCapability
+        {
+            Snapshot = new AgentUp.Sdk.Forge.ForgeHostSnapshot(
+                new AgentUp.Sdk.Forge.ForgeProposal("1", "42", "Say Ahoy", "https://example.test/42", "agent-up/issue-1", "main", "open", "abc"),
+                [new AgentUp.Sdk.Forge.ForgeCheck("test", "completed", "failure", "https://example.test/runs/1")],
+                [new AgentUp.Sdk.Forge.ForgeReviewThread("9", "", "Keep it.", false, "src/a.js", 4, "hector")],
+                null,
+                null,
+                [new AgentUp.Sdk.Forge.ForgeReview("hector", "REQUEST_CHANGES", DateTimeOffset.UnixEpoch, "abc")])
+        };
+        var (service, workspaceId) = await ArrangeAsync(forge, credentials);
+        credentials.Write(workspaceId, "github", "token");
+
+        var feedback = await service.ReadFeedbackAsync(workspaceId, "agent-up/issue-1", CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(forge.ReadBranches, Is.EqualTo(new[] { "agent-up/issue-1" }));
+            Assert.That(feedback!.HeadSha, Is.EqualTo("abc"));
+            Assert.That(feedback.Threads.Single(), Is.EqualTo(new ForgeReviewThreadDto("9", "", "Keep it.", false, "src/a.js", 4, "hector")));
+            Assert.That(feedback.Reviews.Single(), Is.EqualTo(new ForgeReviewDto("hector", "REQUEST_CHANGES", "abc")));
+            Assert.That(feedback.Checks.Single().Conclusion, Is.EqualTo("failure"));
+        });
+    }
+
+    [Test]
+    public async Task SubmitReviewAsync_refusesAnAuthorWorkspace()
+    {
+        var credentials = new MemoryForgeCredentialStore();
+        var forge = new StubForgeCapability();
+        var (service, workspaceId) = await ArrangeAsync(forge, credentials, member: TeamMemberKind.Author);
+        credentials.Write(workspaceId, "github", "token");
+
+        var outcome = await service.SubmitReviewAsync(
+            workspaceId,
+            new ForgeReviewRequest("42", "please change", "REQUEST_CHANGES"),
+            CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(outcome.Submitted, Is.False);
+            Assert.That(outcome.Refusal, Does.Contain("Author team member cannot submit reviews"));
+            Assert.That(forge.ReviewCalls, Is.Zero);
+        });
+    }
+
+    [TestCase(TeamMemberKind.DevReviewer)]
+    [TestCase(TeamMemberKind.PmReviewer)]
+    public async Task SubmitReviewAsync_submitsForAReviewerWorkspace(TeamMemberKind member)
+    {
+        var credentials = new MemoryForgeCredentialStore();
+        var forge = new StubForgeCapability();
+        var (service, workspaceId) = await ArrangeAsync(forge, credentials, member: member);
+        credentials.Write(workspaceId, "github", "token");
+
+        var outcome = await service.SubmitReviewAsync(
+            workspaceId,
+            new ForgeReviewRequest("42", "the save button does nothing", "REQUEST_CHANGES"),
+            CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(outcome, Is.EqualTo(new ForgeReviewOutcome(true, null)));
+            Assert.That(forge.ReviewCalls, Is.EqualTo(1));
+        });
+    }
+
     [Test]
     public async Task OpenProposalAsync_returnsTheOpenedProposal()
     {
@@ -672,10 +871,18 @@ public sealed class ForgeServiceTests
         ForgeOAuthConfiguration? oauth = null,
         ForgeOAuthStateStore? states = null,
         FixedForgeOAuthExchange? exchange = null,
-        GithubAppConnectionService? githubApps = null)
+        GithubAppConnectionService? githubApps = null,
+        TeamMemberKind? member = null,
+        TimeProvider? time = null)
     {
         var workspaces = new WorkspaceQueryController(ServerTestComposition.CreateRegistry());
         var workspace = await workspaces.RegisterAsync(ServerDomain.Workspace().Build());
+        TeamMemberController? members = null;
+        if (member is { } kind)
+        {
+            members = new TeamMemberController(new TeamMemberService(new InMemoryAgentWorkspaceSettingsRepository(), workspaces));
+            members.Set(workspace.Id, kind);
+        }
         var packages = new FakeEnabledCapabilityPackages();
         if (forge is not null)
             packages.WithForges(forge);
@@ -690,7 +897,9 @@ public sealed class ForgeServiceTests
             new FixedForgeOAuthSettings(oauth ?? new ForgeOAuthConfiguration("", "", "")),
             states ?? new ForgeOAuthStateStore(),
             exchange ?? new FixedForgeOAuthExchange("exchanged"),
-            githubApps);
+            githubApps,
+            members,
+            time: time);
         return (service, workspace.Id);
     }
 

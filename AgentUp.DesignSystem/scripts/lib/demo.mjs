@@ -98,6 +98,9 @@ export function applyDemo(catalog, demo) {
   write('agent-state-map', 'totalLabel', demo.fleet.agents === 1 ? 'AGENT' : 'AGENTS');
   write('agent-state-map', 'meta', fleetMeta(demo.fleet));
   fill('task-board', 'queue', taskBoard(demo));
+  // The showcase draws the board as it opens, on Issues; the review tabs are the clients' to switch to.
+  const board = byId.get('task-board');
+  board.html = withoutWhen(withoutWhen(board.html, 'devTab'), 'pmTab');
   fill('member-overview', 'overview', memberOverview(demo));
   const open = demo.open;
   fill('mobile-agent-head', 'member', memberHead(open));
@@ -144,7 +147,7 @@ function classify(session, loop) {
   if (!loop) return same(session?.state, 'running') ? 'working' : 'idle';
   if (isHalted(loop)) return 'halted';
   if (isWaiting(session, loop)) return 'waiting';
-  return loop.active ? 'working' : 'idle';
+  return loop.active && !same(loop.phase, 'idle') ? 'working' : 'idle';
 }
 
 function isHalted(loop) {
@@ -202,7 +205,7 @@ function fleetMeta(fleet) {
 function agentMessages(loop) {
   const seen = new Set();
   const messages = [];
-  for (const value of [loop?.blockReason, loop?.stopReason]) {
+  for (const value of [loop?.blockReason, same(loop?.stopReason, 'queue_empty') ? null : loop?.stopReason]) {
     if (typeof value !== 'string' || !value.includes(' ')) continue;
     const text = value.trim();
     if (!text || seen.has(text)) continue;
@@ -529,6 +532,16 @@ function fillSlot(html, name, inner) {
   const closeAt = closeOf(html, tag[1], open + 1);
   if (closeAt < 0) return html;
   return `${html.slice(0, open + 1)}${inner}${html.slice(closeAt)}`;
+}
+
+/** The markup without the element a state gates, for a showcase that draws only the default state. */
+function withoutWhen(html, name) {
+  const at = html.indexOf(`data-au-when="${name}"`);
+  if (at < 0) throw new Error(`No data-au-when="${name}" to leave out.`);
+  const start = html.lastIndexOf('<', at);
+  const tag = html.slice(start + 1).match(/^([a-zA-Z][\w:-]*)/);
+  const closeAt = closeOf(html, tag[1], html.indexOf('>', at) + 1);
+  return html.slice(0, start).trimEnd() + html.slice(closeAt + `</${tag[1]}>`.length);
 }
 
 function setText(html, name, value) {

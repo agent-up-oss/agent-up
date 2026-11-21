@@ -113,16 +113,6 @@
           "AgentUp.Verification.Tests"
         ]
       },
-      "registry": {
-        "requires": ["dotnet"],
-        "command": "dotnet test AgentUp.Registry.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/registry",
-        "tier": "fast",
-        "inputs": [
-          "AgentUp.Registry",
-          "AgentUp.Registry.Tests",
-          "AgentUp.Capabilities.Abstractions"
-        ]
-      },
       "commit-policy": {
         "requires": ["dotnet"],
         "command": "dotnet test AgentUp.CommitPolicy.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/commit-policy",
@@ -282,6 +272,17 @@
           "AgentUp.Sdk.Agent"
         ]
       },
+      "capabilities-opencode": {
+        "requires": ["dotnet"],
+        "command": "dotnet test AgentUp.Capabilities.Opencode.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/capabilities-opencode",
+        "tier": "fast",
+        "inputs": [
+          "AgentUp.Capabilities.Opencode",
+          "AgentUp.Capabilities.Opencode.Tests",
+          "AgentUp.Sdk.Common",
+          "AgentUp.Sdk.Agent"
+        ]
+      },
       "capabilities-github": {
         "requires": ["dotnet"],
         "command": "dotnet test AgentUp.Capabilities.Github.Tests --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/capabilities-github",
@@ -310,7 +311,7 @@
       },
       "server": {
         "requires": ["dotnet"],
-        "command": "dotnet test AgentUp.Server.Tests --filter Category!=LoopInference&Category!=LoopSoak&Category!=ForgejoE2E --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/server",
+        "command": "dotnet test AgentUp.Server.Tests --filter Category!=LoopInference&Category!=LoopSoak&Category!=OpencodeInference&Category!=AgentSandboxE2E&Category!=AgentMcpE2E&Category!=TeamForgejoE2E&Category!=ForgejoE2E --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/server",
         "tier": "fast",
         "inputs": [
           "AgentUp.Server",
@@ -321,7 +322,14 @@
           "AgentUp.InstallerConfig",
           "AgentUp.Capabilities.Abstractions",
           "AgentUp.Capabilities.Common",
-          "AgentUp.Registry",
+          "AgentUp.Capabilities.Dotnet",
+          "AgentUp.Capabilities.Docker",
+          "AgentUp.Capabilities.Codex",
+          "AgentUp.Capabilities.Cursor",
+          "AgentUp.Capabilities.Claude",
+          "AgentUp.Capabilities.Opencode",
+          "AgentUp.Capabilities.Github",
+          "AgentUp.Capabilities.Forgejo",
           "AgentUp.Sdk.Common",
           "AgentUp.Sdk.Runtime",
           "AgentUp.Sdk.Agent",
@@ -422,6 +430,34 @@
           "AgentUp.Server.Tests",
           "AgentUp.TestAgents",
           "AgentUp.TestAgents.Tests"
+        ]
+      },
+      "agent-e2e": {
+        "requires": ["dotnet", "nix"],
+        "command": "./.github/scripts/run-agent-e2e.sh",
+        "tier": "slow",
+        "platforms": [
+          "linux"
+        ],
+        "inputs": [
+          "AgentUp.Server",
+          "AgentUp.Server.Tests",
+          "AgentUp.TestAgents"
+        ]
+      },
+      "opencode-inference": {
+        "requires": ["dotnet", "npm"],
+        "command": "./.github/scripts/run-opencode-inference.sh",
+        "tier": "slow",
+        "platforms": [
+          "linux"
+        ],
+        "ciOnly": true,
+        "inputs": [
+          "AgentUp.Capabilities.Opencode",
+          "AgentUp.Server",
+          "AgentUp.Server.Tests",
+          "AgentUp.TestAgents"
         ]
       },
       "loop-scripted": {
@@ -693,21 +729,6 @@
         ]
       },
       {
-        "match": "AgentUp.Registry/**",
-        "checks": [
-          "registry",
-          "server",
-          "patch-coverage"
-        ]
-      },
-      {
-        "match": "AgentUp.Registry.Tests/**",
-        "checks": [
-          "registry",
-          "patch-coverage"
-        ]
-      },
-      {
         "match": "AgentUp.CommitPolicy/**",
         "checks": [
           "commit-policy",
@@ -735,6 +756,7 @@
           "capabilities-codex",
           "capabilities-cursor",
           "capabilities-claude",
+          "capabilities-opencode",
           "capabilities-github",
           "server",
           "patch-coverage"
@@ -771,6 +793,7 @@
           "capabilities-codex",
           "capabilities-cursor",
           "capabilities-claude",
+          "capabilities-opencode",
           "server",
           "patch-coverage"
         ]
@@ -810,7 +833,6 @@
           "capabilities-cursor",
           "capabilities-claude",
           "capabilities-github",
-          "registry",
           "server",
           "cli",
           "patch-coverage"
@@ -920,6 +942,22 @@
         ]
       },
       {
+        "match": "AgentUp.Capabilities.Opencode/**",
+        "checks": [
+          "capabilities-opencode",
+          "opencode-inference",
+          "server",
+          "patch-coverage"
+        ]
+      },
+      {
+        "match": "AgentUp.Capabilities.Opencode.Tests/**",
+        "checks": [
+          "capabilities-opencode",
+          "patch-coverage"
+        ]
+      },
+      {
         "match": "AgentUp.Capabilities.Github/**",
         "checks": [
           "capabilities-github",
@@ -957,6 +995,8 @@
           "server",
           "cross-product-e2e",
           "loop-inference",
+          "opencode-inference",
+          "agent-e2e",
           "loop-scripted",
           "loop-soak",
           "patch-coverage"
@@ -979,6 +1019,8 @@
         "checks": [
           "server",
           "loop-inference",
+          "opencode-inference",
+          "agent-e2e",
           "loop-scripted",
           "loop-soak",
           "patch-coverage"
@@ -1272,6 +1314,12 @@
         ]
       },
       {
+        "match": ".github/scripts/run-opencode-inference.sh",
+        "checks": [
+          "opencode-inference"
+        ]
+      },
+      {
         "match": ".github/scripts/run-loop-inference.sh",
         "checks": [
           "loop-inference"
@@ -1376,6 +1424,8 @@
         "checks": [
           "test-agents",
           "loop-inference",
+          "opencode-inference",
+          "agent-e2e",
           "loop-scripted",
           "patch-coverage"
         ]
@@ -1400,6 +1450,12 @@
         "match": "AgentUp.Chat/**",
         "checks": [
           "mobile"
+        ]
+      },
+      {
+        "match": "AgentUp.Chat/fixtures/**",
+        "checks": [
+          "desktop"
         ]
       },
       {
@@ -1436,7 +1492,6 @@
       "AgentUp.CommitPolicy/**/*.cs",
       "AgentUp.Capabilities.Abstractions/**/*.cs",
       "AgentUp.Capabilities.Common/**/*.cs",
-      "AgentUp.Registry/**/*.cs",
       "AgentUp.Sdk.Common/**/*.cs",
       "AgentUp.Sdk.Runtime/**/*.cs",
       "AgentUp.Sdk.Agent/**/*.cs",
@@ -1446,6 +1501,7 @@
       "AgentUp.Capabilities.Codex/**/*.cs",
       "AgentUp.Capabilities.Cursor/**/*.cs",
       "AgentUp.Capabilities.Claude/**/*.cs",
+      "AgentUp.Capabilities.Opencode/**/*.cs",
       "AgentUp.Capabilities.Github/**/*.cs",
       "AgentUp.Capabilities.Forgejo/**/*.cs",
       "AgentUp.Browser.Streaming/**/*.cs",

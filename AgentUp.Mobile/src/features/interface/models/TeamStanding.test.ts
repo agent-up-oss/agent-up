@@ -78,6 +78,18 @@ test('an empty queue composes as idle rather than halted', () => {
   assert.equal(standing.taskNumber, null);
 });
 
+// An active team member between tasks waits for work; it is not doing any, and an empty queue is
+// not a reason worth showing.
+test('an active loop waiting on an empty queue composes as idle with no reason', () => {
+  const standing = composeStanding(
+    member,
+    session({ loop: { active: true, phase: 'idle', terminal: 'Idle', stopReason: 'queue_empty' } }),
+    null,
+  );
+  assert.equal(standing.kind, 'idle');
+  assert.equal(standing.reason, null);
+});
+
 test('a workspace with neither read still stands', () => {
   const standing = composeStanding(member, null, null);
   assert.equal(standing.kind, 'idle');

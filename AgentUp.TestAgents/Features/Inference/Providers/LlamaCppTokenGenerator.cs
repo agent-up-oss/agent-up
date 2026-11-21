@@ -15,15 +15,17 @@ public sealed class LlamaCppTokenGenerator : ITokenGenerator
 {
     private readonly IGgufModelCache _cache;
     private readonly GgufModelSpec _spec;
+    private readonly int _maxTokens;
     private readonly SemaphoreSlim _gate = new(1, 1);
     private LLamaWeights? _weights;
     private ModelParams? _parameters;
     private StatelessExecutor? _executor;
 
-    public LlamaCppTokenGenerator(IGgufModelCache cache, GgufModelSpec? spec = null)
+    public LlamaCppTokenGenerator(IGgufModelCache cache, GgufModelSpec? spec = null, int maxTokens = 192)
     {
         _cache = cache;
         _spec = spec ?? GgufModelSpec.Qwen25Instruct15B;
+        _maxTokens = maxTokens;
     }
 
     public async Task<string> CompleteAsync(string prompt, uint seed, CancellationToken cancellationToken)
@@ -31,7 +33,7 @@ public sealed class LlamaCppTokenGenerator : ITokenGenerator
         await EnsureAsync(cancellationToken);
         var inference = new InferenceParams
         {
-            MaxTokens = 192,
+            MaxTokens = _maxTokens,
             AntiPrompts = ["<|im_end|>"],
             SamplingPipeline = new DefaultSamplingPipeline
             {

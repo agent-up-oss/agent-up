@@ -63,4 +63,15 @@ public sealed class AgentDescriptorDtoTests
         Assert.That(agent.HasDetail, Is.False);
         Assert.That(agent.HasRemedy, Is.False);
     }
+
+    [Test]
+    public void StatusLabel_namesMissingSoftwareAndMissingSettingsWithoutOfferingEnable()
+    {
+        var missing = new AgentDescriptorDtoBuilder().Named("opencode", "OpenCode").SoftwareMissing().Build();
+        var setup = new AgentDescriptorDtoBuilder().Named("opencode", "OpenCode").NeedsSetup().Build();
+
+        Assert.That(missing.StatusLabel, Is.EqualTo("Not found"));
+        Assert.That(setup.StatusLabel, Is.EqualTo("Needs setup"));
+        Assert.That(missing.CanEnable || setup.CanEnable, Is.False);
+    }
 }

@@ -2,6 +2,7 @@ using System.Net;
 using System.Text;
 using AgentUp.Server.Features.Forge.Models;
 using AgentUp.Server.Features.Forge.Providers;
+using AgentUp.Server.Tests.Fake;
 using AgentUp.Server.Tests.Support;
 
 namespace AgentUp.Server.Tests.Features.Forge.Provider;
@@ -25,6 +26,81 @@ public sealed class ForgeOAuthExchangeProviderTests
         Assert.That(token, Is.EqualTo("exchanged"));
         Assert.That(handler.Requests.Single(), Does.Contain("https://example.test/login/oauth/access_token"));
         Assert.That(handler.Requests.Single(), Does.Not.Contain("github.com"));
+    }
+
+    [Test]
+    public async Task ExchangeAsync_sendsTheAuthorizationCodeGrantAsAForm()
+    {
+        var handler = new RecordedHandler(HttpStatusCode.OK, """{"access_token":"exchanged"}""");
+        var provider = new ForgeOAuthExchangeProvider(
+            new FixedForgeOAuthSettings(new ForgeOAuthConfiguration("client", "secret", "http://localhost/callback")),
+            handler);
+
+        await provider.ExchangeAsync("the-code", "https://example.test/login/oauth/access_token", CancellationToken.None);
+
+        // Forgejo answers 400 to a token request that does not name its grant.
+        Assert.That(handler.Bodies.Single(), Does.StartWith("application/x-www-form-urlencoded ")
+            .And.Contain("grant_type=authorization_code")
+            .And.Contain("code=the-code"));
+    }
+
+    [Test]
+    public async Task ExchangeAsync_namesTheRedirectTheSignInBeganWith()
+    {
+        var handler = new RecordedHandler(HttpStatusCode.OK, """{"access_token":"exchanged"}""");
+        var provider = new ForgeOAuthExchangeProvider(
+            new FixedForgeOAuthSettings(new ForgeOAuthConfiguration("client", "secret", "http://localhost/api/forge/callback")),
+            handler);
+
+        await provider.ExchangeAsync("code", "https://example.test/login/oauth/access_token", "http://localhost/api/task-source/callback", CancellationToken.None);
+
+        Assert.That(handler.Bodies.Single(), Does.Contain("redirect_uri=http%3A%2F%2Flocalhost%2Fapi%2Ftask-source%2Fcallback"));
+    }
+
+    [Test]
+    public async Task ExchangeGrantAsync_keepsTheRefreshTokenAndWhenTheAccessTokenExpires()
+    {
+        var clock = new StubTimeProvider();
+        var handler = new RecordedHandler(HttpStatusCode.OK, """{"access_token":"a","refresh_token":"r","expires_in":3600}""");
+        var provider = new ForgeOAuthExchangeProvider(
+            new FixedForgeOAuthSettings(new ForgeOAuthConfiguration("client", "secret", "http://localhost/callback")),
+            handler,
+            clock);
+
+        var grant = await provider.ExchangeGrantAsync("code", "https://example.test/login/oauth/access_token", CancellationToken.None);
+
+        Assert.That(grant, Is.EqualTo(new ForgeOAuthGrant("a", "r", clock.UtcNow.AddHours(1))));
+    }
+
+    [Test]
+    public async Task RefreshAsync_sendsTheRefreshTokenGrant()
+    {
+        var handler = new RecordedHandler(HttpStatusCode.OK, """{"access_token":"b","refresh_token":"r2","expires_in":3600}""");
+        var provider = new ForgeOAuthExchangeProvider(
+            new FixedForgeOAuthSettings(new ForgeOAuthConfiguration("client", "secret", "http://localhost/callback")),
+            handler);
+
+        var grant = await provider.RefreshAsync("r1", "https://example.test/login/oauth/access_token", CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(grant.AccessToken, Is.EqualTo("b"));
+            Assert.That(handler.Bodies.Single(), Does.Contain("grant_type=refresh_token").And.Contain("refresh_token=r1"));
+        });
+    }
+
+    [Test]
+    public void ExchangeAsync_reportsTheHostsRefusal()
+    {
+        var handler = new RecordedHandler(HttpStatusCode.BadRequest, """{"error":"unsupported_grant_type"}""");
+        var provider = new ForgeOAuthExchangeProvider(
+            new FixedForgeOAuthSettings(new ForgeOAuthConfiguration("client", "secret", "http://localhost/callback")),
+            handler);
+
+        var error = Assert.ThrowsAsync<InvalidOperationException>(() =>
+            provider.ExchangeAsync("code", "https://example.test/login/oauth/access_token", CancellationToken.None));
+
+        Assert.That(error!.Message, Does.Contain("400").And.Contain("unsupported_grant_type"));
     }
 
     [Test]
@@ -94,13 +170,21 @@ public sealed class ForgeOAuthExchangeProviderTests
     {
         public List<string> Requests { get; } = [];
 
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        public List<string> Bodies { get; } = [];
+
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             Requests.Add($"{request.Method} {request.RequestUri}");
-            return Task.FromResult(new HttpResponseMessage(status)
+            Bodies.Add(request.Content is null ? "" : $"{request.Content.Headers.ContentType?.MediaType} {await request.Content.ReadAsStringAsync(cancellationToken)}");
+            return Respond();
+        }
+
+        private HttpResponseMessage Respond()
+        {
+            return new HttpResponseMessage(status)
             {
                 Content = new StringContent(body, Encoding.UTF8, "application/json")
-            });
+            };
         }
     }
 }

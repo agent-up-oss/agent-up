@@ -38,7 +38,7 @@
         { "kind": "Text", "value": "Changes" },
         { "kind": "Visible", "value": "true", "target": { "role": "button", "name": "Fetch" } },
         { "kind": "Visible", "value": "true", "target": { "role": "button", "name": "History" } },
-        { "kind": "Text", "value": "No forge capability package is enabled." },
+        { "kind": "Text", "value": "No forge capability is enabled." },
         { "kind": "Text", "value": "Run: agent-up capabilities bootstrap" }
       ]
     }

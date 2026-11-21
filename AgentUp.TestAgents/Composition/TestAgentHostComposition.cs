@@ -8,6 +8,7 @@ using AgentUp.TestAgents.Features.Host.Services;
 using AgentUp.TestAgents.Features.IdentityProvider.Controllers;
 using AgentUp.TestAgents.Features.IdentityProvider.Services;
 using AgentUp.TestAgents.Features.Inference.Controllers;
+using AgentUp.TestAgents.Features.Inference.Models;
 using AgentUp.TestAgents.Features.Inference.Providers;
 using AgentUp.TestAgents.Features.Inference.Services;
 using AgentUp.TestAgents.Features.Scripted.Controllers;
@@ -33,7 +34,21 @@ public static class TestAgentHostComposition
                     new ToolCallParser(),
                     new WorktreeToolExecutor(),
                     new EnvironmentLoopInferenceSettings())),
-            new ScriptedAcpController(new ScriptedAcpService(new EnvironmentScriptedTurnScript())),
+            new ScriptedAcpController(new ScriptedAcpService(
+                new EnvironmentScriptedTurnScript(),
+                new HttpScriptedMcpClient(new HttpClient { Timeout = TimeSpan.FromMinutes(3) }),
+                new WorkingDirectoryFileWriter())),
+            new InferenceHttpController(
+                new OpenAiCompatibleModelService(
+                    new LlamaCppTokenGenerator(
+                        new GgufModelCache(new HttpDownloader()),
+                        GgufModelSpec.Qwen25Instruct15B with { ContextSize = 8192 },
+                        maxTokens: 384),
+                    new ChatPromptProvider(),
+                    new ChatCompletionReader(),
+                    new ChatCompletionWriter(),
+                    new EnvironmentLoopInferenceSettings(),
+                    new ModelHttpListener())),
             TestAgentStandardConsole.FromStreams(
                 Console.OpenStandardInput(),
                 Console.OpenStandardOutput(),

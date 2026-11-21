@@ -28,11 +28,11 @@ public sealed class AgentSchedulingService : IAsyncDisposable
     private readonly IAgentSessionRepository? sessionRepository;
     private readonly IAgentWorkspaceSettingsRepository? settings;
     private readonly IHostEnvironment? host;
+    private readonly AgentMcpServerProvider? mcp;
+    private readonly AgentMcpSessionService? mcpSessions;
     private readonly ConcurrentDictionary<string, AgentSessionState> _sessions = new();
     private readonly ConcurrentDictionary<string, SemaphoreSlim> _lifecycleGates = new();
-    private IReadOnlyList<AgentDescriptor> _descriptors = FirstPartyAgents
-        .Select(agent => new AgentDescriptor(agent, false, DisplayName(agent)))
-        .ToArray();
+    private IReadOnlyList<AgentDescriptor> _descriptors;
 
     public AgentSchedulingService(
         WorkspaceQueryController workspaces,
@@ -48,7 +48,9 @@ public sealed class AgentSchedulingService : IAsyncDisposable
         IEnabledCapabilityPackages? packages = null,
         IAgentSessionRepository? sessionRepository = null,
         IAgentWorkspaceSettingsRepository? settings = null,
-        IHostEnvironment? host = null)
+        IHostEnvironment? host = null,
+        AgentMcpServerProvider? mcp = null,
+        AgentMcpSessionService? mcpSessions = null)
     {
         this.workspaces = workspaces;
         this.processes = processes;
@@ -61,9 +63,14 @@ public sealed class AgentSchedulingService : IAsyncDisposable
         this.events = events;
         this.logger = logger;
         this.packages = packages;
+        _descriptors = (packages?.AllAgents() ?? [])
+            .Select(agent => new AgentDescriptor(agent.Identity.Id, false, agent.Identity.DisplayName))
+            .ToArray();
         this.sessionRepository = sessionRepository;
         this.settings = settings;
         this.host = host;
+        this.mcp = mcp;
+        this.mcpSessions = mcpSessions;
         workspaces.WorkspaceRemoved += HandleWorkspaceRemoved;
     }
 
@@ -136,6 +143,38 @@ public sealed class AgentSchedulingService : IAsyncDisposable
         { return new AgentScheduleResult(null, true, exception.Message); }
     }
 
+    /// <summary>
+    /// Opens a new ACP session on the agent process already running, so the next prompt starts
+    /// with no conversation behind it. The loop does this before each task attempt: what the agent
+    /// said about one attempt must not steer the next. The old session stays in saved history.
+    /// </summary>
+    public async Task<AgentActionResult> StartFreshSessionAsync(string workspaceId, string description, CancellationToken cancellationToken)
+    {
+        var gate = LifecycleGate(workspaceId);
+        await gate.WaitAsync(cancellationToken);
+        try
+        {
+            if (!_sessions.TryGetValue(workspaceId, out var state)) return AgentActionResult.NotFound();
+            if (state.State is "running")
+                return AgentActionResult.Failed("The agent is in the middle of a turn.");
+            if (string.IsNullOrWhiteSpace(state.AcpSessionId))
+                return AgentActionResult.Failed("The workspace agent has no ACP session.");
+            try
+            {
+                await CreateSessionAsync(state, cancellationToken);
+            }
+            catch (Exception exception) when (exception is InvalidOperationException or IOException or JsonException)
+            {
+                return AgentActionResult.Failed(exception.Message);
+            }
+
+            SaveSession(workspaceId, state, workspaces.GetById(workspaceId)?.Branch ?? string.Empty, description);
+            events.Publish(workspaceId, "state", (await GetAsync(workspaceId, cancellationToken))!);
+            return AgentActionResult.Success();
+        }
+        finally { gate.Release(); }
+    }
+
     public async Task<AgentBindingResult> BindAsync(string workspaceId, string agent, CancellationToken cancellationToken)
     {
         var workspace = workspaces.GetById(workspaceId);
@@ -143,6 +182,9 @@ public sealed class AgentSchedulingService : IAsyncDisposable
         if (string.IsNullOrWhiteSpace(agent))
             return new AgentBindingResult(null, true, "The requested agent is not supported.");
         var agentId = NormalizeAgentId(agent);
+        var fixtureRefusal = FixtureRefusal(workspaceId, agentId);
+        if (fixtureRefusal is not null)
+            return new AgentBindingResult(await GetAsync(workspaceId, cancellationToken), true, fixtureRefusal, 409);
         if (_sessions.TryGetValue(workspaceId, out var live)
             && !string.Equals(live.Agent, agentId, StringComparison.OrdinalIgnoreCase))
         {
@@ -183,6 +225,9 @@ public sealed class AgentSchedulingService : IAsyncDisposable
             var workspace = workspaces.GetById(workspaceId);
             if (workspace is null) return new AgentScheduleResult(null, false, null);
             var agentId = NormalizeAgentId(agent);
+            var fixtureRefusal = FixtureRefusal(workspaceId, agentId);
+            if (fixtureRefusal is not null)
+                return new AgentScheduleResult(null, true, fixtureRefusal);
             if (!await commands.IsAvailableAsync(agentId, cancellationToken)) throw new InvalidOperationException($"{agentId} ACP executable is not installed or is not on PATH.");
             if (_sessions.TryGetValue(workspaceId, out var live))
             {
@@ -203,7 +248,7 @@ public sealed class AgentSchedulingService : IAsyncDisposable
             }
             await workspaces.UpdateBoundAgentAsync(workspaceId, agentId);
 
-            var state = new AgentSessionState(agentId, workspace.WorktreePath, processes.Create());
+            var state = new AgentSessionState(agentId, workspace.WorktreePath, processes.Create(agentId, workspaceId));
             if (!_sessions.TryAdd(workspaceId, state)) throw new InvalidOperationException("This workspace already has an agent.");
             BindProcess(workspaceId, state, state.Process);
             try
@@ -270,6 +315,9 @@ public sealed class AgentSchedulingService : IAsyncDisposable
                     true,
                     $"This workspace is bound to '{workspace.BoundAgentModuleId}'. Session '{sessionId}' belongs to '{saved.Agent}'.");
             }
+            var fixtureRefusal = FixtureRefusal(workspaceId, saved.Agent);
+            if (fixtureRefusal is not null)
+                return new AgentScheduleResult(null, true, fixtureRefusal);
             if (string.IsNullOrWhiteSpace(workspace.BoundAgentModuleId))
                 await workspaces.UpdateBoundAgentAsync(workspaceId, saved.Agent);
             if (!await commands.IsAvailableAsync(saved.Agent, cancellationToken))
@@ -278,14 +326,14 @@ public sealed class AgentSchedulingService : IAsyncDisposable
                 return new AgentScheduleResult(await GetAsync(workspaceId, cancellationToken), true, null);
             if (_sessions.ContainsKey(workspaceId)) await StopCoreAsync(workspaceId, cancellationToken);
 
-            var state = new AgentSessionState(saved.Agent, workspace.WorktreePath, processes.Create());
+            var state = new AgentSessionState(saved.Agent, workspace.WorktreePath, processes.Create(saved.Agent, workspaceId));
             _sessions[workspaceId] = state;
             BindProcess(workspaceId, state, state.Process);
             try
             {
                 await state.Process.StartAsync(saved.Agent, workspace.WorktreePath, environment.EnvironmentFor(saved.Agent), cancellationToken);
                 await InitializeAsync(workspaceId, state, cancellationToken);
-                var loaded = await state.Process.CallAsync("session/load", new { sessionId, cwd = workspace.WorktreePath, mcpServers = Array.Empty<object>() }, cancellationToken);
+                var loaded = await state.Process.CallAsync("session/load", new { sessionId, cwd = workspace.WorktreePath, mcpServers = McpServers(state) }, cancellationToken);
                 var loadedSessionId = ReadOptionalSessionId(loaded);
                 // The agent may hand back a different id than the one we asked to load, so the
                 // saved entry moves to that id rather than leaving a duplicate under the old one.
@@ -436,6 +484,9 @@ public sealed class AgentSchedulingService : IAsyncDisposable
         }, cancellationToken);
         if (!initialized.TryGetProperty("protocolVersion", out var version) || version.GetInt32() != 1)
             throw new InvalidOperationException("The configured agent does not support ACP protocol version 1.");
+        state.SupportsHttpMcp = AgentMcpServerProvider.SupportsHttp(initialized);
+        if (state.SupportsHttpMcp)
+            state.McpSessionToken = mcpSessions?.Issue(workspaceId);
         var advertised = payloads.AuthMethods(initialized);
         var subscription = auth.KeepSubscription(advertised);
         state.AuthMethods = subscription.Count > 0 ? subscription : advertised.Count > 0 ? auth.Defaults(state.Agent) : state.AuthMethods;
@@ -449,7 +500,7 @@ public sealed class AgentSchedulingService : IAsyncDisposable
         catch (Exception exception) when (exception is InvalidOperationException or IOException)
         { logger.LogInformation(exception, "Could not stop the previous ACP process before subscription login restart."); }
         await previous.DisposeAsync();
-        var next = processes.Create();
+        var next = processes.Create(state.Agent, workspaceId);
         state.Process = next;
         BindProcess(workspaceId, state, next);
         await next.StartAsync(state.Agent, state.WorkingDirectory, environment.EnvironmentFor(state.Agent), state.Lifetime.Token);
@@ -467,11 +518,15 @@ public sealed class AgentSchedulingService : IAsyncDisposable
 
     private async Task CreateSessionAsync(AgentSessionState state, CancellationToken cancellationToken)
     {
-        var session = await state.Process.CallAsync("session/new", new { cwd = state.WorkingDirectory, mcpServers = Array.Empty<object>() }, cancellationToken);
+        var session = await state.Process.CallAsync("session/new", new { cwd = state.WorkingDirectory, mcpServers = McpServers(state) }, cancellationToken);
         state.AcpSessionId = ReadSessionId(session);
         state.State = "ready";
         state.Error = null;
     }
+
+    /// <summary>Agent-Up's own MCP servers, offered to an agent that can reach them over HTTP.</summary>
+    private IReadOnlyList<object> McpServers(AgentSessionState state) =>
+        mcp?.Servers(state.SupportsHttpMcp, state.McpSessionToken) ?? [];
 
     private static string ReadSessionId(JsonElement session)
     {
@@ -500,23 +555,49 @@ public sealed class AgentSchedulingService : IAsyncDisposable
             return AgentActionResult.Failed("The workspace agent is not ready for a prompt.");
         if (!await state.PromptGate.WaitAsync(TimeSpan.Zero, cancellationToken))
         {
-            if (state.PermissionPolicy is not null)
-            {
-                state.Steering.Enqueue(message);
-                events.Publish(workspaceId, "user_message", new { text = message, steering = true });
-                return AgentActionResult.Success();
-            }
-            return AgentActionResult.Failed("The workspace agent is already processing a prompt.");
+            // A message sent while a turn runs steers the next turn rather than being refused:
+            // the unattended loop folds it into its next prompt, and an interactive session sends
+            // it as soon as the running turn ends. Either way the running turn is not interrupted.
+            state.Steering.Enqueue(message);
+            events.Publish(workspaceId, "user_message", new { text = message, steering = true });
+            return AgentActionResult.Success();
         }
+        StartPrompt(workspaceId, state, message);
+        return AgentActionResult.Success();
+    }
+
+    /// <summary>Runs one turn; the caller already holds the prompt gate.</summary>
+    private void StartPrompt(string workspaceId, AgentSessionState state, string message, bool announce = true)
+    {
         state.State = "running";
         state.Error = null;
-        events.Publish(workspaceId, "user_message", new { text = message });
+        // Queued steering was already shown to every client when it arrived.
+        if (announce)
+            events.Publish(workspaceId, "user_message", new { text = message });
         events.Publish(workspaceId, "state", Get(workspaceId)!);
         var completion = new TaskCompletionSource<JsonElement>(TaskCreationOptions.RunContinuationsAsynchronously);
         state.PromptCompletion = completion;
         state.LoopBlock = null;
         _ = RunPromptAsync(workspaceId, state, message, completion);
-        return AgentActionResult.Success();
+    }
+
+    /// <summary>
+    /// After an interactive turn, sends the steering that arrived while it ran. The loop drives
+    /// its own next turn and drains steering into it, so a session under a policy is left alone.
+    /// </summary>
+    private async Task ContinueWithSteeringAsync(string workspaceId, AgentSessionState state)
+    {
+        if (state.PermissionPolicy is not null || state.Lifetime.IsCancellationRequested || state.Steering.IsEmpty)
+            return;
+        if (!await state.PromptGate.WaitAsync(TimeSpan.Zero))
+            return;
+        if (!state.Steering.TryDequeue(out var next))
+        {
+            state.PromptGate.Release();
+            return;
+        }
+
+        StartPrompt(workspaceId, state, next, announce: false);
     }
 
     public async Task<AgentActionResult> PromptWaitAsync(string workspaceId, string message, CancellationToken cancellationToken)
@@ -571,7 +652,9 @@ public sealed class AgentSchedulingService : IAsyncDisposable
             completed,
             stop,
             state.LoopBlock,
-            state.SawToolCall);
+            state.SawToolCall,
+            state.LastReply.ToString(),
+            state.RepeatedFailures);
     }
 
     private async Task RunPromptAsync(
@@ -583,6 +666,10 @@ public sealed class AgentSchedulingService : IAsyncDisposable
         try
         {
             state.SawToolCall = false;
+            state.LastReply.Clear();
+            state.LastFailure = null;
+            state.RepeatedFailures = 0;
+            state.ToolCalls.Clear();
             var delivered = DrainSteering(state, message);
             result = await state.Process.CallAsync("session/prompt", new {
                 sessionId = state.AcpSessionId,
@@ -609,7 +696,10 @@ public sealed class AgentSchedulingService : IAsyncDisposable
         finally { state.PromptGate.Release(); }
 
         if (succeeded)
+        {
             completion.TrySetResult(result);
+            await ContinueWithSteeringAsync(workspaceId, state);
+        }
         else if (failure is not null)
             completion.TrySetException(failure);
         else
@@ -657,6 +747,7 @@ public sealed class AgentSchedulingService : IAsyncDisposable
     private async Task<AgentActionResult> StopCoreAsync(string workspaceId, CancellationToken cancellationToken)
     {
         if (!_sessions.TryRemove(workspaceId, out var state)) return AgentActionResult.NotFound();
+        mcpSessions?.Revoke(workspaceId);
         state.Lifetime.Cancel();
         foreach (var permission in state.Permissions.Values) permission.Completion.TrySetCanceled(cancellationToken);
         string? error = null;
@@ -691,9 +782,47 @@ public sealed class AgentSchedulingService : IAsyncDisposable
             && (updateKind.GetString()?.Contains("tool", StringComparison.OrdinalIgnoreCase) == true
                 || updateKind.GetString()?.Contains("function", StringComparison.OrdinalIgnoreCase) == true))
             state.SawToolCall = true;
+        if (method == "session/update")
+        {
+            CountRepeatedFailure(state, update);
+            if (update.TryGetProperty("toolCallId", out var toolCallId) && toolCallId.ValueKind == JsonValueKind.String)
+                state.ToolCalls[toolCallId.GetString()!] = update.Clone();
+        }
+        if (method == "session/update"
+            && update.TryGetProperty("sessionUpdate", out var replyKind)
+            && replyKind.GetString() == "agent_message_chunk"
+            && update.TryGetProperty("content", out var content)
+            && content.ValueKind == JsonValueKind.Object
+            && content.TryGetProperty("text", out var text))
+            state.LastReply.Append(text.GetString());
         state.TranscriptEvents++;
         events.Publish(workspaceId, method == "session/update" ? "session_update" : method, payload);
         return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Counts a tool call failing the same way again. A finished tool call of any other outcome
+    /// breaks the run, so only an agent repeating one mistake accumulates.
+    /// </summary>
+    private static void CountRepeatedFailure(AgentSessionState state, JsonElement update)
+    {
+        if (!update.TryGetProperty("sessionUpdate", out var kind) || kind.GetString() != "tool_call_update"
+            || !update.TryGetProperty("status", out var status))
+            return;
+        var outcome = status.GetString();
+        if (outcome == "failed")
+        {
+            var title = update.TryGetProperty("title", out var named) ? named.GetString() : null;
+            var output = update.TryGetProperty("rawOutput", out var raw) ? raw.GetRawText() : string.Empty;
+            var failure = $"{title}\n{output}";
+            state.RepeatedFailures = string.Equals(failure, state.LastFailure, StringComparison.Ordinal) ? state.RepeatedFailures + 1 : 1;
+            state.LastFailure = failure;
+        }
+        else if (outcome == "completed")
+        {
+            state.LastFailure = null;
+            state.RepeatedFailures = 0;
+        }
     }
 
     private static string DrainSteering(AgentSessionState state, string message)
@@ -720,12 +849,19 @@ public sealed class AgentSchedulingService : IAsyncDisposable
         var completion = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
         if (!state.Permissions.TryAdd(requestId, new PendingAgentPermission(optionIds, completion))) throw new InvalidOperationException("Could not register permission request.");
         events.Publish(workspaceId, "permission_request", new { requestId, request = payload });
+        string? decided = null;
         try
         {
-            var optionId = await completion.Task.WaitAsync(cancellationToken);
-            return payloads.Payload(new { outcome = new { outcome = "selected", optionId } });
+            decided = await completion.Task.WaitAsync(cancellationToken);
+            return payloads.Payload(new { outcome = new { outcome = "selected", optionId = decided } });
         }
-        finally { state.Permissions.TryRemove(requestId, out _); }
+        finally
+        {
+            state.Permissions.TryRemove(requestId, out _);
+            // Every client replaying the stream needs to see the request close, not only the one
+            // that answered it; a null option means the turn ended before anyone decided.
+            events.Publish(workspaceId, "permission_decision", new { requestId, blocked = false, ruleId = (string?)null, optionId = decided });
+        }
     }
 
     private JsonElement ResolvePolicy(
@@ -735,11 +871,14 @@ public sealed class AgentSchedulingService : IAsyncDisposable
         IReadOnlySet<string> optionIds,
         IAgentPermissionPolicy policy)
     {
-        var decision = policy.Decide(payload);
+        var request = AgentPermissionRequestProvider.WithAnnouncedToolCall(payload, state.ToolCalls);
+        var decision = policy.Decide(request);
         if (decision is null)
         {
             state.LoopBlock = "blocked:policy";
-            events.Publish(workspaceId, "permission_decision", new { blocked = true, ruleId = (string?)null });
+            logger.LogInformation("The permission policy for workspace {WorkspaceId} refused {ToolCall}.", workspaceId,
+                request.TryGetProperty("toolCall", out var refused) ? refused.GetRawText() : request.GetRawText());
+            events.Publish(workspaceId, "permission_decision", new { blocked = true, ruleId = (string?)null, request });
             var reject = optionIds.FirstOrDefault(id => id.Contains("reject", StringComparison.Ordinal)) ?? optionIds.First();
             return payloads.Payload(new { outcome = new { outcome = "selected", optionId = reject } });
         }
@@ -804,38 +943,54 @@ public sealed class AgentSchedulingService : IAsyncDisposable
 
     private async Task<IReadOnlyList<AgentDescriptor>> DescriptorsAsync(CancellationToken cancellationToken)
     {
-        var enabledAgents = packages?.ListAgents() ?? [];
-        var listed = FirstPartyAgents
-            .Concat(enabledAgents.Select(agent => agent.Identity.Id))
+        var builtIn = packages?.AllAgents() ?? [];
+        var listed = builtIn.Select(agent => agent.Identity.Id)
             .Concat(IncludeDevelopmentAgents ? [AgentUnavailability.ScriptedTestAgent] : [])
+            .Concat(commands.InProcessConfigured(InProcessAgents.Ollama) ? [InProcessAgents.Ollama] : [])
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
 
         var descriptors = new AgentDescriptor[listed.Count];
         for (var index = 0; index < listed.Count; index++)
-            descriptors[index] = await DescribeAsync(listed[index], enabledAgents, cancellationToken);
+            descriptors[index] = await DescribeAsync(listed[index], builtIn, cancellationToken);
         return descriptors;
     }
 
+    /// <summary>
+    /// One agent row, with the first gap that keeps it from starting: missing software before a
+    /// disabled capability, because enabling is refused until the software is found, and a
+    /// disabled capability before missing settings, because settings appear once it is enabled.
+    /// </summary>
     private async Task<AgentDescriptor> DescribeAsync(
         string agentId,
-        IReadOnlyList<IAgentCapability> enabledAgents,
+        IReadOnlyList<IAgentCapability> builtIn,
         CancellationToken cancellationToken)
     {
-        var module = enabledAgents.FirstOrDefault(agent =>
+        var module = builtIn.FirstOrDefault(agent =>
             agent.Identity.Id.Equals(agentId, StringComparison.OrdinalIgnoreCase));
-        var packageEnabled = module is not null || packages?.GetEnabled(agentId) is not null;
-        var developmentAgent = agentId.Equals(AgentUnavailability.ScriptedTestAgent, StringComparison.OrdinalIgnoreCase);
-        var displayName = module?.Identity.DisplayName
-            ?? packages?.GetEnabled(agentId)?.DisplayName
-            ?? DisplayName(agentId);
+        var readiness = packages?.Readiness(agentId);
+        var developmentAgent = agentId.Equals(AgentUnavailability.ScriptedTestAgent, StringComparison.OrdinalIgnoreCase)
+            || InProcessAgents.IsInProcess(agentId);
+        var displayName = module?.Identity.DisplayName ?? DisplayName(agentId);
         var supportsPermissionRequests = module?.SupportsPermissionRequests ?? true;
-        var canRun = module?.CanRun ?? true;
-        var available = canRun && await commands.IsAvailableAsync(agentId, cancellationToken);
-        if (available)
+        // A command that resolves is offered, configured override included: that override is how
+        // the test agents take a vendor's slot on a host without the vendor's CLI.
+        if (await commands.IsAvailableAsync(agentId, cancellationToken))
             return new AgentDescriptor(agentId, true, displayName, supportsPermissionRequests);
 
-        if (!packageEnabled && !developmentAgent)
+        if (readiness is { Available: false })
+        {
+            return new AgentDescriptor(
+                agentId,
+                false,
+                displayName,
+                supportsPermissionRequests,
+                AgentUnavailability.SoftwareNotFound,
+                AgentUnavailability.SoftwareNotFoundDetail(displayName, readiness.MissingSoftware),
+                AgentUnavailability.SoftwareNotFoundRemedy(readiness.MissingSoftware));
+        }
+
+        if (readiness is { Enabled: false } || (readiness is null && !developmentAgent))
         {
             return new AgentDescriptor(
                 agentId,
@@ -845,6 +1000,18 @@ public sealed class AgentSchedulingService : IAsyncDisposable
                 AgentUnavailability.CapabilityNotEnabled,
                 AgentUnavailability.CapabilityNotEnabledDetail(displayName),
                 AgentUnavailability.CapabilityNotEnabledRemedy(agentId));
+        }
+
+        if (readiness is { MissingSettings.Count: > 0 })
+        {
+            return new AgentDescriptor(
+                agentId,
+                false,
+                displayName,
+                supportsPermissionRequests,
+                AgentUnavailability.SettingsRequired,
+                AgentUnavailability.SettingsRequiredDetail(displayName, readiness.MissingSettings),
+                AgentUnavailability.SettingsRequiredRemedy(displayName));
         }
 
         return new AgentDescriptor(
@@ -857,6 +1024,27 @@ public sealed class AgentSchedulingService : IAsyncDisposable
             AgentUnavailability.ExecutableNotFoundRemedy(commands.LaunchCommandName(agentId), agentId));
     }
 
+    /// <summary>
+    /// Authors and dev reviewers work on code through an ACP coding CLI; PM reviewers skip that
+    /// layer and run in-process. Binding the other kind would hand a PM a filesystem or strip a
+    /// developer of one, so it is refused with the member kind named.
+    /// </summary>
+    private string? FixtureRefusal(string workspaceId, string agentId)
+    {
+        var member = settings?.Get(workspaceId).Member ?? TeamMemberKind.Author;
+        var grants = TeamMemberGrants.For(member);
+        var fixture = InProcessAgents.FixtureOf(agentId);
+        return grants.AllowsFixture(fixture)
+            ? null
+            : $"A {member} team member runs {FixtureName(grants.Fixture)} agent; '{agentId}' is {FixtureName(fixture)} agent.";
+    }
+
+    private static string FixtureName(AgentFixtureKind fixture) => fixture switch
+    {
+        AgentFixtureKind.InProcess => "an in-process",
+        _ => "an ACP coding"
+    };
+
     private bool IncludeDevelopmentAgents =>
         host is not null && (host.IsDevelopment() || host.IsEnvironment("Testing"));
 
@@ -866,21 +1054,21 @@ public sealed class AgentSchedulingService : IAsyncDisposable
             descriptor.Agent.Equals(agent, StringComparison.OrdinalIgnoreCase));
         if (listed is not null)
             return listed.Agent;
-        return packages?.GetAgent(agent)?.Identity.Id
-               ?? FirstPartyAgents.FirstOrDefault(id => id.Equals(agent, StringComparison.OrdinalIgnoreCase))
+        return packages?.AllAgents()
+                   .FirstOrDefault(module => module.Identity.Id.Equals(agent, StringComparison.OrdinalIgnoreCase))?.Identity.Id
                ?? agent;
     }
 
     private const string MissingSessionId = "The ACP agent did not return a session ID.";
-
-    private static readonly string[] FirstPartyAgents = ["codex", "cursor", "claude"];
 
     private static string DisplayName(string agent) => agent.ToLowerInvariant() switch
     {
         "codex" => "Codex",
         "cursor" => "Cursor",
         "claude" => "Claude",
+        "opencode" => "OpenCode",
         AgentUnavailability.ScriptedTestAgent => AgentUnavailability.ScriptedTestAgentDisplayName,
+        InProcessAgents.Ollama => InProcessAgents.OllamaDisplayName,
         _ => agent
     };
 

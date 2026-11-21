@@ -87,7 +87,8 @@ public sealed class GithubApiProvider(HttpMessageHandler? handler = null, string
         var submitted = review.TryGetProperty("submitted_at", out var at) && at.ValueKind == JsonValueKind.String
             ? at.GetDateTimeOffset()
             : DateTimeOffset.MinValue;
-        return new ForgeReview(login, state, submitted);
+        var commit = review.TryGetProperty("commit_id", out var sha) && sha.ValueKind == JsonValueKind.String ? sha.GetString() : null;
+        return new ForgeReview(login, state, submitted, commit);
     }
 
     /// <summary>
@@ -212,9 +213,38 @@ public sealed class GithubApiProvider(HttpMessageHandler? handler = null, string
         CancellationToken cancellationToken)
     {
         using var client = CreateClient(request.Token);
+        // A finding sits on a line of the new side of the change.
+        var comments = (command.Comments ?? [])
+            .Select(comment => new { path = comment.Path, line = comment.Line, side = "RIGHT", body = comment.Body })
+            .ToArray();
+        var review = new System.Text.Json.Nodes.JsonObject { ["body"] = command.Body, ["event"] = command.Event };
+        if (comments.Length > 0)
+            review["comments"] = JsonSerializer.SerializeToNode(comments);
+        if (!string.IsNullOrWhiteSpace(command.CommitId))
+            review["commit_id"] = command.CommitId;
         using var response = await client.PostAsJsonAsync(
             $"repos/{request.Owner}/{request.Repository}/pulls/{command.ProposalNumber}/reviews",
-            new { body = command.Body, @event = command.Event },
+            review,
+            cancellationToken);
+        response.EnsureSuccessStatusCode();
+    }
+
+    public async Task AssignIssueAsync(ForgeRequest request, int issueNumber, string login, CancellationToken cancellationToken)
+    {
+        using var client = CreateClient(request.Token);
+        using var response = await client.PostAsJsonAsync(
+            $"repos/{request.Owner}/{request.Repository}/issues/{issueNumber}/assignees",
+            new { assignees = new[] { login } },
+            cancellationToken);
+        response.EnsureSuccessStatusCode();
+    }
+
+    public async Task RequestReviewAsync(ForgeRequest request, string proposalNumber, string login, CancellationToken cancellationToken)
+    {
+        using var client = CreateClient(request.Token);
+        using var response = await client.PostAsJsonAsync(
+            $"repos/{request.Owner}/{request.Repository}/pulls/{proposalNumber}/requested_reviewers",
+            new { reviewers = new[] { login } },
             cancellationToken);
         response.EnsureSuccessStatusCode();
     }
@@ -269,7 +299,11 @@ public sealed class GithubApiProvider(HttpMessageHandler? handler = null, string
                 comment.GetProperty("id").GetRawText(),
                 comment.TryGetProperty("html_url", out var url) ? url.GetString() ?? "" : "",
                 comment.TryGetProperty("body", out var body) ? body.GetString() ?? "" : "",
-                false))
+                false,
+                comment.TryGetProperty("path", out var path) ? path.GetString() : null,
+                comment.TryGetProperty("line", out var line) && line.ValueKind == JsonValueKind.Number ? line.GetInt32() : null,
+                comment.TryGetProperty("user", out var user) && user.ValueKind == JsonValueKind.Object
+                    && user.TryGetProperty("login", out var login) ? login.GetString() : null))
             .ToArray();
     }
 
@@ -281,7 +315,8 @@ public sealed class GithubApiProvider(HttpMessageHandler? handler = null, string
             pull.GetProperty("html_url").GetString() ?? "",
             pull.GetProperty("head").GetProperty("ref").GetString() ?? "",
             pull.GetProperty("base").GetProperty("ref").GetString() ?? "",
-            pull.GetProperty("state").GetString() ?? "");
+            pull.GetProperty("state").GetString() ?? "",
+            pull.GetProperty("head").TryGetProperty("sha", out var head) ? head.GetString() : null);
 
     private static string TrimHeads(string @ref)
         => @ref.StartsWith("refs/heads/", StringComparison.Ordinal) ? @ref["refs/heads/".Length..] : @ref;

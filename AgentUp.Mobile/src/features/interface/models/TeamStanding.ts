@@ -165,7 +165,7 @@ export function composeStanding(
     kind: classify(session, loop),
     taskNumber: loop?.taskNumber ?? null,
     taskTitle: loop?.taskTitle ?? null,
-    reason: loop?.blockReason || forge.detail || loop?.stopReason || null,
+    reason: loop?.blockReason || forge.detail || (same(loop?.stopReason, 'queue_empty') ? null : loop?.stopReason) || null,
     diagnosticCode: loop?.stopReason ?? null,
     permissionRuleIds: loop?.permissionRuleIds ?? [],
     forge,
@@ -238,7 +238,8 @@ function classify(session: AgentSession | null, loop: AgentSession['loop']): Tea
   if (!loop) return withoutLoop(session);
   if (isHalted(loop)) return 'halted';
   if (isWaiting(session, loop)) return 'waiting';
-  return loop.active ? 'working' : 'idle';
+  // An active member between tasks is waiting for work, not doing any.
+  return loop.active && !same(loop.phase, 'idle') ? 'working' : 'idle';
 }
 
 function isHalted(loop: NonNullable<AgentSession['loop']>): boolean {

@@ -13,13 +13,13 @@ public sealed class CapabilitiesOutputService(TextWriter output)
     public static string FormatList(IReadOnlyList<CapabilityModuleDto> modules)
     {
         if (modules.Count == 0)
-            return "No capability modules in the Server registry.";
+            return "The Server reports no capabilities.";
 
         var lines = new List<string>();
         foreach (var module in modules)
         {
             lines.Add(
-                $"{module.Id}  {module.Version}  enabled={(module.Enabled ? "true" : "false")}  canRun={(module.CanRun ? "true" : "false")}");
+                $"{module.Id}  {module.Version}  enabled={Flag(module.Enabled)}  available={Flag(module.Available)}  canRun={Flag(module.CanRun)}");
             if (module.CanRun)
                 continue;
 
@@ -29,4 +29,6 @@ public sealed class CapabilitiesOutputService(TextWriter output)
 
         return string.Join(Environment.NewLine, lines);
     }
+
+    private static string Flag(bool value) => value ? "true" : "false";
 }

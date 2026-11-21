@@ -21,8 +21,8 @@ Desktop chrome for the live session is the **Agent** tab. Mobile chrome for the 
 <DocContract label="Chrome">Desktop Chat · Mobile Agents</DocContract>
 
 <DocSurfaces>
-<DocSurface desktop>The Agent tab lists saved sessions and streams the selected workspace session. The live session is labeled Current; every other row is Resume. Once an agent is bound, the picker hides and the tab shows that agent. When a pasted-code sign-in is waiting, the tab collects the code and sends it to the Server. An unattended loop checklist, Enable autonomy, Activate, Cancel, and typed terminal appear on the Agent tab; a prompt sent while it runs steers the next turn instead of stopping it.</DocSurface>
-<DocSurface mobile>Agents shows the workspace's bound agent and opens its chat as an inner page. An unbound workspace shows a + action whose creation page lists agent capabilities already enabled on the Server. The same unattended loop checklist, Enable autonomy, Activate, Cancel, and typed terminal appear on Agents and in chat. Chat scrolls as one column, and the message box follows the transcript. The tab bar stays.</DocSurface>
+<DocSurface desktop>The Agent tab lists saved sessions and streams the selected workspace session. The live session is labeled Current; every other row is Resume. Once an agent is bound, the picker hides and the tab shows that agent. When a pasted-code sign-in is waiting, the tab collects the code and sends it to the Server. The agent picker, saved sessions, and the unattended loop checklist, Enable autonomy, Activate, Cancel, and typed terminal are on the workspace **Settings** tab; the Agent tab keeps one summary line with a **Settings** button. A message sent while the agent is working steers its next turn instead of stopping it, and is marked **Steering · next turn**. Replies are formatted text with tables and highlighted code blocks you can copy, and each tool the agent used is one line you can open to see what went in and what came back. An edit opens to the lines it changed and shows how many it added and removed. Each turn says how long the agent worked.</DocSurface>
+<DocSurface mobile>Agents shows the workspace's bound agent and opens its chat as an inner page. An unbound workspace shows a + action whose creation page lists agent capabilities already enabled on the Server. The unattended loop checklist, Enable autonomy, Activate, Cancel, and typed terminal are on the workspace Settings tab; Agents shows one summary line that opens it. Chat scrolls as one column, and the message box follows the transcript. While the agent is working, **Send** becomes **Steer**: the message is read on the next turn. Replies, work sections, edits, and timings read the same as on Desktop. The tab bar stays.</DocSurface>
 </DocSurfaces>
 
 <p><img src="/desktop-agents.png" alt="Desktop Agent tab showing the agent bound to Bob's workspace" /></p>
@@ -32,9 +32,23 @@ Desktop chrome for the live session is the **Agent** tab. Mobile chrome for the 
 
 Saved sessions from every enabled ACP agent appear together within the current workspace. Each row shows the agent, the agent-generated short description, and the branch last associated with the session. The live session is labeled Current. Select any other row to resume it. Sessions from another workspace never appear in this list.
 
-Workspace agent chat uses ACP packages enabled on the Server. The picker lists first-party agents even when their package is off, plus any other enabled agent module. The Server wraps those launches in Nix. Enable the package from the agent row, Desktop capability-module chrome, or Mobile Settings. Clients never call the remote registry.
+Workspace agent chat uses the ACP agents built into the Server: Codex, Cursor, Claude, and OpenCode. The picker lists each one, enabled or not. The Server wraps those launches in Nix. Enable an agent from its row, Desktop capability chrome, or Mobile Settings. An agent whose software the Server cannot find cannot be enabled.
 
-Sign in with the corresponding CLI's subscription login from Desktop or Mobile when the agent asks. Agent-Up runs that vendor's no-browser or device-code flow on the Server, shows the sign-in link (and Codex device code) in the client, and then starts ACP. An unavailable agent shows why: a disabled package offers Enable on the row, and a missing ACP executable names the command and how to install it.
+## OpenCode
+
+OpenCode runs against a model served by an Ollama-compatible API instead of a subscription, so it has no sign-in. Once it is enabled, its Settings card expands with three fields:
+
+- **Endpoint** — the API's base URL, such as `http://localhost:11434`. A bare host gets `/v1` added; an endpoint that already names a path is used as written.
+- **Token** — optional, for a hosted endpoint. It is stored on the Server and never shown again; leave the field empty to keep it.
+- **Model** — the model name the endpoint serves, such as `qwen2.5-coder:7b`.
+
+Agent-Up gives OpenCode its own tools - workspaces, commits, verification, the browser, diagnostics, and decisions - so it can start and inspect the workspace it works in.
+
+Until Endpoint and Model are set, the OpenCode row reads **Needs setup**. OpenCode asks before every edit and command, so it can be bound as an author or a reviewer and run unattended under a permission policy like the other agents.
+
+## Subscription sign-in
+
+Sign in with the corresponding CLI's subscription login from Desktop or Mobile when the agent asks. Agent-Up runs that vendor's no-browser or device-code flow on the Server, shows the sign-in link (and Codex device code) in the client, and then starts ACP. An unavailable agent shows why: a disabled capability offers Enable on the row, missing software names what to install, and missing settings point to Settings.
 
 ## Workspace-bound agent
 
@@ -42,7 +56,21 @@ Choosing an agent on Desktop binds that module to the workspace, then starts the
 
 ## Unattended loop
 
-Autonomy is experimental and off by default. Enablement persists on the Server; the environment variable still wins when it is set. Desktop Agent and Mobile Agents show the ordered Server and workspace precondition checklist, Enable autonomy, Activate, Cancel, and the typed terminal for how the loop stopped. When a workspace has no permission policy, Mobile offers **Configure permissions** for worktree reads, worktree writes, commands, and network access; anything not allowed stays blocked. Mobile chat hides the checklist while subscription sign-in is in progress so the sign-in action stays on screen. In the command center, the checklist and its actions are under **Settings › Chat**, with a tab for each workspace, and the chat shows only the conversation. A message typed while a turn is running is steering for the next turn; it does not cancel the loop.
+Autonomy is experimental and off by default. Enablement persists on the Server; the environment variable still wins when it is set. The workspace **Settings** tab on Desktop and Mobile shows the ordered Server and workspace precondition checklist, Enable autonomy, Activate, Cancel, and the typed terminal for how the loop stopped. The Desktop Agent tab and Mobile Agents show a one-line summary that opens it. When a workspace has no permission policy, Mobile offers **Configure permissions** for worktree reads, worktree writes, commands, and network access; anything not allowed stays blocked. In the command center, the checklist and its actions are under **Settings › Chat**, with a tab for each workspace, and the chat shows only the conversation. A message typed while a turn is running is steering for the next turn; it does not cancel the loop.
+
+## Team members
+
+Every workspace on a Server is one team member, and each has its own checkout and its own running applications.
+
+- **Author** writes code with Claude, Codex, or Cursor. It can read and change the repository and use the browser.
+- **Dev reviewer** reviews code with the same coding agents. It can read the repository and start its workspace to see the change run, but cannot change the code or use the browser. Its checkout is read-only to the agent, so a change fails even if someone allows it.
+- **PM reviewer** reviews the product. It never sees the code: it uses the running application through the browser, takes screenshots, and reports what a user would notice.
+
+Coding agents run in a sandbox. They see their own checkout and their tools, never the Server's settings or another workspace. The Server needs bubblewrap for this. It is included when the Server runs from its Nix shell, the NixOS module, or the container image. On other Linux hosts, install the `bubblewrap` package. On macOS, agents are not confined to their checkout; run the Server on Linux when reviewers must not be able to change code.
+
+The command center's **Tasks** page has three tabs. **Issues** is the queue authors take work from. **Dev review** and **PM review** list the proposals waiting on each kind of reviewer: those nobody has taken yet, those under review with the reviewer's name and revision, and those already reviewed. The first reviewer of a kind to take a proposal keeps it for every later push, and each push has to be reviewed again.
+
+Only reviewers submit reviews, so only their comments become threads an author must address. A PM reviewer runs on a local Ollama-compatible model the Server talks to directly. Set `AGENTUP_OLLAMA_MODEL` on the Server, and `AGENTUP_OLLAMA_URL` when the model is not at `http://127.0.0.1:11434`, then choose **Ollama (in-process)** for that workspace.
 
 <DocNext href="/docs/configuration" title="Configuration">
 How to declare `dotnet[]` and `docker[]` shims.

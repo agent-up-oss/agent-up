@@ -17,6 +17,7 @@ public sealed class FakeBackendService
     private readonly Dictionary<string, List<Action<FakeServerEvent>>> _agentListeners = new(StringComparer.Ordinal);
     private readonly List<Action<string>> _workspaceListeners = [];
     private readonly Dictionary<string, JsonArray> _appTemplates = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, List<string>> _steering = new(StringComparer.Ordinal);
     private int _lifecycleGeneration;
     private int _loopGeneration;
     private bool _autonomyEnabled;
@@ -119,6 +120,11 @@ public sealed class FakeBackendService
             return EnableCapability(request.Body);
         if (method == "POST" && path.StartsWith("/api/capabilities/disable/", StringComparison.Ordinal))
             return DisableCapability(Uri.UnescapeDataString(path["/api/capabilities/disable/".Length..]));
+        if (method == "PUT" && path.StartsWith("/api/capabilities/", StringComparison.Ordinal)
+            && path.EndsWith("/settings", StringComparison.Ordinal))
+            return UpdateCapabilitySettings(
+                Uri.UnescapeDataString(path["/api/capabilities/".Length..^"/settings".Length]),
+                request.Body);
         if (method == "GET" && path == "/api/tasks")
             return Json(TaskQueue());
         if (method == "POST" && path == "/api/tasks")
@@ -681,10 +687,22 @@ public sealed class FakeBackendService
         }
 
         var message = ReadJsonString(body, "message") ?? "";
+        if (Steer(workspaceId, message))
+            return new FakeBackendResponseDto(204, "application/json");
         var running = snapshot.DeepClone().AsObject();
         running["state"] = "running";
         PublishAgent(workspaceId, "user_message", new JsonObject { ["text"] = message });
         PublishAgent(workspaceId, "state", running);
+        var run = reviewing ? null : _state.AgentRun;
+        if (run is { Count: > 0 })
+        {
+            RecordAgentState(workspaceId, "running");
+            lock (_gate)
+                _steering[workspaceId] = [];
+            PlayAgentRun(workspaceId, run, snapshot);
+            return new FakeBackendResponseDto(204, "application/json");
+        }
+
         var text = path is not null
             ? $"I added `{path}` so the storefront can show the weekly harbor special. It is uncommitted in the working tree."
             : reviewing
@@ -699,6 +717,73 @@ public sealed class FakeBackendService
         ready["state"] = "ready";
         PublishAgent(workspaceId, "state", ready);
         return new FakeBackendResponseDto(204, "application/json");
+    }
+
+    /// <summary>
+    /// Plays the definition's agent turn at its own pace, then ends the turn the way a Server does:
+    /// a prompt result and the session back to ready.
+    /// </summary>
+    private void PlayAgentRun(string workspaceId, JsonArray run, JsonObject snapshot)
+    {
+        var at = 0;
+        foreach (var step in run.OfType<JsonObject>())
+        {
+            at += step["delayMs"]?.GetValue<int>() ?? 0;
+            var type = step["type"]?.GetValue<string>() ?? "session_update";
+            var payload = step["payload"]?.DeepClone() ?? new JsonObject();
+            _schedule(at, () => PublishAgent(workspaceId, type, payload));
+        }
+
+        _schedule(at + 300, () =>
+        {
+            RecordAgentState(workspaceId, "ready");
+            foreach (var note in EndSteering(workspaceId))
+                PublishAgent(workspaceId, "session_update", new JsonObject
+                {
+                    ["sessionUpdate"] = "agent_message_chunk",
+                    ["content"] = new JsonObject { ["type"] = "text", ["text"] = $"Noted for the next pass: {note}" }
+                });
+            PublishAgent(workspaceId, "prompt_result", new JsonObject { ["stopReason"] = "end_turn" });
+            var ready = snapshot.DeepClone().AsObject();
+            ready["state"] = "ready";
+            PublishAgent(workspaceId, "state", ready);
+        });
+    }
+
+    /// <summary>
+    /// A message sent while the run plays is steering, as on a real Server: it is recorded now and
+    /// answered when the turn ends, never started as a second turn over the first.
+    /// </summary>
+    private bool Steer(string workspaceId, string message)
+    {
+        lock (_gate)
+        {
+            if (!_steering.TryGetValue(workspaceId, out var notes))
+                return false;
+            notes.Add(message);
+        }
+        PublishAgent(workspaceId, "user_message", new JsonObject { ["text"] = message });
+        return true;
+    }
+
+    private List<string> EndSteering(string workspaceId)
+    {
+        lock (_gate)
+        {
+            var notes = _steering.GetValueOrDefault(workspaceId) ?? [];
+            _steering.Remove(workspaceId);
+            return notes;
+        }
+    }
+
+    /// <summary>The session a client reads while the run plays, so one that reconnects mid-turn sees it running.</summary>
+    private void RecordAgentState(string workspaceId, string state)
+    {
+        lock (_gate)
+        {
+            if ((_state.Agents?[workspaceId] as JsonObject)?["session"] is JsonObject session)
+                session["state"] = state;
+        }
     }
 
     /// <summary>
@@ -977,6 +1062,8 @@ public sealed class FakeBackendService
             var module = FindCapability(ReadJsonString(body, "id"));
             if (module is null)
                 return NotFound();
+            if (module["available"]?.GetValue<bool>() == false)
+                return new FakeBackendResponseDto(409, "application/json", """{"title":"Capability software not found","detail":"The software this capability runs was not found on the Server host."}""");
             SetCapability(module, enabled: true);
             return Json(module);
         }
@@ -1399,7 +1486,7 @@ public sealed class FakeBackendService
                ["checks"] = new JsonArray(),
                ["threads"] = new JsonArray(),
                ["mergeability"] = null,
-               ["detail"] = "No forge capability package is enabled.",
+               ["detail"] = "No forge capability is enabled.",
                ["remedy"] = "Run: agent-up capabilities bootstrap"
            };
 
@@ -1414,11 +1501,50 @@ public sealed class FakeBackendService
                 .FirstOrDefault(module =>
                     string.Equals(module["id"]?.GetValue<string>(), id, StringComparison.Ordinal));
 
+    private FakeBackendResponseDto UpdateCapabilitySettings(string id, string? body)
+    {
+        lock (_gate)
+        {
+            var module = FindCapability(id);
+            if (module is null)
+                return NotFound();
+            JsonObject? values;
+            try
+            {
+                values = JsonNode.Parse(body ?? "{}")?["values"] as JsonObject;
+            }
+            catch (JsonException)
+            {
+                values = null;
+            }
+
+            foreach (var setting in (module["settings"] as JsonArray ?? []).OfType<JsonObject>())
+            {
+                var key = setting["key"]?.GetValue<string>() ?? "";
+                if (values is null || !values.TryGetPropertyValue(key, out var value))
+                    continue;
+                var text = value?.GetValue<string>()?.Trim() ?? "";
+                var secret = setting["kind"]?.GetValue<string>() == "secret";
+                setting["hasValue"] = text.Length > 0;
+                setting["value"] = secret || text.Length == 0 ? null : text;
+            }
+
+            SetCapability(module, module["enabled"]?.GetValue<bool>() == true);
+            return Json(module);
+        }
+    }
+
+    /// <summary>The Server's state rules: missing software first, then disabled, then a required setting with no value.</summary>
     private static void SetCapability(JsonObject module, bool enabled)
     {
+        var available = module["available"]?.GetValue<bool>() != false;
+        var needsSetup = (module["settings"] as JsonArray ?? [])
+            .OfType<JsonObject>()
+            .Any(setting => setting["required"]?.GetValue<bool>() == true && setting["hasValue"]?.GetValue<bool>() != true);
+        var state = !available ? "unavailable" : !enabled ? "disabled" : needsSetup ? "needsSetup" : "ready";
         module["enabled"] = enabled;
-        module["state"] = enabled ? "ready" : "disabled";
-        module["canRun"] = enabled;
+        module["state"] = state;
+        module["canRun"] = state == "ready";
         module["messages"] = new JsonArray();
     }
 
@@ -1471,6 +1597,20 @@ public sealed class FakeBackendService
             };
         }
 
+        if (module["available"]?.GetValue<bool>() == false)
+        {
+            var missing = string.Join(", ", (module["missing"] as JsonArray ?? []).Select(item => item?.GetValue<string>()));
+            return new JsonObject
+            {
+                ["agent"] = id,
+                ["available"] = false,
+                ["displayName"] = displayName,
+                ["unavailability"] = "softwareNotFound",
+                ["detail"] = $"{displayName} needs {missing}, which was not found on the Server host.",
+                ["remedy"] = $"Install {missing} and keep it on PATH."
+            };
+        }
+
         if (!enabled)
         {
             return new JsonObject
@@ -1481,6 +1621,19 @@ public sealed class FakeBackendService
                 ["unavailability"] = "capabilityNotEnabled",
                 ["detail"] = $"{displayName} is not enabled on this Server.",
                 ["remedy"] = $"Enable the {id} capability."
+            };
+        }
+
+        if (module["state"]?.GetValue<string>() == "needsSetup")
+        {
+            return new JsonObject
+            {
+                ["agent"] = id,
+                ["available"] = false,
+                ["displayName"] = displayName,
+                ["unavailability"] = "settingsRequired",
+                ["detail"] = $"{displayName} needs its endpoint and model before it can start.",
+                ["remedy"] = $"Set them under {displayName} in Settings."
             };
         }
 

@@ -33,6 +33,9 @@ public sealed class TaskQueueViewModel : ReactiveObject
         RefreshCommand = ReactiveCommand.CreateFromTask(() => ReadAsync());
     }
 
+    /// <summary>The whole queue as the Server holds it, with each task's stage, proposal and reviews.</summary>
+    public IReadOnlyList<QueuedTask> Tasks => _wholeQueue;
+
     /// <summary>The tasks still waiting to be taken, in the order they will be worked.</summary>
     public ObservableCollection<QueuedTaskRowViewModel> Queue { get; } = [];
 

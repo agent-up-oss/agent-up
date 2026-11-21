@@ -37,7 +37,7 @@ all_projects=(
   agentup_capabilities_forgejo_tests:AgentUp.Capabilities.Forgejo.Tests
   agentup_capabilities_docker_tests:AgentUp.Capabilities.Docker.Tests
   agentup_capabilities_dotnet_tests:AgentUp.Capabilities.Dotnet.Tests
-  agentup_registry_tests:AgentUp.Registry.Tests
+  agentup_capabilities_opencode_tests:AgentUp.Capabilities.Opencode.Tests
   agentup_commit_policy_tests:AgentUp.CommitPolicy.Tests
   agentup_desktop_tests:AgentUp.Desktop.Tests
   agentup_audebug_tests:AgentUp.AUDebug.Tests

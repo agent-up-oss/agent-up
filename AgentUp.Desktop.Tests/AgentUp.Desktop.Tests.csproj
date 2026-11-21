@@ -23,4 +23,8 @@
     <ProjectReference Include="..\AgentUp.Desktop\AgentUp.Desktop.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- The golden transcript a real OpenCode run against the CPU model produced; the Chat module replays the same file. -->
+    <None Include="..\AgentUp.Chat\fixtures\*.jsonl" Link="Fixtures\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

@@ -84,17 +84,24 @@ public sealed class WorkspaceRegistry : IHostedService
             }
         }
 
+        // Registering a path again refreshes it from agent-up.json, which says nothing about how
+        // the workspace came to exist or which agent it is bound to. A derived clone stays derived
+        // under its own name, and a binding survives the refresh every start performs.
+        var keepsDerivation = existing is { Derived: true } && !request.Derived;
         var workspace = new Workspace
         {
             Id = workspaceId,
-            DisplayName = request.DisplayName,
+            DisplayName = keepsDerivation || (existing is not null && request.NameIsRepositoryName)
+                ? existing!.DisplayName
+                : request.DisplayName,
             RepositoryPath = request.RepositoryPath,
             WorktreePath = request.WorktreePath,
             Branch = request.Branch,
             Commit = request.Commit,
-            Derived = request.Derived,
-            SourceRepository = request.SourceRepository,
-            SourceRevision = request.SourceRevision,
+            Derived = keepsDerivation || request.Derived,
+            SourceRepository = keepsDerivation ? existing!.SourceRepository : request.SourceRepository,
+            SourceRevision = keepsDerivation ? existing!.SourceRevision : request.SourceRevision,
+            BoundAgentModuleId = existing?.BoundAgentModuleId,
             State = WorkspaceState.Stopped,
             LastActivityAtUtc = DateTimeOffset.UtcNow,
             Applications = request.Applications

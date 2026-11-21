@@ -1,43 +1,66 @@
 namespace AgentUp.Server.Features.Capabilities.Providers;
 
-public sealed class CapabilityRuntimePathProvider
+/// <summary>
+/// The development tool root (<c>.agent-up-dev</c>) where a repository shell installs ACP
+/// adapters that are not in nixpkgs, and the bin directories under it a capability launch adds
+/// to its search path.
+/// </summary>
+public sealed class CapabilityRuntimePathProvider(string? devRoot)
 {
-    public IReadOnlyList<string> Directories(string? registryRoot, IEnumerable<string> packageDirectories)
-    {
-        var packageBins = packageDirectories
-            .Select(directory => Path.Join(directory, "bin"))
-            .Where(Directory.Exists);
-        var parent = Parent(registryRoot);
-        if (parent is null)
-            return packageBins.ToArray();
+    public string? DevRoot { get; } = Existing(devRoot);
 
-        var siblingBins = new[]
+    public IReadOnlyList<string> Directories()
+    {
+        if (DevRoot is null)
+            return [];
+        return new[]
         {
-            Path.Join(parent, "bin"),
-            Path.Join(parent, "npm", "node_modules", ".bin")
-        }.Where(Directory.Exists);
-
-        return packageBins.Concat(siblingBins).ToArray();
+            Path.Join(DevRoot, "bin"),
+            Path.Join(DevRoot, "npm", "node_modules", ".bin")
+        }.Where(Directory.Exists).ToArray();
     }
 
-    public string? DevRoot(string? registryRoot)
+    /// <summary>
+    /// <c>AGENT_UP_DEV_ROOT</c> when it is set; otherwise the nearest <c>.agent-up-dev</c> above
+    /// any of <paramref name="searchRoots"/>. A packaged Server has neither and uses its PATH alone.
+    /// </summary>
+    public static string? Resolve(string? configured, params string?[] searchRoots)
     {
-        var parent = Parent(registryRoot);
-        if (parent is null)
-            return null;
+        if (!string.IsNullOrWhiteSpace(configured))
+            return Path.GetFullPath(configured.Trim());
 
-        return Directory.Exists(Path.Join(parent, "bin"))
-               || Directory.Exists(Path.Join(parent, "npm", "node_modules", ".bin"))
-            ? parent
-            : null;
+        foreach (var root in searchRoots)
+        {
+            var directory = TryGetFullPath(root);
+            while (!string.IsNullOrEmpty(directory))
+            {
+                var candidate = Path.Join(directory, ".agent-up-dev");
+                if (Directory.Exists(candidate))
+                    return candidate;
+                var parent = Path.GetDirectoryName(directory);
+                if (parent == directory)
+                    break;
+                directory = parent;
+            }
+        }
+
+        return null;
     }
 
-    private static string? Parent(string? registryRoot)
-    {
-        if (string.IsNullOrWhiteSpace(registryRoot))
-            return null;
+    private static string? Existing(string? directory)
+        => !string.IsNullOrWhiteSpace(directory) && Directory.Exists(directory) ? Path.GetFullPath(directory) : null;
 
-        var parent = Path.GetDirectoryName(Path.GetFullPath(registryRoot));
-        return string.IsNullOrWhiteSpace(parent) ? null : parent;
+    private static string? TryGetFullPath(string? path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+            return null;
+        try
+        {
+            return Path.GetFullPath(path);
+        }
+        catch (Exception exception) when (exception is ArgumentException or NotSupportedException or PathTooLongException or IOException)
+        {
+            return null;
+        }
     }
 }

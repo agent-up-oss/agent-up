@@ -1,3 +1,5 @@
+using System.Text.Json.Nodes;
+using AgentUp.Server.Features.Capabilities.DTOs;
 using System.Text.Json;
 using AgentUp.Sdk.Common;
 using AgentUp.Server.Features.Agents.DTOs;
@@ -25,6 +27,7 @@ public sealed class AgentSchedulingServiceTests
 {
     private AgentSchedulingService _service = null!;
     private FakeAgentProcessProvider _process = null!;
+    private AgentCommandProvider _commands = null!;
     private FakeSubscriptionLoginProvider _login = null!;
     private FakeClaudeCredentialStore _credentials = null!;
     private AgentEventFrameProvider _payloads = null!;
@@ -47,7 +50,7 @@ public sealed class AgentSchedulingServiceTests
         _process = new FakeAgentProcessProvider();
         _payloads = new AgentEventFrameProvider();
         var command = OperatingSystem.IsWindows() ? "cmd.exe" : "/bin/sh";
-        var commands = new AgentCommandProvider(new ConfigurationBuilder().AddInMemoryCollection(
+        var commands = _commands = new AgentCommandProvider(new ConfigurationBuilder().AddInMemoryCollection(
             new Dictionary<string, string?>
             {
                 ["Agents:Codex:Command"] = command,
@@ -75,7 +78,7 @@ public sealed class AgentSchedulingServiceTests
     public async Task GetAsync_lists_agents_from_enabled_modules()
     {
         var packages = new FakeEnabledCapabilityPackages(FakeEnabledCapabilityPackages.Codex())
-            .WithAgents(new StubAgentCapability());
+            .WithBuiltIn(FakeEnabledCapabilityPackages.Cursor(), FakeEnabledCapabilityPackages.Claude());
         var command = OperatingSystem.IsWindows() ? "cmd.exe" : "/bin/sh";
         var service = new AgentSchedulingService(
             new WorkspaceQueryController(_registry), new FakeAgentProcessFactory(_process),
@@ -109,7 +112,7 @@ public sealed class AgentSchedulingServiceTests
     public async Task HasAvailableAgentAsync_isTrueWhenAnEnabledModuleCanRun()
     {
         var packages = new FakeEnabledCapabilityPackages(FakeEnabledCapabilityPackages.Codex())
-            .WithAgents(new StubAgentCapability());
+            .WithBuiltIn(FakeEnabledCapabilityPackages.Cursor(), FakeEnabledCapabilityPackages.Claude());
         var command = OperatingSystem.IsWindows() ? "cmd.exe" : "/bin/sh";
         var service = new AgentSchedulingService(
             new WorkspaceQueryController(_registry), new FakeAgentProcessFactory(_process),
@@ -148,18 +151,8 @@ public sealed class AgentSchedulingServiceTests
     [Test]
     public async Task GetAsync_lists_unknown_agent_module_ids()
     {
-        var packages = new FakeEnabledCapabilityPackages(new AgentUp.Capabilities.Abstractions.Features.Capabilities.Models.CapabilityPackageManifest
-        {
-            Id = "windsurf",
-            Version = "1.0.0",
-            DisplayName = "Windsurf",
-            Kind = "agent",
-            Launch = new AgentUp.Capabilities.Abstractions.Features.Capabilities.Models.CapabilityLaunchTemplate
-            {
-                Command = "windsurf-acp",
-                Arguments = []
-            }
-        }).WithAgents(new StubAgentCapability { Identity = new("windsurf", "1.0.0", "Windsurf", "agent-up") });
+        var packages = FakeEnabledCapabilityPackages.FirstParty()
+            .WithAgents(new StubAgentCapability { Identity = new("windsurf", "1.0.0", "Windsurf", "agent-up") });
         var service = new AgentSchedulingService(
             new WorkspaceQueryController(_registry), new FakeAgentProcessFactory(_process),
             new AgentCommandProvider(new ConfigurationBuilder().Build(), packages),
@@ -181,12 +174,7 @@ public sealed class AgentSchedulingServiceTests
     [Test]
     public async Task GetAsync_reportsExecutableNotFoundWhenThePackageIsEnabledButTheCliIsMissing()
     {
-        var packages = new FakeEnabledCapabilityPackages(MissingClaudePackage())
-            .WithAgents(new StubAgentCapability
-            {
-                Identity = new("claude", "1.0.0", "Claude", "agent-up"),
-                LaunchResult = new AgentUp.Sdk.Agent.AgentLaunchResult("agent-up-missing-claude-acp", [], null)
-            });
+        var packages = new FakeEnabledCapabilityPackages(MissingClaude());
         var service = new AgentSchedulingService(
             new WorkspaceQueryController(_registry), new FakeAgentProcessFactory(_process),
             new AgentCommandProvider(new ConfigurationBuilder().Build(), packages),
@@ -312,28 +300,81 @@ public sealed class AgentSchedulingServiceTests
     }
 
     [Test]
-    public async Task GetAsync_reportsExecutableNotFoundWhenTheModuleCannotRun()
+    public async Task GetAsync_reportsSettingsRequiredWhenAnEnabledModuleLacksARequiredSetting()
     {
-        var command = OperatingSystem.IsWindows() ? "cmd.exe" : "/bin/sh";
         var packages = new FakeEnabledCapabilityPackages(FakeEnabledCapabilityPackages.Codex())
-            .WithAgents(new StubAgentCapability { CanRun = false });
+            .WithReadiness(new CapabilityReadinessDto("codex", "Codex", true, [], ["Endpoint", "Model"]));
+        var codex = await DescribeAsync(packages, "codex");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(codex.Available, Is.False);
+            Assert.That(codex.Unavailability, Is.EqualTo(AgentUnavailability.SettingsRequired));
+            Assert.That(codex.Detail, Is.EqualTo("Codex needs Endpoint and Model before it can start."));
+            Assert.That(codex.Remedy, Does.Contain("Settings"));
+        });
+    }
+
+    [Test]
+    public async Task GetAsync_reportsSoftwareNotFoundBeforeNotEnabledForABuiltInAgent()
+    {
+        var packages = new FakeEnabledCapabilityPackages()
+            .WithBuiltIn(FakeEnabledCapabilityPackages.Codex())
+            .WithReadiness(new CapabilityReadinessDto("codex", "Codex", false, ["nix"], []));
+        var codex = await DescribeAsync(packages, "codex");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(codex.Unavailability, Is.EqualTo(AgentUnavailability.SoftwareNotFound));
+            Assert.That(codex.Detail, Does.Contain("nix"));
+            Assert.That(codex.Remedy, Does.Contain("https://nixos.org/download"));
+        });
+    }
+
+    [Test]
+    public async Task GetAsync_reportsCapabilityNotEnabledForABuiltInAgentWhoseSoftwareIsFound()
+    {
+        var packages = new FakeEnabledCapabilityPackages().WithBuiltIn(FakeEnabledCapabilityPackages.Codex());
+        var codex = await DescribeAsync(packages, "codex");
+
+        Assert.That(codex.Unavailability, Is.EqualTo(AgentUnavailability.CapabilityNotEnabled));
+        Assert.That(codex.DisplayName, Is.EqualTo("Codex"));
+    }
+
+    [Test]
+    public async Task GetAsync_offersAnAgentWhoseCommandOverrideResolvesWhateverItsCapabilityState()
+    {
+        // The test agents take a vendor's slot through Agents:<id>:Command on hosts that have
+        // none of the vendor's software, so a resolving override must make the agent available.
+        var command = OperatingSystem.IsWindows() ? "cmd.exe" : "/bin/sh";
+        var missing = new FakeEnabledCapabilityPackages(FakeEnabledCapabilityPackages.Codex())
+            .WithReadiness(new CapabilityReadinessDto("codex", "Codex", false, ["codex-acp"], []));
+        var disabled = new FakeEnabledCapabilityPackages(FakeEnabledCapabilityPackages.Codex())
+            .WithReadiness(new CapabilityReadinessDto("codex", "Codex", false, [], []));
+
+        var withoutSoftware = await DescribeAsync(missing, "codex", ("Agents:Codex:Command", command));
+        var off = await DescribeAsync(disabled, "codex", ("Agents:Codex:Command", command));
+        var noOverride = await DescribeAsync(disabled, "codex");
+
+        Assert.That(withoutSoftware.Available, Is.True);
+        Assert.That(off.Available, Is.True);
+        Assert.That((noOverride.Available, noOverride.Unavailability), Is.EqualTo((false, AgentUnavailability.CapabilityNotEnabled)));
+    }
+
+    private async Task<AgentDescriptor> DescribeAsync(FakeEnabledCapabilityPackages packages, string agent, params (string Key, string Value)[] settings)
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(settings.Select(setting => new KeyValuePair<string, string?>(setting.Key, setting.Value)))
+            .Build();
         var service = new AgentSchedulingService(
             new WorkspaceQueryController(_registry), new FakeAgentProcessFactory(_process),
-            new AgentCommandProvider(new ConfigurationBuilder().AddInMemoryCollection(
-                new Dictionary<string, string?> { ["Agents:codex:Command"] = command }).Build(), packages),
+            new AgentCommandProvider(configuration, packages),
             _login, new FakeProcessEnvironmentProvider(), _credentials, new AgentSubscriptionAuth(),
             _payloads, _events, NullLogger<AgentSchedulingService>.Instance, packages);
         try
         {
             var session = await service.GetAsync(_workspace.Id, CancellationToken.None);
-            var codex = session!.Agents.Single(agent => agent.Agent == "codex");
-
-            Assert.Multiple(() =>
-            {
-                Assert.That(codex.Available, Is.False);
-                Assert.That(codex.Unavailability, Is.EqualTo(AgentUnavailability.ExecutableNotFound));
-                Assert.That(codex.Detail, Is.EqualTo(AgentUnavailability.ExecutableNotFoundDetail("codex")));
-            });
+            return session!.Agents.Single(descriptor => descriptor.Agent == agent);
         }
         finally
         {
@@ -344,7 +385,7 @@ public sealed class AgentSchedulingServiceTests
     [Test]
     public async Task GetAsync_usesEnabledPackageDisplayNameWhenNoAgentModuleIsLoaded()
     {
-        var packages = new FakeEnabledCapabilityPackages(MissingClaudePackage());
+        var packages = new FakeEnabledCapabilityPackages(MissingClaude());
         var service = new AgentSchedulingService(
             new WorkspaceQueryController(_registry), new FakeAgentProcessFactory(_process),
             new AgentCommandProvider(new ConfigurationBuilder().Build(), packages),
@@ -617,6 +658,69 @@ public sealed class AgentSchedulingServiceTests
     }
 
     [Test]
+    public async Task PromptAsync_queuesAnInteractiveMessageAndSendsItWhenTheTurnEnds()
+    {
+        _process.HoldPrompt = true;
+        await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
+        var first = _service.PromptAsync(_workspace.Id, "original", CancellationToken.None);
+        await WaitUntilAsync(() => _process.Prompts.Count == 1);
+
+        var steered = await _service.PromptAsync(_workspace.Id, "steer left", CancellationToken.None);
+        _process.CompletePrompt();
+        await first;
+        await WaitUntilAsync(() => _process.Prompts.Count == 2);
+        _process.CompletePrompt();
+        await WaitForStateAsync("ready");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(steered.Error, Is.Null, "A message sent mid-turn is steering, not a refusal.");
+            Assert.That(_process.Prompts[1], Does.Contain("steer left"));
+        });
+    }
+
+    [Test]
+    public async Task ScheduleAsync_offersAgentUpMcpServersToAnAgentThatSpeaksHttpMcp()
+    {
+        _process = new FakeAgentProcessProvider { AdvertiseHttpMcp = true };
+        await using var service = new AgentSchedulingService(
+            new WorkspaceQueryController(_registry), new FakeAgentProcessFactory(_process), _commands,
+            _login, new FakeProcessEnvironmentProvider(), _credentials, new AgentSubscriptionAuth(),
+            _payloads, _events, NullLogger<AgentSchedulingService>.Instance, null, _sessions,
+            mcp: new AgentMcpServerProvider(new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { ["urls"] = "http://0.0.0.0:5001" }).Build()));
+
+        await service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
+
+        Assert.That(_process.SessionNewParameters.Single(), Does.Contain("http://127.0.0.1:5001/mcp/orchestration").And.Contain("\"type\":\"http\""));
+    }
+
+    [Test]
+    public async Task ScheduleAsync_givesTheAgentAnMcpCredentialForItsOwnWorkspaceAndStopRevokesIt()
+    {
+        _process = new FakeAgentProcessProvider { AdvertiseHttpMcp = true };
+        var credentials = new AgentMcpSessionService();
+        await using var service = new AgentSchedulingService(
+            new WorkspaceQueryController(_registry), new FakeAgentProcessFactory(_process), _commands,
+            _login, new FakeProcessEnvironmentProvider(), _credentials, new AgentSubscriptionAuth(),
+            _payloads, _events, NullLogger<AgentSchedulingService>.Instance, null, _sessions,
+            mcp: new AgentMcpServerProvider(new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { ["urls"] = "http://0.0.0.0:5001" }).Build()),
+            mcpSessions: credentials);
+
+        await service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
+        var offered = JsonNode.Parse(_process.SessionNewParameters.Single())!["mcpServers"]![0]!["headers"]![0]!;
+        var token = offered["value"]!.GetValue<string>();
+        var before = credentials.WorkspaceFor(token);
+        await service.StopAsync(_workspace.Id, CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(offered["name"]!.GetValue<string>(), Is.EqualTo(AgentMcpServerProvider.SessionHeader));
+            Assert.That(before, Is.EqualTo(_workspace.Id));
+            Assert.That(credentials.WorkspaceFor(token), Is.Null, "A stopped agent's credential stops working.");
+        });
+    }
+
+    [Test]
     public async Task ResumeAsync_refusesASessionFromADifferentBoundAgent()
     {
         await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
@@ -704,19 +808,11 @@ public sealed class AgentSchedulingServiceTests
         });
     }
 
-    private static AgentUp.Capabilities.Abstractions.Features.Capabilities.Models.CapabilityPackageManifest MissingClaudePackage()
-        => new()
-        {
-            Id = "claude",
-            Version = "1.0.0",
-            DisplayName = "claude",
-            Kind = "agent",
-            Launch = new AgentUp.Capabilities.Abstractions.Features.Capabilities.Models.CapabilityLaunchTemplate
-            {
-                Command = "agent-up-missing-claude-acp",
-                Arguments = []
-            }
-        };
+    private static StubAgentCapability MissingClaude() => new()
+    {
+        Identity = new("claude", "1.0.0", "claude", "agent-up"),
+        LaunchResult = new AgentUp.Sdk.Agent.AgentLaunchResult("agent-up-missing-claude-acp", [], null)
+    };
 
     private static object[] MissingSessionIds =>
     [
@@ -726,15 +822,21 @@ public sealed class AgentSchedulingServiceTests
     ];
 
     [Test]
-    public async Task Prompt_isAcceptedImmediatelyAndConcurrentPromptIsRejected()
+    public async Task Prompt_isAcceptedImmediatelyAndAConcurrentPromptWaitsAsSteering()
     {
         await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
         _process.HoldPrompt = true;
 
         var first = await _service.PromptAsync(_workspace.Id, "first", CancellationToken.None);
+        await WaitUntilAsync(() => _process.Prompts.Count == 1);
         var second = await _service.PromptAsync(_workspace.Id, "second", CancellationToken.None);
 
-        Assert.Multiple(() => { Assert.That(first.Error, Is.Null); Assert.That(second.Error, Does.Contain("already processing")); });
+        Assert.Multiple(() =>
+        {
+            Assert.That(first.Error, Is.Null);
+            Assert.That(second.Error, Is.Null);
+            Assert.That(_process.Prompts, Has.Count.EqualTo(1), "Only one turn runs at a time; the second waits for it.");
+        });
         _process.CompletePrompt();
     }
 
@@ -866,6 +968,23 @@ public sealed class AgentSchedulingServiceTests
         var result = await requestTask;
 
         Assert.Multiple(() => { Assert.That(invalid, Is.False); Assert.That(decided, Is.True); Assert.That(result.GetProperty("outcome").GetProperty("optionId").GetString(), Is.EqualTo("allow")); });
+    }
+
+    [Test]
+    public async Task PermissionDecision_isPublishedWithItsRequestIdSoEveryClientClosesThePrompt()
+    {
+        await _service.ScheduleAsync(_workspace.Id, "codex", CancellationToken.None);
+        var requestTask = _process.RequestPermissionAsync(_payloads.Payload(new { options = new[] { new { optionId = "allow" } } }));
+        var requestId = await ReadPermissionRequestIdAsync();
+
+        _service.Decide(_workspace.Id, new AgentPermissionResponse(requestId, "allow"));
+        await requestTask;
+
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(2));
+        var decision = await _events.SubscribeAsync(_workspace.Id, 0, timeout.Token)
+            .FirstAsync(item => item.Type == "permission_decision", timeout.Token);
+        Assert.That(decision.Payload.GetProperty("requestId").GetString(), Is.EqualTo(requestId));
+        Assert.That(decision.Payload.GetProperty("optionId").GetString(), Is.EqualTo("allow"));
     }
 
     [Test]
@@ -1290,6 +1409,8 @@ internal sealed class FakeAgentProcessProvider : IAgentProcessProvider
     public IReadOnlyDictionary<string, string>? Environment { get; private set; }
     public int StartCalls { get; private set; }
     public bool HoldPrompt { get; set; }
+    public bool AdvertiseHttpMcp { get; set; }
+    public List<string> SessionNewParameters { get; } = [];
     public bool HoldSessionLoad { get; set; }
     public TaskCompletionSource SessionLoadStarted { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
     public bool RequireAuthentication { get; set; }
@@ -1347,6 +1468,10 @@ internal sealed class FakeAgentProcessProvider : IAgentProcessProvider
             if (PromptResult is not null)
                 return PromptResult.Value;
         }
+        if (method == "initialize" && AdvertiseHttpMcp)
+            return JsonSerializer.SerializeToElement(new { protocolVersion = ProtocolVersion, agentCapabilities = new { mcpCapabilities = new { http = true } } });
+        if (method == "session/new")
+            SessionNewParameters.Add(JsonSerializer.Serialize(parameters));
         if (method == "session/new")
             return SessionNewResult ?? JsonSerializer.SerializeToElement(new { sessionId = "session-1" });
         if (method == "session/load")

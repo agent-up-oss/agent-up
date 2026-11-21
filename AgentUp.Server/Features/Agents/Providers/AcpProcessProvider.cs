@@ -3,10 +3,17 @@ using System.Diagnostics;
 using System.Text.Json;
 using AgentUp.Server.Features.Agents.DTOs;
 using AgentUp.Server.Features.Agents.Interfaces;
+using AgentUp.Server.Features.Agents.Models;
 
 namespace AgentUp.Server.Features.Agents.Providers;
 
-public sealed class AcpProcessProvider(AgentCommandProvider commands, ILogger<AcpProcessProvider> logger) : IAgentProcessProvider
+/// <param name="sandbox">Confines the agent to its member's permission set. Null only where a
+/// caller composes the provider for a test of the protocol itself.</param>
+public sealed class AcpProcessProvider(
+    AgentCommandProvider commands,
+    ILogger<AcpProcessProvider> logger,
+    IAgentSandbox? sandbox = null,
+    TeamMemberGrants? grants = null) : IAgentProcessProvider
 {
     private readonly ConcurrentDictionary<long, TaskCompletionSource<JsonElement>> _pending = new();
     private readonly ConcurrentQueue<string> _stderr = new();
@@ -30,13 +37,20 @@ public sealed class AcpProcessProvider(AgentCommandProvider commands, ILogger<Ac
         if (_process is not null) throw new InvalidOperationException("The ACP process has already started.");
         var command = await commands.ResolveAsync(agent, cancellationToken)
             ?? throw new InvalidOperationException($"{agent} ACP executable is not installed or is not on PATH.");
-        var start = new ProcessStartInfo(command.FileName) {
-            WorkingDirectory = workingDirectory, RedirectStandardInput = true,
+        var agentEnvironment = new Dictionary<string, string>(environment, StringComparer.Ordinal);
+        foreach (var pair in command.Environment ?? new Dictionary<string, string>()) agentEnvironment[pair.Key] = pair.Value;
+        var launch = sandbox is null
+            ? new AgentSandboxLaunch(command.FileName, command.Arguments, agentEnvironment, workingDirectory)
+            : sandbox.Prepare(command, agentEnvironment, workingDirectory, grants ?? TeamMemberGrants.Author);
+        var start = new ProcessStartInfo(launch.FileName) {
+            WorkingDirectory = launch.WorkingDirectory, RedirectStandardInput = true,
             RedirectStandardOutput = true, RedirectStandardError = true,
             UseShellExecute = false, CreateNoWindow = true
         };
-        foreach (var argument in command.Arguments) start.ArgumentList.Add(argument);
-        foreach (var pair in environment) start.Environment[pair.Key] = pair.Value;
+        foreach (var argument in launch.Arguments) start.ArgumentList.Add(argument);
+        // A sandboxed agent's environment is complete: nothing of the Server's own is inherited.
+        if (sandbox is not null) start.Environment.Clear();
+        foreach (var pair in launch.Environment) start.Environment[pair.Key] = pair.Value;
         var process = new Process { StartInfo = start, EnableRaisingEvents = true };
         try
         {
@@ -127,13 +141,29 @@ public sealed class AcpProcessProvider(AgentCommandProvider commands, ILogger<Ac
         }
     }
 
+    /// <summary>
+    /// A JSON-RPC error as the person reads it: the agent's own message, with the code kept at
+    /// the end because sign-in detection matches on it. An error with no message stays raw.
+    /// </summary>
+    public static string ErrorText(JsonElement error)
+    {
+        if (error.ValueKind != JsonValueKind.Object
+            || !error.TryGetProperty("message", out var message)
+            || message.ValueKind != JsonValueKind.String
+            || string.IsNullOrWhiteSpace(message.GetString()))
+            return error.ToString();
+        return error.TryGetProperty("code", out var code) && code.ValueKind == JsonValueKind.Number
+            ? $"{message.GetString()} (ACP error {code.GetRawText()})"
+            : message.GetString()!;
+    }
+
     private async Task DispatchAsync(JsonElement message, CancellationToken cancellationToken)
     {
         if (message.TryGetProperty("id", out var idElement) && !message.TryGetProperty("method", out _))
         {
             var id = idElement.GetInt64();
             if (!_pending.TryGetValue(id, out var completion)) return;
-            if (message.TryGetProperty("error", out var error)) completion.TrySetException(new InvalidOperationException(error.ToString()));
+            if (message.TryGetProperty("error", out var error)) completion.TrySetException(new InvalidOperationException(ErrorText(error)));
             else if (message.TryGetProperty("result", out var result)) completion.TrySetResult(result.Clone());
             else completion.TrySetException(new InvalidOperationException("The ACP agent returned a response without a result."));
             return;

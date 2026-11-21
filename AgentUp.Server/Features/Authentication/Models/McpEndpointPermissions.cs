@@ -18,7 +18,8 @@ public static class McpEndpointPermissions
         new("/mcp/browser", OperationPermissions.BrowserControl),
         new("/mcp/audit", OperationPermissions.DiagnosticsRead),
         new("/mcp/capabilities", OperationPermissions.ServerRead),
-        new("/mcp/training", OperationPermissions.AgentRead)
+        new("/mcp/training", OperationPermissions.AgentRead),
+        new("/mcp/tasks", OperationPermissions.WorkspaceRead)
     ];
 
     public static IReadOnlyList<string> Permissions { get; } = All

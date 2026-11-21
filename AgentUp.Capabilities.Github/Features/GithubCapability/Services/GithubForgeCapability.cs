@@ -36,6 +36,13 @@ public sealed class GithubForgeCapability : IForgeCapability
 
     public CapabilityIdentity Identity { get; } = new(PackageId, PackageVersion, "GitHub", "agent-up");
 
+    public string Kind => CapabilityKind.Forge;
+
+    /// <summary>A forge talks HTTP to its host and runs nothing on the Server host.</summary>
+    public IReadOnlyList<CapabilitySoftware> Software { get; } = [];
+
+    public IReadOnlyList<CapabilitySettingSpec> Settings { get; } = [];
+
     public ForgeHostConfiguration Host { get; }
 
     public Task<ForgeHostSnapshot> ReadAsync(ForgeRequest request, CancellationToken cancellationToken = default)
@@ -74,4 +81,10 @@ public sealed class GithubForgeCapability : IForgeCapability
         ForgeSubmitReviewCommand command,
         CancellationToken cancellationToken = default)
         => _api.SubmitReviewAsync(request, command, cancellationToken);
+
+    public Task AssignIssueAsync(ForgeRequest request, int issueNumber, string login, CancellationToken cancellationToken = default)
+        => _api.AssignIssueAsync(request, issueNumber, login, cancellationToken);
+
+    public Task RequestReviewAsync(ForgeRequest request, string proposalNumber, string login, CancellationToken cancellationToken = default)
+        => _api.RequestReviewAsync(request, proposalNumber, login, cancellationToken);
 }

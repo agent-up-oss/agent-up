@@ -1277,6 +1277,168 @@
   background: var(--au-color-transparent);
 }
 
+/* Agent reply: prose on the canvas, not a card. Markdown blocks keep a reading rhythm; code
+ * sits on the quiet surface in mono, and inline code is a raised chip. */
+.au-chat-reply {
+  color: var(--au-color-text-primary);
+  background: var(--au-color-transparent);
+}
+.au-chat-reply-agent {
+  color: var(--au-color-text-muted);
+  font-size: var(--au-font-size-ui-xs);
+  font-weight: var(--au-weight-ui-strong);
+}
+.au-md-paragraph {
+  color: var(--au-color-text-primary);
+  font-size: var(--au-font-size-ui-lg);
+}
+.au-md-heading {
+  color: var(--au-color-text-primary);
+  font-size: var(--au-font-size-ui-xl);
+  font-weight: var(--au-weight-ui-strong);
+}
+.au-md-heading--minor {
+  font-size: var(--au-font-size-ui-lg);
+}
+.au-md-list-item {
+  padding: 0 0 0 var(--au-space-2);
+  background: var(--au-color-transparent);
+}
+.au-md-marker {
+  color: var(--au-color-text-muted);
+  font-size: var(--au-font-size-ui-lg);
+}
+.au-md-quote {
+  padding: 0 0 0 var(--au-space-3);
+  color: var(--au-color-text-secondary);
+  background: var(--au-color-transparent);
+  border-left: 2px solid var(--au-color-border-strong);
+}
+.au-md-code-block {
+  padding: var(--au-space-3);
+  background: var(--au-color-surface);
+  border: 1px solid var(--au-color-border-subtle);
+  border-radius: var(--au-radius-md);
+}
+.au-md-code-text {
+  color: var(--au-color-text-secondary);
+  font-family: var(--au-font-mono);
+  font-size: var(--au-font-size-ui-sm);
+}
+.au-md-code-label {
+  color: var(--au-color-text-faint);
+  font-family: var(--au-font-mono);
+  font-size: var(--au-font-size-ui-xs);
+}
+.au-md-inline-code {
+  padding: 0 var(--au-space-1);
+  color: var(--au-color-text-primary);
+  background: var(--au-color-surface-raised);
+  border-radius: var(--au-radius-sm);
+  font-family: var(--au-font-mono);
+  font-size: var(--au-font-size-ui-md);
+}
+.au-md-link {
+  color: var(--au-color-text-info);
+}
+.au-md-table {
+  background: var(--au-color-transparent);
+  border: 1px solid var(--au-color-border-subtle);
+  border-radius: var(--au-radius-md);
+}
+.au-md-table-row {
+  background: var(--au-color-transparent);
+  border-top: 1px solid var(--au-color-border-subtle);
+}
+.au-md-table-head {
+  background: var(--au-color-surface);
+}
+.au-md-table-header-cell {
+  padding: var(--au-space-2) var(--au-space-3);
+  color: var(--au-color-text-primary);
+  font-size: var(--au-font-size-ui-md);
+  font-weight: var(--au-weight-ui-strong);
+}
+.au-md-table-cell {
+  padding: var(--au-space-2) var(--au-space-3);
+  color: var(--au-color-text-secondary);
+  font-size: var(--au-font-size-ui-md);
+}
+
+/* Tool call: one quiet row per call - status, readable name, where the tool came from, and
+ * the argument that matters. It opens to the input and a formatted, bounded output. */
+.au-tool-call {
+  display: block;
+  width: 100%;
+  padding: var(--au-space-1) var(--au-space-2);
+  color: var(--au-color-text-secondary);
+  background: var(--au-color-transparent);
+  border: 0;
+  border-radius: var(--au-radius-md);
+  text-align: left;
+  cursor: pointer;
+  font-size: var(--au-font-size-ui-sm);
+  font-weight: var(--au-weight-ui);
+}
+.au-tool-call:hover { background: var(--au-color-state-hover); }
+.au-tool-call-glyph {
+  color: var(--au-color-text-muted);
+  font-family: var(--au-font-mono);
+  font-size: var(--au-font-size-ui-sm);
+}
+.au-tool-call-glyph--running { color: var(--au-color-accent); }
+.au-tool-call-glyph--failed { color: var(--au-color-status-danger); }
+.au-tool-call-title {
+  color: var(--au-color-text-primary);
+  font-size: var(--au-font-size-ui-sm);
+  font-weight: var(--au-weight-ui-strong);
+}
+.au-tool-call-source {
+  padding: 0 var(--au-space-1);
+  color: var(--au-color-text-muted);
+  background: var(--au-color-transparent);
+  border: 1px solid var(--au-color-border-subtle);
+  border-radius: var(--au-radius-sm);
+  font-size: var(--au-font-size-ui-xs);
+}
+.au-tool-call-summary {
+  color: var(--au-color-text-muted);
+  font-family: var(--au-font-mono);
+  font-size: var(--au-font-size-ui-xs);
+}
+.au-tool-call-detail {
+  margin: 0 0 0 var(--au-space-4);
+  padding: var(--au-space-1) 0 var(--au-space-1) var(--au-space-3);
+  background: var(--au-color-transparent);
+  border-left: 1px solid var(--au-color-border-subtle);
+}
+.au-tool-call-label {
+  color: var(--au-color-text-faint);
+  font-size: var(--au-font-size-ui-xs);
+  font-weight: var(--au-weight-ui-strong);
+}
+.au-tool-call-output {
+  padding: var(--au-space-2) var(--au-space-3);
+  background: var(--au-color-surface);
+  border: 1px solid var(--au-color-border-subtle);
+  border-radius: var(--au-radius-md);
+}
+.au-tool-call-output--failed {
+  border-color: var(--au-color-border-danger);
+}
+.au-tool-call-output-text {
+  color: var(--au-color-text-secondary);
+  font-family: var(--au-font-mono);
+  font-size: var(--au-font-size-ui-xs);
+}
+.au-tool-call-output-text--failed {
+  color: var(--au-color-text-danger);
+}
+.au-tool-call-more {
+  color: var(--au-color-text-muted);
+  font-size: var(--au-font-size-ui-xs);
+}
+
 /* Assembled screens. These layout classes compose catalog components into
  * Desktop and Mobile windows. Apps apply the same classes; they do not
  * restyle a second screenshot shell. */

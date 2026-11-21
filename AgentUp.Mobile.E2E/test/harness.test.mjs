@@ -333,3 +333,17 @@ test('a port with a listener is not handed out as free', async () => {
     await new Promise(resolve => server.close(resolve));
   }
 });
+
+test('each agent is declared the provider it signs in against, since it inherits nothing from the Server', () => {
+  const environment = serverEnvironment({
+    profiles: profilesFor('redirect'),
+    binDir: '/tmp/bin',
+    idpUrl: 'http://localhost:9000',
+    publicOrigin: 'http://10.0.0.5:9000',
+    dataDir: '/tmp/data',
+    urls: 'http://0.0.0.0:9100',
+  });
+
+  assert.equal(environment.Agents__codex__Environment__AGENTUP_TEST_IDP_URL, 'http://localhost:9000');
+  assert.equal(environment.Agents__cursor__Environment__AGENTUP_TEST_IDP_PUBLIC_ORIGIN, 'http://10.0.0.5:9000');
+});

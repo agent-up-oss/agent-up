@@ -10,8 +10,6 @@ using AgentUp.Server.Features.Browser.Services;
 using AgentUp.Server.Features.Capabilities.Controllers;
 using AgentUp.Server.Features.Capabilities.Interfaces;
 using AgentUp.Server.Features.Capabilities.Services;
-using AgentUp.Registry.Features.Packages.Controllers;
-using AgentUp.Registry.Features.Packages.Services;
 using AgentUp.Server.Features.DesktopApplications.Controllers;
 using AgentUp.Server.Features.DesktopApplications.Interfaces;
 using AgentUp.Server.Features.DesktopApplications.Providers;
@@ -79,7 +77,7 @@ internal static class ServerTestComposition
         services.AddSingleton<WorkspaceLifecycleController>();
         return services;
     }
-    /// <summary>A registry with no enabled capability packages and an event bus of its own.</summary>
+    /// <summary>A registry with no enabled capabilities and an event bus of its own.</summary>
     public static WorkspaceRegistry CreateRegistry() => CreateRegistry(null, new WorkspaceEventBus());
 
     public static WorkspaceRegistry CreateRegistry(
@@ -88,11 +86,9 @@ internal static class ServerTestComposition
         => new(
             new InMemoryWorkspaceRepository(),
             new PortsController(new InMemoryPortAllocationService()),
-            new CapabilitiesController(new CapabilityReconciliationService(packages, Templates())),
+            new CapabilitiesController(new CapabilityReconciliationService(packages)),
             bus);
 
-    private static CapabilityPackageController Templates() =>
-        new(new CapabilityPackageValidator(), new CapabilityTemplateRenderer());
 
     public static ProcessesController CreateProcessesController(IWorkspaceProcessManager processes)
         => CreateProcessesController(processes, new InMemoryOutputRepository());

@@ -133,10 +133,10 @@
       <button class="au-app-tab" type="button" data-au-action="select-application" data-au-selection="app:@id:au-app-tab--selected" data-au-text="name"><span class="au-status-dot au-status-dot--healthy" data-au-part="running"></span><span class="au-status-dot au-status-dot--idle" data-au-part="stopped"></span></button>
     </article>
 
-    <article data-au-component="settings-module" data-au-title="Capability module" data-au-note="One capability module on the Server: its name, whether it can run, and the one change it offers. A module that cannot run says why." data-au-avalonia="Border" data-au-class="aun-settings__row" data-au-parts="ready disabled blocked" data-au-actions="enable-module disable-module">
+    <article data-au-component="settings-module" data-au-title="Capability module" data-au-note="One capability built into the Server: its name, whether it can run, and the one change it offers. A module that cannot run says why; one whose software was not found says so on its button instead of offering Enable." data-au-avalonia="Border" data-au-class="aun-settings__row" data-au-parts="ready disabled blocked" data-au-actions="enable-module disable-module module-unavailable">
       <div class="aun-settings__row" data-au-actions="enable-module">
         <span class="aun-settings__id"><span class="aun-settings__name" data-au-text="name">.NET</span><span class="aun-settings__state"><span class="au-status-dot au-status-dot--healthy" data-au-part="ready"></span><span class="aun-settings__state-text" data-au-part="ready">Ready</span><span class="aun-settings__state-text" data-au-part="disabled">Disabled</span><span class="aun-settings__state-text" data-au-part="blocked" data-au-text="why"></span></span></span>
-        <button class="aun-btn" type="button" data-au-action="disable-module" data-au-tone="enable-module:aun-btn--primary" data-au-labels="enable-module:Enable; disable-module:Disable">Disable</button>
+        <button class="aun-btn" type="button" data-au-action="disable-module" data-au-tone="enable-module:aun-btn--primary" data-au-labels="enable-module:Enable; disable-module:Disable; module-unavailable:Not found">Disable</button>
       </div>
     </article>
 
@@ -276,11 +276,26 @@
       </div>
     </article>
 
-    <article data-au-component="task-board" data-au-title="Task board" data-au-note="The Demo queue: one task in progress, two waiting, and three open issues. Desktop keeps the page title; the phone puts that title in its head." data-au-avalonia="Border" data-au-class="aun-task-board" data-au-parts="title">
+    <article data-au-component="task-board" data-au-title="Task board" data-au-note="Three queues. Issues is the Demo queue: three tasks in progress, two waiting, and three open issues. Dev review and PM review are the proposals waiting on each kind of reviewer; the host only counts approvals, so the Server works out which kinds a revision still needs, and the first reviewer of a kind keeps that review for every push. Desktop keeps the page title; the phone puts that title in its head." data-au-avalonia="Border" data-au-class="aun-task-board" data-au-parts="title">
       <div class="aun-task-board">
         <div data-au-part="title" data-au-use="page-title" data-au-props="title=Tasks"></div>
-        <div class="aun-group" data-au-demo="queue" data-au-repeat="task-row" data-au-groups="stop:In progress; dequeue:Queue; queue:Open issues"></div>
-        <p class="aun-faint" data-au-empty="queue">Nothing is queued and no open issues are offered. Connect a task source in Settings, or open a workspace whose repository has issues.</p>
+        <div class="au-cluster aun-task-tabs" role="tablist">
+          <button class="au-app-tab au-app-tab--selected" type="button" data-au-action="tasks-issues" data-au-selection="tasksTab:issues:au-app-tab--selected">Issues</button>
+          <button class="au-app-tab" type="button" data-au-action="tasks-dev-review" data-au-selection="tasksTab:dev:au-app-tab--selected">Dev review</button>
+          <button class="au-app-tab" type="button" data-au-action="tasks-pm-review" data-au-selection="tasksTab:pm:au-app-tab--selected">PM review</button>
+        </div>
+        <div class="aun-group" data-au-when="issuesTab">
+          <div class="aun-group" data-au-demo="queue" data-au-repeat="task-row" data-au-groups="stop:In progress; dequeue:Queue; queue:Open issues"></div>
+          <p class="aun-faint" data-au-empty="queue">Nothing is queued and no open issues are offered. Connect a task source in Settings, or open a workspace whose repository has issues.</p>
+        </div>
+        <div class="aun-group" data-au-when="devTab">
+          <div class="aun-group" data-au-demo="devReview" data-au-repeat="task-row" data-au-groups="waiting:Needs a reviewer; reviewing:Under review; reviewed:Reviewed"></div>
+          <p class="aun-faint" data-au-empty="devReview">No proposal is waiting on a dev review. A revision lands here as soon as its author pushes it.</p>
+        </div>
+        <div class="aun-group" data-au-when="pmTab">
+          <div class="aun-group" data-au-demo="pmReview" data-au-repeat="task-row" data-au-groups="waiting:Needs a reviewer; reviewing:Under review; reviewed:Reviewed"></div>
+          <p class="aun-faint" data-au-empty="pmReview">No proposal is waiting on a product review. A revision lands here as soon as its author pushes it.</p>
+        </div>
       </div>
     </article>
 
@@ -357,7 +372,7 @@
       </div>
     </article>
 
-    <article data-au-component="task-row" data-au-title="Task row" data-au-note="One task on the board. The first row of a group carries that group's label. Dequeue, stop, and queue are the same button; the client names which action this row runs and the tone it takes: danger to take work away, primary to give it." data-au-avalonia="Border" data-au-class="aun-task-slot" data-au-parts="section agent" data-au-actions="dequeue queue stop">
+    <article data-au-component="task-row" data-au-title="Task row" data-au-note="One task on the board. The first row of a group carries that group's label. A review row names its reviewer and revision and has no button: reviewers take reviews themselves. Dequeue, stop, and queue are the same button; the client names which action this row runs and the tone it takes: danger to take work away, primary to give it." data-au-avalonia="Border" data-au-class="aun-task-slot" data-au-parts="section agent" data-au-actions="dequeue queue stop">
       <div class="aun-task-slot">
         <p class="au-field-label aun-task-slot__section" data-au-part="section" data-au-text="section">Queue · 2</p>
         <div class="aun-task-row" data-au-actions="queue stop">
@@ -367,7 +382,7 @@
             <span class="aun-task-row__agent" data-au-part="agent" data-au-text="agent"></span>
             <span class="aun-task-row__repo" data-au-text="repo"></span>
           </span>
-          <button class="aun-btn" type="button" data-au-action="dequeue" data-au-tone="queue:aun-btn--primary; dequeue:aun-btn--danger; stop:aun-btn--danger" data-au-labels="queue:Queue; dequeue:Dequeue; stop:Stop">Dequeue</button>
+          <button class="aun-btn" type="button" data-au-action="dequeue" data-au-for="dequeue queue stop" data-au-tone="queue:aun-btn--primary; dequeue:aun-btn--danger; stop:aun-btn--danger" data-au-labels="queue:Queue; dequeue:Dequeue; stop:Stop">Dequeue</button>
         </div>
       </div>
     </article>
