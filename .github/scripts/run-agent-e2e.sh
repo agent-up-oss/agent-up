@@ -10,6 +10,10 @@ set -euo pipefail
 #                     clicks it in the real headless browser. Its MCP session is pinned to its
 #                     own workspace, and a dev reviewer is refused orchestration, the browser and
 #                     the commit queue.
+#   TeamForgejoE2E  - an author, a dev reviewer and a PM reviewer on one Server take an issue
+#                     through a real Forgejo container to two approvals: assignment, task branch,
+#                     proposal, requested reviewers, a finding at its line, the fix going back to
+#                     the same reviewers, and a screenshot attached to the product review.
 # bubblewrap and Chromium come from Nix, as they do for the Server.
 
 root="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -31,4 +35,5 @@ nix-shell -p bubblewrap chromium --run "export AGENTUP_AGENT_E2E_CHROMIUM=\"\$(c
   dotnet test AgentUp.Server.Tests/AgentUp.Server.Tests.csproj \
   --results-directory $results \
   --logger 'trx;LogFileName=agent-e2e.trx' \
-  --filter 'Category=AgentSandboxE2E|Category=AgentMcpE2E'"
+  --blame-hang-timeout 15m \
+  --filter 'Category=AgentSandboxE2E|Category=AgentMcpE2E|Category=TeamForgejoE2E'"

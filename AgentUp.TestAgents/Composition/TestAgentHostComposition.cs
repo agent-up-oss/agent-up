@@ -36,7 +36,8 @@ public static class TestAgentHostComposition
                     new EnvironmentLoopInferenceSettings())),
             new ScriptedAcpController(new ScriptedAcpService(
                 new EnvironmentScriptedTurnScript(),
-                new HttpScriptedMcpClient(new HttpClient { Timeout = TimeSpan.FromMinutes(3) }))),
+                new HttpScriptedMcpClient(new HttpClient { Timeout = TimeSpan.FromMinutes(3) }),
+                new WorkingDirectoryFileWriter())),
             new InferenceHttpController(
                 new OpenAiCompatibleModelService(
                     new LlamaCppTokenGenerator(

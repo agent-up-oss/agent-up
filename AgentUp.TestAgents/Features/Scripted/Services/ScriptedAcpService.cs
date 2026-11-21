@@ -12,12 +12,13 @@ namespace AgentUp.TestAgents.Features.Scripted.Services;
 /// keeps the servers it is offered, and answers a prompt that is an MCP directive by making those
 /// tool calls for real and reporting them as ACP tool calls.
 /// </summary>
-public sealed class ScriptedAcpService(IScriptedTurnScript scripts, IScriptedMcpClient? mcp = null)
+public sealed class ScriptedAcpService(IScriptedTurnScript scripts, IScriptedMcpClient? mcp = null, IScriptedFileWriter? files = null)
 {
     public async Task RunAsync(TextReader input, TextWriter output, CancellationToken cancellationToken)
     {
         var script = scripts.Load();
         IReadOnlyList<ScriptedMcpServer> servers = [];
+        var workingDirectory = Environment.CurrentDirectory;
         var remaining = new Queue<ScriptedTurn>(script.Turns);
         var sessionId = $"scripted-{Guid.NewGuid():N}";
         var nextRequestId = 10_000;
@@ -46,7 +47,11 @@ public sealed class ScriptedAcpService(IScriptedTurnScript scripts, IScriptedMcp
                 continue;
 
             if (method is "session/new" or "session/load")
+            {
                 servers = ScriptedMcpDirectiveProvider.Servers(frame["params"]);
+                if (frame["params"]?["cwd"] is JsonValue cwd && cwd.GetValue<string>() is { Length: > 0 } path)
+                    workingDirectory = path;
+            }
 
             var directive = method == "session/prompt" && mcp is not null
                 ? ScriptedMcpDirectiveProvider.Parse(ScriptedMcpDirectiveProvider.PromptText(frame["params"]))
@@ -54,6 +59,14 @@ public sealed class ScriptedAcpService(IScriptedTurnScript scripts, IScriptedMcp
             if (directive is not null)
             {
                 await CallToolsAsync(directive, servers, sessionId, id, output, cancellationToken);
+                continue;
+            }
+
+            if (method == "session/prompt" && script.Plays is { Count: > 0 } plays)
+            {
+                var text = ScriptedMcpDirectiveProvider.PromptText(frame["params"]);
+                var play = plays.FirstOrDefault(candidate => candidate.When.All(phrase => text.Contains(phrase, StringComparison.Ordinal)));
+                await PerformAsync(play, workingDirectory, servers, sessionId, id, output, cancellationToken);
                 continue;
             }
 
@@ -147,6 +160,62 @@ public sealed class ScriptedAcpService(IScriptedTurnScript scripts, IScriptedMcp
         }
     }
 
+    /// <summary>
+    /// Answers a prompt with the play it selected: each file written, as an edit tool call, then
+    /// each MCP call. A prompt no play answers gets a reply saying so and changes nothing.
+    /// </summary>
+    private async Task PerformAsync(
+        ScriptedPlay? play,
+        string workingDirectory,
+        IReadOnlyList<ScriptedMcpServer> servers,
+        string sessionId,
+        JsonNode? promptId,
+        TextWriter output,
+        CancellationToken cancellationToken)
+    {
+        if (play is null)
+        {
+            await ReplyAsync(output, sessionId, promptId, "No play answers this prompt.", cancellationToken);
+            return;
+        }
+
+        foreach (var (write, index) in (play.Write ?? []).Select((write, index) => (write, index)))
+        {
+            var refusal = files is null
+                ? "This agent cannot write files."
+                : await files.WriteAsync(workingDirectory, write.Path, write.Content, cancellationToken);
+            await UpdateAsync(output, sessionId, new JsonObject
+            {
+                ["sessionUpdate"] = "tool_call",
+                ["toolCallId"] = $"write-{index + 1}",
+                ["title"] = $"Write {write.Path}",
+                ["kind"] = "edit",
+                ["status"] = refusal is null ? "completed" : "failed",
+                ["locations"] = new JsonArray { new JsonObject { ["path"] = write.Path } },
+                ["rawInput"] = new JsonObject { ["path"] = write.Path, ["content"] = write.Content }
+            }, cancellationToken);
+        }
+
+        var calls = (play.Mcp ?? []).Select(call => new ScriptedMcpCall(call.Server, call.Tool, call.Arguments is null ? new JsonObject() : (JsonObject)call.Arguments.DeepClone())).ToArray();
+        if (calls.Length > 0 && mcp is not null)
+        {
+            await CallToolsAsync(calls, servers, sessionId, promptId, output, cancellationToken, play.Reply);
+            return;
+        }
+
+        await ReplyAsync(output, sessionId, promptId, play.Reply ?? "Done.", cancellationToken);
+    }
+
+    private static async Task ReplyAsync(TextWriter output, string sessionId, JsonNode? promptId, string text, CancellationToken cancellationToken)
+    {
+        await UpdateAsync(output, sessionId, new JsonObject
+        {
+            ["sessionUpdate"] = "agent_message_chunk",
+            ["content"] = new JsonObject { ["type"] = "text", ["text"] = text }
+        }, cancellationToken);
+        await WriteAsync(output, Result(promptId, new JsonObject { ["stopReason"] = "end_turn" }).ToJsonString(), cancellationToken);
+    }
+
     private static async Task RequestPermissionAsync(
         ScriptedTurn turn,
         string sessionId,
@@ -225,7 +294,8 @@ public sealed class ScriptedAcpService(IScriptedTurnScript scripts, IScriptedMcp
         string sessionId,
         JsonNode? promptId,
         TextWriter output,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        string? reply = null)
     {
         var failed = 0;
         foreach (var (call, index) in calls.Select((call, index) => (call, index)))
@@ -269,7 +339,7 @@ public sealed class ScriptedAcpService(IScriptedTurnScript scripts, IScriptedMcp
             ["content"] = new JsonObject
             {
                 ["type"] = "text",
-                ["text"] = $"Called {calls.Count} tool(s); {failed} failed."
+                ["text"] = reply ?? $"Called {calls.Count} tool(s); {failed} failed."
             }
         }, cancellationToken);
         await WriteAsync(output, Result(promptId, new JsonObject { ["stopReason"] = "end_turn" }).ToJsonString(), cancellationToken);

@@ -407,6 +407,9 @@ internal sealed class AgentUpServerProcess : IAsyncDisposable
 
     public HttpClient Http => _http;
 
+    /// <summary>Where this Server keeps its state, for a test that seeds what a sign-in would have stored.</summary>
+    public string DataDirectory => _dataDirectory;
+
     public string Output
     {
         get

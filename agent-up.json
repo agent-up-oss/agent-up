@@ -311,7 +311,7 @@
       },
       "server": {
         "requires": ["dotnet"],
-        "command": "dotnet test AgentUp.Server.Tests --filter Category!=LoopInference&Category!=LoopSoak&Category!=OpencodeInference&Category!=AgentSandboxE2E&Category!=AgentMcpE2E&Category!=ForgejoE2E --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/server",
+        "command": "dotnet test AgentUp.Server.Tests --filter Category!=LoopInference&Category!=LoopSoak&Category!=OpencodeInference&Category!=AgentSandboxE2E&Category!=AgentMcpE2E&Category!=TeamForgejoE2E&Category!=ForgejoE2E --settings coverlet.runsettings --collect:\"XPlat Code Coverage\" --results-directory artifacts/coverage/server",
         "tier": "fast",
         "inputs": [
           "AgentUp.Server",

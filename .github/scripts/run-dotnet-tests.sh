@@ -19,7 +19,7 @@ while IFS= read -r -d "" test_project; do
   test_command=(
     dotnet test "$test_project"
     --configuration Release
-    --filter "Category!=LoopInference&Category!=LoopSoak&Category!=OpencodeInference&Category!=AgentSandboxE2E&Category!=AgentMcpE2E&Category!=ForgejoE2E"
+    --filter "Category!=LoopInference&Category!=LoopSoak&Category!=OpencodeInference&Category!=AgentSandboxE2E&Category!=AgentMcpE2E&Category!=TeamForgejoE2E&Category!=ForgejoE2E"
     --results-directory "artifacts/test-results/$test_project_name"
     --logger "trx;LogFileName=test-results.trx"
   )
