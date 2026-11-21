@@ -43,6 +43,22 @@ public sealed class WorkspaceRegistrationBuilderTests
         });
     }
 
+    // The repository's name is a default for a new workspace; display.name is a decision to rename.
+    [Test]
+    public void Build_marksOnlyTheRepositorysNameAsADefault()
+    {
+        var identity = new WorkspaceIdentity("/repo", "main", "abc123");
+
+        var plain = WorkspaceRegistrationBuilder.Build(new AgentUpConfiguration("Harbor storefront"), identity, "/repo");
+        var named = WorkspaceRegistrationBuilder.Build(new AgentUpConfiguration("Harbor storefront", Display: new WorkspaceDisplayConfiguration("Hector's checkout", null)), identity, "/repo");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That((plain.DisplayName, plain.NameIsRepositoryName), Is.EqualTo(("Harbor storefront", true)));
+            Assert.That((named.DisplayName, named.NameIsRepositoryName), Is.EqualTo(("Hector's checkout", false)));
+        });
+    }
+
     [Test]
     public void Build_preserves_unknown_runtime_sections()
     {

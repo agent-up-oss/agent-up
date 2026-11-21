@@ -14,7 +14,7 @@ Property names are shown in the JSON form Agent-Up examples use. Existing config
 
 | Property | Type | Required | Default | Description |
 |---|---:|---:|---:|---|
-| `name` | string | Yes | none | Human-readable project name shown for the workspace. |
+| `name` | string | Yes | none | Human-readable project name shown for a new workspace. Starting a workspace that already has a name keeps that name. |
 | `display` | [Display](#display-object) | No | derived workspace visuals | Optional Desktop-only workspace list label overrides. |
 | `applications` | array of [Application](#application-object) | No | `[]` | Legacy local process applications launched directly from executable-plus-arguments commands. |
 | `desktopApplications` | array of [Desktop Application](#desktop-application-object) | No | `[]` | Linux graphical applications hosted on Server-owned virtual displays and streamed to Desktop and Mobile. |

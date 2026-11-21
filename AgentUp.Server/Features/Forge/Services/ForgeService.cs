@@ -336,7 +336,8 @@ public sealed class ForgeService(
                         command.ProposalNumber,
                         command.Body,
                         command.Event,
-                        [.. (command.Findings ?? []).Select(finding => new ForgeReviewComment(finding.Path, finding.Line, finding.Body))]),
+                        [.. (command.Findings ?? []).Select(finding => new ForgeReviewComment(finding.Path, finding.Line, finding.Body))],
+                        command.CommitId),
                     cancellationToken);
                 return true;
             },

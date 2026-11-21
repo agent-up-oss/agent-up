@@ -75,6 +75,7 @@ public sealed class TaskPipelineServiceTests
             Assert.That(task.Stage, Is.EqualTo(TaskStage.InReview));
             Assert.That(task.Proposal, Is.EqualTo(new TaskProposal("42", "https://example.test/42", "agent-up/issue-1", "main", 1, team.Git.Commit)));
             Assert.That(team.Progress.Satisfied(team.Bob, RoleTerminationKind.ProposalOpened), Is.True);
+            Assert.That(team.Forge.TeamWrites, Does.Contain("bob-token: assign #42 -> bob"), "the proposal is assigned to its author too");
         });
     }
 

@@ -155,7 +155,8 @@ public sealed class TaskPipelineService(
         }
         catch (HttpRequestException exception)
         {
-            logger?.LogWarning(exception, "The host did not record the review request for {WorkspaceId} on {Proposal}.", workspaceId, task.Proposal!.Number);
+            // The proposal number and workspace come from the host and the request, so they stay out of the log line.
+            logger?.LogWarning(exception, "The host did not record a review request.");
         }
     }
 
@@ -192,6 +193,9 @@ public sealed class TaskPipelineService(
             if (opened is null)
                 return TaskTurnOutcome.Blocked("proposal_failed", "The host did not open the proposal.");
             (number, url) = (opened.Number, opened.Url);
+            // The proposal is the author's work as much as the issue is its task.
+            if (int.TryParse(number, out var proposal) && await forge.ReadAccountAsync(workspaceId, cancellationToken) is { } author)
+                await forge.AssignIssueAsync(workspaceId, proposal, author.Login, cancellationToken);
         }
         else
         {
@@ -233,7 +237,7 @@ public sealed class TaskPipelineService(
             body = verdict == TaskReviewVerdict.Approve ? "Looks good." : "No written findings.";
         var submitted = await forge.SubmitReviewAsync(
             workspaceId,
-            new ForgeReviewRequest(task.Proposal!.Number, body, ReviewVerdictText.Event(verdict), findings),
+            new ForgeReviewRequest(task.Proposal!.Number, body, ReviewVerdictText.Event(verdict), findings, task.Proposal.Head),
             cancellationToken);
         if (!submitted.Submitted)
             return TaskTurnOutcome.Blocked("review_failed", submitted.Refusal ?? "The host did not accept the review.");

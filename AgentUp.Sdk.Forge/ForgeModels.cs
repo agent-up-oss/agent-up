@@ -69,11 +69,17 @@ public sealed record ForgeCommentCommand(string ProposalNumber, string Body);
 /// <summary>One finding at a code location: a line of a file in the change, and what to do about it.</summary>
 public sealed record ForgeReviewComment(string Path, int Line, string Body);
 
+/// <summary>
+/// A review of one proposal. <paramref name="CommitId"/> names the commit that was reviewed, so a
+/// host that has not caught up with the latest push still files the verdict against the right
+/// revision; without it the host uses whatever head it holds.
+/// </summary>
 public sealed record ForgeSubmitReviewCommand(
     string ProposalNumber,
     string Body,
     string Event,
-    IReadOnlyList<ForgeReviewComment>? Comments = null);
+    IReadOnlyList<ForgeReviewComment>? Comments = null,
+    string? CommitId = null);
 
 /// <summary>A file the host stores against an issue or proposal, and where a reader opens it.</summary>
 public sealed record ForgeAttachment(string Name, string Url);

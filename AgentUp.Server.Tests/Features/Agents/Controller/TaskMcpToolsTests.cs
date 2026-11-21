@@ -64,7 +64,7 @@ public sealed class TaskMcpToolsTests
         Assert.Multiple(() =>
         {
             Assert.That(result.Succeeded, Is.True, result.Message);
-            Assert.That(team.Forge.LastReview!.Event, Is.EqualTo("REQUEST_CHANGES"));
+            Assert.That((team.Forge.LastReview!.Event, team.Forge.LastReview.CommitId), Is.EqualTo(("REQUEST_CHANGES", team.Git.Commit)), "filed against the revision reviewed");
             Assert.That(team.Forge.LastReview.Comments, Is.EqualTo(new[] { new AgentUp.Sdk.Forge.ForgeReviewComment("src/greeting.js", 1, "Keep the comma after Ahoy.") }));
             Assert.That(team.Forge.LastReview.Body, Does.Contain("![Screenshot 1](https://example.test/attachments/1)"));
             Assert.That(task.Stage, Is.EqualTo(TaskStage.ChangesRequested));

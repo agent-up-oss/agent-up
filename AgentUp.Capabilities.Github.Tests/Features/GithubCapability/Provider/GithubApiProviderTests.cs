@@ -486,9 +486,9 @@ public sealed class GithubApiProviderTests
         var handler = Recorded(("POST /repos/acme/widgets/pulls/42/reviews", "{}"));
 
         await new GithubForgeCapability(handler).SubmitReviewAsync(Request(), new ForgeSubmitReviewCommand(
-            "42", "One thing.", "REQUEST_CHANGES", [new ForgeReviewComment("src/greeting.js", 3, "Keep the comma.")]));
+            "42", "One thing.", "REQUEST_CHANGES", [new ForgeReviewComment("src/greeting.js", 3, "Keep the comma.")], "abc123"));
 
-        Assert.That(handler.Bodies.Single(), Does.Contain("\"path\":\"src/greeting.js\"").And.Contain("\"line\":3").And.Contain("\"side\":\"RIGHT\""));
+        Assert.That(handler.Bodies.Single(), Does.Contain("\"path\":\"src/greeting.js\"").And.Contain("\"line\":3").And.Contain("\"side\":\"RIGHT\"").And.Contain("\"commit_id\":\"abc123\""));
     }
 
     [Test]

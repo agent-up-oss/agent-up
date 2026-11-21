@@ -25,7 +25,8 @@ public static class WorkspaceRegistrationBuilder
             Services = config.Services ?? [],
             Dotnet = config.Dotnet ?? [],
             Docker = config.Docker ?? [],
-            RuntimeSections = RuntimeSectionMapper.Effective(config)
+            RuntimeSections = RuntimeSectionMapper.Effective(config),
+            NameIsRepositoryName = string.IsNullOrWhiteSpace(config.Display?.Name)
         };
     }
 }

@@ -311,6 +311,24 @@ public sealed class GitChangeTreeServiceTests
         Assert.That(git.CommittedFiles, Is.Empty);
     }
 
+    // submit_work runs inside the agent's own turn; the Server's task-branch commit for it is the
+    // one write a running prompt must not block.
+    [Test]
+    public async Task CommitAllToBranchAsync_commitsTheAgentsWorkWhileItsPromptIsRunning()
+    {
+        var git = new FakeGitWorkingTreeProvider();
+        git.Changes.Add(new GitChangeEntry("web/greeting.txt", GitChangeStatus.Modified));
+        var (service, workspaceId) = await CreateServiceAsync(git, new FakeWorkspacePromptGuard { Running = true });
+
+        var result = await service.CommitAllToBranchAsync(workspaceId, "agent-up/issue-1", "Say Ahoy (#1)", new GitIdentity("bob", "bob@agent-up.invalid"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Succeeded, Is.True, result.Error);
+            Assert.That(git.Branch, Is.EqualTo("agent-up/issue-1"));
+        });
+    }
+
     [Test]
     public async Task SwitchBranchAsync_rejectsWhileAPromptIsRunning()
     {

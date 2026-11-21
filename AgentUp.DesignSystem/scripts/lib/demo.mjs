@@ -147,7 +147,7 @@ function classify(session, loop) {
   if (!loop) return same(session?.state, 'running') ? 'working' : 'idle';
   if (isHalted(loop)) return 'halted';
   if (isWaiting(session, loop)) return 'waiting';
-  return loop.active ? 'working' : 'idle';
+  return loop.active && !same(loop.phase, 'idle') ? 'working' : 'idle';
 }
 
 function isHalted(loop) {
@@ -205,7 +205,7 @@ function fleetMeta(fleet) {
 function agentMessages(loop) {
   const seen = new Set();
   const messages = [];
-  for (const value of [loop?.blockReason, loop?.stopReason]) {
+  for (const value of [loop?.blockReason, same(loop?.stopReason, 'queue_empty') ? null : loop?.stopReason]) {
     if (typeof value !== 'string' || !value.includes(' ')) continue;
     const text = value.trim();
     if (!text || seen.has(text)) continue;

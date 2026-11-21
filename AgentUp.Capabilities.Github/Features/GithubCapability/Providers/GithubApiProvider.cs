@@ -217,11 +217,14 @@ public sealed class GithubApiProvider(HttpMessageHandler? handler = null, string
         var comments = (command.Comments ?? [])
             .Select(comment => new { path = comment.Path, line = comment.Line, side = "RIGHT", body = comment.Body })
             .ToArray();
+        var review = new System.Text.Json.Nodes.JsonObject { ["body"] = command.Body, ["event"] = command.Event };
+        if (comments.Length > 0)
+            review["comments"] = JsonSerializer.SerializeToNode(comments);
+        if (!string.IsNullOrWhiteSpace(command.CommitId))
+            review["commit_id"] = command.CommitId;
         using var response = await client.PostAsJsonAsync(
             $"repos/{request.Owner}/{request.Repository}/pulls/{command.ProposalNumber}/reviews",
-            comments.Length == 0
-                ? new { body = command.Body, @event = command.Event }
-                : (object)new { body = command.Body, @event = command.Event, comments },
+            review,
             cancellationToken);
         response.EnsureSuccessStatusCode();
     }

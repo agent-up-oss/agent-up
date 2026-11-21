@@ -334,9 +334,11 @@ public sealed class ForgejoApiProviderTests
         var handler = Recorded(("POST /repos/acme/widgets/pulls/42/reviews", "{}"));
 
         await new ForgejoForgeCapability(handler).SubmitReviewAsync(Request(), new ForgeSubmitReviewCommand(
-            "42", "One thing.", "REQUEST_CHANGES", [new ForgeReviewComment("src/greeting.js", 1, "Keep the comma.")]));
+            "42", "One thing.", "REQUEST_CHANGES", [new ForgeReviewComment("src/greeting.js", 1, "Keep the comma.")], "abc123"));
 
-        Assert.That(handler.Bodies.Single(), Does.Contain("\"path\":\"src/greeting.js\"").And.Contain("\"new_position\":1").And.Contain("\"event\":\"REQUEST_CHANGES\""));
+        // The reviewed commit is named, so a review landing before Forgejo moves the pull's head
+        // after a push is still filed against the revision it is about.
+        Assert.That(handler.Bodies.Single(), Does.Contain("\"path\":\"src/greeting.js\"").And.Contain("\"new_position\":1").And.Contain("\"event\":\"REQUEST_CHANGES\"").And.Contain("\"commit_id\":\"abc123\""));
     }
 
     [Test]
@@ -354,24 +356,31 @@ public sealed class ForgejoApiProviderTests
     }
 
     [Test]
-    public async Task AttachAsync_uploadsTheFileAndReturnsWhereToOpenIt()
+    // The file belongs to whoever shared it, so it hangs off a comment of theirs rather than the
+    // proposal's first post, which is the author's.
+    public async Task AttachAsync_uploadsTheFileOnACommentOfTheSharersAndReturnsWhereToOpenIt()
     {
-        var handler = Recorded(("POST /repos/acme/widgets/issues/42/assets?name=shot.png",
-            """{"name":"shot.png","browser_download_url":"https://forgejo.example.test/attachments/abc"}"""));
+        var handler = Recorded(
+            ("POST /repos/acme/widgets/issues/42/comments", """{"id":7}"""),
+            ("POST /repos/acme/widgets/issues/comments/7/assets?name=shot.png",
+                """{"name":"shot.png","browser_download_url":"https://forgejo.example.test/attachments/abc"}"""));
 
         var attachment = await new ForgejoForgeCapability(handler).AttachAsync(Request(), "42", "shot.png", "image/png", [1, 2, 3]);
 
         Assert.Multiple(() =>
         {
             Assert.That(attachment, Is.EqualTo(new ForgeAttachment("shot.png", "https://forgejo.example.test/attachments/abc")));
-            Assert.That(handler.Bodies.Single(), Does.Contain("name=attachment"));
+            Assert.That(handler.Bodies[0], Does.Contain("Screenshot for my review: shot.png"));
+            Assert.That(handler.Bodies[1], Does.Contain("name=attachment"));
         });
     }
 
     [Test]
     public async Task AttachAsync_returnsNothingWhenTheHostNamesNoLink()
     {
-        var handler = Recorded(("POST /repos/acme/widgets/issues/42/assets?name=shot.png", "{}"));
+        var handler = Recorded(
+            ("POST /repos/acme/widgets/issues/42/comments", """{"id":7}"""),
+            ("POST /repos/acme/widgets/issues/comments/7/assets?name=shot.png", "{}"));
 
         var attachment = await new ForgejoForgeCapability(handler).AttachAsync(Request(), "42", "shot.png", "image/png", [1]);
 

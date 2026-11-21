@@ -186,7 +186,8 @@ public sealed class TeamStandingService
         if (loop is null) return WithoutLoop(session);
         if (IsHalted(loop)) return TeamStandingKind.Halted;
         if (IsWaiting(session, loop)) return TeamStandingKind.WaitingOnYou;
-        return loop.Active ? TeamStandingKind.Working : TeamStandingKind.Idle;
+        // An active member between tasks is waiting for work, not doing any.
+        return loop.Active && !Equals(loop.Phase, "idle") ? TeamStandingKind.Working : TeamStandingKind.Idle;
     }
 
     /// <summary>
@@ -217,7 +218,7 @@ public sealed class TeamStandingService
     private static string? Reason(AgentLoopStatusDto? loop, ForgeStanding forge)
         => loop?.BlockReason is { Length: > 0 } blocked ? blocked
             : forge.Detail is { Length: > 0 } detail ? detail
-            : loop?.StopReason;
+            : Equals(loop?.StopReason, "queue_empty") ? null : loop?.StopReason;
 
     private static ForgeStanding Count(ForgeHostingDto? hosting)
     {

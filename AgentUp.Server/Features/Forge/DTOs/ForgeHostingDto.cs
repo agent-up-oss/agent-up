@@ -57,7 +57,7 @@ public sealed record ForgeUpdateRefRequest(string Ref, string Sha);
 
 public sealed record ForgeCommentRequest(string ProposalNumber, string Body);
 
-public sealed record ForgeReviewRequest(string ProposalNumber, string Body, string Event, IReadOnlyList<ForgeReviewFindingDto>? Findings = null);
+public sealed record ForgeReviewRequest(string ProposalNumber, string Body, string Event, IReadOnlyList<ForgeReviewFindingDto>? Findings = null, string? CommitId = null);
 
 /// <summary>One review finding: a comment on one line of one changed file.</summary>
 public sealed record ForgeReviewFindingDto(string Path, int Line, string Body);

@@ -76,6 +76,8 @@ public sealed class TeamForgejoE2ETests
         {
             Assert.That(assignees, Is.EqualTo(new[] { "bob" }), "taking the ticket assigns it to the author's account");
             Assert.That((Login(pull), pull.GetProperty("head").GetProperty("ref").GetString()), Is.EqualTo(("bob", $"agent-up/issue-{issue}")));
+            Assert.That(pull.GetProperty("body").GetString(), Does.Contain("The storefront now greets visitors with Ahoy."),
+                "the proposal is what submit_work handed over, not a reply after it");
             Assert.That(task["proposal"]!["revision"]!.GetValue<int>(), Is.EqualTo(2), "the finding sent it back once");
             Assert.That(findings.EnumerateArray().Select(comment => (comment.GetProperty("path").GetString(), comment.GetProperty("body").GetString())),
                 Does.Contain(("web/greeting.txt", Finding)));

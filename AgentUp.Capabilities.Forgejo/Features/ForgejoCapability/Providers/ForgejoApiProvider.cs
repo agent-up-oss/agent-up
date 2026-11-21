@@ -161,9 +161,19 @@ public sealed class ForgejoApiProvider(HttpMessageHandler? handler = null, strin
         var comments = (command.Comments ?? [])
             .Select(comment => new { path = comment.Path, body = comment.Body, new_position = comment.Line })
             .ToArray();
+        // Forgejo moves a pull's head after a push asynchronously; naming the reviewed commit keeps
+        // a review that lands in between on the revision it is about.
+        var review = new System.Text.Json.Nodes.JsonObject
+        {
+            ["body"] = command.Body,
+            ["event"] = ReviewEvent(command.Event),
+            ["comments"] = JsonSerializer.SerializeToNode(comments)
+        };
+        if (!string.IsNullOrWhiteSpace(command.CommitId))
+            review["commit_id"] = command.CommitId;
         using var response = await client.PostAsJsonAsync(
             $"repos/{request.Owner}/{request.Repository}/pulls/{command.ProposalNumber}/reviews",
-            new { body = command.Body, @event = ReviewEvent(command.Event), comments },
+            review,
             cancellationToken);
         response.EnsureSuccessStatusCode();
     }
@@ -197,12 +207,21 @@ public sealed class ForgejoApiProvider(HttpMessageHandler? handler = null, strin
         CancellationToken cancellationToken)
     {
         using var client = CreateClient(request.Token);
+        // An asset on the issue itself lists under its first post, which is the author's. The file
+        // belongs to whoever shared it, so it goes on a comment of theirs that shows it.
+        using var comment = await client.PostAsJsonAsync(
+            $"repos/{request.Owner}/{request.Repository}/issues/{issueNumber}/comments",
+            new { body = $"Screenshot for my review: {fileName}" },
+            Json,
+            cancellationToken);
+        comment.EnsureSuccessStatusCode();
+        var commentId = (await comment.Content.ReadFromJsonAsync<JsonElement>(Json, cancellationToken)).GetProperty("id").GetRawText();
         using var form = new MultipartFormDataContent();
         using var file = new ByteArrayContent(content);
         file.Headers.ContentType = new MediaTypeHeaderValue(contentType);
         form.Add(file, "attachment", fileName);
         using var response = await client.PostAsync(
-            $"repos/{request.Owner}/{request.Repository}/issues/{issueNumber}/assets?name={Uri.EscapeDataString(fileName)}",
+            $"repos/{request.Owner}/{request.Repository}/issues/comments/{commentId}/assets?name={Uri.EscapeDataString(fileName)}",
             form,
             cancellationToken);
         response.EnsureSuccessStatusCode();

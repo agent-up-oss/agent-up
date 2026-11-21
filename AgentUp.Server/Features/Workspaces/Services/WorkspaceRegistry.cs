@@ -91,7 +91,9 @@ public sealed class WorkspaceRegistry : IHostedService
         var workspace = new Workspace
         {
             Id = workspaceId,
-            DisplayName = keepsDerivation ? existing!.DisplayName : request.DisplayName,
+            DisplayName = keepsDerivation || (existing is not null && request.NameIsRepositoryName)
+                ? existing!.DisplayName
+                : request.DisplayName,
             RepositoryPath = request.RepositoryPath,
             WorktreePath = request.WorktreePath,
             Branch = request.Branch,

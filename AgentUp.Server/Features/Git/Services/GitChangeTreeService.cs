@@ -155,7 +155,8 @@ public sealed class GitChangeTreeService
             },
             GitCommitResult.NotFound,
             GitCommitResult.Failed,
-            cancellationToken);
+            cancellationToken,
+            forTheAgent: true);
 
     /// <summary>Starts a task branch at the commit now checked out, so the work has a home before it has a commit.</summary>
     public Task<GitMutationResult> StartBranchAsync(
@@ -179,7 +180,8 @@ public sealed class GitChangeTreeService
             },
             GitMutationResult.NotFound,
             GitMutationResult.Failed,
-            cancellationToken);
+            cancellationToken,
+            forTheAgent: true);
 
     /// <summary>Checks out the fetched remote branch exactly, discarding nothing but the old local copy of it.</summary>
     public Task<GitMutationResult> ResetToRemoteBranchAsync(
@@ -203,7 +205,8 @@ public sealed class GitChangeTreeService
             },
             GitMutationResult.NotFound,
             GitMutationResult.Failed,
-            cancellationToken);
+            cancellationToken,
+            forTheAgent: true);
 
     public Task<GitMutationResult> DiscardAsync(
         string workspaceId,
@@ -329,7 +332,8 @@ public sealed class GitChangeTreeService
         Func<Workspace, Task<T>> action,
         Func<T> notFound,
         Func<string, T> failed,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool forTheAgent = false)
     {
         var workspace = _workspaces.GetById(workspaceId);
         if (workspace is null)
@@ -342,7 +346,10 @@ public sealed class GitChangeTreeService
             workspace = _workspaces.GetById(workspaceId);
             if (workspace is null)
                 return notFound();
-            if (_prompts.IsPromptRunning(workspaceId))
+            // A person changing files under a running agent would race it. The Server's own task
+            // branch writes are made for that agent, often from inside its turn when it calls
+            // submit_work, so they are the one change a running prompt does not block.
+            if (!forTheAgent && _prompts.IsPromptRunning(workspaceId))
                 return failed(PromptRunningError);
             return await action(workspace);
         }

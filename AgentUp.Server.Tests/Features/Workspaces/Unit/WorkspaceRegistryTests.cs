@@ -50,6 +50,25 @@ public class WorkspaceRegistryTests
         });
     }
 
+    // Team members check out one repository; starting one must not rename it after the repository,
+    // while an explicit display.name in agent-up.json still renames it.
+    [Test]
+    public async Task Register_again_keepsTheMembersNameOverTheRepositorysButNotOverADisplayName()
+    {
+        var registry = CreateRegistry(FakeEnabledCapabilityPackages.FirstParty());
+        var hector = await registry.RegisterAsync(ServerDomain.Workspace().Named("hector").Build());
+
+        var started = await registry.RegisterAsync(ServerDomain.Workspace().Named("Harbor storefront").Build() with { NameIsRepositoryName = true });
+        var renamed = await registry.RegisterAsync(ServerDomain.Workspace().Named("Hector's checkout").Build());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(started.Id, Is.EqualTo(hector.Id));
+            Assert.That(started.DisplayName, Is.EqualTo("hector"));
+            Assert.That(renamed.DisplayName, Is.EqualTo("Hector's checkout"));
+        });
+    }
+
     [Test]
     public async Task Register_ReturnsWorkspace_WithAllSuppliedFields()
     {
