@@ -73,7 +73,10 @@ public sealed record CommandCenterSceneInput(
     IReadOnlyList<CommandCenterSettingSlot>? ChatSettings = null,
     string? SelectedApplication = null,
     IReadOnlyList<CommandCenterModuleSlot>? Modules = null,
-    IReadOnlyList<CommandCenterApplicationSlot>? Applications = null);
+    IReadOnlyList<CommandCenterApplicationSlot>? Applications = null,
+    IReadOnlyList<CommandCenterTaskSlot>? DevReviews = null,
+    IReadOnlyList<CommandCenterTaskSlot>? PmReviews = null,
+    string TasksTab = "issues");
 
 /// <summary>One application of the open workspace, as its tab shows it.</summary>
 public sealed record CommandCenterApplicationSlot(string Name, bool Running);
@@ -112,6 +115,11 @@ public static class CommandCenterScene
         binding.Items["settingsWorkspaces"] = team.Select(standing => SettingsWorkspace(standing, input.SettingsWorkspaceId ?? input.OpenWorkspaceId)).ToArray();
         binding.Items["fleet"] = Lanes(team).ToArray();
         binding.Items["queue"] = input.Tasks.Select(Task).ToArray();
+        binding.Items["devReview"] = (input.DevReviews ?? []).Select(Task).ToArray();
+        binding.Items["pmReview"] = (input.PmReviews ?? []).Select(Task).ToArray();
+        // The Tasks board shows one of its three queues; the scene marks the tab and the page.
+        binding.State["tasksTab"] = input.TasksTab;
+        binding.State[$"{input.TasksTab}Tab"] = "1";
         binding.Items["flows"] = input.Flows.Select(Flow).ToArray();
         binding.Items["chatFields"] = (input.ChatSettings ?? []).Select(Setting).ToArray();
         binding.Items["modules"] = (input.Modules ?? []).Select(Module).ToArray();

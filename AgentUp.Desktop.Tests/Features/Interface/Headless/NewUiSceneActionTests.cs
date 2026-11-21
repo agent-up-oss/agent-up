@@ -43,6 +43,49 @@ public sealed class NewUiSceneActionTests
         window.Close();
     }
 
+    // The board opens on Issues; choosing Dev review moves the selection there and shows that queue,
+    // whose rows offer no button because reviewers take reviews themselves.
+    [AvaloniaTest]
+    public void TheTasksBoard_showsTheChosenReviewQueueUnderItsTab()
+    {
+        var scene = new NewUiScene();
+        scene.Apply(
+            "tasks",
+            new Dictionary<string, string> { ["server"] = "Demo" },
+            new Dictionary<string, IReadOnlyList<NewUiSlotItem>>
+            {
+                ["devReview"] =
+                [
+                    new NewUiSlotItem
+                    {
+                        Id = "I-39",
+                        Action = "reviewing",
+                        Text = { ["title"] = "#39 · Product cards cut off long names", ["agent"] = "Hector · revision 2", ["repo"] = "example/repository" },
+                        Parts = { "agent" },
+                    },
+                ],
+            },
+            new Dictionary<string, string> { ["nav"] = "1", ["tasksTab"] = "dev", ["devTab"] = "1" });
+        var window = new Window { Width = 1440, Height = 900, Content = scene };
+        window.Show();
+
+        var tabs = scene.GetVisualDescendants().OfType<Button>()
+            .Where(button => Words(button) is "Issues" or "Dev review" or "PM review")
+            .ToDictionary(Words, button => button.Classes.Contains("au-app-tab--selected") || button.Content is Border { } face && face.Classes.Contains("au-app-tab--selected"));
+        var words = scene.GetVisualDescendants().OfType<TextBlock>().Select(text => text.Text).ToArray();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(tabs, Is.EqualTo(new Dictionary<string, bool> { ["Issues"] = false, ["Dev review"] = true, ["PM review"] = false }));
+            Assert.That(words, Does.Contain("Hector · revision 2").And.Contain("Under review · 1"));
+            Assert.That(words, Does.Not.Contain("Dequeue").And.Not.Contain("Stop"));
+        });
+        window.Close();
+    }
+
+    private static string Words(Button button) =>
+        string.Join(" ", button.GetVisualDescendants().OfType<TextBlock>().Select(text => text.Text)).Trim();
+
     /// <summary>A scene button carries its class itself or on the face it paints.</summary>
     private static Button ButtonWithClass(NewUiScene scene, string name) =>
         scene.GetVisualDescendants().OfType<Button>().First(button =>

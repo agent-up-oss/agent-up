@@ -30,6 +30,7 @@ The first suite runs from `au-debug validate --surface desktop` and `au-debug va
 | Autonomous loop / activate | Activate after a satisfied checklist, typed terminal | gap | gap |
 | Forge review / hosting | Hosting strip notInstalled with bootstrap remedy | covered | covered |
 | Forge review / proposal | Open a proposal, checks, review threads | gap | gap |
+| Tasks / review queues | Switch the Tasks board to Dev review and PM review, see who holds each review and which revision | gap | gap |
 | Capabilities | List modules, enable one | gap | gap |
 | Capabilities / unavailable | A capability whose software is missing shows it on its button and cannot be enabled | gap | gap |
 | Capabilities / settings | Enable OpenCode, set endpoint, token, and model, see it become ready | gap | gap |

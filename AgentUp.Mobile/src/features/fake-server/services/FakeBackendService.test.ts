@@ -612,7 +612,7 @@ test('messaging a reviewer leaves the author\'s branch alone', () => {
 test('the demo serves the picked queue in the order it will be worked', () => {
   const service = backend();
   const queue = json(service, 'GET', '/api/tasks');
-  assert.deepEqual(queue.map((task: { number: number }) => task.number), [44, 51, 48]);
+  assert.deepEqual(queue.map((task: { number: number }) => task.number), [44, 51, 48, 39, 36]);
   assert.equal(queue[0].heldByWorkspaceId, 'bob');
   assert.equal(queue[1].targetWorkspaceId, 'hector');
 });
@@ -649,7 +649,7 @@ test('a task a workspace is carrying is not removed, but can be released first',
   service.handle({ method: 'POST', path: '/api/tasks/example/repository/I-44/release', query: '', body: null });
   const removed = service.handle({ method: 'DELETE', path: '/api/tasks/example/repository/I-44', query: '', body: null });
   assert.equal(removed.status, 204);
-  assert.equal(json(service, 'GET', '/api/tasks').length, 2);
+  assert.equal(json(service, 'GET', '/api/tasks').length, 4);
 });
 
 test('dragging a task to a position rewrites the order the demo serves', () => {
@@ -662,7 +662,7 @@ test('dragging a task to a position rewrites the order the demo serves', () => {
   assert.equal(moved.status, 204);
   assert.deepEqual(
     json(service, 'GET', '/api/tasks').map((task: { number: number }) => task.number),
-    [51, 48, 44],
+    [51, 48, 44, 39, 36],
   );
 });
 
@@ -675,7 +675,7 @@ test('a position past the end of the queue parks the task at the end', () => {
 
   assert.deepEqual(
     json(service, 'GET', '/api/tasks').map((task: { number: number }) => task.number),
-    [44, 48, 51],
+    [44, 48, 39, 36, 51],
   );
 });
 
@@ -726,6 +726,6 @@ test('a dequeued task can be picked into the queue again', () => {
   assert.equal(picked.status, 200);
   assert.deepEqual(
     json(service, 'GET', '/api/tasks').map((task: { number: number }) => task.number),
-    [44, 48, 51],
+    [44, 48, 39, 36, 51],
   );
 });

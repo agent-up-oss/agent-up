@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { TeamStanding } from '../models/TeamStanding';
-import { commandCenterScene, commandCenterSceneId, commandCenterServerLabel, fleetHeadline, moduleRow } from './CommandCenterSceneProvider';
+import { commandCenterScene, commandCenterSceneId, commandCenterServerLabel, fleetHeadline, moduleRow, tasksTabFor } from './CommandCenterSceneProvider';
 
 function standing(patch: Partial<TeamStanding> & Pick<TeamStanding, 'workspaceId' | 'displayName' | 'kind'>): TeamStanding {
   return {
@@ -152,6 +152,29 @@ test('the board hands over every row with the action it offers, in no particular
 
   assert.deepEqual(scene.items.queue.map(item => [item.id, item.action]), [['w1', 'stop'], ['q1', 'dequeue'], ['o1', 'queue']]);
   assert.deepEqual(scene.items.queue.map(item => item.text?.agent), ['Bob', '', '']);
+});
+
+// The Tasks board has three queues; the open one is the scene's state, and each review queue is
+// that kind's own: a held task in review is in the dev queue under its reviewer.
+test('the board opens one of its three queues and sorts proposals into each kind of review', () => {
+  const inReview = {
+    id: 'w1', owner: 'shop', repository: 'store', number: 44, title: 'Task 44', url: 'u', targetWorkspaceId: null, heldByWorkspaceId: 'bob',
+    stage: 'inReview' as const, proposal: { number: '7', url: 'p', branch: 'agent-up/issue-44', baseBranch: 'main', revision: 1 },
+    reviews: [], devReviewerWorkspaceId: 'hector', pmReviewerWorkspaceId: null, needsReview: ['devReviewer' as const, 'pmReviewer' as const],
+  };
+  const scene = commandCenterScene({
+    surface: 'mobile', nav: 1, section: 'overview', agentOpen: false, serverLabel: 'Demo', openWorkspaceId: null,
+    team: [], queue: [], working: [inReview], offered: [], names: new Map([['bob', 'Bob'], ['hector', 'Hector']]), flows: [],
+    tasksTab: tasksTabFor('tasks-dev-review') ?? 'issues',
+    validationsOpen: false, validationRunning: false, validationPassed: false, validationSummary: '',
+  });
+
+  assert.equal(scene.state.tasksTab, 'dev');
+  assert.equal(scene.state.devTab, '1');
+  assert.equal(scene.state.issuesTab, undefined);
+  assert.deepEqual(scene.items.devReview.map(item => [item.action, item.text?.agent]), [['reviewing', 'Hector · revision 1']]);
+  assert.deepEqual(scene.items.pmReview.map(item => [item.action, item.text?.agent]), [['waiting', 'Waiting for a reviewer · revision 1']]);
+  assert.equal(tasksTabFor('nav-tasks'), null);
 });
 
 test('a capability row names its state and the one change it offers; the scene words both', () => {

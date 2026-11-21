@@ -3464,6 +3464,77 @@
       "queuedAt": "2026-03-02T09:07:00Z",
       "targetWorkspaceId": null,
       "heldByWorkspaceId": null
+    },
+    {
+      "id": "I-39",
+      "owner": "example",
+      "repository": "repository",
+      "number": 39,
+      "title": "Product cards cut off long names",
+      "body": "Long product names overflow the card on narrow screens. Wrap them to two lines.",
+      "url": "https://github.com/example/repository/issues/39",
+      "queuedAt": "2026-03-01T15:20:00Z",
+      "targetWorkspaceId": null,
+      "heldByWorkspaceId": "frank",
+      "stage": "inReview",
+      "proposal": {
+        "number": "62",
+        "url": "https://github.com/example/repository/pull/62",
+        "branch": "agent-up/issue-39",
+        "baseBranch": "main",
+        "revision": 2,
+        "head": "4f1c2a9"
+      },
+      "reviews": [
+        {
+          "workspaceId": "hector",
+          "verdict": "requestChanges",
+          "revision": 1,
+          "body": "src/card.css:14 clips the second line.",
+          "kind": "devReviewer"
+        }
+      ],
+      "devReviewerWorkspaceId": "hector",
+      "pmReviewerWorkspaceId": null,
+      "needsReview": [
+        "devReviewer",
+        "pmReviewer"
+      ]
+    },
+    {
+      "id": "I-36",
+      "owner": "example",
+      "repository": "repository",
+      "number": 36,
+      "title": "Search forgets the last query",
+      "body": "Coming back to search should keep what was typed.",
+      "url": "https://github.com/example/repository/issues/36",
+      "queuedAt": "2026-03-01T11:05:00Z",
+      "targetWorkspaceId": null,
+      "heldByWorkspaceId": "mia",
+      "stage": "inReview",
+      "proposal": {
+        "number": "58",
+        "url": "https://github.com/example/repository/pull/58",
+        "branch": "agent-up/issue-36",
+        "baseBranch": "main",
+        "revision": 1,
+        "head": "9be03d1"
+      },
+      "reviews": [
+        {
+          "workspaceId": "hector",
+          "verdict": "approve",
+          "revision": 1,
+          "body": "Correct and tested.",
+          "kind": "devReviewer"
+        }
+      ],
+      "devReviewerWorkspaceId": "hector",
+      "pmReviewerWorkspaceId": "lucy",
+      "needsReview": [
+        "pmReviewer"
+      ]
     }
   ],
   "issues": {

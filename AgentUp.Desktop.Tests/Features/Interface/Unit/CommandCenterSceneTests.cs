@@ -242,6 +242,26 @@ public sealed class CommandCenterSceneTests
         });
     }
 
+    // The board opens one queue; a review row carries its standing as the action the scene groups by.
+    [Test]
+    public void The_tasks_board_opens_one_queue_and_lists_each_kind_of_review()
+    {
+        var binding = CommandCenterScene.Bind(Input([], sceneId: "tasks") with
+        {
+            DevReviews = [new CommandCenterTaskSlot("I-39", "#39 · Product cards", "example/repository", "Hector · revision 2", "reviewing")],
+            TasksTab = "dev",
+        });
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(binding.State["tasksTab"], Is.EqualTo("dev"));
+            Assert.That(binding.State["devTab"], Is.EqualTo("1"));
+            Assert.That(binding.State.ContainsKey("issuesTab"), Is.False);
+            Assert.That(binding.Items["devReview"].Single().Action, Is.EqualTo("reviewing"));
+            Assert.That(binding.Items["pmReview"], Is.Empty);
+        });
+    }
+
     private static CommandCenterSceneInput Input(
         IReadOnlyList<TeamStanding> team,
         string sceneId = "team",

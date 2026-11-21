@@ -28,6 +28,7 @@ public sealed class QaCoverageMap
         "Autonomous loop / activate",
         "Forge review / hosting",
         "Forge review / proposal",
+        "Tasks / review queues",
         "Capabilities",
         "Capabilities / unavailable",
         "Capabilities / settings",

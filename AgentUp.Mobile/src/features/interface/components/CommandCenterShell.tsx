@@ -36,6 +36,8 @@ import { chatSettingsFields, settingsWorkspaces } from '../providers/ChatSetting
 import {
   commandCenterScene,
   commandCenterServerLabel,
+  tasksTabFor,
+  type TasksTab,
 } from '../providers/CommandCenterSceneProvider';
 
 const Scene = createNewUiScene(React, { View, Text, Pressable, ScrollView, Icon: SceneIcon });
@@ -61,6 +63,7 @@ function CommandCenterBinder() {
   const { choose } = useInterfaceChoice();
   const { workspaces, refresh } = useWorkspaces();
   const [nav, setNav] = useState<0 | 1 | 2>(0);
+  const [tasksTab, setTasksTab] = useState<TasksTab>('issues');
   const [section, setSection] = useState<Section>('overview');
   const [openAgent, setOpenAgent] = useState<string | null>(null);
   const [modules, setModules] = useState<CapabilityModule[]>([]);
@@ -124,6 +127,7 @@ function CommandCenterBinder() {
     working: tasks.working,
     offered: tasks.offered,
     names: tasks.names,
+    tasksTab,
     // The application page carries the client's own dock, which replays a flow for real.
     flows: [],
     modules,
@@ -177,6 +181,8 @@ function CommandCenterBinder() {
     if (name === 'nav-team') { setOpenAgent(null); setNav(0); return; }
     if (name === 'nav-tasks') { setOpenAgent(null); setNav(1); return; }
     if (name === 'nav-settings') { setOpenAgent(null); setNav(2); return; }
+    const tab = tasksTabFor(name);
+    if (tab) { setTasksTab(tab); return; }
     // An application is an inner page of its agent: back returns to Apps, not to the team.
     if (name === 'back' && section === 'application') { setSection('overview'); return; }
     if (name === 'back') { setOpenAgent(null); setSection('overview'); return; }

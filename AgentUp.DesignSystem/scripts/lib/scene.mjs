@@ -618,7 +618,10 @@ export function createNewUiScene(React, native) {
     // A row's state names its host; a status dot inside it takes only a dot state.
     const dot = (node.c ?? []).includes('au-status-dot');
     if (item?.state && (node.kindHost || (node.c ?? []).includes('au-workspace') || (dot && item.state.startsWith('au-status-dot')))) classes.push(item.state);
-    if (node.selection?.[0] === 'app' && node.selection[1] !== '@id' && String(model.state.app ?? '') !== String(node.selection[1])) {
+    // The catalog bakes its default selection into the markup; once the state names another
+    // member of the group, that baked class has to go.
+    if (node.selection && node.selection[1] !== '@id' && model.state[node.selection[0]] != null
+      && String(model.state[node.selection[0]]) !== String(node.selection[1])) {
       const baked = classes.indexOf(node.selection[2]);
       if (baked >= 0) classes.splice(baked, 1);
     }
@@ -973,11 +976,13 @@ public sealed class NewUiScene : UserControl
         {
             if (flag.Count == 2 && _state.ContainsKey(flag[0])) classes.Add(flag[1]);
         }
-        if (_state.ContainsKey("tool")
-            && node.Selection is { Count: 3 } toolSelection
-            && toolSelection[0] == "tool"
-            && !(_state.TryGetValue("tool", out var tool) && tool == toolSelection[1]))
-            classes.Remove("au-subtab--selected");
+        // The catalog bakes its default selection into the markup; once the state names another
+        // member of the group, that baked class has to go.
+        if (node.Selection is { Count: 3 } baked
+            && baked[1] != "@id"
+            && _state.TryGetValue(baked[0], out var chosen)
+            && chosen != baked[1])
+            classes.Remove(baked[2]);
         // A block that holds nothing but words is one line of copy, painted by its own class.
         var words = node.K is { Count: > 0 } kids && kids.All(kid => kid.T == "#text")
             ? string.Join(" ", kids.Select(kid => kid.X)).Trim()

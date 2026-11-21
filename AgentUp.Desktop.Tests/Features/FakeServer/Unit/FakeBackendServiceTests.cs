@@ -1028,7 +1028,7 @@ public sealed class FakeBackendServiceTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(queue.Select(task => task!["number"]!.GetValue<int>()), Is.EqualTo(new[] { 44, 51, 48 }));
+            Assert.That(queue.Select(task => task!["number"]!.GetValue<int>()), Is.EqualTo(new[] { 44, 51, 48, 39, 36 }));
             Assert.That(queue[0]!["heldByWorkspaceId"]!.GetValue<string>(), Is.EqualTo("bob"));
             Assert.That(queue[1]!["targetWorkspaceId"]!.GetValue<string>(), Is.EqualTo("hector"));
         });
@@ -1094,7 +1094,7 @@ public sealed class FakeBackendServiceTests
             Assert.That(moved.Status, Is.EqualTo(204));
             Assert.That(
                 Json(backend, Get("/api/tasks")).AsArray().Select(task => task!["number"]!.GetValue<int>()),
-                Is.EqualTo(new[] { 51, 48, 44 }));
+                Is.EqualTo(new[] { 51, 48, 44, 39, 36 }));
         });
     }
 
@@ -1108,7 +1108,7 @@ public sealed class FakeBackendServiceTests
 
         Assert.That(
             Json(backend, Get("/api/tasks")).AsArray().Select(task => task!["number"]!.GetValue<int>()),
-            Is.EqualTo(new[] { 44, 48, 51 }));
+            Is.EqualTo(new[] { 44, 48, 39, 36, 51 }));
     }
 
     [Test]
@@ -1169,7 +1169,7 @@ public sealed class FakeBackendServiceTests
 
         Assert.That(
             Json(backend, Get("/api/tasks")).AsArray().Select(task => task!["number"]!.GetValue<int>()),
-            Is.EqualTo(new[] { 44, 48, 51 }));
+            Is.EqualTo(new[] { 44, 48, 39, 36, 51 }));
     }
 
     [Test]
@@ -1182,7 +1182,7 @@ public sealed class FakeBackendServiceTests
         Assert.Multiple(() =>
         {
             Assert.That(refused.Status, Is.EqualTo(409));
-            Assert.That(Json(backend, Get("/api/tasks")).AsArray(), Has.Count.EqualTo(3));
+            Assert.That(Json(backend, Get("/api/tasks")).AsArray(), Has.Count.EqualTo(5));
         });
     }
 
@@ -1197,7 +1197,7 @@ public sealed class FakeBackendServiceTests
         Assert.Multiple(() =>
         {
             Assert.That(removed.Status, Is.EqualTo(204));
-            Assert.That(Json(backend, Get("/api/tasks")).AsArray(), Has.Count.EqualTo(2));
+            Assert.That(Json(backend, Get("/api/tasks")).AsArray(), Has.Count.EqualTo(4));
         });
     }
 
