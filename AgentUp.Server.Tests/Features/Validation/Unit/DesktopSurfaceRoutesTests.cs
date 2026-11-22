@@ -15,6 +15,7 @@ public sealed class DesktopSurfaceRoutesTests
                 DesktopSurfaceRoutes.WorkspaceOverview,
                 DesktopSurfaceRoutes.WorkspaceApplications,
                 DesktopSurfaceRoutes.WorkspaceGit,
+                DesktopSurfaceRoutes.WorkspaceFiles,
                 DesktopSurfaceRoutes.WorkspaceAgents,
                 DesktopSurfaceRoutes.WorkspaceSettings
             ]));
@@ -25,6 +26,7 @@ public sealed class DesktopSurfaceRoutesTests
     [TestCase(DesktopSurfaceRoutes.WorkspaceOverview)]
     [TestCase(DesktopSurfaceRoutes.WorkspaceApplications)]
     [TestCase(DesktopSurfaceRoutes.WorkspaceGit)]
+    [TestCase(DesktopSurfaceRoutes.WorkspaceFiles)]
     [TestCase(DesktopSurfaceRoutes.WorkspaceAgents)]
     public void IsNamedRoute_acceptsTheCataloguedRoutes(string path) =>
         Assert.That(DesktopSurfaceRoutes.IsNamedRoute(path), Is.True);

@@ -78,6 +78,11 @@ public static class OperationPermissionMap
         [("GitChanges", "Fetch")] = OperationPermissions.GitWrite,
         [("GitChanges", "Pull")] = OperationPermissions.GitWrite,
         [("GitChanges", "Push")] = OperationPermissions.GitWrite,
+        // The workspace's own files are the same working tree the Git tab reviews, so reading them
+        // and editing one by hand carry the Git read and write permissions rather than new ones.
+        [("WorkspaceFiles", "GetDirectory")] = OperationPermissions.GitRead,
+        [("WorkspaceFiles", "GetFile")] = OperationPermissions.GitRead,
+        [("WorkspaceFiles", "PutFile")] = OperationPermissions.GitWrite,
         [("WorkspaceCommitQueue", "Get")] = OperationPermissions.GitRead,
         [("VerificationHttp", "Export")] = OperationPermissions.GitRead,
         [("ForgeHttp", "Get")] = OperationPermissions.GitRead,

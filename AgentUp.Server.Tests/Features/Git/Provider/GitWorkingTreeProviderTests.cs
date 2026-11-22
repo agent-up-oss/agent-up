@@ -45,6 +45,27 @@ public sealed class GitWorkingTreeProviderTests
     }
 
     [Test]
+    public async Task GetWorktreeChangesAsync_namesChangesRelativeToAWorkspaceSubfolder()
+    {
+        await File.WriteAllTextAsync(Path.Join(_repository, "README.md"), "widgets changed\n");
+        await File.WriteAllTextAsync(Path.Join(_repository, "src", "app", "main.cs"), "// changed\n");
+
+        var changes = await new GitWorkingTreeProvider().GetWorktreeChangesAsync(Path.Join(_repository, "src"));
+
+        Assert.That(changes.Select(change => change.Path), Is.EqualTo(new[] { "app/main.cs" }));
+    }
+
+    [Test]
+    public async Task GetWorktreeChangesAsync_matchesTheRepositoryAtItsRoot()
+    {
+        await File.WriteAllTextAsync(Path.Join(_repository, "README.md"), "widgets changed\n");
+
+        var changes = await new GitWorkingTreeProvider().GetWorktreeChangesAsync(_repository);
+
+        Assert.That(changes.Select(change => change.Path), Is.EqualTo(new[] { "README.md" }));
+    }
+
+    [Test]
     public async Task GetChangesAsync_reportsRenameDestinationsOnce()
     {
         await TestGitRepository.RunAsync(_repository, "mv", "README.md", "READ.md");

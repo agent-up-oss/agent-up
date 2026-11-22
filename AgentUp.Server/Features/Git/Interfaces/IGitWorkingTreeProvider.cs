@@ -6,6 +6,12 @@ public interface IGitWorkingTreeProvider
 {
     Task<IReadOnlyList<GitChangeEntry>> GetChangesAsync(string worktreePath, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// The changed files at or under the workspace folder, with paths relative to that folder
+    /// rather than to the repository root, for a workspace that is a subfolder of its repository.
+    /// </summary>
+    Task<IReadOnlyList<GitChangeEntry>> GetWorktreeChangesAsync(string worktreePath, CancellationToken cancellationToken = default);
+
     Task<GitHeadState> GetHeadStateAsync(string worktreePath, CancellationToken cancellationToken = default);
 
     Task<GitFileDiff?> GetFileDiffAsync(string worktreePath, string filePath, CancellationToken cancellationToken = default);

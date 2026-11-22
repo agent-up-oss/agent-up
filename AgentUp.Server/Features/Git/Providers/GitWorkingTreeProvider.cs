@@ -21,6 +21,21 @@ public sealed partial class GitWorkingTreeProvider : IGitWorkingTreeProvider
             .ToList();
     }
 
+    public async Task<IReadOnlyList<GitChangeEntry>> GetWorktreeChangesAsync(
+        string worktreePath,
+        CancellationToken cancellationToken = default)
+    {
+        var prefix = NormalizeSeparators(await RunGitAsync(worktreePath, ["rev-parse", "--show-prefix"], cancellationToken));
+        var changes = await GetChangesAsync(worktreePath, cancellationToken);
+        if (prefix.Length == 0)
+            return changes;
+        return changes
+            .Where(change => change.Path.StartsWith(prefix, StringComparison.Ordinal))
+            .Select(change => change with { Path = change.Path[prefix.Length..] })
+            .Where(change => change.Path.Length > 0)
+            .ToList();
+    }
+
     public async Task<GitHeadState> GetHeadStateAsync(
         string worktreePath,
         CancellationToken cancellationToken = default)
