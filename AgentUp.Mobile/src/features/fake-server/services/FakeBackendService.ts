@@ -26,6 +26,7 @@ import {
   type FakeGitState,
 } from '../providers/FakeGitProvider';
 import { fakeReviewReportStyleTag } from '../providers/FakeReviewReportCss';
+import { fakeDirectoryListing, fakeFileContent, writeFakeFile, type FakeFilesInput, type FakeFilesResult } from '../providers/FakeFilesProvider';
 
 export const fakeWorkspaceStartPhaseMs = 1000;
 
@@ -174,6 +175,8 @@ export class FakeBackendService {
   private readonly agentListeners = new Map<string, AgentListener[]>();
   private readonly workspaceListeners: WorkspaceListener[] = [];
   private readonly git = new Map<string, FakeGitState>();
+  /** Files edited by hand in this session, per workspace. */
+  private readonly fileEdits = new Map<string, Map<string, string>>();
   private readonly appTemplates = new Map<string, NonNullable<WorkspaceRecord['applications']>>();
   private agentSequence = 0;
   private loopGeneration = 0;
@@ -309,6 +312,9 @@ export class FakeBackendService {
     if (method === 'GET' && rest === 'commit-queue') return this.gitQueue(workspaceId);
     if (method === 'GET' && rest === 'forge') return json(this.forge(workspaceId));
     if (method === 'GET' && rest === 'forge/issues') return json(this.openIssues(workspaceId));
+    if (method === 'GET' && rest === 'files/directory') return this.filesResponse(workspaceId, input => fakeDirectoryListing(input, queryValue(request.query, 'path')));
+    if (method === 'GET' && rest === 'files/file') return this.filesResponse(workspaceId, input => fakeFileContent(input, queryValue(request.query, 'path')));
+    if (method === 'PUT' && rest === 'files/file') return this.writeFile(workspaceId, request.body);
     if (method === 'GET' && rest.startsWith('git/file')) return this.gitDiff(workspaceId, request.query);
     if (method === 'POST' && rest.startsWith('git/')) return this.gitMutation(workspaceId, rest.slice('git/'.length), request.body);
     if (method === 'GET' && rest === 'agent/loop') return this.agentLoop(workspaceId);
@@ -717,6 +723,43 @@ export class FakeBackendService {
   private gitQueue(workspaceId: string): FakeBackendResponse {
     const git = this.git.get(workspaceId);
     return git ? json(gitQueuePayload(git)) : notFound();
+  }
+
+  private filesInput(workspaceId: string): FakeFilesInput | null {
+    if (!this.findWorkspace(workspaceId)) return null;
+    let edits = this.fileEdits.get(workspaceId);
+    if (!edits) {
+      edits = new Map();
+      this.fileEdits.set(workspaceId, edits);
+    }
+    return { workspaceId, repository: this.state.files ?? {}, edits, changes: this.git.get(workspaceId)?.files ?? [] };
+  }
+
+  private filesResponse<T>(workspaceId: string, read: (input: FakeFilesInput) => FakeFilesResult<T>): FakeBackendResponse {
+    const input = this.filesInput(workspaceId);
+    if (!input) return notFound();
+    const result = read(input);
+    return result.ok ? json(result.value) : problem(result.status, result.title, result.detail);
+  }
+
+  private writeFile(workspaceId: string, body: string | null): FakeBackendResponse {
+    const input = this.filesInput(workspaceId);
+    if (!input) return notFound();
+    let request: Record<string, unknown> = {};
+    try {
+      request = JSON.parse(body ?? '{}') as Record<string, unknown>;
+    } catch {
+      return problem(400, 'Invalid file request', 'The save body is not JSON.');
+    }
+    const result = writeFakeFile(input, request);
+    if (!result.ok) return problem(result.status, result.title, result.detail);
+    const git = this.git.get(workspaceId);
+    const change = result.value.change;
+    if (git && change) {
+      git.files = [...git.files, change];
+      if (!git.unassignedFiles.includes(change.path)) git.unassignedFiles = [...git.unassignedFiles, change.path];
+    }
+    return json(result.value.content);
   }
 
   private gitDiff(workspaceId: string, query: string): FakeBackendResponse {
@@ -1219,6 +1262,7 @@ export class FakeBackendService {
 
   private hydrate() {
     this.git.clear();
+    this.fileEdits.clear();
     this.appTemplates.clear();
     for (const workspace of this.workspaces()) {
       this.appTemplates.set(workspace.id, structuredClone(workspace.applications ?? []));
@@ -1393,6 +1437,10 @@ function renderFakeReviewReport(workspace: WorkspaceRecord): string {
     return `<article class="au-card"><h3>${escapeHtml(app.name)}</h3><p class="au-muted">${escapeHtml(app.kind ?? 'Process')} · ${escapeHtml(app.state)}</p>${ports}</article>`;
   }).join('');
   return `<!DOCTYPE html><html lang="en" class="au-theme"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Export Report — ${escapeHtml(workspace.displayName)}</title>${fakeReviewReportStyleTag()}</head><body class="au-theme"><article class="au-overview au-report"><p class="au-eyebrow">Export Report</p><h1 class="au-page-title">${escapeHtml(workspace.displayName)}</h1><p class="au-muted">${escapeHtml(workspace.state)}</p><p class="au-mono">${escapeHtml(workspace.repositoryPath)}</p><h2>Applications</h2>${appMarkup}<h2>Screenshots</h2><p class="au-muted">No screenshots.</p><h2>Verification</h2><p class="au-muted">Verification could not run for this worktree.</p></article></body></html>`;
+}
+
+function problem(status: number, title: string, detail: string): FakeBackendResponse {
+  return { status, contentType: 'application/problem+json', body: JSON.stringify({ title, detail, status }) };
 }
 
 function notFound(): FakeBackendResponse {

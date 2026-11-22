@@ -29,6 +29,9 @@ public sealed class FakeServerDefinition
 
     public JsonNode? Git => Root["git"];
 
+    /// <summary>The Harbor Shop repository every Demo workspace checks out, by path.</summary>
+    public JsonObject? Files => Root["files"] as JsonObject;
+
     public JsonNode? Console => Root["console"];
 
     public JsonNode? Agents => Root["agents"];
