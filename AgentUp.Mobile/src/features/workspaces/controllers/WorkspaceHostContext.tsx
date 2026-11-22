@@ -12,6 +12,8 @@ import { resolveInnerBack } from '@/features/shell/providers/InnerShellBackProvi
 export type WorkspacePlace =
   | { kind: 'apps' }
   | { kind: 'git' }
+  | { kind: 'files' }
+  | { kind: 'file'; path: string }
   | { kind: 'agents' }
   | { kind: 'settings' }
   | { kind: 'application'; name: string }
@@ -77,7 +79,7 @@ export function useWorkspaceHost(workspaceId: string): WorkspaceHost {
 }
 
 function isTab(place: WorkspacePlace): boolean {
-  return place.kind === 'apps' || place.kind === 'git' || place.kind === 'agents' || place.kind === 'settings';
+  return place.kind === 'apps' || place.kind === 'git' || place.kind === 'files' || place.kind === 'agents' || place.kind === 'settings';
 }
 
 /** The route each place has in the app's own routing, which is the classic shell's answer. */
@@ -85,6 +87,8 @@ function suffix(place: WorkspacePlace): string {
   switch (place.kind) {
     case 'apps': return '';
     case 'git': return '/git';
+    case 'files': return '/files';
+    case 'file': return `/files/file?path=${encodeURIComponent(place.path)}`;
     case 'agents': return '/agents';
     case 'settings': return '/settings';
     case 'application': return `/application/${encodeURIComponent(place.name)}`;

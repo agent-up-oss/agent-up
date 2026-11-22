@@ -44,6 +44,8 @@ test('the phone scene follows the catalog nav and the open agent', () => {
   assert.equal(commandCenterSceneId({ nav: 2, section: 'overview', agentOpen: false }), 'mobile-settings');
   assert.equal(commandCenterSceneId({ nav: 0, section: 'chat', agentOpen: true }), 'mobile-chat');
   assert.equal(commandCenterSceneId({ nav: 0, section: 'git', agentOpen: true }), 'mobile-agent-git');
+  assert.equal(commandCenterSceneId({ nav: 0, section: 'files', agentOpen: true }), 'mobile-agent-files');
+  assert.equal(commandCenterSceneId({ nav: 0, section: 'file', agentOpen: true }), 'mobile-agent-file');
   assert.equal(commandCenterSceneId({ nav: 0, section: 'application', agentOpen: true }), 'mobile-application');
 });
 
@@ -136,6 +138,7 @@ test('an open agent names itself and its branch in the head', () => {
   assert.equal(commandCenterScene({ ...input, openBranch: 'feat/45-deliver' }).text.branch, 'feat/45-deliver');
   assert.equal(commandCenterScene(input).text.branch, 'not on a git branch');
   assert.equal(commandCenterScene({ ...input, section: 'application', applicationName: 'Storefront' }).text['application-name'], 'Storefront');
+  assert.equal(commandCenterScene({ ...input, section: 'file', openFile: 'apps/storefront/ProductGrid.tsx' }).text['file-name'], 'ProductGrid.tsx');
 });
 
 test('the board hands over every row with the action it offers, in no particular grouping', () => {

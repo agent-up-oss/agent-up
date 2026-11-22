@@ -8,6 +8,7 @@ import { workspaceTabHref, type WorkspaceOverviewTab } from '../providers/Worksp
 const tabs: { id: WorkspaceOverviewTab; label: string }[] = [
   { id: 'apps', label: 'Apps' },
   { id: 'git', label: 'Git' },
+  { id: 'files', label: 'Files' },
   { id: 'agents', label: 'Agents' },
   { id: 'settings', label: 'Settings' },
 ];
