@@ -26,6 +26,8 @@ It is separate from `Commits`, which owns the agent-facing queue. Desktop Git an
 
 <DocContract label="Route">{'GET /api/workspaces/{workspaceId}/git/changes'}</DocContract>
 
+The whole workspace folder, beyond its changes, is the separate Files slice at `/api/workspaces/{workspaceId}/files/*`. It reads Git markers from this slice through `GitQueryController`. See [Workspace files](./files).
+
 ## Hosting-provider state
 
 This slice still reads the local repository. A `forge` capability kind supplies hosting state, and the Git surfaces display it. Display only — the same discipline the surfaces already follow with the queue.
