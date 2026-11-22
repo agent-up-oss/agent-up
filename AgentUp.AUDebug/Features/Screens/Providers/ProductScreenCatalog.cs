@@ -77,6 +77,22 @@ public sealed class ProductScreenCatalog : IProductScreenCatalog
         [
             ScreenStepDto.Click(DesktopScreenGeometry.ConsoleSubTabX, DesktopScreenGeometry.SubTabRowY, 1500)
         ]),
+        // Files sits between Console and Git: it reads the tree the Agent route already changed
+        // and leaves nothing behind that Git's row positions depend on, because the edit is not saved.
+        DesktopScreen("files", "Desktop Files",
+        [
+            ScreenStepDto.Click(DesktopScreenGeometry.FilesTabX, DesktopScreenGeometry.TabRowY, 2500),
+            ScreenStepDto.Click(DesktopScreenGeometry.FilesTreeNameX, DesktopScreenGeometry.FilesTreeRowY(0), 1500),
+            ScreenStepDto.Click(DesktopScreenGeometry.FilesTreeNameX, DesktopScreenGeometry.FilesTreeRowY(2), 1500)
+        ]),
+        DesktopScreen("file", "Desktop file page",
+        [
+            ScreenStepDto.Click(DesktopScreenGeometry.FilesTreeNameX, DesktopScreenGeometry.FilesTreeRowY(5), 2500),
+            ScreenStepDto.Click(DesktopScreenGeometry.FileEditorTextX, DesktopScreenGeometry.FileEditorTextY),
+            ScreenStepDto.Key("ctrl+End"),
+            ScreenStepDto.Type("// featured goods rotate weekly"),
+            ScreenStepDto.Settle(800)
+        ]),
         DesktopScreen("git", "Desktop Git changes",
         [
             ScreenStepDto.Click(DesktopScreenGeometry.GitTabX, DesktopScreenGeometry.TabRowY, 3000),
@@ -164,6 +180,16 @@ public sealed class ProductScreenCatalog : IProductScreenCatalog
             ScreenStepDto.Tap($"Select {OrdersPath}"),
             ScreenStepDto.Fill("Commit message", ReviewMessage),
             ScreenStepDto.Settle(800)
+        ]),
+        MobileScreen("files", "Mobile Files",
+        [
+            ScreenStepDto.Navigate($"/workspace/{DebugLayout.DemoWorkspaceId}/files", 2500),
+            ScreenStepDto.Tap("Expand apps", 1200),
+            ScreenStepDto.Tap("Expand apps/storefront", 1200)
+        ]),
+        MobileScreen("file", "Mobile file page",
+        [
+            ScreenStepDto.Tap($"Open {ProductGridPath}", 2500)
         ]),
         MobileScreen("settings", "Mobile settings",
         [

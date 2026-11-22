@@ -1,0 +1,76 @@
+{
+  "id": "files-browse",
+  "application": "Mobile",
+  "name": "Browse the workspace files and open one",
+  "description": "A person opens the Files tab, sees the whole clone folded at the top level, opens a file as its own page with the editor, and goes back to the tree. Fixture: isolated Server whose registered workspace is this repository, so README.md is at the top level.",
+  "surface": "Mobile",
+  "initialPath": "/connect",
+  "initialExpectations": [
+    { "kind": "Text", "value": "Connect to server" }
+  ],
+  "steps": [
+    {
+      "id": "enter-server-url",
+      "description": "Enter the Server URL",
+      "action": "Fill",
+      "target": { "label": "Server URL" },
+      "value": "{serverUrl}",
+      "expectations": [
+        { "kind": "Text", "value": "{serverUrl}", "target": { "label": "Server URL" } }
+      ]
+    },
+    {
+      "id": "try-and-save",
+      "description": "Save the Server URL and open the workspace",
+      "action": "Click",
+      "target": { "role": "button", "name": "Try and save" },
+      "expectations": [
+        { "kind": "Visible", "value": "true", "target": { "role": "tab", "name": "Files" } }
+      ]
+    },
+    {
+      "id": "open-files",
+      "description": "Open the Files tab",
+      "action": "Click",
+      "target": { "role": "tab", "name": "Files" },
+      "expectations": [
+        { "kind": "Url", "value": "/workspace/{workspaceId}/files" },
+        { "kind": "Visible", "value": "true", "target": { "role": "button", "name": "Reload files" } },
+        { "kind": "Visible", "value": "true", "target": { "role": "button", "name": "Open README.md" } },
+        { "kind": "Visible", "value": "true", "target": { "role": "button", "name": "Expand docs" } }
+      ]
+    },
+    {
+      "id": "unfold-docs",
+      "description": "Unfold the docs folder",
+      "action": "Click",
+      "target": { "testId": "files-toggle-docs" },
+      "expectations": [
+        { "kind": "Visible", "value": "true", "target": { "role": "button", "name": "Collapse docs" } },
+        { "kind": "Visible", "value": "true", "target": { "role": "button", "name": "Expand docs/user-docs" } }
+      ]
+    },
+    {
+      "id": "open-readme",
+      "description": "Open README.md as its own page",
+      "action": "Click",
+      "target": { "role": "button", "name": "Open README.md" },
+      "expectations": [
+        { "kind": "Url", "value": "/workspace/{workspaceId}/files/file" },
+        { "kind": "Visible", "value": "true", "target": { "label": "Contents of README.md" } },
+        { "kind": "Visible", "value": "true", "target": { "role": "button", "name": "Save" } },
+        { "kind": "Text", "value": "Ln 1, Col 1" }
+      ]
+    },
+    {
+      "id": "back-to-files",
+      "description": "Go back to the tree",
+      "action": "Click",
+      "target": { "role": "button", "name": "Back to files" },
+      "expectations": [
+        { "kind": "Url", "value": "/workspace/{workspaceId}/files" },
+        { "kind": "Visible", "value": "true", "target": { "role": "button", "name": "Open README.md" } }
+      ]
+    }
+  ]
+}

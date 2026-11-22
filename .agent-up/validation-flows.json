@@ -682,6 +682,179 @@
       "version": 1
     },
     {
+      "id": "files-browse",
+      "application": "Desktop",
+      "name": "Browse the workspace files and open one",
+      "description": "A person opens the Files tab, sees the whole clone folded at the top level, opens a file as a page with the editor, and goes back to the tree. Fixture: the registered workspace is this repository, so README.md is at the top level.",
+      "surface": "Desktop",
+      "initialPath": "login",
+      "initialExpectations": [
+        {
+          "kind": "Visible",
+          "value": "true",
+          "target": {
+            "testId": "login.connect"
+          }
+        }
+      ],
+      "steps": [
+        {
+          "id": "enter-server-url",
+          "description": "Enter the Server URL",
+          "action": "Fill",
+          "target": {
+            "testId": "login.server-url"
+          },
+          "value": "http://127.0.0.1:5001",
+          "expectations": [
+            {
+              "kind": "Text",
+              "value": "http://127.0.0.1:5001",
+              "target": {
+                "testId": "login.server-url"
+              }
+            }
+          ]
+        },
+        {
+          "id": "connect",
+          "description": "Connect to the Server",
+          "action": "Click",
+          "target": {
+            "testId": "login.connect"
+          },
+          "expectations": [
+            {
+              "kind": "Visible",
+              "value": "true",
+              "target": {
+                "testId": "shell.tab.files"
+              }
+            }
+          ]
+        },
+        {
+          "id": "open-files",
+          "description": "Open the Files tab",
+          "action": "Click",
+          "target": {
+            "testId": "shell.tab.files"
+          },
+          "expectations": [
+            {
+              "kind": "Visible",
+              "value": "true",
+              "target": {
+                "testId": "files.panel"
+              }
+            },
+            {
+              "kind": "Visible",
+              "value": "true",
+              "target": {
+                "testId": "files.refresh"
+              }
+            },
+            {
+              "kind": "Visible",
+              "value": "true",
+              "target": {
+                "testId": "files.open.README.md"
+              }
+            },
+            {
+              "kind": "Visible",
+              "value": "true",
+              "target": {
+                "testId": "files.toggle.docs"
+              }
+            }
+          ]
+        },
+        {
+          "id": "unfold-docs",
+          "description": "Unfold the docs folder",
+          "action": "Click",
+          "target": {
+            "testId": "files.toggle.docs"
+          },
+          "expectations": [
+            {
+              "kind": "Visible",
+              "value": "true",
+              "target": {
+                "testId": "files.toggle.docs/user-docs"
+              }
+            }
+          ]
+        },
+        {
+          "id": "open-readme",
+          "description": "Open README.md as a page",
+          "action": "Click",
+          "target": {
+            "testId": "files.open.README.md"
+          },
+          "expectations": [
+            {
+              "kind": "Visible",
+              "value": "true",
+              "target": {
+                "testId": "files.editor"
+              }
+            },
+            {
+              "kind": "Visible",
+              "value": "true",
+              "target": {
+                "testId": "files.editor.text"
+              }
+            },
+            {
+              "kind": "Visible",
+              "value": "true",
+              "target": {
+                "testId": "files.editor.save"
+              }
+            },
+            {
+              "kind": "Visible",
+              "value": "true",
+              "target": {
+                "text": "Ln 1, Col 1"
+              }
+            }
+          ]
+        },
+        {
+          "id": "back-to-files",
+          "description": "Go back to the tree",
+          "action": "Click",
+          "target": {
+            "testId": "files.editor.back"
+          },
+          "expectations": [
+            {
+              "kind": "Visible",
+              "value": "true",
+              "target": {
+                "testId": "files.tree"
+              }
+            },
+            {
+              "kind": "Visible",
+              "value": "true",
+              "target": {
+                "testId": "files.open.README.md"
+              }
+            }
+          ]
+        }
+      ],
+      "updatedAtUtc": "2026-11-22T00:00:00.0000000+00:00",
+      "version": 1
+    },
+    {
       "id": "forge-hosting",
       "application": "Desktop",
       "name": "See repository hosting when no forge is enabled",

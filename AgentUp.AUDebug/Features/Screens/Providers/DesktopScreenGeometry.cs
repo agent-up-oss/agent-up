@@ -30,7 +30,8 @@ public static class DesktopScreenGeometry
     public const int OverviewTabX = 275;
     public const int AgentTabX = 373;
     public const int GitTabX = 450;
-    public const int StorefrontTabX = 575;
+    public const int FilesTabX = 518;
+    public const int StorefrontTabX = 745;
 
     /// <summary>Application sub-navbar, below the tab strip.</summary>
     public const int SubTabRowY = 117;
@@ -88,5 +89,16 @@ public static class DesktopScreenGeometry
 
     public const int CapabilityCursorRowY = 537;
 
+    /// <summary>Files tree: the same row pitch as Git, under the Files toolbar.</summary>
+    public const int FilesTreeFirstRowY = 153;
+
+    public const int FilesTreeNameX = 330;
+
+    /// <summary>The open file's text area, and a point inside it to place the caret.</summary>
+    public const int FileEditorTextX = 700;
+    public const int FileEditorTextY = 200;
+
     public static int GitTreeRowY(int row) => GitTreeFirstRowY + (row * GitTreeRowPitch);
+
+    public static int FilesTreeRowY(int row) => FilesTreeFirstRowY + (row * GitTreeRowPitch);
 }
