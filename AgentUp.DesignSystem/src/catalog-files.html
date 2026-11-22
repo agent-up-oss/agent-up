@@ -1,0 +1,138 @@
+  <section data-au-surface="files" data-au-title="Files" data-au-intro="The whole clone, not only what changed. Folders start folded and each one is read from the Server when it is unfolded. Rows reuse the Git change list, so a changed file carries the same status glyph in Files as in Git, and a folded folder counts the changed files under it. A file opens as a page to read and edit, never as an overlay.">
+    <article data-au-component="files-toolbar" data-au-title="Files toolbar" data-au-note="The section label, the workspace folder in monospace, and Reload. Reload re-reads the folders that are open; it does not unfold anything." data-au-avalonia="Border" data-au-class="au-files-toolbar">
+      <div class="au-files-toolbar">
+        <span class="au-field-label">Files</span>
+        <span class="au-files-root">harbor-shop · main</span>
+        <button class="au-browser-button" type="button"><span data-au-icon="reload"></span></button>
+      </div>
+    </article>
+    <article data-au-component="files-tree" data-au-title="File tree" data-au-note="Folders first, then files, each level as the Server lists it. A folded folder shows how many changed files are under it; a file shows its Git status glyph or nothing when it is unchanged. Deleted files are not on disk, so they are not here; Git still lists them. The open file is the primary selection." data-au-avalonia="Border" data-au-class="au-git-change-list">
+      <div class="au-git-change-list">
+        <div class="au-git-row">
+          <button class="au-git-tree-toggle au-git-tree-toggle--expanded" type="button">▾</button>
+          <span class="au-git-change-name au-git-change-name--directory">apps</span>
+          <span class="au-files-count">3</span>
+        </div>
+        <div class="au-git-row">
+          <span class="au-git-tree-guide"></span>
+          <button class="au-git-tree-toggle au-git-tree-toggle--collapsed" type="button">▸</button>
+          <span class="au-git-change-name au-git-change-name--directory">api</span>
+          <span class="au-files-count">1</span>
+        </div>
+        <div class="au-git-row">
+          <span class="au-git-tree-guide"></span>
+          <button class="au-git-tree-toggle au-git-tree-toggle--expanded" type="button">▾</button>
+          <span class="au-git-change-name au-git-change-name--directory">storefront</span>
+          <span class="au-files-count">2</span>
+        </div>
+        <div class="au-git-row">
+          <span class="au-git-tree-guide"></span>
+          <span class="au-git-tree-guide"></span>
+          <span class="au-git-change-name">package.json</span>
+          <span class="au-files-size">612 B</span>
+          <span class="au-git-status"></span>
+        </div>
+        <div class="au-git-row au-git-row--selected">
+          <span class="au-git-tree-guide"></span>
+          <span class="au-git-tree-guide"></span>
+          <span class="au-git-change-name">ProductGrid.tsx</span>
+          <span class="au-files-size">1.8 KB</span>
+          <span class="au-git-status au-git-status--modified">M</span>
+        </div>
+        <div class="au-git-row">
+          <span class="au-git-tree-guide"></span>
+          <span class="au-git-tree-guide"></span>
+          <span class="au-git-change-name">PromoBanner.tsx</span>
+          <span class="au-files-size">214 B</span>
+          <span class="au-git-status au-git-status--added">+</span>
+        </div>
+        <div class="au-git-row">
+          <button class="au-git-tree-toggle au-git-tree-toggle--collapsed" type="button">▸</button>
+          <span class="au-git-change-name au-git-change-name--directory">docs</span>
+        </div>
+        <div class="au-git-row">
+          <span class="au-git-change-name">agent-up.json</span>
+          <span class="au-files-size">1.1 KB</span>
+          <span class="au-git-status"></span>
+        </div>
+        <div class="au-git-row">
+          <span class="au-git-change-name">README.md</span>
+          <span class="au-files-size">940 B</span>
+          <span class="au-git-status"></span>
+        </div>
+      </div>
+    </article>
+    <article data-au-component="files-count" data-au-title="Changed-file count" data-au-note="How many changed files sit under a folder, folded or not. Info blue on a raised chip, like a status rather than an action." data-au-avalonia="TextBlock" data-au-class="au-files-count">
+      <span class="au-files-count">3</span>
+    </article>
+    <article data-au-component="files-size" data-au-title="File size" data-au-note="Faint and tabular so the column holds still." data-au-avalonia="TextBlock" data-au-class="au-files-size">
+      <span class="au-files-size">1.8 KB</span>
+    </article>
+    <article data-au-component="files-notice" data-au-title="Folder notice" data-au-note="A folder the Server cut short, or one that could not be read, says so in a muted line under its rows." data-au-avalonia="TextBlock" data-au-class="au-files-notice">
+      <span class="au-files-notice">Showing the first 2000 entries of this folder.</span>
+    </article>
+    <article data-au-component="file-editor" data-au-title="File page" data-au-note="One file as a page in the workspace pane. Back returns to the tree. The header reuses the viewer path and status. The body is the whole file in a plain text editor with a line gutter: typing, selection, undo and redo, and Tab indentation, without syntax highlighting. Save writes it back only if nobody changed it since it was opened." data-au-avalonia="Border" data-au-class="au-file-editor">
+      <div class="au-file-editor">
+        <div class="au-file-viewer-header">
+          <button class="au-title-tool au-chrome-icon" type="button" aria-label="Back to files">‹</button>
+          <span class="au-file-viewer-heading">
+            <span class="au-file-viewer-path">apps/storefront/PromoBanner.tsx</span>
+            <span class="au-file-viewer-status">Added</span>
+          </span>
+          <span class="au-file-editor-actions">
+            <button class="au-button au-button--secondary au-button--compact" type="button">Revert</button>
+            <button class="au-button au-button--compact" type="button">Save</button>
+          </span>
+        </div>
+        <div class="au-file-editor-body">
+          <span class="au-file-editor-gutter">1
+2
+3
+4
+5
+6</span>
+          <textarea class="au-file-editor-input" readonly spellcheck="false">export function PromoBanner() {
+  return (
+    &lt;aside className="promo"&gt;
+      Weekly harbor special
+    &lt;/aside&gt;
+  );</textarea>
+        </div>
+        <div class="au-file-editor-footer">
+          <span class="au-file-editor-state au-file-editor-state--dirty">Unsaved changes</span>
+          <span class="au-file-editor-caret">Ln 4, Col 28</span>
+        </div>
+      </div>
+    </article>
+    <article data-au-component="file-editor-mobile" data-au-title="Mobile file page" data-au-note="On a phone the file is its own page: the top bar carries the back chevron and the file name, and the page keeps the path, status, Save and Revert above the same gutter and editor." data-au-avalonia="Border" data-au-class="au-file-editor">
+      <div class="au-file-editor">
+        <div class="au-file-viewer-header">
+          <span class="au-file-viewer-heading">
+            <span class="au-file-viewer-path">apps/storefront/PromoBanner.tsx</span>
+            <span class="au-file-viewer-status">Added</span>
+          </span>
+          <span class="au-file-editor-actions">
+            <button class="au-button au-button--secondary au-button--compact" type="button">Revert</button>
+            <button class="au-button au-button--compact" type="button">Save</button>
+          </span>
+        </div>
+        <div class="au-file-editor-body">
+          <span class="au-file-editor-gutter">1
+2
+3
+4</span>
+          <textarea class="au-file-editor-input" readonly spellcheck="false">export function PromoBanner() {
+  return (
+    &lt;aside className="promo"&gt;
+      Weekly harbor special</textarea>
+        </div>
+        <div class="au-file-editor-footer">
+          <span class="au-file-editor-state">Saved</span>
+          <span class="au-file-editor-caret">Ln 1, Col 1</span>
+        </div>
+      </div>
+    </article>
+    <article data-au-component="file-editor-notice" data-au-title="Editor notice" data-au-note="A file that cannot be edited here says why instead of showing an empty editor: binary, over the size the Server sends, or changed on the Server since it was opened. The danger variant is the stale save, with Reload." data-au-avalonia="Border" data-au-class="au-file-editor-notice">
+      <div class="au-file-editor-notice au-file-editor-notice--danger">This file changed on the Server since it was opened. Reload it to see the change.</div>
+    </article>
+  </section>

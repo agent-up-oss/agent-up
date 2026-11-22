@@ -50,6 +50,8 @@
   <section data-au-screen="application" data-au-title="Agent · Application" data-au-desktop="application" data-au-mobile="mobile-application"></section>
   <section data-au-screen="agent-chat" data-au-title="Agent · Chat" data-au-desktop="agent-chat" data-au-mobile="mobile-chat"></section>
   <section data-au-screen="agent-git" data-au-title="Agent · Git" data-au-desktop="agent-git" data-au-mobile="mobile-agent-git"></section>
+  <section data-au-screen="agent-files" data-au-title="Agent · Files" data-au-desktop="agent-files" data-au-mobile="mobile-agent-files"></section>
+  <section data-au-screen="agent-file" data-au-title="Agent · File" data-au-desktop="agent-file" data-au-mobile="mobile-agent-file"></section>
   <section data-au-screen="tasks" data-au-title="Tasks" data-au-desktop="tasks" data-au-mobile="mobile-tasks"></section>
   <section data-au-screen="settings" data-au-title="Settings" data-au-desktop="settings" data-au-mobile="mobile-settings"></section>
 
@@ -82,9 +84,21 @@
     <div data-au-region="main" data-au-use="git-body"></div>
   </section>
 
-  <section data-au-scene="application" data-au-platform="desktop" data-au-view="application" data-au-title="Agent · Application" data-au-layout="desktop">
+  <section data-au-scene="agent-files" data-au-platform="desktop" data-au-view="files" data-au-title="Agent · Files" data-au-layout="desktop">
     <div data-au-region="rail" data-au-use="sidebar-member"></div>
     <div data-au-region="tabs" data-au-use="agent-tabs" data-au-state="selected:3"></div>
+    <div data-au-region="main" data-au-use="files-body"></div>
+  </section>
+
+  <section data-au-scene="agent-file" data-au-platform="desktop" data-au-view="file" data-au-title="Agent · File" data-au-layout="desktop">
+    <div data-au-region="rail" data-au-use="sidebar-member"></div>
+    <div data-au-region="tabs" data-au-use="agent-tabs" data-au-state="selected:3"></div>
+    <div data-au-region="main" data-au-use="file-body"></div>
+  </section>
+
+  <section data-au-scene="application" data-au-platform="desktop" data-au-view="application" data-au-title="Agent · Application" data-au-layout="desktop">
+    <div data-au-region="rail" data-au-use="sidebar-member"></div>
+    <div data-au-region="tabs" data-au-use="agent-tabs" data-au-state="selected:4"></div>
     <div data-au-region="subtabs" data-au-use="subtab"></div>
     <div data-au-region="toolbar" data-au-use="address-bar" data-au-when="browser"></div>
     <div data-au-region="main" data-au-use="application-host"></div>
@@ -135,6 +149,18 @@
     <div data-au-region="tabs" data-au-use="mobile-tabs-git"></div>
     <div data-au-region="body" data-au-use="mobile-git-body"></div>
     <div data-au-region="nav" data-au-use="mobile-tabbar" data-au-state="selected:0"></div>
+  </section>
+
+  <section data-au-scene="mobile-agent-files" data-au-platform="mobile" data-au-view="files" data-au-title="Agent · Files" data-au-layout="mobile-agent">
+    <div data-au-region="head" data-au-use="mobile-agent-head"></div>
+    <div data-au-region="tabs" data-au-use="mobile-tabs-files"></div>
+    <div data-au-region="body" data-au-use="mobile-files-body"></div>
+    <div data-au-region="nav" data-au-use="mobile-tabbar" data-au-state="selected:0"></div>
+  </section>
+
+  <section data-au-scene="mobile-agent-file" data-au-platform="mobile" data-au-view="file" data-au-title="Agent · File" data-au-layout="mobile-command">
+    <div data-au-region="head" data-au-use="mobile-file-head"></div>
+    <div data-au-region="body" data-au-use="mobile-file-body"></div>
   </section>
 
   <section data-au-scene="mobile-settings" data-au-platform="mobile" data-au-view="settings" data-au-title="Settings" data-au-layout="mobile-command">

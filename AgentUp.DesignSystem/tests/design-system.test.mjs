@@ -793,12 +793,17 @@ test('new UI screens pair desktop and mobile instead of a chip per surface', asy
   const { screens, scenes } = await assembleNewUi();
   assert.deepEqual(screens.map(item => item.id), [
     'team', 'agent-overview', 'application', 'agent-chat',
-    'agent-git', 'tasks', 'settings',
+    'agent-git', 'agent-files', 'agent-file', 'tasks', 'settings',
   ]);
   assert.deepEqual(screens.map(item => item.title), [
     'Team', 'Agent · Overview', 'Agent · Application', 'Agent · Chat',
-    'Agent · Git', 'Tasks', 'Settings',
+    'Agent · Git', 'Agent · Files', 'Agent · File', 'Tasks', 'Settings',
   ]);
+  const files = screens.find(item => item.id === 'agent-files');
+  assert.equal(files.desktopId, 'agent-files');
+  assert.equal(files.mobileId, 'mobile-agent-files');
+  const file = screens.find(item => item.id === 'agent-file');
+  assert.equal(file.mobileId, 'mobile-agent-file');
   const team = screens.find(item => item.id === 'team');
   assert.equal(team.desktopId, 'team');
   assert.equal(team.mobileId, 'mobile-team');

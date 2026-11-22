@@ -115,11 +115,12 @@
       </div>
     </article>
 
-    <article data-au-component="agent-tabs" data-au-title="Agent tabs" data-au-note="Overview, Chat, and Git, then one tab per application the open workspace declares. The application tabs come from that workspace; the three here are the Demo's samples." data-au-avalonia="Border" data-au-class="au-app-tab" data-au-states="selected=au-app-tab/au-app-tab--selected" data-au-state-examples="selected:1|Chat tab selected|The live ACP session is the primary selection when Chat is open.;selected:2|Git tab selected|Working-tree review is the primary selection when Git is open.;selected:3|Application tab selected|Storefront is the primary selection when the running app is open.">
+    <article data-au-component="agent-tabs" data-au-title="Agent tabs" data-au-note="Overview, Chat, Git, and Files, then one tab per application the open workspace declares. The application tabs come from that workspace; the three here are the Demo's samples." data-au-avalonia="Border" data-au-class="au-app-tab" data-au-states="selected=au-app-tab/au-app-tab--selected" data-au-state-examples="selected:1|Chat tab selected|The live ACP session is the primary selection when Chat is open.;selected:2|Git tab selected|Working-tree review is the primary selection when Git is open.;selected:3|Files tab selected|The whole clone is the primary selection when Files is open.;selected:4|Application tab selected|Storefront is the primary selection when the running app is open.">
       <div class="au-cluster">
         <button class="au-app-tab au-app-tab--selected" type="button" data-au-action="tab-overview" data-au-selection="selected:0:au-app-tab--selected">Overview</button>
         <button class="au-app-tab" type="button" data-au-action="tab-chat" data-au-selection="selected:1:au-app-tab--selected">Chat</button>
         <button class="au-app-tab" type="button" data-au-action="tab-git" data-au-selection="selected:2:au-app-tab--selected">Git</button>
+        <button class="au-app-tab" type="button" data-au-action="tab-files" data-au-selection="selected:3:au-app-tab--selected">Files</button>
         <span class="au-tab-sep"></span>
         <span class="au-cluster" data-au-slot="applications" data-au-repeat="application-tab">
           <button class="au-app-tab" type="button"><span class="au-status-dot au-status-dot--healthy"></span> Storefront</button>
@@ -231,6 +232,13 @@
       </div>
     </article>
 
+    <article data-au-component="mobile-file-head" data-au-title="Mobile file head" data-au-note="An open file is an inner page: a chevron back to Files, and the file name. No tabs; the page under it carries the path, status, and Save." data-au-avalonia="Border" data-au-class="aun-agent-head">
+      <div class="aun-agent-head">
+        <button type="button" class="aun-agent-back" data-au-action="back" aria-label="Back to files">‹</button>
+        <div class="aun-phone__head-copy"><h1 class="au-page-title aun-phone__line" data-au-text="file-name">PromoBanner.tsx</h1></div>
+      </div>
+    </article>
+
     <article data-au-component="mobile-agent-head" data-au-title="Mobile agent head" data-au-note="Back is a chevron, the workspace name sits above its branch, and Reload is accent text. No boxed control." data-au-avalonia="Border" data-au-class="aun-agent-head">
       <div class="aun-agent-head">
         <button type="button" class="aun-agent-back" data-au-action="back" aria-label="Back to the team">‹</button>
@@ -239,16 +247,20 @@
       </div>
     </article>
 
-    <article data-au-component="mobile-tabs-apps" data-au-title="Agent tabs, Apps" data-au-note="Apps, Git, Chat. Apps selected. The accent underline is the catalog tab." data-au-avalonia="Border" data-au-class="au-tabs">
-      <nav class="au-tabs" aria-label="Agent sections"><button class="au-tab au-tab--selected" type="button" aria-selected="true" data-au-action="tab-apps" data-au-selection="section:0:au-tab--selected">Apps</button><button class="au-tab" type="button" data-au-action="tab-git" data-au-selection="section:1:au-tab--selected">Git</button><button class="au-tab" type="button" data-au-action="tab-chat" data-au-selection="section:2:au-tab--selected">Chat</button></nav>
+    <article data-au-component="mobile-tabs-apps" data-au-title="Agent tabs, Apps" data-au-note="Apps, Git, Files, Chat. Apps selected. The accent underline is the catalog tab." data-au-avalonia="Border" data-au-class="au-tabs">
+      <nav class="au-tabs" aria-label="Agent sections"><button class="au-tab au-tab--selected" type="button" aria-selected="true" data-au-action="tab-apps" data-au-selection="section:0:au-tab--selected">Apps</button><button class="au-tab" type="button" data-au-action="tab-git" data-au-selection="section:1:au-tab--selected">Git</button><button class="au-tab" type="button" data-au-action="tab-files" data-au-selection="section:2:au-tab--selected">Files</button><button class="au-tab" type="button" data-au-action="tab-chat" data-au-selection="section:3:au-tab--selected">Chat</button></nav>
     </article>
 
-    <article data-au-component="mobile-tabs-git" data-au-title="Agent tabs, Git" data-au-note="Apps, Git, Chat. Git selected." data-au-avalonia="Border" data-au-class="au-tabs">
-      <nav class="au-tabs" aria-label="Agent sections"><button class="au-tab" type="button" data-au-action="tab-apps" data-au-selection="section:0:au-tab--selected">Apps</button><button class="au-tab au-tab--selected" type="button" aria-selected="true" data-au-action="tab-git" data-au-selection="section:1:au-tab--selected">Git</button><button class="au-tab" type="button" data-au-action="tab-chat" data-au-selection="section:2:au-tab--selected">Chat</button></nav>
+    <article data-au-component="mobile-tabs-git" data-au-title="Agent tabs, Git" data-au-note="Apps, Git, Files, Chat. Git selected." data-au-avalonia="Border" data-au-class="au-tabs">
+      <nav class="au-tabs" aria-label="Agent sections"><button class="au-tab" type="button" data-au-action="tab-apps" data-au-selection="section:0:au-tab--selected">Apps</button><button class="au-tab au-tab--selected" type="button" aria-selected="true" data-au-action="tab-git" data-au-selection="section:1:au-tab--selected">Git</button><button class="au-tab" type="button" data-au-action="tab-files" data-au-selection="section:2:au-tab--selected">Files</button><button class="au-tab" type="button" data-au-action="tab-chat" data-au-selection="section:3:au-tab--selected">Chat</button></nav>
     </article>
 
-    <article data-au-component="mobile-tabs-chat" data-au-title="Agent tabs, Chat" data-au-note="Apps, Git, Chat. Chat selected." data-au-avalonia="Border" data-au-class="au-tabs">
-      <nav class="au-tabs" aria-label="Agent sections"><button class="au-tab" type="button" data-au-action="tab-apps" data-au-selection="section:0:au-tab--selected">Apps</button><button class="au-tab" type="button" data-au-action="tab-git" data-au-selection="section:1:au-tab--selected">Git</button><button class="au-tab au-tab--selected" type="button" aria-selected="true" data-au-action="tab-chat" data-au-selection="section:2:au-tab--selected">Chat</button></nav>
+    <article data-au-component="mobile-tabs-files" data-au-title="Agent tabs, Files" data-au-note="Apps, Git, Files, Chat. Files selected." data-au-avalonia="Border" data-au-class="au-tabs">
+      <nav class="au-tabs" aria-label="Agent sections"><button class="au-tab" type="button" data-au-action="tab-apps" data-au-selection="section:0:au-tab--selected">Apps</button><button class="au-tab" type="button" data-au-action="tab-git" data-au-selection="section:1:au-tab--selected">Git</button><button class="au-tab au-tab--selected" type="button" aria-selected="true" data-au-action="tab-files" data-au-selection="section:2:au-tab--selected">Files</button><button class="au-tab" type="button" data-au-action="tab-chat" data-au-selection="section:3:au-tab--selected">Chat</button></nav>
+    </article>
+
+    <article data-au-component="mobile-tabs-chat" data-au-title="Agent tabs, Chat" data-au-note="Apps, Git, Files, Chat. Chat selected." data-au-avalonia="Border" data-au-class="au-tabs">
+      <nav class="au-tabs" aria-label="Agent sections"><button class="au-tab" type="button" data-au-action="tab-apps" data-au-selection="section:0:au-tab--selected">Apps</button><button class="au-tab" type="button" data-au-action="tab-git" data-au-selection="section:1:au-tab--selected">Git</button><button class="au-tab" type="button" data-au-action="tab-files" data-au-selection="section:2:au-tab--selected">Files</button><button class="au-tab au-tab--selected" type="button" aria-selected="true" data-au-action="tab-chat" data-au-selection="section:3:au-tab--selected">Chat</button></nav>
     </article>
 
     <article data-au-component="mobile-tabbar" data-au-title="Command tabs" data-au-note="Team, Tasks, Settings. The phone bar is these three. Unselected icons sit at 55% opacity." data-au-avalonia="Border" data-au-class="au-mobile-tab-bar" data-au-states="selected=au-nav-tab/au-subtab--selected">
@@ -318,6 +330,19 @@
       </div>
     </article>
 
+    <article data-au-component="mobile-files-body" data-au-title="Mobile Files slot" data-au-note="The workspace's files fill this slot, folded until opened. The catalog tree is what the showcase shows." data-au-avalonia="Border" data-au-class="aun-wrap">
+      <div data-au-slot="files">
+        <div data-au-use="files-toolbar"></div>
+        <div data-au-use="files-tree"></div>
+      </div>
+    </article>
+
+    <article data-au-component="mobile-file-body" data-au-title="Mobile file slot" data-au-note="One open file fills this slot as its own page. The catalog editor is what the showcase shows." data-au-avalonia="Border" data-au-class="aun-wrap">
+      <div data-au-slot="file">
+        <div data-au-use="file-editor-mobile"></div>
+      </div>
+    </article>
+
     <article data-au-component="mobile-apps-body" data-au-title="Mobile apps slot" data-au-note="The open workspace fills this slot. The catalog app list is what the showcase shows." data-au-avalonia="Border" data-au-class="aun-wrap">
       <div data-au-slot="overview">
         <div data-au-use="app-list"></div>
@@ -348,6 +373,19 @@
         <div data-au-use="git-heading"></div>
         <div data-au-use="git-change-list"></div>
         <div data-au-use="git-commit"></div>
+      </div>
+    </article>
+
+    <article data-au-component="files-body" data-au-title="Files slot" data-au-note="The workspace's files fill this slot: the tree, and once a file is opened, that file's page in its place. The catalog tree is what the showcase shows." data-au-avalonia="Border" data-au-class="au-screen-pane">
+      <div data-au-slot="files">
+        <div data-au-use="files-toolbar"></div>
+        <div data-au-use="files-tree"></div>
+      </div>
+    </article>
+
+    <article data-au-component="file-body" data-au-title="File slot" data-au-note="The same slot with a file open: the page replaces the tree until Back." data-au-avalonia="Border" data-au-class="au-screen-pane">
+      <div data-au-slot="files">
+        <div data-au-use="file-editor"></div>
       </div>
     </article>
 
@@ -407,7 +445,7 @@
 
   </section>
 
-  <section data-au-surface="product-parts" data-au-title="Product parts" data-au-intro="The product pieces the command center draws as they are: the title bar, a workspace row, the Git pane, the chat, and the page frame. They are this space's own copies, so a change here cannot reach the classic UI.">
+  <section data-au-surface="product-parts" data-au-title="Product parts" data-au-intro="The product pieces the command center draws as they are: the title bar, a workspace row, the Git pane, the Files tree and file page, the chat, and the page frame. They are this space's own copies, so a change here cannot reach the classic UI.">
     <article data-au-component="chat-transcript" data-au-title="Transcript" data-au-note="User bubble, then the raised agent reply. Desktop and Mobile share this stack. Collapse the work log only after the next question; the result stays visible. A render names the turns it keeps." data-au-avalonia="Border" data-au-class="au-chat-transcript" data-au-parts="prompt result follow-up reply" data-au-props-examples="parts=follow-up reply|Follow-up turn|The second prompt and reply are the live pair.">
       <div class="au-chat-transcript">
         <div class="au-chat-user" data-au-part="prompt" data-au-text="prompt">What is running in this workspace?</div>
@@ -586,6 +624,130 @@
       </div>
     </article>
 
+    <article data-au-component="files-toolbar" data-au-title="Files toolbar" data-au-note="The section label, the workspace folder in monospace, and Reload. Reload re-reads the folders that are open; it does not unfold anything." data-au-avalonia="Border" data-au-class="au-files-toolbar">
+      <div class="au-files-toolbar">
+        <span class="au-field-label">Files</span>
+        <span class="au-files-root">harbor-shop · main</span>
+        <button class="au-browser-button" type="button"><span data-au-icon="reload"></span></button>
+      </div>
+    </article>
+    <article data-au-component="files-tree" data-au-title="File tree" data-au-note="Folders first, then files, each level as the Server lists it. A folded folder shows how many changed files are under it; a file shows its Git status glyph or nothing when it is unchanged. Deleted files are not on disk, so they are not here; Git still lists them. The open file is the primary selection." data-au-avalonia="Border" data-au-class="au-git-change-list">
+      <div class="au-git-change-list">
+        <div class="au-git-row">
+          <button class="au-git-tree-toggle au-git-tree-toggle--expanded" type="button">▾</button>
+          <span class="au-git-change-name au-git-change-name--directory">apps</span>
+          <span class="au-files-count">3</span>
+        </div>
+        <div class="au-git-row">
+          <span class="au-git-tree-guide"></span>
+          <button class="au-git-tree-toggle au-git-tree-toggle--collapsed" type="button">▸</button>
+          <span class="au-git-change-name au-git-change-name--directory">api</span>
+          <span class="au-files-count">1</span>
+        </div>
+        <div class="au-git-row">
+          <span class="au-git-tree-guide"></span>
+          <button class="au-git-tree-toggle au-git-tree-toggle--expanded" type="button">▾</button>
+          <span class="au-git-change-name au-git-change-name--directory">storefront</span>
+          <span class="au-files-count">2</span>
+        </div>
+        <div class="au-git-row">
+          <span class="au-git-tree-guide"></span>
+          <span class="au-git-tree-guide"></span>
+          <span class="au-git-change-name">package.json</span>
+          <span class="au-files-size">612 B</span>
+          <span class="au-git-status"></span>
+        </div>
+        <div class="au-git-row au-git-row--selected">
+          <span class="au-git-tree-guide"></span>
+          <span class="au-git-tree-guide"></span>
+          <span class="au-git-change-name">ProductGrid.tsx</span>
+          <span class="au-files-size">1.8 KB</span>
+          <span class="au-git-status au-git-status--modified">M</span>
+        </div>
+        <div class="au-git-row">
+          <span class="au-git-tree-guide"></span>
+          <span class="au-git-tree-guide"></span>
+          <span class="au-git-change-name">PromoBanner.tsx</span>
+          <span class="au-files-size">214 B</span>
+          <span class="au-git-status au-git-status--added">+</span>
+        </div>
+        <div class="au-git-row">
+          <button class="au-git-tree-toggle au-git-tree-toggle--collapsed" type="button">▸</button>
+          <span class="au-git-change-name au-git-change-name--directory">docs</span>
+        </div>
+        <div class="au-git-row">
+          <span class="au-git-change-name">agent-up.json</span>
+          <span class="au-files-size">1.1 KB</span>
+          <span class="au-git-status"></span>
+        </div>
+        <div class="au-git-row">
+          <span class="au-git-change-name">README.md</span>
+          <span class="au-files-size">940 B</span>
+          <span class="au-git-status"></span>
+        </div>
+      </div>
+    </article>
+    <article data-au-component="file-editor" data-au-title="File page" data-au-note="One file as a page in the workspace pane. Back returns to the tree. The header reuses the viewer path and status. The body is the whole file in a plain text editor with a line gutter: typing, selection, undo and redo, and Tab indentation, without syntax highlighting. Save writes it back only if nobody changed it since it was opened." data-au-avalonia="Border" data-au-class="au-file-editor">
+      <div class="au-file-editor">
+        <div class="au-file-viewer-header">
+          <button class="au-title-tool au-chrome-icon" type="button" aria-label="Back to files">‹</button>
+          <span class="au-file-viewer-heading">
+            <span class="au-file-viewer-path">apps/storefront/PromoBanner.tsx</span>
+            <span class="au-file-viewer-status">Added</span>
+          </span>
+          <span class="au-file-editor-actions">
+            <button class="au-button au-button--secondary au-button--compact" type="button">Revert</button>
+            <button class="au-button au-button--compact" type="button">Save</button>
+          </span>
+        </div>
+        <div class="au-file-editor-body">
+          <span class="au-file-editor-gutter">1
+2
+3
+4
+5
+6</span>
+          <textarea class="au-file-editor-input" readonly spellcheck="false">export function PromoBanner() {
+  return (
+    &lt;aside className="promo"&gt;
+      Weekly harbor special
+    &lt;/aside&gt;
+  );</textarea>
+        </div>
+        <div class="au-file-editor-footer">
+          <span class="au-file-editor-state au-file-editor-state--dirty">Unsaved changes</span>
+          <span class="au-file-editor-caret">Ln 4, Col 28</span>
+        </div>
+      </div>
+    </article>
+    <article data-au-component="file-editor-mobile" data-au-title="Mobile file page" data-au-note="On a phone the file is its own page: the top bar carries the back chevron and the file name, and the page keeps the path, status, Save and Revert above the same gutter and editor." data-au-avalonia="Border" data-au-class="au-file-editor">
+      <div class="au-file-editor">
+        <div class="au-file-viewer-header">
+          <span class="au-file-viewer-heading">
+            <span class="au-file-viewer-path">apps/storefront/PromoBanner.tsx</span>
+            <span class="au-file-viewer-status">Added</span>
+          </span>
+          <span class="au-file-editor-actions">
+            <button class="au-button au-button--secondary au-button--compact" type="button">Revert</button>
+            <button class="au-button au-button--compact" type="button">Save</button>
+          </span>
+        </div>
+        <div class="au-file-editor-body">
+          <span class="au-file-editor-gutter">1
+2
+3
+4</span>
+          <textarea class="au-file-editor-input" readonly spellcheck="false">export function PromoBanner() {
+  return (
+    &lt;aside className="promo"&gt;
+      Weekly harbor special</textarea>
+        </div>
+        <div class="au-file-editor-footer">
+          <span class="au-file-editor-state">Saved</span>
+          <span class="au-file-editor-caret">Ln 1, Col 1</span>
+        </div>
+      </div>
+    </article>
     <article data-au-component="git-toolbar" data-au-title="Git toolbar" data-au-note="Branch, fetch, pull, push, discard, and history are compact product buttons. Push is the primary action. Discard is danger." data-au-avalonia="Border" data-au-class="au-git-toolbar">
       <div class="au-git-toolbar">
         <div class="au-git-branch-row">

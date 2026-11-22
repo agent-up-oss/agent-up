@@ -70,7 +70,7 @@ test('a flag step toggles the modifier on the scene root', () => {
 });
 
 test('seeking returns the hold so a frame grabber can spread frames over real time', () => {
-  const root = fakeScene('au-app-tab', 4);
+  const root = fakeScene('au-app-tab', 5);
   const sequence = manifest.scenes.find(scene => scene.id === 'desktop-workspaces').sequence;
 
   assert.equal(seekSequence(root, sequence, 1), sequence[1].hold);
@@ -79,7 +79,7 @@ test('seeking returns the hold so a frame grabber can spread frames over real ti
 });
 
 test('playing advances through every frame and the stop function cancels', () => {
-  const root = fakeScene('au-app-tab', 4);
+  const root = fakeScene('au-app-tab', 5);
   const sequence = manifest.scenes.find(scene => scene.id === 'desktop-workspaces').sequence;
   const pending = [];
   let cancelled = 0;
@@ -104,7 +104,7 @@ test('playing advances through every frame and the stop function cancels', () =>
 });
 
 test('reduced motion holds the first frame instead of animating', () => {
-  const root = fakeScene('au-app-tab', 4);
+  const root = fakeScene('au-app-tab', 5);
   const sequence = manifest.scenes.find(scene => scene.id === 'desktop-workspaces').sequence;
   let scheduled = 0;
 

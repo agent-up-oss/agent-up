@@ -55,6 +55,8 @@
   <section data-au-screen="applications" data-au-title="Applications" data-au-intro="Each tab is a running application surface. Desktop opens the allocated HTTP port; Mobile lists Apps in the workspace bottom bar." data-au-desktop="desktop-applications" data-au-mobile="mobile-apps"></section>
   <section data-au-screen="console" data-au-title="Console" data-au-intro="Application stdout lives next to the running app, including [install] output. This surface is Desktop chrome; Mobile does not host a console." data-au-desktop="desktop-console"></section>
   <section data-au-screen="git" data-au-title="Git" data-au-intro="Working-tree review. Desktop Git changes and Mobile Git show the same change tree. Neither surface mutates the agent commit queue." data-au-desktop="desktop-git" data-au-mobile="mobile-git"></section>
+  <section data-au-screen="files" data-au-title="Files" data-au-intro="Every file in the clone, folders folded until opened. Each folder is read from the Server as it unfolds. Changed files keep their Git glyph, and a folded folder counts the changed files under it. Desktop puts Files after Git; Mobile puts it in the bottom bar after Git." data-au-desktop="desktop-files" data-au-mobile="mobile-files"></section>
+  <section data-au-screen="file-page" data-au-title="File page" data-au-intro="One file, whole, as a page rather than an overlay: read it and edit it with plain editor controls, then Save. Desktop keeps the workspace tabs and puts Back in the page header; Mobile is an inner page whose top bar goes back to Files." data-au-desktop="desktop-file" data-au-mobile="mobile-file"></section>
   <section data-au-screen="review" data-au-title="Review" data-au-intro="Mobile Review reads the Server-owned proposal queue. It does not reconstruct ancestry or infer verification state locally." data-au-mobile="mobile-review"></section>
   <section data-au-screen="history" data-au-title="History" data-au-intro="A bounded commit log with graph lanes, a pinned timestamp column, and a sticky selected-commit detail." data-au-desktop="desktop-history" data-au-mobile="mobile-history"></section>
   <section data-au-screen="file-viewer" data-au-title="File viewer" data-au-intro="Readonly inspection of a changed file: hunk jumps, line kinds, and syntax tokens. It is not a second editor." data-au-desktop="desktop-file-viewer" data-au-mobile="mobile-file-viewer"></section>
@@ -73,21 +75,21 @@
     <div data-au-region="chrome" data-au-use="chrome-connect"></div>
     <div data-au-region="pane" data-au-use="sign-in"></div>
   </section>
-  <section data-au-scene="desktop-workspaces" data-au-platform="desktop" data-au-view="workspaces" data-au-title="Desktop workspaces" data-au-layout="desktop-shell" data-au-sequence="workspace-tabs=selected:0@1400; workspace-tabs=selected:1@1100; workspace-tabs=selected:2@1100; workspace-tabs=selected:3@1400">
+  <section data-au-scene="desktop-workspaces" data-au-platform="desktop" data-au-view="workspaces" data-au-title="Desktop workspaces" data-au-layout="desktop-shell" data-au-sequence="workspace-tabs=selected:0@1400; workspace-tabs=selected:1@1100; workspace-tabs=selected:2@1100; workspace-tabs=selected:3@1100; workspace-tabs=selected:4@1400">
     <div data-au-region="chrome" data-au-use="chrome"></div>
     <div data-au-region="tabs" data-au-use="workspace-tabs"></div>
     <div data-au-region="pane" data-au-use="workspace-overview"></div>
   </section>
   <section data-au-scene="desktop-applications" data-au-platform="desktop" data-au-view="applications" data-au-title="Desktop applications" data-au-layout="desktop-shell" data-au-hero="true">
     <div data-au-region="chrome" data-au-use="chrome"></div>
-    <div data-au-region="tabs" data-au-use="workspace-tabs" data-au-state="selected:3"></div>
+    <div data-au-region="tabs" data-au-use="workspace-tabs" data-au-state="selected:4"></div>
     <div data-au-region="subtabs" data-au-use="subtab"></div>
     <div data-au-region="toolbar" data-au-use="address-bar"></div>
     <div data-au-region="pane" data-au-use="storefront"></div>
   </section>
   <section data-au-scene="desktop-console" data-au-platform="desktop" data-au-view="console" data-au-title="Desktop console" data-au-layout="desktop-shell">
     <div data-au-region="chrome" data-au-use="chrome"></div>
-    <div data-au-region="tabs" data-au-use="workspace-tabs" data-au-state="selected:3"></div>
+    <div data-au-region="tabs" data-au-use="workspace-tabs" data-au-state="selected:4"></div>
     <div data-au-region="subtabs" data-au-use="subtab" data-au-state="selected:1"></div>
     <div data-au-region="pane" data-au-use="console"></div>
   </section>
@@ -98,6 +100,17 @@
     <div data-au-region="pane" data-au-use="git-heading"></div>
     <div data-au-region="pane" data-au-use="git-change-list"></div>
     <div data-au-region="pane" data-au-use="git-commit"></div>
+  </section>
+  <section data-au-scene="desktop-files" data-au-platform="desktop" data-au-view="files" data-au-title="Desktop Files" data-au-layout="desktop-shell">
+    <div data-au-region="chrome" data-au-use="chrome"></div>
+    <div data-au-region="tabs" data-au-use="workspace-tabs" data-au-state="selected:3"></div>
+    <div data-au-region="pane" data-au-use="files-toolbar"></div>
+    <div data-au-region="pane" data-au-use="files-tree"></div>
+  </section>
+  <section data-au-scene="desktop-file" data-au-platform="desktop" data-au-view="file" data-au-title="Desktop file page" data-au-layout="desktop-shell">
+    <div data-au-region="chrome" data-au-use="chrome"></div>
+    <div data-au-region="tabs" data-au-use="workspace-tabs" data-au-state="selected:3"></div>
+    <div data-au-region="pane" data-au-use="file-editor"></div>
   </section>
   <section data-au-scene="desktop-history" data-au-platform="desktop" data-au-view="history" data-au-title="Desktop Git history" data-au-layout="desktop-shell">
     <div data-au-region="chrome" data-au-use="chrome"></div>
@@ -113,21 +126,21 @@
   </section>
   <section data-au-scene="desktop-diagnostics" data-au-platform="desktop" data-au-view="diagnostics" data-au-title="Desktop diagnostics" data-au-layout="desktop-shell">
     <div data-au-region="chrome" data-au-use="chrome"></div>
-    <div data-au-region="tabs" data-au-use="workspace-tabs" data-au-state="selected:3"></div>
+    <div data-au-region="tabs" data-au-use="workspace-tabs" data-au-state="selected:4"></div>
     <div data-au-region="subtabs" data-au-use="subtab" data-au-state="selected:2"></div>
     <div data-au-region="pane" data-au-use="audit-table"></div>
     <div data-au-region="pane" data-au-use="page-jump"></div>
   </section>
   <section data-au-scene="desktop-metrics" data-au-platform="desktop" data-au-view="metrics" data-au-title="Desktop metrics" data-au-layout="desktop-shell">
     <div data-au-region="chrome" data-au-use="chrome"></div>
-    <div data-au-region="tabs" data-au-use="workspace-tabs" data-au-state="selected:3"></div>
+    <div data-au-region="tabs" data-au-use="workspace-tabs" data-au-state="selected:4"></div>
     <div data-au-region="subtabs" data-au-use="subtab" data-au-state="selected:3"></div>
     <div data-au-region="pane" data-au-use="metrics-card"></div>
     <div data-au-region="pane" data-au-use="metrics-chart"></div>
   </section>
   <section data-au-scene="desktop-validation" data-au-platform="desktop" data-au-view="validation" data-au-title="Desktop validation" data-au-layout="desktop-shell">
     <div data-au-region="chrome" data-au-use="chrome"></div>
-    <div data-au-region="tabs" data-au-use="workspace-tabs" data-au-state="selected:3"></div>
+    <div data-au-region="tabs" data-au-use="workspace-tabs" data-au-state="selected:4"></div>
     <div data-au-region="subtabs" data-au-use="subtab"></div>
     <div data-au-region="toolbar" data-au-use="address-bar"></div>
     <div data-au-region="pane" data-au-use="storefront"></div>
@@ -135,7 +148,7 @@
   </section>
   <section data-au-scene="desktop-database" data-au-platform="desktop" data-au-view="database" data-au-title="Desktop database" data-au-layout="desktop-shell">
     <div data-au-region="chrome" data-au-use="chrome"></div>
-    <div data-au-region="tabs" data-au-use="workspace-tabs" data-au-state="selected:3"></div>
+    <div data-au-region="tabs" data-au-use="workspace-tabs" data-au-state="selected:4"></div>
     <div data-au-region="subtabs" data-au-use="subtab" data-au-state="selected:4"></div>
     <div data-au-region="pane" data-au-use="db-list"></div>
     <div data-au-region="pane" data-au-use="sql-editor"></div>
@@ -169,7 +182,7 @@
     <div data-au-region="nav" data-au-use="mobile-tab-bar"></div>
     <div data-au-region="overlay" data-au-use="drawer"></div>
   </section>
-  <section data-au-scene="mobile-apps" data-au-platform="mobile" data-au-view="apps" data-au-title="Mobile apps" data-au-layout="mobile-shell" data-au-live="/workspace/harbor-shop" data-au-sequence="mobile-tab-bar=selected:0@1400; mobile-tab-bar=selected:1@1100; mobile-tab-bar=selected:2@1100; mobile-tab-bar=selected:3@1400">
+  <section data-au-scene="mobile-apps" data-au-platform="mobile" data-au-view="apps" data-au-title="Mobile apps" data-au-layout="mobile-shell" data-au-live="/workspace/harbor-shop" data-au-sequence="mobile-tab-bar=selected:0@1400; mobile-tab-bar=selected:1@1100; mobile-tab-bar=selected:2@1100; mobile-tab-bar=selected:3@1100; mobile-tab-bar=selected:4@1400">
     <div data-au-region="bar" data-au-use="mobile-bar"></div>
     <div data-au-region="pane" data-au-use="app-list"></div>
     <div data-au-region="nav" data-au-use="mobile-tab-bar"></div>
@@ -180,6 +193,16 @@
     <div data-au-region="pane" data-au-use="git-change-list"></div>
     <div data-au-region="pane" data-au-use="git-commit-mobile"></div>
     <div data-au-region="nav" data-au-use="mobile-tab-bar" data-au-state="selected:1"></div>
+  </section>
+  <section data-au-scene="mobile-files" data-au-platform="mobile" data-au-view="files" data-au-title="Mobile Files" data-au-layout="mobile-shell" data-au-live="/workspace/harbor-shop/files">
+    <div data-au-region="bar" data-au-use="mobile-bar" data-au-props="title=Files; parts=menu title"></div>
+    <div data-au-region="pane" data-au-use="files-toolbar"></div>
+    <div data-au-region="pane" data-au-use="files-tree"></div>
+    <div data-au-region="nav" data-au-use="mobile-tab-bar" data-au-state="selected:2"></div>
+  </section>
+  <section data-au-scene="mobile-file" data-au-platform="mobile" data-au-view="file" data-au-title="Mobile file page" data-au-layout="mobile-list" data-au-live="/workspace/harbor-shop/files/file?path=apps%2Fstorefront%2FPromoBanner.tsx">
+    <div data-au-region="bar" data-au-use="mobile-bar" data-au-props="title=PromoBanner.tsx; parts=back title"></div>
+    <div data-au-region="pane" data-au-use="file-editor-mobile"></div>
   </section>
   <section data-au-scene="mobile-review" data-au-platform="mobile" data-au-view="review" data-au-title="Mobile Git review" data-au-layout="mobile-list" data-au-live="/workspace/harbor-shop/git/review">
     <div data-au-region="bar" data-au-use="mobile-bar" data-au-props="title=Changes; parts=back title"></div>
@@ -192,12 +215,12 @@
   <section data-au-scene="mobile-agents" data-au-platform="mobile" data-au-view="agents" data-au-title="Mobile Agents" data-au-layout="mobile-shell" data-au-live="/workspace/harbor-shop/agents">
     <div data-au-region="bar" data-au-use="mobile-bar" data-au-props="parts=menu"></div>
     <div data-au-region="pane" data-au-use="agent-picker"></div>
-    <div data-au-region="nav" data-au-use="mobile-tab-bar" data-au-state="selected:2"></div>
+    <div data-au-region="nav" data-au-use="mobile-tab-bar" data-au-state="selected:3"></div>
   </section>
   <section data-au-scene="mobile-settings" data-au-platform="mobile" data-au-view="settings" data-au-title="Mobile settings" data-au-layout="mobile-shell" data-au-live="/workspace/harbor-shop/settings">
     <div data-au-region="bar" data-au-use="mobile-bar" data-au-props="title=Settings; parts=menu title reload"></div>
     <div data-au-region="pane" data-au-use="capability-settings"></div>
-    <div data-au-region="nav" data-au-use="mobile-tab-bar" data-au-state="selected:3"></div>
+    <div data-au-region="nav" data-au-use="mobile-tab-bar" data-au-state="selected:4"></div>
   </section>
   <section data-au-scene="mobile-file-viewer" data-au-platform="mobile" data-au-view="file-viewer" data-au-title="Mobile file viewer" data-au-layout="mobile-shell" data-au-live="/workspace/harbor-shop/git">
     <div data-au-region="bar" data-au-use="mobile-bar" data-au-props="title=Git; parts=menu title"></div>
