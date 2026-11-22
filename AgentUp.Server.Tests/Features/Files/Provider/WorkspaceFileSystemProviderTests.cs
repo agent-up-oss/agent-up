@@ -107,6 +107,49 @@ public sealed class WorkspaceFileSystemProviderTests
     }
 
     [Test]
+    public void ListDirectory_leavesOutALinkThatLoopsAndKeepsTheRest()
+    {
+        var root = Workspace(("README.md", "x"));
+        File.CreateSymbolicLink(Path.Join(root, "loop-a"), Path.Join(root, "loop-b"));
+        File.CreateSymbolicLink(Path.Join(root, "loop-b"), Path.Join(root, "loop-a"));
+
+        var listing = new WorkspaceFileSystemProvider().ListDirectory(root, "", 100)!;
+
+        Assert.That(listing.Entries.Select(entry => entry.Name), Is.EqualTo(new[] { "README.md" }));
+    }
+
+    [Test]
+    public void ReadFile_throwsIOForALinkThatLoops()
+    {
+        var root = Workspace(("README.md", "x"));
+        File.CreateSymbolicLink(Path.Join(root, "loop-a"), Path.Join(root, "loop-b"));
+        File.CreateSymbolicLink(Path.Join(root, "loop-b"), Path.Join(root, "loop-a"));
+
+        Assert.That(
+            async () => await new WorkspaceFileSystemProvider().ReadFileAsync(root, "loop-a", 1024, CancellationToken.None),
+            Throws.InstanceOf<IOException>());
+    }
+
+    [Test]
+    public async Task ReadFile_isNullUnderAFolderThatDoesNotExist()
+        => Assert.That(await new WorkspaceFileSystemProvider().ReadFileAsync(Workspace(("README.md", "x")), "nowhere/at/all.md", 1024, CancellationToken.None), Is.Null);
+
+    [Test]
+    public async Task ReadFile_isNullThroughABrokenLink()
+    {
+        var root = Workspace(("README.md", "x"));
+        File.CreateSymbolicLink(Path.Join(root, "broken"), Path.Join(root, "gone"));
+
+        Assert.That(await new WorkspaceFileSystemProvider().ReadFileAsync(root, "broken/file.md", 1024, CancellationToken.None), Is.Null);
+    }
+
+    [Test]
+    public void ReadFile_needsAFileName()
+        => Assert.That(
+            async () => await new WorkspaceFileSystemProvider().ReadFileAsync(Workspace(("README.md", "x")), "", 1024, CancellationToken.None),
+            Throws.TypeOf<WorkspaceFilePathException>());
+
+    [Test]
     public async Task ReadFile_returnsTheWholeFile()
     {
         var root = Workspace(("src/main.cs", "line one\nline two\n"));

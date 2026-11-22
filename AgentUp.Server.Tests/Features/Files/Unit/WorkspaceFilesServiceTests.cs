@@ -208,6 +208,61 @@ public sealed class WorkspaceFilesServiceTests
         Assert.That(saved.Outcome, Is.EqualTo(WorkspaceFileOutcome.FileNotFound));
     }
 
+    [Test]
+    public async Task GetFile_reportsUnknownWorkspaces()
+    {
+        var (service, _) = await ComposeAsync(Disk(), new FakeWorkspaceFileChangeProvider(), new FakeWorkspaceFileEditGuard());
+
+        var result = await service.GetFileAsync("missing", "README.md");
+
+        Assert.That(result.Outcome, Is.EqualTo(WorkspaceFileOutcome.WorkspaceNotFound));
+    }
+
+    [Test]
+    public async Task WriteFile_reportsUnknownWorkspaces()
+    {
+        var (service, _) = await ComposeAsync(Disk(), new FakeWorkspaceFileChangeProvider(), new FakeWorkspaceFileEditGuard());
+
+        var result = await service.WriteFileAsync("missing", new WorkspaceFileWriteRequest("README.md", "x", "v"));
+
+        Assert.That(result.Outcome, Is.EqualTo(WorkspaceFileOutcome.WorkspaceNotFound));
+    }
+
+    [Test]
+    public async Task WriteFile_refusesContentOverTheLimit()
+    {
+        var files = Disk(("README.md", "old\n"));
+        var (service, workspaceId) = await ComposeAsync(files, new FakeWorkspaceFileChangeProvider(), new FakeWorkspaceFileEditGuard());
+        var tooLarge = new string('x', (int)WorkspaceFileLimits.MaxContentBytes + 1);
+
+        var saved = await service.WriteFileAsync(workspaceId, new WorkspaceFileWriteRequest("README.md", tooLarge, Text.Version(files.Files["README.md"])));
+
+        Assert.That(saved.Outcome, Is.EqualTo(WorkspaceFileOutcome.Invalid));
+        Assert.That(files.Writes, Is.Zero);
+    }
+
+    [Test]
+    public async Task WriteFile_reportsAFileThatCouldNotBeWritten()
+    {
+        var files = Disk(("README.md", "old\n"));
+        files.WriteFailure = new IOException("Read-only file system");
+        var (service, workspaceId) = await ComposeAsync(files, new FakeWorkspaceFileChangeProvider(), new FakeWorkspaceFileEditGuard());
+
+        var saved = await service.WriteFileAsync(workspaceId, new WorkspaceFileWriteRequest("README.md", "new\n", Text.Version(files.Files["README.md"])));
+
+        Assert.That(saved.Outcome, Is.EqualTo(WorkspaceFileOutcome.Invalid));
+        Assert.That(saved.Error, Does.Contain("Read-only file system"));
+    }
+
+    [TestCase(WorkspaceFileOutcome.Succeeded, 200)]
+    [TestCase(WorkspaceFileOutcome.WorkspaceNotFound, 404)]
+    [TestCase(WorkspaceFileOutcome.FileNotFound, 404)]
+    [TestCase(WorkspaceFileOutcome.Stale, 409)]
+    [TestCase(WorkspaceFileOutcome.Busy, 409)]
+    [TestCase(WorkspaceFileOutcome.Invalid, 400)]
+    public void Each_outcome_answers_with_its_HTTP_status(WorkspaceFileOutcome outcome, int status)
+        => Assert.That(new WorkspaceFileResult<WorkspaceFileContent>(outcome, null, null).StatusCode, Is.EqualTo(status));
+
     private static FakeWorkspaceFileSystemProvider Disk(params (string Path, string Text)[] files)
     {
         var disk = new FakeWorkspaceFileSystemProvider();

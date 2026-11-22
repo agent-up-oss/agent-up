@@ -13,6 +13,9 @@ internal sealed class FakeWorkspaceFileSystemProvider : IWorkspaceFileSystemProv
 
     public int Writes { get; private set; }
 
+    /// <summary>When set, a write fails the way a read-only or vanished file does.</summary>
+    public IOException? WriteFailure { get; set; }
+
     public WorkspaceDiskListing? ListDirectory(string root, string path, int maxEntries)
     {
         LastRoot = root;
@@ -47,6 +50,8 @@ internal sealed class FakeWorkspaceFileSystemProvider : IWorkspaceFileSystemProv
 
     public Task WriteFileAsync(string root, string path, byte[] bytes, CancellationToken cancellationToken)
     {
+        if (WriteFailure is not null)
+            throw WriteFailure;
         Writes++;
         Files[path] = bytes;
         return Task.CompletedTask;

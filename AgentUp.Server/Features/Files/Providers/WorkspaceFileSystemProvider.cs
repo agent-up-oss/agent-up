@@ -14,7 +14,6 @@ namespace AgentUp.Server.Features.Files.Providers;
 public sealed class WorkspaceFileSystemProvider : IWorkspaceFileSystemProvider
 {
     private const string GitDirectory = ".git";
-    private const int MaxLinkHops = 40;
 
     public WorkspaceDiskListing? ListDirectory(string root, string path, int maxEntries)
     {
@@ -68,21 +67,29 @@ public sealed class WorkspaceFileSystemProvider : IWorkspaceFileSystemProvider
     private static WorkspaceDiskEntry? Describe(string rootReal, string parent, FileSystemInfo info)
     {
         var childPath = parent.Length == 0 ? info.Name : $"{parent}/{info.Name}";
-        FileSystemInfo target = info;
-        if (info.LinkTarget is not null)
-        {
-            var resolved = info.ResolveLinkTarget(returnFinalTarget: true);
-            if (resolved is null || !resolved.Exists || !IsUnder(rootReal, Path.GetFullPath(resolved.FullName)))
-                return null;
-            target = resolved;
-        }
+        var target = info.LinkTarget is null ? info : LinkTargetInside(rootReal, info);
+        if (target is null)
+            return null;
+        return target is DirectoryInfo
+            ? new WorkspaceDiskEntry(info.Name, childPath, WorkspaceFileEntryKind.Directory, null)
+            : new WorkspaceDiskEntry(info.Name, childPath, WorkspaceFileEntryKind.File, ((FileInfo)target).Length);
+    }
 
-        return target switch
+    /// <summary>
+    /// Where a link finally leads, or null when it is broken, loops, or leaves the folder. One
+    /// such link is left out rather than failing the listing of the folder around it.
+    /// </summary>
+    private static FileSystemInfo? LinkTargetInside(string rootReal, FileSystemInfo link)
+    {
+        try
         {
-            DirectoryInfo => new WorkspaceDiskEntry(info.Name, childPath, WorkspaceFileEntryKind.Directory, null),
-            FileInfo file => new WorkspaceDiskEntry(info.Name, childPath, WorkspaceFileEntryKind.File, file.Length),
-            _ => null,
-        };
+            var resolved = link.ResolveLinkTarget(returnFinalTarget: true);
+            return resolved is { Exists: true } && IsUnder(rootReal, Path.GetFullPath(resolved.FullName)) ? resolved : null;
+        }
+        catch (IOException)
+        {
+            return null;
+        }
     }
 
     private static string RootOf(string root)
@@ -120,9 +127,9 @@ public sealed class WorkspaceFileSystemProvider : IWorkspaceFileSystemProvider
     /// <summary>The real location a relative path names, refused when a link takes it outside the folder.</summary>
     private static string Resolve(string rootReal, string relative)
     {
+        // Normalize has already refused "..", rooted paths and .git, so the joined path is under
+        // the folder; only a link along the way can still lead out, which the real path shows.
         var joined = relative.Length == 0 ? rootReal : Path.GetFullPath(Path.Join(rootReal, relative));
-        if (!IsUnder(rootReal, joined))
-            throw new WorkspaceFilePathException($"'{relative}' must stay inside the workspace folder.");
         var real = RealPath(joined) ?? joined;
         if (!IsUnder(rootReal, real))
             throw new WorkspaceFilePathException($"'{relative}' leads outside the workspace folder.");
@@ -137,24 +144,23 @@ public sealed class WorkspaceFileSystemProvider : IWorkspaceFileSystemProvider
     {
         var root = Path.GetPathRoot(fullPath) ?? "/";
         var current = root;
-        var remaining = new Queue<string>(fullPath[root.Length..].Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries));
-        var hops = 0;
-        while (remaining.Count > 0)
+        foreach (var segment in fullPath[root.Length..].Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries))
         {
-            var next = Path.Join(current, remaining.Dequeue());
+            var next = Path.Join(current, segment);
             FileSystemInfo info = Directory.Exists(next) ? new DirectoryInfo(next) : new FileInfo(next);
-            if (!info.Exists && info.LinkTarget is null)
-                return null;
-            if (info.LinkTarget is not null)
+            if (info.LinkTarget is null)
             {
-                if (++hops > MaxLinkHops)
+                if (!info.Exists)
                     return null;
-                var target = info.ResolveLinkTarget(returnFinalTarget: true);
-                if (target is null || !target.Exists)
-                    return null;
-                next = Path.GetFullPath(target.FullName);
+                current = next;
+                continue;
             }
-            current = next;
+
+            // A link loop throws IOException here, which the caller answers as an unreadable path.
+            var target = info.ResolveLinkTarget(returnFinalTarget: true);
+            if (target is not { Exists: true })
+                return null;
+            current = Path.GetFullPath(target.FullName);
         }
         return current;
     }

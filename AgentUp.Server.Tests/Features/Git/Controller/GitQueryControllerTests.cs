@@ -31,6 +31,34 @@ public sealed class GitQueryControllerTests
         Assert.That(head!.Branch, Is.EqualTo("topic"));
     }
 
+    [Test]
+    public async Task GetWorktreeChangesAsync_returnsNullForAnUnknownWorkspace()
+    {
+        var controller = await CreateAsync(new FakeGitWorkingTreeProvider());
+
+        Assert.That(await controller.Query.GetWorktreeChangesAsync("missing"), Is.Null);
+    }
+
+    [Test]
+    public async Task GetWorktreeChangesAsync_isEmptyWhenTheFolderIsNotARepository()
+    {
+        var controller = await CreateAsync(new FakeGitWorkingTreeProvider { Failure = "not a git repository" });
+
+        Assert.That(await controller.Query.GetWorktreeChangesAsync(controller.WorkspaceId), Is.Empty);
+    }
+
+    [Test]
+    public async Task GetWorktreeChangesAsync_returnsTheWorkspaceChanges()
+    {
+        var git = new FakeGitWorkingTreeProvider();
+        git.Changes.Add(new GitChangeEntry("src/main.cs", GitChangeStatus.Modified));
+        var controller = await CreateAsync(git);
+
+        var changes = await controller.Query.GetWorktreeChangesAsync(controller.WorkspaceId);
+
+        Assert.That(changes!.Single().Path, Is.EqualTo("src/main.cs"));
+    }
+
     private static async Task<(GitQueryController Query, string WorkspaceId)> CreateAsync(FakeGitWorkingTreeProvider git)
     {
         var workspaces = new WorkspaceQueryController(ServerTestComposition.CreateRegistry());
