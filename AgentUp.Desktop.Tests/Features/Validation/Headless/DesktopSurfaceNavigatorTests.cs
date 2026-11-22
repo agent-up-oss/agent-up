@@ -56,4 +56,16 @@ public sealed class DesktopSurfaceNavigatorTests
             Assert.That(viewModel.SelectedShellTab, Is.EqualTo(WorkspaceShellTab.Settings));
         });
     }
+
+    [AvaloniaTest]
+    public async Task Navigate_opensTheFilesTab()
+    {
+        var app = await AppDriver.LaunchWithWorkspaceAsync(DesktopDomain.Workspace().Build());
+        var viewModel = (MainViewModel)app.Window.DataContext!;
+
+        var error = new DesktopSurfaceNavigator().Navigate(viewModel, DesktopNamedRoutes.WorkspaceFiles);
+
+        Assert.That(error, Is.Null);
+        Assert.That(viewModel.SelectedShellTab, Is.EqualTo(WorkspaceShellTab.Files));
+    }
 }

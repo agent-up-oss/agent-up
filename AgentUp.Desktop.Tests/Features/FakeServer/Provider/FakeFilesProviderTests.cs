@@ -85,6 +85,23 @@ public sealed class FakeFilesProviderTests
     public void Write_requiresContent()
         => Assert.That(FakeFilesProvider.Write(Repository(), Edits(), [], "README.md", null, "v").Status, Is.EqualTo(400));
 
+    [Test]
+    public void Directory_refusesAPathOutsideTheWorkspace()
+        => Assert.That(FakeFilesProvider.Directory("bob", Repository(), Edits(), [], "../etc").Status, Is.EqualTo(400));
+
+    [Test]
+    public void Write_isNotFoundForAMissingFile()
+        => Assert.That(FakeFilesProvider.Write(Repository(), Edits(), [], "missing.md", "x", "v").Status, Is.EqualTo(404));
+
+    [Test]
+    public void File_showsAnEditOverTheRepository()
+    {
+        var edits = Edits();
+        edits["README.md"] = "# Edited\n";
+
+        Assert.That(FakeFilesProvider.File(Repository(), edits, [], "README.md").Body["content"]!.GetValue<string>(), Is.EqualTo("# Edited\n"));
+    }
+
     private static Dictionary<string, string> Edits() => new(StringComparer.Ordinal);
 
     private static JsonObject Repository() => new()

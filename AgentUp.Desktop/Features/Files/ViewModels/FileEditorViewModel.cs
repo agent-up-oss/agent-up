@@ -301,9 +301,8 @@ public sealed class FileEditorViewModel : ReactiveObject
 
     private async Task SaveAsync()
     {
-        var workspaceId = _workspaceId;
-        if (workspaceId is null)
-            return;
+        // Save is only enabled for a page with content, which only an opened file has.
+        var workspaceId = _workspaceId!;
         var generation = _generation;
         IsSaving = true;
         Error = null;
@@ -330,8 +329,8 @@ public sealed class FileEditorViewModel : ReactiveObject
         }
         finally
         {
-            if (generation == _generation)
-                IsSaving = false;
+            // Always: a page closed mid-save opens its next file without a save in flight.
+            IsSaving = false;
         }
     }
 

@@ -1,4 +1,5 @@
 using System.Reactive.Linq;
+using System.Reactive.Threading.Tasks;
 using AgentUp.Desktop.Features.Files.Controllers;
 using AgentUp.Desktop.Features.Files.Services;
 using AgentUp.Desktop.Features.Files.ViewModels;
@@ -150,6 +151,195 @@ public sealed class FilesPanelViewModelTests
 
         Assert.That(panel.ErrorMessage, Does.Contain("no longer on the Server"));
         Assert.That(panel.ShowEmptyState, Is.False);
+    }
+
+    [Test]
+    public async Task Pointing_at_the_same_workspace_again_keeps_the_tree()
+    {
+        var api = Repository();
+        var panel = await ShownAsync(api);
+
+        panel.PrepareWorkspace(DesktopDomain.WorkspaceId, "My App · main", "local");
+
+        Assert.That(api.Requested, Is.EqualTo(new[] { "" }));
+        Assert.That(panel.Nodes, Has.Count.EqualTo(2));
+    }
+
+    [Test]
+    public async Task Reload_without_a_workspace_reads_nothing()
+    {
+        var api = Repository();
+        var panel = Panel(api);
+
+        await panel.RefreshCommand.Execute();
+
+        Assert.That(api.Requested, Is.Empty);
+    }
+
+    [Test]
+    public async Task An_unreachable_Server_says_why_the_tree_is_empty()
+    {
+        var api = Repository();
+        api.Failure = "Connection refused";
+
+        var panel = await ShownAsync(api);
+
+        Assert.That(panel.ErrorMessage, Is.EqualTo("Connection refused"));
+        Assert.That(panel.IsLoading, Is.False);
+    }
+
+    [Test]
+    public async Task A_folder_that_cannot_be_read_stays_folded_and_says_why()
+    {
+        var api = Repository();
+        var panel = await ShownAsync(api);
+        api.Failure = "Connection refused";
+
+        await panel.Nodes[0].ToggleCommand.Execute();
+
+        Assert.That(panel.Nodes[0].IsExpanded, Is.False);
+        Assert.That(panel.ErrorMessage, Is.EqualTo("Connection refused"));
+    }
+
+    [Test]
+    public async Task A_top_level_that_arrives_after_switching_workspace_is_dropped()
+    {
+        var api = Repository();
+        var held = api.Hold("dir:");
+        var panel = Panel(api);
+        panel.PrepareWorkspace(DesktopDomain.WorkspaceId, "My App · main", "local");
+        panel.IsVisible = true;
+
+        panel.PrepareWorkspace(DesktopDomain.SecondWorkspaceId, "Auth Service · main", "local");
+        await WaitAsync(() => !panel.IsLoading);
+        var afterSwitch = panel.Nodes.Count;
+        held.SetResult();
+        await Task.Delay(50);
+
+        Assert.That(panel.Nodes, Has.Count.EqualTo(afterSwitch));
+    }
+
+    [Test]
+    public async Task A_reopened_folder_that_arrives_after_switching_workspace_is_dropped()
+    {
+        var api = Repository();
+        var panel = await ShownAsync(api);
+        await panel.Nodes[0].ToggleCommand.Execute();
+        var held = api.Hold("dir:apps");
+        var reload = panel.LoadAsync();
+
+        panel.PrepareWorkspace(DesktopDomain.SecondWorkspaceId, "Auth Service · main", "local");
+        await WaitAsync(() => !panel.IsLoading);
+        var afterSwitch = panel.Nodes.Select(node => node.Path).ToArray();
+        held.SetResult();
+        await reload;
+
+        Assert.That(panel.Nodes.Select(node => node.Path), Is.EqualTo(afterSwitch));
+    }
+
+    [Test]
+    public async Task A_folder_that_arrives_after_switching_workspace_is_dropped()
+    {
+        var api = Repository();
+        var panel = await ShownAsync(api);
+        var apps = panel.Nodes[0];
+        var held = api.Hold("dir:apps");
+        var toggle = apps.ToggleCommand.Execute().ToTask();
+
+        panel.PrepareWorkspace(DesktopDomain.SecondWorkspaceId, "Auth Service · main", "local");
+        held.SetResult();
+        await toggle;
+
+        Assert.That(apps.IsExpanded, Is.False);
+    }
+
+    [Test]
+    public async Task A_folder_folded_away_while_it_loads_is_not_put_back()
+    {
+        var api = Repository();
+        var panel = await ShownAsync(api);
+        await panel.Nodes[0].ToggleCommand.Execute();
+        var storefront = panel.Nodes[1];
+        var held = api.Hold("dir:apps/storefront");
+        var toggle = storefront.ToggleCommand.Execute().ToTask();
+
+        await panel.Nodes[0].ToggleCommand.Execute();
+        held.SetResult();
+        await toggle;
+
+        Assert.That(panel.Nodes.Select(node => node.Path), Is.EqualTo(new[] { "apps", "README.md" }));
+    }
+
+    [Test]
+    public async Task Reload_keeps_the_open_file_selected()
+    {
+        var panel = await ShownAsync(Repository());
+        await panel.Nodes[1].OpenCommand.Execute();
+
+        await panel.RefreshCommand.Execute();
+
+        Assert.That(panel.Nodes.Single(node => node.Path == "README.md").IsOpen, Is.True);
+    }
+
+    [Test]
+    public async Task Reload_drops_an_open_folder_the_Server_no_longer_has()
+    {
+        var api = Repository();
+        var panel = await ShownAsync(api);
+        await panel.Nodes[0].ToggleCommand.Execute();
+        api.Folders.Remove("apps");
+
+        await panel.RefreshCommand.Execute();
+
+        Assert.That(panel.Nodes.Select(node => node.Path), Is.EqualTo(new[] { "apps", "README.md" }));
+    }
+
+    [Test]
+    public async Task A_row_from_before_a_reload_no_longer_moves_the_tree()
+    {
+        var panel = await ShownAsync(Repository());
+        await panel.Nodes[0].ToggleCommand.Execute();
+        var stale = panel.Nodes[0];
+        await panel.RefreshCommand.Execute();
+        var rows = panel.Nodes.Count;
+
+        await stale.ToggleCommand.Execute();
+
+        Assert.That(panel.Nodes, Has.Count.EqualTo(rows));
+    }
+
+    [Test]
+    public async Task A_file_row_has_nothing_to_unfold()
+    {
+        var api = Repository();
+        var panel = await ShownAsync(api);
+
+        await panel.Nodes[1].ToggleCommand.Execute();
+
+        Assert.That(api.Requested, Is.EqualTo(new[] { "" }));
+    }
+
+    [Test]
+    public async Task A_row_left_over_from_a_closed_workspace_opens_nothing()
+    {
+        var panel = await ShownAsync(Repository());
+        var readme = panel.Nodes[1];
+        panel.PrepareWorkspace(null, null, "local");
+
+        await readme.OpenCommand.Execute();
+
+        Assert.That(panel.IsEditorOpen, Is.False);
+    }
+
+    [Test]
+    public void Git_write_permission_reaches_the_editor()
+    {
+        var panel = Panel(Repository());
+
+        panel.CanWriteGit = false;
+
+        Assert.That(panel.CanWriteGit, Is.False);
+        Assert.That(panel.Editor.CanWriteGit, Is.False);
     }
 
     internal static FakeWorkspaceFilesApi Repository() => new FakeWorkspaceFilesApi()

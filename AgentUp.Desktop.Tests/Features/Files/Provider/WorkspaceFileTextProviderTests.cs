@@ -34,6 +34,7 @@ public sealed class WorkspaceFileTextProviderTests
     [TestCase("Modified", "M")]
     [TestCase("Added", "+")]
     [TestCase("Untracked", "?")]
+    [TestCase("Deleted", "−")]
     [TestCase("Renamed", "→")]
     [TestCase("Conflicted", "!")]
     public void StatusGlyph_matchesTheGitChangeList(string? status, string glyph)

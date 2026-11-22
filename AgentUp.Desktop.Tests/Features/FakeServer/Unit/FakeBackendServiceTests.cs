@@ -1477,9 +1477,15 @@ public sealed class FakeBackendServiceTests
         Assert.That(JsonNode.Parse(saved.Body!)!["title"]!.GetValue<string>(), Is.EqualTo("File changed on the Server"));
     }
 
-    [Test]
-    public void Handle_filesAreNotFoundForAnUnknownWorkspace()
-        => Assert.That(Run(backend: FakeServerTestComposition.Backend(), Get("/api/workspaces/missing/files/directory")).Status, Is.EqualTo(404));
+    [TestCase("GET", "/api/workspaces/missing/files/directory")]
+    [TestCase("GET", "/api/workspaces/missing/files/file")]
+    [TestCase("PUT", "/api/workspaces/missing/files/file")]
+    public void Handle_filesAreNotFoundForAnUnknownWorkspace(string method, string path)
+    {
+        var request = method == "PUT" ? Put(path, "{}") : Get(path).WithQuery("?path=README.md");
+
+        Assert.That(Run(FakeServerTestComposition.Backend(), request).Status, Is.EqualTo(404));
+    }
 
     private static AgentUp.Desktop.Features.FakeServer.Services.FakeBackendService BackendFromJson(string json)
         => new(new AgentUp.Desktop.Features.FakeServer.Providers.FakeServerDefinitionProvider().LoadJson(json));

@@ -1,4 +1,5 @@
 using System.Reactive.Linq;
+using System.Reactive.Threading.Tasks;
 using AgentUp.Desktop.Features.Files.Controllers;
 using AgentUp.Desktop.Features.Files.DTOs;
 using AgentUp.Desktop.Features.Files.Services;
@@ -164,6 +165,98 @@ public sealed class FileEditorViewModelTests
         var editor = await OpenedAsync(Api(), "gone.md");
 
         Assert.That(editor.Notice, Does.Contain("no longer in the workspace"));
+    }
+
+    [Test]
+    public async Task A_file_that_cannot_be_read_says_why()
+    {
+        var api = Api().File(DesktopDomain.FileReadme, "# My App\n");
+        api.Failure = "Connection refused";
+
+        var editor = await OpenedAsync(api, DesktopDomain.FileReadme);
+
+        Assert.That(editor.Notice, Is.EqualTo("Connection refused"));
+        Assert.That(editor.IsLoading, Is.False);
+    }
+
+    [Test]
+    public async Task A_save_that_cannot_reach_the_Server_keeps_the_edit_and_says_why()
+    {
+        var api = Api().File(DesktopDomain.FileReadme, "# My App\n");
+        var editor = await OpenedAsync(api, DesktopDomain.FileReadme);
+        editor.Text = "mine";
+        api.Failure = "Connection refused";
+
+        await editor.SaveCommand.Execute();
+
+        Assert.That(editor.StateLabel, Is.EqualTo("Connection refused"));
+        Assert.That(editor.IsDirty, Is.True);
+    }
+
+    [Test]
+    public async Task A_save_that_finishes_after_the_page_closed_changes_nothing()
+    {
+        var api = Api().File(DesktopDomain.FileReadme, "# My App\n");
+        var editor = await OpenedAsync(api, DesktopDomain.FileReadme);
+        editor.Text = "mine";
+        var held = api.Hold($"save:{DesktopDomain.FileReadme}");
+        var save = editor.SaveCommand.Execute().ToTask();
+
+        editor.Close();
+        held.SetResult();
+        await save;
+
+        Assert.That(editor.IsOpen, Is.False);
+        Assert.That(editor.StateLabel, Is.EqualTo("Saved"));
+    }
+
+    [Test]
+    public async Task A_file_that_arrives_after_another_was_opened_is_dropped()
+    {
+        var api = Api().File(DesktopDomain.FileReadme, "# My App\n").File(DesktopDomain.FileProductGrid, "grid");
+        var editor = new FileEditorViewModel(new WorkspaceFilesController(new WorkspaceFilesService(api)));
+        var held = api.Hold($"file:{DesktopDomain.FileReadme}");
+        var first = editor.OpenAsync(DesktopDomain.WorkspaceId, DesktopDomain.FileReadme);
+
+        await editor.OpenAsync(DesktopDomain.WorkspaceId, DesktopDomain.FileProductGrid);
+        held.SetResult();
+        await first;
+
+        Assert.That(editor.Text, Is.EqualTo("grid"));
+    }
+
+    [Test]
+    public async Task Reload_before_anything_was_opened_reads_nothing()
+    {
+        var editor = new FileEditorViewModel(new WorkspaceFilesController(new WorkspaceFilesService(Api())));
+
+        await editor.ReloadCommand.Execute();
+
+        Assert.That(editor.IsLoading, Is.False);
+        Assert.That(editor.HasNotice, Is.False);
+    }
+
+    [Test]
+    public async Task Setting_the_same_text_is_not_an_edit()
+    {
+        var editor = await OpenedAsync(Api().File(DesktopDomain.FileReadme, "# My App\n"), DesktopDomain.FileReadme);
+        var changes = 0;
+        editor.PropertyChanged += (_, args) => { if (args.PropertyName == nameof(FileEditorViewModel.Text)) changes++; };
+
+        editor.Text = "# My App\n";
+
+        Assert.That(changes, Is.Zero);
+    }
+
+    [Test]
+    public async Task A_file_too_large_to_send_says_so()
+    {
+        var api = Api();
+        api.Files["dump.log"] = new WorkspaceFileContentDto("dump.log", 3_145_728, "size-3145728", null, false, true, null);
+
+        var editor = await OpenedAsync(api, "dump.log");
+
+        Assert.That(editor.Notice, Does.Contain("3 MB"));
     }
 
     private static FakeWorkspaceFilesApi Api() => new();
