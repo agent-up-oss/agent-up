@@ -29,6 +29,8 @@ Agents still enqueue through the commit queue. This slice does not replace `enqu
 <DocSurface mobile>Open it from the Git tab. The overview lists uncommitted changes; a filename opens the file viewer. History sits next to Push. Inner Review and History pages return through the nav-bar back button. Fetch, pull, push, discard, and commit stay hidden when the Server does not allow `git.write`.</DocSurface>
 </DocSurfaces>
 
+The **Files** tab next to Git shows the whole clone, not only what changed, and lets you open and edit a file. See [Files](./files).
+
 Desktop Git always shows a hosting strip above the change tree. With no forge module enabled it names that cause and the bootstrap remedy. After connection it shows the open proposal, check state, review threads, and mergeability. Mobile shows the same facts as a row on the Git overview, with thread links on Review.
 
 ## Enable a repository host

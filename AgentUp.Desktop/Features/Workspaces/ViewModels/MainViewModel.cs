@@ -11,6 +11,7 @@ using AgentUp.Desktop.Features.Authentication.DTOs;
 using AgentUp.Desktop.Features.Authentication.ViewModels;
 using AgentUp.Desktop.Features.Console.ViewModels;
 using AgentUp.Desktop.Features.Database.ViewModels;
+using AgentUp.Desktop.Features.Files.ViewModels;
 using AgentUp.Desktop.Features.Git.ViewModels;
 using AgentUp.Desktop.Features.Metrics.ViewModels;
 using AgentUp.Desktop.Features.Ports.Controllers;
@@ -55,6 +56,7 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
     public DatabaseViewModel Database { get; }
     public ApplicationAuditViewModel Audit { get; }
     public GitPanelViewModel Git { get; }
+    public FilesPanelViewModel Files { get; }
     public AgentChatViewModel Agent { get; }
     public WorkspaceOverviewViewModel Overview { get; }
     public LoginViewModel Login { get; }
@@ -76,6 +78,7 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
         new(WorkspaceShellTab.Overview, "Overview"),
         new(WorkspaceShellTab.Agent, "Agent"),
         new(WorkspaceShellTab.Git, "Git"),
+        new(WorkspaceShellTab.Files, "Files"),
         new(WorkspaceShellTab.Settings, "Settings")
     ];
 
@@ -92,6 +95,7 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
 
             this.RaiseAndSetIfChanged(ref _selectedShellTab, value);
             Git.IsVisible = value == WorkspaceShellTab.Git;
+            Files.IsVisible = value == WorkspaceShellTab.Files;
             // Settings hosts the agent's choice, sessions, and loop checklist, so it keeps the
             // agent live the way the Agent tab does.
             Agent.IsVisible = value is WorkspaceShellTab.Agent or WorkspaceShellTab.Settings;
@@ -158,6 +162,7 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
     public bool ShowOverview => SelectedShellTab == WorkspaceShellTab.Overview;
     public bool ShowAgent => SelectedShellTab == WorkspaceShellTab.Agent;
     public bool ShowGit => SelectedShellTab == WorkspaceShellTab.Git;
+    public bool ShowFiles => SelectedShellTab == WorkspaceShellTab.Files;
     public bool ShowWorkspaceSettings => SelectedShellTab == WorkspaceShellTab.Settings;
     public bool ShowApplication => SelectedShellTab == WorkspaceShellTab.Application;
     public bool ShowApplicationChrome => ShowApplication && Applications.SelectedApplication is not null;
@@ -203,6 +208,7 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
         DatabaseViewModel database,
         ApplicationAuditViewModel audit,
         GitPanelViewModel git,
+        FilesPanelViewModel files,
         AgentChatViewModel agent,
         WorkspaceOverviewViewModel overview,
         LoginViewModel login,
@@ -221,6 +227,7 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
         Database = database;
         Audit = audit;
         Git = git;
+        Files = files;
         Agent = agent;
         Overview = overview;
         Login = login;
@@ -277,7 +284,11 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
 
     private void SubscribeEntitlements()
         => Sidebar.WhenAnyValue(x => x.CanWriteGit)
-            .Subscribe(canWrite => Git.CanWriteGit = canWrite);
+            .Subscribe(canWrite =>
+            {
+                Git.CanWriteGit = canWrite;
+                Files.CanWriteGit = canWrite;
+            });
 
     private void SubscribeWorkspaceSelection()
         => Sidebar.WhenAnyValue(x => x.SelectedWorkspace)
@@ -296,6 +307,7 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
                     _ = Overview.LoadAsync(ws.Id);
                 Git.PrepareWorkspace(ws?.Id, ws?.Branch, Login.CurrentConnectionId);
                 _ = Git.LoadAsync(ws?.Id, connectionId: Login.CurrentConnectionId);
+                Files.PrepareWorkspace(ws?.Id, FilesRootLabel(ws), Login.CurrentConnectionId);
                 _ = Agent.LoadAsync(ws?.Id);
                 LoadValidation();
             });
@@ -408,6 +420,7 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
                 {
                     "agent-chat" => WorkspaceShellTab.Agent,
                     "agent-git" => WorkspaceShellTab.Git,
+                    "agent-files" or "agent-file" => WorkspaceShellTab.Files,
                     "application" => WorkspaceShellTab.Application,
                     "agent-overview" => WorkspaceShellTab.Overview,
                     _ => SelectedShellTab,
@@ -999,11 +1012,18 @@ public sealed class MainViewModel : ReactiveObject, IValidationReplayHost
         this.RaiseAndSetIfChanged(ref _selectedShellTabItem, item, nameof(SelectedShellTabItem));
     }
 
+    /// <summary>The checkout beside the Files label: the workspace and its branch.</summary>
+    private static string FilesRootLabel(WorkspaceItemViewModel? workspace)
+        => workspace is null
+            ? string.Empty
+            : $"{workspace.DisplayName} · {(string.IsNullOrWhiteSpace(workspace.Branch) ? "not on a git branch" : workspace.Branch)}";
+
     private void RaiseShellVisibility()
     {
         this.RaisePropertyChanged(nameof(ShowOverview));
         this.RaisePropertyChanged(nameof(ShowAgent));
         this.RaisePropertyChanged(nameof(ShowGit));
+        this.RaisePropertyChanged(nameof(ShowFiles));
         this.RaisePropertyChanged(nameof(ShowWorkspaceSettings));
         this.RaisePropertyChanged(nameof(ShowApplication));
         this.RaisePropertyChanged(nameof(ShowApplicationChrome));

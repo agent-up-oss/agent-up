@@ -42,6 +42,7 @@ public static class DesktopAutomationIds
     public const string OverviewExportReport = "overview.export-report";
     public const string ShellTabAgent = "shell.tab.agent";
     public const string ShellTabGit = "shell.tab.git";
+    public const string ShellTabFiles = "shell.tab.files";
     public const string ShellTabSettings = "shell.tab.settings";
     public const string AgentSettingsSummary = "agent.settings-summary";
     public const string AgentOpenSettings = "agent.open-settings";
@@ -135,6 +136,17 @@ public static class DesktopAutomationIds
     public const string DatabaseSql = "database.sql";
     public const string DatabaseCell = "database.cell";
     public const string GitLog = "git.log";
+    public const string FilesPanel = "files.panel";
+    public const string FilesRefresh = "files.refresh";
+    public const string FilesTree = "files.tree";
+    public const string FileEditor = "files.editor";
+    public const string FileEditorBack = "files.editor.back";
+    public const string FileEditorText = "files.editor.text";
+    public const string FileEditorSave = "files.editor.save";
+    public const string FileEditorRevert = "files.editor.revert";
+    public const string FileEditorReload = "files.editor.reload";
+    public const string FileEditorDiscard = "files.editor.discard";
+    public const string FileEditorKeepEditing = "files.editor.keep-editing";
     public const string GitDiffGo = "git.diff.go";
     public const string GitDiffLines = "git.diff.lines";
     public const string GitDiffDismiss = "git.diff.dismiss";
@@ -183,6 +195,8 @@ public static class DesktopAutomationIds
     public static string GitSelect(string path) => $"git.select.{path}";
     public static string GitToggle(string path) => $"git.toggle.{path}";
     public static string GitOpen(string path) => $"git.open.{path}";
+    public static string FilesToggle(string path) => $"files.toggle.{path}";
+    public static string FilesOpen(string path) => $"files.open.{path}";
     public static string ValidationPlay(string flowId) => $"validation.play.{flowId}";
     public static string CapabilityEnable(string moduleId) => $"capability.enable.{moduleId}";
     public static string CapabilityDisable(string moduleId) => $"capability.disable.{moduleId}";

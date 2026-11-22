@@ -37,6 +37,7 @@ const sidebars = {
       items: [
         { type: 'doc', id: 'git/index', label: 'General' },
         'git/review',
+        'git/files',
         'git/history',
         'git/remotes',
       ],

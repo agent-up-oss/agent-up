@@ -61,6 +61,9 @@ internal sealed class FakeGitWorkingTreeProvider : IGitWorkingTreeProvider
 
     public string? LastWorktreePath { get; private set; }
 
+    public Task<IReadOnlyList<GitChangeEntry>> GetWorktreeChangesAsync(string worktreePath, CancellationToken cancellationToken = default)
+        => GetChangesAsync(worktreePath, cancellationToken);
+
     public Task<IReadOnlyList<GitChangeEntry>> GetChangesAsync(string worktreePath, CancellationToken cancellationToken = default)
     {
         LastWorktreePath = worktreePath;

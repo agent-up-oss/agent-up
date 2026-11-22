@@ -9,12 +9,14 @@ test('workspaceOverviewTab treats the workspace home as Apps', () => {
 
 test('workspaceOverviewTab recognizes Git, Agents, and Settings overview routes', () => {
   assert.equal(workspaceOverviewTab('/workspace/abc/git', 'abc'), 'git');
+  assert.equal(workspaceOverviewTab('/workspace/abc/files', 'abc'), 'files');
   assert.equal(workspaceOverviewTab('/workspace/abc/agents', 'abc'), 'agents');
   assert.equal(workspaceOverviewTab('/workspace/abc/settings', 'abc'), 'settings');
 });
 
 test('workspaceOverviewTab hides the bar on inner pages', () => {
   assert.equal(workspaceOverviewTab('/workspace/abc/git/review', 'abc'), null);
+  assert.equal(workspaceOverviewTab('/workspace/abc/files/file', 'abc'), null);
   assert.equal(workspaceOverviewTab('/workspace/abc/git/history', 'abc'), null);
   assert.equal(workspaceOverviewTab('/workspace/abc/agent', 'abc'), null);
   assert.equal(workspaceOverviewTab('/workspace/abc/application/web', 'abc'), null);
@@ -23,6 +25,7 @@ test('workspaceOverviewTab hides the bar on inner pages', () => {
 test('workspaceTabHref stays under the workspace id', () => {
   assert.equal(workspaceTabHref('ws 1', 'apps'), '/(main)/workspace/ws 1');
   assert.equal(workspaceTabHref('ws 1', 'git'), '/(main)/workspace/ws 1/git');
+  assert.equal(workspaceTabHref('ws 1', 'files'), '/(main)/workspace/ws 1/files');
   assert.equal(workspaceTabHref('ws 1', 'agents'), '/(main)/workspace/ws 1/agents');
   assert.equal(workspaceTabHref('ws 1', 'settings'), '/(main)/workspace/ws 1/settings');
 });

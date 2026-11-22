@@ -18,6 +18,8 @@ public sealed class FakeBackendService
     private readonly List<Action<string>> _workspaceListeners = [];
     private readonly Dictionary<string, JsonArray> _appTemplates = new(StringComparer.Ordinal);
     private readonly Dictionary<string, List<string>> _steering = new(StringComparer.Ordinal);
+    /// <summary>Files edited by hand in this session, per workspace.</summary>
+    private readonly Dictionary<string, Dictionary<string, string>> _fileEdits = new(StringComparer.Ordinal);
     private int _lifecycleGeneration;
     private int _loopGeneration;
     private bool _autonomyEnabled;
@@ -53,6 +55,7 @@ public sealed class FakeBackendService
         lock (_gate)
         {
             _state = _template.Clone();
+            _fileEdits.Clear();
             _agentEvents.Clear();
             _agentSequence = 0;
             _autonomyEnabled = false;
@@ -224,6 +227,12 @@ public sealed class FakeBackendService
             return Json(Forge(workspaceId));
         if (method == "GET" && rest == "forge/issues")
             return Json(OpenIssues(workspaceId));
+        if (method == "GET" && rest == "files/directory")
+            return FilesDirectory(workspaceId, QueryValue(request.Query, "path"));
+        if (method == "GET" && rest == "files/file")
+            return FilesFile(workspaceId, QueryValue(request.Query, "path"));
+        if (method == "PUT" && rest == "files/file")
+            return FilesWrite(workspaceId, request.Body);
         if (method == "GET" && rest.StartsWith("git/file", StringComparison.Ordinal))
             return GitDiff(workspaceId, request.Query);
         if (method == "POST" && rest.StartsWith("git/", StringComparison.Ordinal))
@@ -412,6 +421,61 @@ public sealed class FakeBackendService
             return git is null ? NotFound() : Json(FakeGitProvider.Head(git));
         }
     }
+
+    private FakeBackendResponseDto FilesDirectory(string workspaceId, string? path)
+    {
+        lock (_gate)
+        {
+            if (FindWorkspace(workspaceId) is null)
+                return NotFound();
+            return Answer(FakeFilesProvider.Directory(workspaceId, _state.Files, FileEdits(workspaceId), FileChanges(workspaceId), path));
+        }
+    }
+
+    private FakeBackendResponseDto FilesFile(string workspaceId, string? path)
+    {
+        lock (_gate)
+        {
+            if (FindWorkspace(workspaceId) is null)
+                return NotFound();
+            return Answer(FakeFilesProvider.File(_state.Files, FileEdits(workspaceId), FileChanges(workspaceId), path));
+        }
+    }
+
+    private FakeBackendResponseDto FilesWrite(string workspaceId, string? body)
+    {
+        lock (_gate)
+        {
+            if (FindWorkspace(workspaceId) is null)
+                return NotFound();
+            var result = FakeFilesProvider.Write(
+                _state.Files,
+                FileEdits(workspaceId),
+                FileChanges(workspaceId),
+                ReadJsonString(body, "path"),
+                ReadJsonString(body, "content"),
+                ReadJsonString(body, "version"));
+            if (result.Change is not null && GitState(workspaceId) is { } git)
+                FakeGitProvider.RecordEdit(git, result.Change);
+            return Answer(result);
+        }
+    }
+
+    private Dictionary<string, string> FileEdits(string workspaceId)
+    {
+        if (!_fileEdits.TryGetValue(workspaceId, out var edits))
+        {
+            edits = new Dictionary<string, string>(StringComparer.Ordinal);
+            _fileEdits[workspaceId] = edits;
+        }
+        return edits;
+    }
+
+    private IReadOnlyList<FakeGitFile> FileChanges(string workspaceId)
+        => GitState(workspaceId) is { } git ? FakeGitProvider.Changes(git) : [];
+
+    private static FakeBackendResponseDto Answer(FakeFilesResult result)
+        => new(result.Status, result.Status == 200 ? "application/json" : "application/problem+json", result.Body.ToJsonString(WebOptions()));
 
     private FakeBackendResponseDto GitDiff(string workspaceId, string query)
     {

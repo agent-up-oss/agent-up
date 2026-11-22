@@ -1391,6 +1391,43 @@
         }
       }
     },
+    "/api/workspaces/{workspaceId}/files/directory": {
+      "get": {
+        "tags": [
+          "Files"
+        ],
+        "operationId": "WorkspaceFilesController_GetDirectory",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/workspaces/{workspaceId}/files/file": {
+      "get": {
+        "tags": [
+          "Files"
+        ],
+        "operationId": "WorkspaceFilesController_GetFile",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Files"
+        ],
+        "operationId": "WorkspaceFilesController_PutFile",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
     "/api/workspaces/{workspaceId}/forge": {
       "get": {
         "tags": [

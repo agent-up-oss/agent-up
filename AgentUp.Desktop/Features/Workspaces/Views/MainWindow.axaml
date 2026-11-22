@@ -7,6 +7,7 @@
         xmlns:databaseVm="using:AgentUp.Desktop.Features.Ports.ViewModels"
         xmlns:databaseViewsVm="using:AgentUp.Desktop.Features.Database.ViewModels"
         xmlns:gitVm="using:AgentUp.Desktop.Features.Git.ViewModels"
+        xmlns:filesVm="using:AgentUp.Desktop.Features.Files.ViewModels"
         xmlns:gitViews="using:AgentUp.Desktop.Features.Git.Views"
         xmlns:agentVm="using:AgentUp.Desktop.Features.Agents.ViewModels"
         xmlns:agentViews="using:AgentUp.Desktop.Features.Agents.Views"
@@ -2602,6 +2603,284 @@
                                         </ListBox.ItemTemplate>
                                     </ListBox>
                                 </Grid>
+                                </Panel>
+                            </Border>
+
+                            <!-- ── Files panel: the whole clone, folders folded until opened ─────────── -->
+                            <Border x:Name="FilesPanel" AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.FilesPanel}"
+                                    IsVisible="{Binding ShowFiles}"
+                                    ClipToBounds="True"
+                                    Background="{DynamicResource AgentUpColorCanvasBrush}">
+                                <Panel>
+                                <Grid IsVisible="{Binding Files.IsTreeVisible}" RowDefinitions="Auto,*">
+                                    <Border Grid.Row="0" Padding="14,10,10,8">
+                                        <StackPanel Spacing="6">
+                                            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+                                                <TextBlock Classes="au-field-label" Text="Files" VerticalAlignment="Center"/>
+                                                <TextBlock Grid.Column="1"
+                                                           Classes="au-files-root"
+                                                           Text="{Binding Files.RootLabel}"
+                                                           TextTrimming="CharacterEllipsis"
+                                                           VerticalAlignment="Center"/>
+                                                <Button Grid.Column="2"
+                                                        x:Name="FilesRefreshButton"
+                                                        AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.FilesRefresh}"
+                                                        Classes="au-browser-button"
+                                                        Command="{Binding Files.RefreshCommand}"
+                                                        ToolTip.Tip="Reload files"
+                                                        Content="↻"/>
+                                            </Grid>
+                                            <TextBlock x:Name="FilesErrorMessage"
+                                                       Text="{Binding Files.ErrorMessage}"
+                                                       IsVisible="{Binding Files.ErrorMessage, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                                       Foreground="{DynamicResource AgentUpColorStatusDangerBrush}"
+                                                       FontSize="11"
+                                                       TextWrapping="Wrap"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <Panel Grid.Row="1">
+                                        <ScrollViewer x:Name="FilesTree"
+                                                      AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.FilesTree}"
+                                                      VerticalScrollBarVisibility="Auto"
+                                                      HorizontalScrollBarVisibility="Disabled"
+                                                      Margin="8,0,8,8">
+                                            <Border Classes="au-git-change-list">
+                                            <ItemsControl ItemsSource="{Binding Files.Nodes}">
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate DataType="filesVm:FileNodeViewModel">
+                                                        <Panel>
+                                                        <TextBlock Classes="au-files-notice"
+                                                                   IsVisible="{Binding IsNotice}"
+                                                                   Text="{Binding Name}"/>
+                                                        <Border Classes="gitNodeRow"
+                                                                Classes.gitNodeRowSelected="{Binding IsOpen}"
+                                                                IsVisible="{Binding !IsNotice}">
+                                                            <!-- Folders carry a toggle button and files do not; one height keeps the tree on an even pitch. -->
+                                                            <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto,Auto" MinHeight="32">
+                                                                <ItemsControl Grid.Column="0" ItemsSource="{Binding Guides}">
+                                                                    <ItemsControl.ItemsPanel>
+                                                                        <ItemsPanelTemplate>
+                                                                            <StackPanel Orientation="Horizontal"/>
+                                                                        </ItemsPanelTemplate>
+                                                                    </ItemsControl.ItemsPanel>
+                                                                    <ItemsControl.ItemTemplate>
+                                                                        <DataTemplate>
+                                                                            <Border Classes="au-git-tree-guide"/>
+                                                                        </DataTemplate>
+                                                                    </ItemsControl.ItemTemplate>
+                                                                </ItemsControl>
+                                                                <Button Grid.Column="1"
+                                                                        AutomationProperties.AutomationId="{Binding ToggleAutomationId}"
+                                                                        Classes="au-git-tree-toggle gitTreeToggle"
+                                                                        Classes.au-git-tree-toggle--expanded="{Binding IsExpanded}"
+                                                                        Classes.au-git-tree-toggle--collapsed="{Binding IsCollapsed}"
+                                                                        Command="{Binding ToggleCommand}"
+                                                                        IsVisible="{Binding IsDirectory}"
+                                                                        Content="{Binding ToggleGlyph}"
+                                                                        Padding="0"
+                                                                        MinWidth="0"
+                                                                        VerticalAlignment="Center"
+                                                                        Margin="0,0,6,0"/>
+                                                                <Button Grid.Column="2"
+                                                                        Classes="gitNodeName"
+                                                                        AutomationProperties.AutomationId="{Binding OpenAutomationId}"
+                                                                        Command="{Binding OpenCommand}"
+                                                                        ToolTip.Tip="{Binding ToolTip}">
+                                                                    <TextBlock Text="{Binding Name}"
+                                                                               Classes="gitChangeName"
+                                                                               Classes.gitChangeNameDirectory="{Binding IsDirectory}"
+                                                                               TextTrimming="CharacterEllipsis"/>
+                                                                </Button>
+                                                                <TextBlock Grid.Column="3"
+                                                                           Classes="au-files-count"
+                                                                           Text="{Binding ChangedLabel}"
+                                                                           IsVisible="{Binding HasChanges}"
+                                                                           TextAlignment="Center"
+                                                                           VerticalAlignment="Center"
+                                                                           Margin="6,0,0,0"/>
+                                                                <TextBlock Grid.Column="4"
+                                                                           Classes="au-files-size"
+                                                                           Text="{Binding SizeLabel}"
+                                                                           IsVisible="{Binding IsFile}"
+                                                                           VerticalAlignment="Center"
+                                                                           Margin="6,0,6,0"/>
+                                                                <TextBlock Grid.Column="5"
+                                                                           Classes="au-git-status"
+                                                                           Classes.au-git-status--added="{Binding IsAdded}"
+                                                                           Classes.au-git-status--untracked="{Binding IsUntracked}"
+                                                                           Classes.au-git-status--modified="{Binding IsModified}"
+                                                                           Classes.au-git-status--renamed="{Binding IsRenamed}"
+                                                                           Classes.au-git-status--conflicted="{Binding IsConflicted}"
+                                                                           Text="{Binding StatusGlyph}"
+                                                                           MinWidth="14"
+                                                                           IsVisible="{Binding IsFile}"
+                                                                           VerticalAlignment="Center"/>
+                                                                <TextBlock Grid.Column="5"
+                                                                           Text="…"
+                                                                           IsVisible="{Binding IsLoading}"
+                                                                           Foreground="{DynamicResource AgentUpColorTextMutedBrush}"
+                                                                           VerticalAlignment="Center"/>
+                                                            </Grid>
+                                                        </Border>
+                                                        </Panel>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                            </Border>
+                                        </ScrollViewer>
+                                        <TextBlock x:Name="FilesLoadingIndicator"
+                                                   IsVisible="{Binding Files.IsLoading}"
+                                                   Text="Loading files…"
+                                                   Foreground="{DynamicResource AgentUpColorAccentSoftBrush}"
+                                                   FontSize="12"
+                                                   HorizontalAlignment="Center"
+                                                   VerticalAlignment="Center"/>
+                                        <TextBlock x:Name="FilesEmptyState"
+                                                   IsVisible="{Binding Files.ShowEmptyState}"
+                                                   Text="This workspace folder is empty."
+                                                   Foreground="{DynamicResource AgentUpColorTextMutedBrush}"
+                                                   FontSize="12"
+                                                   HorizontalAlignment="Center"
+                                                   VerticalAlignment="Center"/>
+                                    </Panel>
+                                </Grid>
+
+                                <!-- The open file is a page in the tab's place, not an overlay. Back returns to the tree. -->
+                                <Border x:Name="FileEditorPage"
+                                        AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.FileEditor}"
+                                        IsVisible="{Binding Files.IsEditorOpen}"
+                                        Classes="au-file-editor"
+                                        Margin="8">
+                                    <Grid RowDefinitions="Auto,Auto,*,Auto" DataContext="{Binding Files.Editor}">
+                                        <Grid.KeyBindings>
+                                            <KeyBinding Gesture="Ctrl+S" Command="{Binding SaveCommand}"/>
+                                            <KeyBinding Gesture="Cmd+S" Command="{Binding SaveCommand}"/>
+                                        </Grid.KeyBindings>
+                                        <Border Grid.Row="0" Classes="au-file-viewer-header">
+                                            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                                                <Button x:Name="FileEditorBackButton"
+                                                        AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.FileEditorBack}"
+                                                        Classes="au-browser-button"
+                                                        Command="{Binding BackCommand}"
+                                                        ToolTip.Tip="Back to files"
+                                                        Content="‹"
+                                                        VerticalAlignment="Center"/>
+                                                <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                                                    <TextBlock Classes="au-file-viewer-path"
+                                                               Text="{Binding Path}"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               ToolTip.Tip="{Binding Path}"/>
+                                                    <TextBlock Classes="au-file-viewer-status" Text="{Binding StatusLabel}"/>
+                                                </StackPanel>
+                                                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center"
+                                                            IsVisible="{Binding CanEdit}">
+                                                    <Button x:Name="FileEditorRevertButton"
+                                                            AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.FileEditorRevert}"
+                                                            Classes="au-button au-button--secondary au-button--compact"
+                                                            Command="{Binding RevertCommand}"
+                                                            Content="Revert"/>
+                                                    <Button x:Name="FileEditorSaveButton"
+                                                            AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.FileEditorSave}"
+                                                            Classes="au-button au-button--compact"
+                                                            Command="{Binding SaveCommand}"
+                                                            ToolTip.Tip="Save (Ctrl+S)"
+                                                            Content="Save"/>
+                                                </StackPanel>
+                                            </Grid>
+                                        </Border>
+
+                                        <StackPanel Grid.Row="1">
+                                            <Border Classes="au-file-editor-notice au-file-editor-notice--danger"
+                                                    IsVisible="{Binding IsConfirmingDiscard}">
+                                                <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                                                    <TextBlock Text="Leave this file and discard the unsaved changes?"
+                                                               TextWrapping="Wrap"
+                                                               VerticalAlignment="Center"/>
+                                                    <Button Grid.Column="1"
+                                                            AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.FileEditorKeepEditing}"
+                                                            Classes="au-button au-button--secondary au-button--compact"
+                                                            Command="{Binding KeepEditingCommand}"
+                                                            Content="Keep editing"/>
+                                                    <Button Grid.Column="2"
+                                                            AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.FileEditorDiscard}"
+                                                            Classes="au-button au-button--danger au-button--compact"
+                                                            Command="{Binding DiscardCommand}"
+                                                            Content="Discard"/>
+                                                </Grid>
+                                            </Border>
+                                            <Border Classes="au-file-editor-notice au-file-editor-notice--danger"
+                                                    IsVisible="{Binding IsConflict}">
+                                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                                    <TextBlock Text="{Binding Error}" TextWrapping="Wrap" VerticalAlignment="Center"/>
+                                                    <Button Grid.Column="1"
+                                                            AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.FileEditorReload}"
+                                                            Classes="au-button au-button--secondary au-button--compact"
+                                                            Command="{Binding ReloadCommand}"
+                                                            Content="Reload"/>
+                                                </Grid>
+                                            </Border>
+                                            <Border Classes="au-file-editor-notice" IsVisible="{Binding HasNotice}">
+                                                <TextBlock Text="{Binding Notice}" TextWrapping="Wrap"/>
+                                            </Border>
+                                        </StackPanel>
+
+                                        <ScrollViewer Grid.Row="2"
+                                                      x:Name="FileEditorScroll"
+                                                      IsVisible="{Binding HasContent}"
+                                                      HorizontalScrollBarVisibility="Auto"
+                                                      VerticalScrollBarVisibility="Auto"
+                                                      Background="{DynamicResource AgentUpColorCanvasBrush}">
+                                            <Grid ColumnDefinitions="Auto,*">
+                                                <Border Grid.Column="0"
+                                                        BorderThickness="0,0,1,0"
+                                                        BorderBrush="{DynamicResource AgentUpColorBorderSubtleBrush}">
+                                                    <TextBlock Classes="au-file-editor-gutter"
+                                                               Text="{Binding LineNumbers}"
+                                                               TextAlignment="Right"
+                                                               LineHeight="20"/>
+                                                </Border>
+                                                <TextBox Grid.Column="1"
+                                                         x:Name="FileEditorText"
+                                                         AutomationProperties.AutomationId="{x:Static ids:DesktopAutomationIds.FileEditorText}"
+                                                         Classes="au-file-editor-input"
+                                                         Text="{Binding Text}"
+                                                         CaretIndex="{Binding CaretIndex, Mode=TwoWay}"
+                                                         IsReadOnly="{Binding IsReadOnly}"
+                                                         AcceptsReturn="True"
+                                                         AcceptsTab="True"
+                                                         TextWrapping="NoWrap"
+                                                         LineHeight="20"
+                                                         MinHeight="0"
+                                                         VerticalContentAlignment="Top"
+                                                         ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                                                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"/>
+                                            </Grid>
+                                        </ScrollViewer>
+                                        <TextBlock Grid.Row="2"
+                                                   IsVisible="{Binding IsLoading}"
+                                                   Text="Loading file…"
+                                                   Foreground="{DynamicResource AgentUpColorAccentSoftBrush}"
+                                                   FontSize="12"
+                                                   HorizontalAlignment="Center"
+                                                   VerticalAlignment="Center"/>
+
+                                        <Border Grid.Row="3" Classes="au-file-editor-footer">
+                                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                                                <TextBlock Classes="au-file-editor-state"
+                                                           Classes.au-file-editor-state--dirty="{Binding IsStateDirty}"
+                                                           Classes.au-file-editor-state--error="{Binding IsStateError}"
+                                                           Text="{Binding StateLabel}"
+                                                           TextTrimming="CharacterEllipsis"
+                                                           VerticalAlignment="Center"/>
+                                                <TextBlock Grid.Column="1"
+                                                           Classes="au-file-editor-caret"
+                                                           Text="{Binding CaretLabel}"
+                                                           IsVisible="{Binding HasContent}"
+                                                           VerticalAlignment="Center"/>
+                                            </Grid>
+                                        </Border>
+                                    </Grid>
+                                </Border>
                                 </Panel>
                             </Border>
 

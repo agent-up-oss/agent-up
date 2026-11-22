@@ -2617,6 +2617,137 @@
   <Style Selector="TextBlock.au-syntax-operator">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
   </Style>
+  <Style Selector="Border.au-files">
+    <Setter Property="MinHeight" Value="0"/>
+  </Style>
+  <Style Selector="TextBlock.au-files">
+    <Setter Property="MinHeight" Value="0"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+  </Style>
+  <Style Selector="Border.au-files-toolbar">
+    <Setter Property="MinHeight" Value="{DynamicResource AgentUpControlHeightCompact}"/>
+  </Style>
+  <Style Selector="TextBlock.au-files-toolbar">
+    <Setter Property="MinHeight" Value="{DynamicResource AgentUpControlHeightCompact}"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-files-root">
+    <Setter Property="MinWidth" Value="0"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+    <Setter Property="FontFamily" Value="{DynamicResource AgentUpFontMono}"/>
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
+  </Style>
+  <Style Selector="TextBlock.au-files-count">
+    <Setter Property="Height" Value="18"/>
+    <Setter Property="MinWidth" Value="20"/>
+    <Setter Property="Padding" Value="4,0"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorStatusInfoBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceRaisedBrush}"/>
+    <Setter Property="FontFamily" Value="{DynamicResource AgentUpFontMono}"/>
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
+    <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
+  </Style>
+  <Style Selector="TextBlock.au-files-size">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextFaintBrush}"/>
+    <Setter Property="FontFamily" Value="{DynamicResource AgentUpFontMono}"/>
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
+  </Style>
+  <Style Selector="TextBlock.au-files-notice">
+    <Setter Property="Padding" Value="12,8"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
+  </Style>
+  <Style Selector="Border.au-file-editor">
+    <Setter Property="MinHeight" Value="256"/>
+    <Setter Property="MinWidth" Value="0"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceBrush}"/>
+    <Setter Property="CornerRadius" Value="{DynamicResource AgentUpCornerRadiusXl}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-file-editor">
+    <Setter Property="MinHeight" Value="256"/>
+    <Setter Property="MinWidth" Value="0"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceBrush}"/>
+  </Style>
+  <Style Selector="Border.au-file-editor-body">
+    <Setter Property="MinHeight" Value="160"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorCanvasBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-file-editor-body">
+    <Setter Property="MinHeight" Value="160"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorCanvasBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-file-editor-gutter">
+    <Setter Property="MinWidth" Value="52"/>
+    <Setter Property="Padding" Value="0,8,8,8"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextFaintBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorCanvasBrush}"/>
+    <Setter Property="FontFamily" Value="{DynamicResource AgentUpFontMono}"/>
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
+  </Style>
+  <Style Selector="TextBox.au-file-editor-input">
+    <Setter Property="MinWidth" Value="0"/>
+    <Setter Property="Padding" Value="12,8"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorCanvasBrush}"/>
+    <Setter Property="FontFamily" Value="{DynamicResource AgentUpFontMono}"/>
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
+  </Style>
+  <Style Selector="Border.au-file-editor-footer">
+    <Setter Property="MinHeight" Value="{DynamicResource AgentUpControlHeightCompact}"/>
+    <Setter Property="Padding" Value="16,4"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceRaisedBrush}"/>
+    <Setter Property="BorderThickness" Value="0,1,0,0"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-file-editor-footer">
+    <Setter Property="MinHeight" Value="{DynamicResource AgentUpControlHeightCompact}"/>
+    <Setter Property="Padding" Value="16,4"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceRaisedBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-file-editor-caret">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+    <Setter Property="FontFamily" Value="{DynamicResource AgentUpFontMono}"/>
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
+  </Style>
+  <Style Selector="TextBlock.au-file-editor-state">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
+  </Style>
+  <Style Selector="TextBlock.au-file-editor-state--dirty">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextWarningBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-file-editor-state--error">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextDangerBrush}"/>
+  </Style>
+  <Style Selector="Border.au-file-editor-notice">
+    <Setter Property="Margin" Value="16,12"/>
+    <Setter Property="Padding" Value="{DynamicResource AgentUpThickness3}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceRaisedBrush}"/>
+    <Setter Property="CornerRadius" Value="{DynamicResource AgentUpCornerRadiusMd}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-file-editor-notice">
+    <Setter Property="Margin" Value="16,12"/>
+    <Setter Property="Padding" Value="{DynamicResource AgentUpThickness3}"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceRaisedBrush}"/>
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
+  </Style>
+  <Style Selector="Border.au-file-editor-notice--danger">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceDangerBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-file-editor-notice--danger">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceDangerBrush}"/>
+  </Style>
   <Style Selector="Border.au-git-log--flush">
     <Setter Property="CornerRadius" Value="0"/>
     <Setter Property="Background" Value="{DynamicResource AgentUpColorTransparentBrush}"/>

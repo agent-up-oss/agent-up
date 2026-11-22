@@ -3,6 +3,8 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 import { createNewUiScene } from '@agent-up/design-system/new-ui-scene';
 import { WorkspaceAgentChatScreen } from '@/features/agents/components/WorkspaceAgentChatScreen';
 import { ApplicationSpaceScreen } from '@/features/applications/components/ApplicationSpaceScreen';
+import { FileEditorScreen } from '@/features/files/components/FileEditorScreen';
+import { FilesScreen } from '@/features/files/components/FilesScreen';
 import { GitOverviewScreen } from '@/features/git/components/GitOverviewScreen';
 import { useServers } from '@/features/servers/controllers/ServersContext';
 import { AppShellProvider } from '@/features/shell/controllers/AppShellContext';
@@ -42,7 +44,7 @@ import {
 
 const Scene = createNewUiScene(React, { View, Text, Pressable, ScrollView, Icon: SceneIcon });
 
-type Section = 'overview' | 'chat' | 'git' | 'application';
+type Section = 'overview' | 'chat' | 'git' | 'files' | 'file' | 'application';
 
 /**
  * The command center is the generated New UI scene. This host selects that scene and
@@ -66,6 +68,10 @@ function CommandCenterBinder() {
   const [tasksTab, setTasksTab] = useState<TasksTab>('issues');
   const [section, setSection] = useState<Section>('overview');
   const [openAgent, setOpenAgent] = useState<string | null>(null);
+  // The file opened from Files, and a request for its page to leave, which it answers by asking
+  // before it discards an edit.
+  const [openFile, setOpenFile] = useState<string | null>(null);
+  const [leaveFile, setLeaveFile] = useState(0);
   const [modules, setModules] = useState<CapabilityModule[]>([]);
   const [modulesNonce, setModulesNonce] = useState(0);
   const source = useTaskSource();
@@ -121,6 +127,7 @@ function CommandCenterBinder() {
     serverLabel: commandCenterServerLabel(activeServer),
     openWorkspaceId: agent?.workspaceId ?? null,
     openBranch: workspace?.branch ?? '',
+    openFile: openFile ?? undefined,
     applicationName,
     team: standing.team,
     queue: tasks.queue,
@@ -149,11 +156,13 @@ function CommandCenterBinder() {
   const host = useCallback((): WorkspaceHost => ({
     open: (place: WorkspacePlace) => {
       if (place.kind === 'git' || place.kind === 'gitHistory' || place.kind === 'gitReview') setSection('git');
+      else if (place.kind === 'files') setSection('files');
+      else if (place.kind === 'file') { setOpenFile(place.path); setSection('file'); }
       else if (place.kind === 'agent' || place.kind === 'agentPolicy' || place.kind === 'agentCreate') setSection('chat');
       else if (place.kind === 'application') setSection('application');
       else setSection('overview');
     },
-    back: () => setSection('overview'),
+    back: fallback => setSection(fallback.kind === 'files' ? 'files' : 'overview'),
     showsTabBar: false,
   }), []);
   const provide = useMemo(() => () => host(), [host]);
@@ -173,6 +182,12 @@ function CommandCenterBinder() {
   if (model.scene === 'mobile-agent-git' && agent) {
     content.changes = <GitOverviewScreen workspaceId={agent.workspaceId} />;
   }
+  if (model.scene === 'mobile-agent-files' && agent) {
+    content.files = <FilesScreen workspaceId={agent.workspaceId} />;
+  }
+  if (model.scene === 'mobile-agent-file' && agent && openFile) {
+    content.file = <FileEditorScreen workspaceId={agent.workspaceId} path={openFile} leaveRequest={leaveFile} />;
+  }
   if (model.scene === 'mobile-agent-overview' && workspace) {
     content.overview = <WorkspaceDashboardScreen workspace={workspace} />;
   }
@@ -185,10 +200,13 @@ function CommandCenterBinder() {
     if (tab) { setTasksTab(tab); return; }
     // An application is an inner page of its agent: back returns to Apps, not to the team.
     if (name === 'back' && section === 'application') { setSection('overview'); return; }
+    // A file is an inner page of Files; its own page decides whether leaving needs a word first.
+    if (name === 'back' && section === 'file') { setLeaveFile(current => current + 1); return; }
     if (name === 'back') { setOpenAgent(null); setSection('overview'); return; }
-    if (name === 'tab-overview') { setSection('overview'); return; }
+    if (name === 'tab-overview' || name === 'tab-apps') { setSection('overview'); return; }
     if (name === 'tab-chat') { setSection('chat'); return; }
     if (name === 'tab-git') { setSection('git'); return; }
+    if (name === 'tab-files') { setSection('files'); return; }
     if (name === 'tab-application') { setSection('application'); return; }
     if (name === 'open-workspace' && id) { setOpenAgent(id); setSection('overview'); return; }
     if (name === 'logout') { logout(); return; }

@@ -9,6 +9,10 @@ public sealed class GitQueryController(GitChangeTreeService changes)
     public Task<GitChangeTree?> GetChangesAsync(string workspaceId, CancellationToken cancellationToken = default)
         => changes.GetChangesAsync(workspaceId, cancellationToken);
 
+    /// <summary>Changed files relative to the workspace folder, for slices that show that folder's own files.</summary>
+    public Task<IReadOnlyList<GitChangeEntry>?> GetWorktreeChangesAsync(string workspaceId, CancellationToken cancellationToken = default)
+        => changes.GetWorktreeChangesAsync(workspaceId, cancellationToken);
+
     public Task<string?> GetDiffAsync(string workspaceId, string baseRef, string head, CancellationToken cancellationToken = default)
         => changes.GetRangeDiffAsync(workspaceId, baseRef, head, cancellationToken);
 

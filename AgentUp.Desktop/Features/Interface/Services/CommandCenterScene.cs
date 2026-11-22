@@ -419,7 +419,8 @@ public static class CommandCenterScene
     {
         "agent-chat" or "mobile-chat" => "1",
         "agent-git" or "mobile-agent-git" => "2",
-        "application" or "mobile-application" => "3",
+        "agent-files" or "agent-file" => "3",
+        "application" or "mobile-application" => "4",
         "mobile-settings" => "2",
         "mobile-tasks" => "1",
         _ => "0",

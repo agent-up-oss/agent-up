@@ -40,6 +40,7 @@ Previous release snapshots stay on this site. The current pages are the unreleas
 - [Desktop Applications](./desktop-applications)
 - [Diagnostics](./diagnostics)
 - [Entitlements](./entitlements)
+- [Files](./files)
 - [Forge](./forge)
 - [Git](./git)
 - [Service Control](./service-control)

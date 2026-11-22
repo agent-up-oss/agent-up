@@ -19,6 +19,7 @@
         "desktop-applications",
         "diagnostics",
         "entitlements",
+        "files",
         "forge",
         "git",
         "service-control",

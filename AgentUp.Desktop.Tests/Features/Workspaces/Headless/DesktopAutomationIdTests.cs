@@ -31,12 +31,15 @@ public sealed class DesktopAutomationIdTests
             app.Window, DesktopAutomationIds.ShellTabAgent);
         var git = ChromeTestSupport.FindDescendantByAutomationId<Border>(
             app.Window, DesktopAutomationIds.ShellTabGit);
+        var files = ChromeTestSupport.FindDescendantByAutomationId<Border>(
+            app.Window, DesktopAutomationIds.ShellTabFiles);
 
         Assert.Multiple(() =>
         {
             Assert.That(overview, Is.Not.Null);
             Assert.That(agent, Is.Not.Null);
             Assert.That(git, Is.Not.Null);
+            Assert.That(files, Is.Not.Null);
         });
     }
 

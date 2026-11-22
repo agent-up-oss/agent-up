@@ -1,6 +1,7 @@
 export const PublicIconNames = [
   'apps',
   'git',
+  'files',
   'agents',
   'settings',
   'download',
@@ -16,6 +17,7 @@ export type PublicIconName = (typeof PublicIconNames)[number];
 const files: Record<PublicIconName, string> = {
   apps: '/icons/apps.svg',
   git: '/icons/git.svg',
+  files: '/icons/files.svg',
   agents: '/icons/agents.svg',
   settings: '/icons/settings.svg',
   download: '/icons/download.svg',

@@ -23,6 +23,7 @@ The first suite runs from `au-debug validate --surface desktop` and `au-debug va
 | Console | Open an application console, see real output | covered | n/a |
 | Diagnostics | See entries for a failed application | covered | n/a |
 | Git review | Working-tree changes and diff | covered | covered |
+| Files | Browse the whole clone folded, open a file as a page | covered | covered |
 | Git history | Commit history | gap | gap |
 | Commits | Commit queue / proposal queue | gap | gap |
 | Agents | Agent availability, remedies, start a session, transcript | covered | covered |
@@ -65,6 +66,7 @@ Workspace lifecycle is not `n/a` on Mobile: the Apps dashboard exposes Start wor
 | Application tabs | `console-diagnostics` | `workspace-lifecycle` |
 | Console and diagnostics | `console-diagnostics` | n/a |
 | Git review | `git-review` | `git-review` |
+| Files | `files-browse` | `files-browse` |
 | Validation panel | `validation-panel` | `validation-panel` |
 | Database explorer | n/a | `database-explorer` |
 | Agents (#529 merged) | `agents` | `agents` |

@@ -116,6 +116,13 @@ public static class FakeGitProvider
     public static JsonNode? Diff(JsonObject git, string path)
         => git["diffs"]?[path];
 
+    /// <summary>The working-tree changes, for the Demo's Files tab to mark.</summary>
+    public static IReadOnlyList<FakeGitFile> Changes(JsonObject git) => Flatten(git);
+
+    /// <summary>Records a hand edit as a change, the way Git would see it.</summary>
+    public static void RecordEdit(JsonObject git, FakeGitFile change)
+        => UpsertFile(git, change.Path, change.Status, change.Diff);
+
     private static void UpsertFile(JsonObject git, string path, string status, string diff)
     {
         var files = Flatten(git).Where(file => file.Path != path).ToList();

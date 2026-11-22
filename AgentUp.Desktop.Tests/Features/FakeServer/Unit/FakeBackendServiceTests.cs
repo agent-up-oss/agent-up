@@ -1446,6 +1446,47 @@ public sealed class FakeBackendServiceTests
             Is.Empty);
     }
 
+    [Test]
+    public void Handle_filesServeTheRepositoryAFolderAtATimeAndSaveIntoGit()
+    {
+        var backend = FakeServerTestComposition.Backend();
+        var top = Json(backend, Get("/api/workspaces/bob/files/directory"));
+        var opened = Json(backend, Get("/api/workspaces/bob/files/file").WithQuery("?path=README.md"));
+
+        var saved = Run(backend, Put("/api/workspaces/bob/files/file", new JsonObject
+        {
+            ["path"] = "README.md",
+            ["content"] = opened["content"]!.GetValue<string>() + "Edited in the Demo.\n",
+            ["version"] = opened["version"]!.GetValue<string>(),
+        }.ToJsonString()));
+
+        var apps = top["entries"]!.AsArray().Single(entry => entry!["name"]!.GetValue<string>() == "apps")!;
+        Assert.That(apps["changedFiles"]!.GetValue<int>(), Is.EqualTo(2));
+        Assert.That(saved.Status, Is.EqualTo(200));
+        Assert.That(Json(backend, Get("/api/workspaces/bob/git/changes"))["fileCount"]!.GetValue<int>(), Is.EqualTo(3));
+    }
+
+    [Test]
+    public void Handle_filesRefuseAStaleSave()
+    {
+        var backend = FakeServerTestComposition.Backend();
+
+        var saved = Run(backend, Put("/api/workspaces/bob/files/file", """{"path":"README.md","content":"mine","version":"demo-stale"}"""));
+
+        Assert.That(saved.Status, Is.EqualTo(409));
+        Assert.That(JsonNode.Parse(saved.Body!)!["title"]!.GetValue<string>(), Is.EqualTo("File changed on the Server"));
+    }
+
+    [TestCase("GET", "/api/workspaces/missing/files/directory")]
+    [TestCase("GET", "/api/workspaces/missing/files/file")]
+    [TestCase("PUT", "/api/workspaces/missing/files/file")]
+    public void Handle_filesAreNotFoundForAnUnknownWorkspace(string method, string path)
+    {
+        var request = method == "PUT" ? Put(path, "{}") : Get(path).WithQuery("?path=README.md");
+
+        Assert.That(Run(FakeServerTestComposition.Backend(), request).Status, Is.EqualTo(404));
+    }
+
     private static AgentUp.Desktop.Features.FakeServer.Services.FakeBackendService BackendFromJson(string json)
         => new(new AgentUp.Desktop.Features.FakeServer.Providers.FakeServerDefinitionProvider().LoadJson(json));
 

@@ -8,6 +8,8 @@ export type FakeServerDefinition = {
   workspaces: unknown[];
   overview?: Record<string, unknown>;
   git?: Record<string, Record<string, unknown>>;
+  /** The Harbor Shop repository every Demo workspace checks out, by path. */
+  files?: Record<string, string>;
   console?: Record<string, unknown>;
   agents?: Record<string, { session?: unknown; scripts?: Array<{ events?: Array<{ type?: string; payload?: unknown }> }> }>;
   /**

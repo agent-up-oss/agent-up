@@ -154,6 +154,11 @@ Desktop is the reference rendering:
   (`--expanded` / `--collapsed`). Checkbox selection stays on the checkbox; the
   open file uses `--selected`. Do not color the filename with the change kind.
   Review counts use `.au-git-insertions` and `.au-git-deletions`. Counts on a primary Commit button use `--on-primary` so they take on-accent instead of accent-on-accent.
+- Workspace files reuse the Git change list: `.au-git-change-list`, `.au-git-row`,
+  guides, toggles, and status glyphs. Only `.au-files-count` (a folder's changed-file
+  count), `.au-files-size`, `.au-files-toolbar`, and the `.au-file-editor` page are new.
+  The page reuses the viewer header and is a page in the pane, not an overlay; the
+  editor is `.au-file-editor-input` beside a `.au-file-editor-gutter`.
 - Git history is `.au-git-log` with `.au-git-log-row` entries, a pinned
   `.au-git-log-time` column, `.au-git-log-graph` lanes in
   `.au-git-log-graph-scroll`, and a sticky `.au-git-log-detail` header for the

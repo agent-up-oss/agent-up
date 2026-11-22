@@ -4,6 +4,8 @@ import { AgentCreationScreen } from '@/features/agents/components/AgentCreationS
 import { AgentPermissionPolicyScreen } from '@/features/agents/components/AgentPermissionPolicyScreen';
 import { WorkspaceAgentChatScreen } from '@/features/agents/components/WorkspaceAgentChatScreen';
 import { ApplicationSpaceScreen } from '@/features/applications/components/ApplicationSpaceScreen';
+import { FileEditorScreen } from '@/features/files/components/FileEditorScreen';
+import { FilesScreen } from '@/features/files/components/FilesScreen';
 import { GitHistoryScreen } from '@/features/git/components/GitHistoryScreen';
 import { GitOverviewScreen } from '@/features/git/components/GitOverviewScreen';
 import { GitReviewScreen } from '@/features/git/components/GitReviewScreen';
@@ -30,6 +32,7 @@ import type { TeamStanding } from '../models/TeamStanding';
 const tabs = [
   { place: 'apps', label: 'Apps' },
   { place: 'git', label: 'Git' },
+  { place: 'files', label: 'Files' },
   { place: 'agent', label: 'Chat' },
 ] as const;
 
@@ -188,6 +191,10 @@ function Screen({
       return workspace
         ? <ApplicationSpaceScreen workspace={workspace} applicationName={place.name} />
         : <Missing />;
+    case 'files':
+      return <FilesScreen workspaceId={workspaceId} />;
+    case 'file':
+      return <FileEditorScreen workspaceId={workspaceId} path={place.path} />;
     case 'gitHistory':
       return <GitHistoryScreen workspaceId={workspaceId} />;
     case 'gitReview':

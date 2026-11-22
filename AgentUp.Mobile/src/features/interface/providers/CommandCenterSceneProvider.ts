@@ -37,7 +37,7 @@ export type CommandCenterModuleSlot = {
 export type CommandCenterSceneInput = {
   surface: 'desktop' | 'mobile';
   nav: 0 | 1 | 2;
-  section: 'overview' | 'chat' | 'git' | 'application';
+  section: 'overview' | 'chat' | 'git' | 'files' | 'file' | 'application';
   agentOpen: boolean;
   serverLabel: string;
   openWorkspaceId: string | null;
@@ -45,6 +45,8 @@ export type CommandCenterSceneInput = {
   applicationName?: string;
   /** The open workspace's branch; empty when it is not on one. */
   openBranch?: string;
+  /** The file opened from Files, named in the head of its own page. */
+  openFile?: string;
   team: TeamStanding[];
   queue: QueuedTask[];
   working: QueuedTask[];
@@ -84,6 +86,8 @@ export function commandCenterSceneId(input: Pick<CommandCenterSceneInput, 'nav' 
   if (!input.agentOpen) return input.nav === 1 ? 'mobile-tasks' : input.nav === 2 ? 'mobile-settings' : 'mobile-team';
   if (input.section === 'chat') return 'mobile-chat';
   if (input.section === 'git') return 'mobile-agent-git';
+  if (input.section === 'files') return 'mobile-agent-files';
+  if (input.section === 'file') return 'mobile-agent-file';
   if (input.section === 'application') return 'mobile-application';
   return 'mobile-agent-overview';
 }
@@ -98,6 +102,7 @@ export function commandCenterScene(input: CommandCenterSceneInput): CommandCente
     'application-name': input.applicationName ?? '',
     member: input.team.find(item => item.workspaceId === input.openWorkspaceId)?.displayName ?? '',
     branch: input.openBranch ? input.openBranch : 'not on a git branch',
+    'file-name': input.openFile ? input.openFile.slice(input.openFile.lastIndexOf('/') + 1) : '',
   };
   const state: Record<string, string> = {
     selected: scene === 'mobile-tasks' ? '1' : scene === 'mobile-settings' ? '2' : '0',

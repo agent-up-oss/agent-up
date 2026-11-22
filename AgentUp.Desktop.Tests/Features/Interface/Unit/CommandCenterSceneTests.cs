@@ -143,10 +143,15 @@ public sealed class CommandCenterSceneTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(binding.State["selected"], Is.EqualTo("3"));
+            Assert.That(binding.State["selected"], Is.EqualTo("4"));
             Assert.That(binding.State["app"], Is.EqualTo("Orders API"));
         });
     }
+
+    [TestCase("agent-files")]
+    [TestCase("agent-file")]
+    public void Files_and_an_open_file_select_the_Files_tab(string scene)
+        => Assert.That(CommandCenterScene.Bind(Input([], scene)).State["selected"], Is.EqualTo("3"));
 
     [Test]
     public void A_validation_card_keeps_the_flow_stages_and_checks()

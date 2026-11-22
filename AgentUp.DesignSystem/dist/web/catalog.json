@@ -911,7 +911,7 @@
         {
           "id": "workspace-tabs",
           "title": "Workspace tabs",
-          "note": "Overview, Agent, and Git sit with the application tabs. Overview is selected. A hairline separates workspace chrome from running apps.",
+          "note": "Overview, Agent, Git, and Files sit with the application tabs. Overview is selected. A hairline separates workspace chrome from running apps.",
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
@@ -924,19 +924,25 @@
               "state": "selected:1",
               "title": "Agent tab selected",
               "note": "The live ACP session is the primary selection when Agent is open.",
-              "html": "<div class=\"au-cluster\">\n        <button class=\"au-app-tab\">Overview</button>\n        <button class=\"au-app-tab au-app-tab--selected\">Agent</button>\n        <button class=\"au-app-tab\">Git</button>\n        <span class=\"au-tab-sep\"></span>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Storefront</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Orders API</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Inventory</button>\n      </div>"
+              "html": "<div class=\"au-cluster\">\n        <button class=\"au-app-tab\">Overview</button>\n        <button class=\"au-app-tab au-app-tab--selected\">Agent</button>\n        <button class=\"au-app-tab\">Git</button>\n        <button class=\"au-app-tab\">Files</button>\n        <span class=\"au-tab-sep\"></span>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Storefront</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Orders API</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Inventory</button>\n      </div>"
             },
             {
               "state": "selected:2",
               "title": "Git tab selected",
               "note": "Working-tree review is the primary selection when Git is open.",
-              "html": "<div class=\"au-cluster\">\n        <button class=\"au-app-tab\">Overview</button>\n        <button class=\"au-app-tab\">Agent</button>\n        <button class=\"au-app-tab au-app-tab--selected\">Git</button>\n        <span class=\"au-tab-sep\"></span>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Storefront</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Orders API</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Inventory</button>\n      </div>"
+              "html": "<div class=\"au-cluster\">\n        <button class=\"au-app-tab\">Overview</button>\n        <button class=\"au-app-tab\">Agent</button>\n        <button class=\"au-app-tab au-app-tab--selected\">Git</button>\n        <button class=\"au-app-tab\">Files</button>\n        <span class=\"au-tab-sep\"></span>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Storefront</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Orders API</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Inventory</button>\n      </div>"
             },
             {
               "state": "selected:3",
+              "title": "Files tab selected",
+              "note": "The whole clone is the primary selection when Files is open.",
+              "html": "<div class=\"au-cluster\">\n        <button class=\"au-app-tab\">Overview</button>\n        <button class=\"au-app-tab\">Agent</button>\n        <button class=\"au-app-tab\">Git</button>\n        <button class=\"au-app-tab au-app-tab--selected\">Files</button>\n        <span class=\"au-tab-sep\"></span>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Storefront</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Orders API</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Inventory</button>\n      </div>"
+            },
+            {
+              "state": "selected:4",
               "title": "Application tab selected",
               "note": "Storefront is the primary selection when the running app is open.",
-              "html": "<div class=\"au-cluster\">\n        <button class=\"au-app-tab\">Overview</button>\n        <button class=\"au-app-tab\">Agent</button>\n        <button class=\"au-app-tab\">Git</button>\n        <span class=\"au-tab-sep\"></span>\n        <button class=\"au-app-tab au-app-tab--selected\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Storefront</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Orders API</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Inventory</button>\n      </div>"
+              "html": "<div class=\"au-cluster\">\n        <button class=\"au-app-tab\">Overview</button>\n        <button class=\"au-app-tab\">Agent</button>\n        <button class=\"au-app-tab\">Git</button>\n        <button class=\"au-app-tab\">Files</button>\n        <span class=\"au-tab-sep\"></span>\n        <button class=\"au-app-tab au-app-tab--selected\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Storefront</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Orders API</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Inventory</button>\n      </div>"
             }
           ],
           "rootClass": "au-app-tab",
@@ -948,7 +954,7 @@
             "au-status-dot",
             "au-status-dot--healthy"
           ],
-          "html": "<div class=\"au-cluster\">\n        <button class=\"au-app-tab au-app-tab--selected\">Overview</button>\n        <button class=\"au-app-tab\">Agent</button>\n        <button class=\"au-app-tab\">Git</button>\n        <span class=\"au-tab-sep\"></span>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Storefront</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Orders API</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Inventory</button>\n      </div>"
+          "html": "<div class=\"au-cluster\">\n        <button class=\"au-app-tab au-app-tab--selected\">Overview</button>\n        <button class=\"au-app-tab\">Agent</button>\n        <button class=\"au-app-tab\">Git</button>\n        <button class=\"au-app-tab\">Files</button>\n        <span class=\"au-tab-sep\"></span>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Storefront</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Orders API</button>\n        <button class=\"au-app-tab\"><span class=\"au-status-dot au-status-dot--healthy\"></span> Inventory</button>\n      </div>"
         },
         {
           "id": "subtab",
@@ -2214,7 +2220,7 @@
         {
           "id": "mobile-tab-bar",
           "title": "Bottom tabs",
-          "note": "Workspace chrome is Apps, Git, Agents, then Settings. Each tab has a 20px outline icon plus label. Selected uses the catalog subtab selected state, which is neutral.",
+          "note": "Workspace chrome is Apps, Git, Files, Agents, then Settings. Each tab has a 20px outline icon plus label. Selected uses the catalog subtab selected state, which is neutral.",
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
@@ -2227,19 +2233,25 @@
               "state": "selected:1",
               "title": "Git bottom tab",
               "note": "Git is the selected workspace tab.",
-              "html": "<div class=\"au-mobile-tab-bar au-cluster\" role=\"tablist\">\n        <button class=\"au-subtab au-nav-tab\" aria-selected=\"false\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect></svg>\n          Apps\n        </button>\n        <button class=\"au-subtab au-nav-tab au-subtab--selected\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"6\" cy=\"18\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"6\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"18\" r=\"2.5\"></circle><path d=\"M8.2 16.2 16 8\"></path><path d=\"M18 8.6v6.8\"></path></svg>\n          Git\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M8 7V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v7a2 2 0 0 1-1.4 1.9\"></path><path d=\"M18 12H7a2 2 0 0 0-2 2v6l3-2h10a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2z\"></path></svg>\n          Agents\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"3\"></circle><path d=\"M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z\"></path></svg>\n          Settings\n        </button>\n      </div>"
+              "html": "<div class=\"au-mobile-tab-bar au-cluster\" role=\"tablist\">\n        <button class=\"au-subtab au-nav-tab\" aria-selected=\"false\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect></svg>\n          Apps\n        </button>\n        <button class=\"au-subtab au-nav-tab au-subtab--selected\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"6\" cy=\"18\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"6\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"18\" r=\"2.5\"></circle><path d=\"M8.2 16.2 16 8\"></path><path d=\"M18 8.6v6.8\"></path></svg>\n          Git\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M4 6a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z\"></path><path d=\"M8 12h8M8 16h5\"></path></svg>\n          Files\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M8 7V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v7a2 2 0 0 1-1.4 1.9\"></path><path d=\"M18 12H7a2 2 0 0 0-2 2v6l3-2h10a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2z\"></path></svg>\n          Agents\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"3\"></circle><path d=\"M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z\"></path></svg>\n          Settings\n        </button>\n      </div>"
             },
             {
               "state": "selected:2",
-              "title": "Agents bottom tab",
-              "note": "Agents is the selected workspace tab.",
-              "html": "<div class=\"au-mobile-tab-bar au-cluster\" role=\"tablist\">\n        <button class=\"au-subtab au-nav-tab\" aria-selected=\"false\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect></svg>\n          Apps\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"6\" cy=\"18\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"6\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"18\" r=\"2.5\"></circle><path d=\"M8.2 16.2 16 8\"></path><path d=\"M18 8.6v6.8\"></path></svg>\n          Git\n        </button>\n        <button class=\"au-subtab au-nav-tab au-subtab--selected\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M8 7V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v7a2 2 0 0 1-1.4 1.9\"></path><path d=\"M18 12H7a2 2 0 0 0-2 2v6l3-2h10a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2z\"></path></svg>\n          Agents\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"3\"></circle><path d=\"M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z\"></path></svg>\n          Settings\n        </button>\n      </div>"
+              "title": "Files bottom tab",
+              "note": "Files is the selected workspace tab.",
+              "html": "<div class=\"au-mobile-tab-bar au-cluster\" role=\"tablist\">\n        <button class=\"au-subtab au-nav-tab\" aria-selected=\"false\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect></svg>\n          Apps\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"6\" cy=\"18\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"6\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"18\" r=\"2.5\"></circle><path d=\"M8.2 16.2 16 8\"></path><path d=\"M18 8.6v6.8\"></path></svg>\n          Git\n        </button>\n        <button class=\"au-subtab au-nav-tab au-subtab--selected\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M4 6a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z\"></path><path d=\"M8 12h8M8 16h5\"></path></svg>\n          Files\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M8 7V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v7a2 2 0 0 1-1.4 1.9\"></path><path d=\"M18 12H7a2 2 0 0 0-2 2v6l3-2h10a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2z\"></path></svg>\n          Agents\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"3\"></circle><path d=\"M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z\"></path></svg>\n          Settings\n        </button>\n      </div>"
             },
             {
               "state": "selected:3",
+              "title": "Agents bottom tab",
+              "note": "Agents is the selected workspace tab.",
+              "html": "<div class=\"au-mobile-tab-bar au-cluster\" role=\"tablist\">\n        <button class=\"au-subtab au-nav-tab\" aria-selected=\"false\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect></svg>\n          Apps\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"6\" cy=\"18\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"6\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"18\" r=\"2.5\"></circle><path d=\"M8.2 16.2 16 8\"></path><path d=\"M18 8.6v6.8\"></path></svg>\n          Git\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M4 6a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z\"></path><path d=\"M8 12h8M8 16h5\"></path></svg>\n          Files\n        </button>\n        <button class=\"au-subtab au-nav-tab au-subtab--selected\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M8 7V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v7a2 2 0 0 1-1.4 1.9\"></path><path d=\"M18 12H7a2 2 0 0 0-2 2v6l3-2h10a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2z\"></path></svg>\n          Agents\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"3\"></circle><path d=\"M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z\"></path></svg>\n          Settings\n        </button>\n      </div>"
+            },
+            {
+              "state": "selected:4",
               "title": "Settings bottom tab",
               "note": "Settings is the selected workspace tab.",
-              "html": "<div class=\"au-mobile-tab-bar au-cluster\" role=\"tablist\">\n        <button class=\"au-subtab au-nav-tab\" aria-selected=\"false\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect></svg>\n          Apps\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"6\" cy=\"18\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"6\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"18\" r=\"2.5\"></circle><path d=\"M8.2 16.2 16 8\"></path><path d=\"M18 8.6v6.8\"></path></svg>\n          Git\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M8 7V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v7a2 2 0 0 1-1.4 1.9\"></path><path d=\"M18 12H7a2 2 0 0 0-2 2v6l3-2h10a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2z\"></path></svg>\n          Agents\n        </button>\n        <button class=\"au-subtab au-nav-tab au-subtab--selected\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"3\"></circle><path d=\"M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z\"></path></svg>\n          Settings\n        </button>\n      </div>"
+              "html": "<div class=\"au-mobile-tab-bar au-cluster\" role=\"tablist\">\n        <button class=\"au-subtab au-nav-tab\" aria-selected=\"false\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect></svg>\n          Apps\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"6\" cy=\"18\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"6\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"18\" r=\"2.5\"></circle><path d=\"M8.2 16.2 16 8\"></path><path d=\"M18 8.6v6.8\"></path></svg>\n          Git\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M4 6a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z\"></path><path d=\"M8 12h8M8 16h5\"></path></svg>\n          Files\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M8 7V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v7a2 2 0 0 1-1.4 1.9\"></path><path d=\"M18 12H7a2 2 0 0 0-2 2v6l3-2h10a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2z\"></path></svg>\n          Agents\n        </button>\n        <button class=\"au-subtab au-nav-tab au-subtab--selected\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"3\"></circle><path d=\"M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z\"></path></svg>\n          Settings\n        </button>\n      </div>"
             }
           ],
           "rootClass": "au-mobile-tab-bar",
@@ -2251,7 +2263,7 @@
             "au-subtab--selected",
             "au-nav-icon"
           ],
-          "html": "<div class=\"au-mobile-tab-bar au-cluster\" role=\"tablist\">\n        <button class=\"au-subtab au-nav-tab au-subtab--selected\" aria-selected=\"true\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect></svg>\n          Apps\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"6\" cy=\"18\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"6\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"18\" r=\"2.5\"></circle><path d=\"M8.2 16.2 16 8\"></path><path d=\"M18 8.6v6.8\"></path></svg>\n          Git\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M8 7V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v7a2 2 0 0 1-1.4 1.9\"></path><path d=\"M18 12H7a2 2 0 0 0-2 2v6l3-2h10a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2z\"></path></svg>\n          Agents\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"3\"></circle><path d=\"M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z\"></path></svg>\n          Settings\n        </button>\n      </div>"
+          "html": "<div class=\"au-mobile-tab-bar au-cluster\" role=\"tablist\">\n        <button class=\"au-subtab au-nav-tab au-subtab--selected\" aria-selected=\"true\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1.5\"></rect></svg>\n          Apps\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"6\" cy=\"18\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"6\" r=\"2.5\"></circle><circle cx=\"18\" cy=\"18\" r=\"2.5\"></circle><path d=\"M8.2 16.2 16 8\"></path><path d=\"M18 8.6v6.8\"></path></svg>\n          Git\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M4 6a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z\"></path><path d=\"M8 12h8M8 16h5\"></path></svg>\n          Files\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M8 7V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v7a2 2 0 0 1-1.4 1.9\"></path><path d=\"M18 12H7a2 2 0 0 0-2 2v6l3-2h10a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2z\"></path></svg>\n          Agents\n        </button>\n        <button class=\"au-subtab au-nav-tab\">\n          <svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"3\"></circle><path d=\"M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z\"></path></svg>\n          Settings\n        </button>\n      </div>"
         },
         {
           "id": "mobile-list",
@@ -3442,6 +3454,206 @@
             "au-syntax-comment"
           ],
           "html": "<span class=\"au-syntax-comment\">// Clients display Server-owned diffs.</span>"
+        }
+      ]
+    },
+    {
+      "id": "files",
+      "title": "Files",
+      "intro": "The whole clone, not only what changed. Folders start folded and each one is read from the Server when it is unfolded. Rows reuse the Git change list, so a changed file carries the same status glyph in Files as in Git, and a folded folder counts the changed files under it. A file opens as a page to read and edit, never as an overlay.",
+      "components": [
+        {
+          "id": "files-toolbar",
+          "title": "Files toolbar",
+          "note": "The section label, the workspace folder in monospace, and Reload. Reload re-reads the folders that are open; it does not unfold anything.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
+          "rootClass": "au-files-toolbar",
+          "classes": [
+            "au-files-toolbar",
+            "au-field-label",
+            "au-files-root",
+            "au-browser-button",
+            "au-nav-icon"
+          ],
+          "html": "<div class=\"au-files-toolbar\">\n        <span class=\"au-field-label\">Files</span>\n        <span class=\"au-files-root\">harbor-shop · main</span>\n        <button class=\"au-browser-button\" type=\"button\"><svg class=\"au-nav-icon\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M21 12a9 9 0 1 1-2.6-6.4\"></path><path d=\"M21 4v6h-6\"></path></svg></button>\n      </div>"
+        },
+        {
+          "id": "files-tree",
+          "title": "File tree",
+          "note": "Folders first, then files, each level as the Server lists it. A folded folder shows how many changed files are under it; a file shows its Git status glyph or nothing when it is unchanged. Deleted files are not on disk, so they are not here; Git still lists them. The open file is the primary selection.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
+          "rootClass": "au-git-change-list",
+          "classes": [
+            "au-git-change-list",
+            "au-git-row",
+            "au-git-tree-toggle",
+            "au-git-tree-toggle--expanded",
+            "au-git-change-name",
+            "au-git-change-name--directory",
+            "au-files-count",
+            "au-git-tree-guide",
+            "au-git-tree-toggle--collapsed",
+            "au-files-size",
+            "au-git-status",
+            "au-git-row--selected",
+            "au-git-status--modified",
+            "au-git-status--added"
+          ],
+          "html": "<div class=\"au-git-change-list\">\n        <div class=\"au-git-row\">\n          <button class=\"au-git-tree-toggle au-git-tree-toggle--expanded\" type=\"button\">▾</button>\n          <span class=\"au-git-change-name au-git-change-name--directory\">apps</span>\n          <span class=\"au-files-count\">3</span>\n        </div>\n        <div class=\"au-git-row\">\n          <span class=\"au-git-tree-guide\"></span>\n          <button class=\"au-git-tree-toggle au-git-tree-toggle--collapsed\" type=\"button\">▸</button>\n          <span class=\"au-git-change-name au-git-change-name--directory\">api</span>\n          <span class=\"au-files-count\">1</span>\n        </div>\n        <div class=\"au-git-row\">\n          <span class=\"au-git-tree-guide\"></span>\n          <button class=\"au-git-tree-toggle au-git-tree-toggle--expanded\" type=\"button\">▾</button>\n          <span class=\"au-git-change-name au-git-change-name--directory\">storefront</span>\n          <span class=\"au-files-count\">2</span>\n        </div>\n        <div class=\"au-git-row\">\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-change-name\">package.json</span>\n          <span class=\"au-files-size\">612 B</span>\n          <span class=\"au-git-status\"></span>\n        </div>\n        <div class=\"au-git-row au-git-row--selected\">\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-change-name\">ProductGrid.tsx</span>\n          <span class=\"au-files-size\">1.8 KB</span>\n          <span class=\"au-git-status au-git-status--modified\">M</span>\n        </div>\n        <div class=\"au-git-row\">\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-tree-guide\"></span>\n          <span class=\"au-git-change-name\">PromoBanner.tsx</span>\n          <span class=\"au-files-size\">214 B</span>\n          <span class=\"au-git-status au-git-status--added\">+</span>\n        </div>\n        <div class=\"au-git-row\">\n          <button class=\"au-git-tree-toggle au-git-tree-toggle--collapsed\" type=\"button\">▸</button>\n          <span class=\"au-git-change-name au-git-change-name--directory\">docs</span>\n        </div>\n        <div class=\"au-git-row\">\n          <span class=\"au-git-change-name\">agent-up.json</span>\n          <span class=\"au-files-size\">1.1 KB</span>\n          <span class=\"au-git-status\"></span>\n        </div>\n        <div class=\"au-git-row\">\n          <span class=\"au-git-change-name\">README.md</span>\n          <span class=\"au-files-size\">940 B</span>\n          <span class=\"au-git-status\"></span>\n        </div>\n      </div>"
+        },
+        {
+          "id": "files-count",
+          "title": "Changed-file count",
+          "note": "How many changed files sit under a folder, folded or not. Info blue on a raised chip, like a status rather than an action.",
+          "avalonia": "TextBlock",
+          "desktopClass": "",
+          "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
+          "rootClass": "au-files-count",
+          "classes": [
+            "au-files-count"
+          ],
+          "html": "<span class=\"au-files-count\">3</span>"
+        },
+        {
+          "id": "files-size",
+          "title": "File size",
+          "note": "Faint and tabular so the column holds still.",
+          "avalonia": "TextBlock",
+          "desktopClass": "",
+          "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
+          "rootClass": "au-files-size",
+          "classes": [
+            "au-files-size"
+          ],
+          "html": "<span class=\"au-files-size\">1.8 KB</span>"
+        },
+        {
+          "id": "files-notice",
+          "title": "Folder notice",
+          "note": "A folder the Server cut short, or one that could not be read, says so in a muted line under its rows.",
+          "avalonia": "TextBlock",
+          "desktopClass": "",
+          "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
+          "rootClass": "au-files-notice",
+          "classes": [
+            "au-files-notice"
+          ],
+          "html": "<span class=\"au-files-notice\">Showing the first 2000 entries of this folder.</span>"
+        },
+        {
+          "id": "file-editor",
+          "title": "File page",
+          "note": "One file as a page in the workspace pane. Back returns to the tree. The header reuses the viewer path and status. The body is the whole file in a plain text editor with a line gutter: typing, selection, undo and redo, and Tab indentation, without syntax highlighting. Save writes it back only if nobody changed it since it was opened.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
+          "rootClass": "au-file-editor",
+          "classes": [
+            "au-file-editor",
+            "au-file-viewer-header",
+            "au-title-tool",
+            "au-chrome-icon",
+            "au-file-viewer-heading",
+            "au-file-viewer-path",
+            "au-file-viewer-status",
+            "au-file-editor-actions",
+            "au-button",
+            "au-button--secondary",
+            "au-button--compact",
+            "au-file-editor-body",
+            "au-file-editor-gutter",
+            "au-file-editor-input",
+            "au-file-editor-footer",
+            "au-file-editor-state",
+            "au-file-editor-state--dirty",
+            "au-file-editor-caret"
+          ],
+          "html": "<div class=\"au-file-editor\">\n        <div class=\"au-file-viewer-header\">\n          <button class=\"au-title-tool au-chrome-icon\" type=\"button\" aria-label=\"Back to files\">‹</button>\n          <span class=\"au-file-viewer-heading\">\n            <span class=\"au-file-viewer-path\">apps/storefront/PromoBanner.tsx</span>\n            <span class=\"au-file-viewer-status\">Added</span>\n          </span>\n          <span class=\"au-file-editor-actions\">\n            <button class=\"au-button au-button--secondary au-button--compact\" type=\"button\">Revert</button>\n            <button class=\"au-button au-button--compact\" type=\"button\">Save</button>\n          </span>\n        </div>\n        <div class=\"au-file-editor-body\">\n          <span class=\"au-file-editor-gutter\">1\n2\n3\n4\n5\n6</span>\n          <textarea class=\"au-file-editor-input\" readonly spellcheck=\"false\">export function PromoBanner() {\n  return (\n    &lt;aside className=\"promo\"&gt;\n      Weekly harbor special\n    &lt;/aside&gt;\n  );</textarea>\n        </div>\n        <div class=\"au-file-editor-footer\">\n          <span class=\"au-file-editor-state au-file-editor-state--dirty\">Unsaved changes</span>\n          <span class=\"au-file-editor-caret\">Ln 4, Col 28</span>\n        </div>\n      </div>"
+        },
+        {
+          "id": "file-editor-mobile",
+          "title": "Mobile file page",
+          "note": "On a phone the file is its own page: the top bar carries the back chevron and the file name, and the page keeps the path, status, Save and Revert above the same gutter and editor.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
+          "rootClass": "au-file-editor",
+          "classes": [
+            "au-file-editor",
+            "au-file-viewer-header",
+            "au-file-viewer-heading",
+            "au-file-viewer-path",
+            "au-file-viewer-status",
+            "au-file-editor-actions",
+            "au-button",
+            "au-button--secondary",
+            "au-button--compact",
+            "au-file-editor-body",
+            "au-file-editor-gutter",
+            "au-file-editor-input",
+            "au-file-editor-footer",
+            "au-file-editor-state",
+            "au-file-editor-caret"
+          ],
+          "html": "<div class=\"au-file-editor\">\n        <div class=\"au-file-viewer-header\">\n          <span class=\"au-file-viewer-heading\">\n            <span class=\"au-file-viewer-path\">apps/storefront/PromoBanner.tsx</span>\n            <span class=\"au-file-viewer-status\">Added</span>\n          </span>\n          <span class=\"au-file-editor-actions\">\n            <button class=\"au-button au-button--secondary au-button--compact\" type=\"button\">Revert</button>\n            <button class=\"au-button au-button--compact\" type=\"button\">Save</button>\n          </span>\n        </div>\n        <div class=\"au-file-editor-body\">\n          <span class=\"au-file-editor-gutter\">1\n2\n3\n4</span>\n          <textarea class=\"au-file-editor-input\" readonly spellcheck=\"false\">export function PromoBanner() {\n  return (\n    &lt;aside className=\"promo\"&gt;\n      Weekly harbor special</textarea>\n        </div>\n        <div class=\"au-file-editor-footer\">\n          <span class=\"au-file-editor-state\">Saved</span>\n          <span class=\"au-file-editor-caret\">Ln 1, Col 1</span>\n        </div>\n      </div>"
+        },
+        {
+          "id": "file-editor-notice",
+          "title": "Editor notice",
+          "note": "A file that cannot be edited here says why instead of showing an empty editor: binary, over the size the Server sends, or changed on the Server since it was opened. The danger variant is the stale save, with Reload.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
+          "rootClass": "au-file-editor-notice",
+          "classes": [
+            "au-file-editor-notice",
+            "au-file-editor-notice--danger"
+          ],
+          "html": "<div class=\"au-file-editor-notice au-file-editor-notice--danger\">This file changed on the Server since it was opened. Reload it to see the change.</div>"
         }
       ]
     },

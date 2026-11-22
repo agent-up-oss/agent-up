@@ -107,6 +107,18 @@ public sealed class CommandCenterViewModelTests
         });
     }
 
+    [TestCase("files", "agent-files")]
+    [TestCase("file", "agent-file")]
+    public void Files_and_an_open_file_are_pages_of_the_open_agent(string section, string scene)
+    {
+        var view = InterfaceTestComposition.CommandCenter();
+        view.OpenAgentCommand.Execute(TeamStandingComposition.Standing()).Subscribe();
+
+        view.ShowSection(section);
+
+        Assert.That(view.SceneId, Is.EqualTo(scene));
+    }
+
     [Test]
     public void Leaving_the_command_center_leaves_the_agent_it_had_open()
     {

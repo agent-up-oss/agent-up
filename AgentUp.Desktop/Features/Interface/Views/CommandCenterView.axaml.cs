@@ -68,6 +68,15 @@ public partial class CommandCenterView : UserControl
         main.Sidebar.WhenAnyValue(item => item.SelectedWorkspace).Subscribe(_ => Apply()).DisposeWith(_subscriptions);
         if (main.Validation is { } validation)
             validation.WhenAnyValue(item => item.IsCollapsed).Subscribe(_ => Apply()).DisposeWith(_subscriptions);
+        // A file opened from Files is its own page; Back returns to the tree. The panel owns that
+        // choice, so the scene follows it rather than the other way round.
+        main.Files.WhenAnyValue(files => files.IsEditorOpen)
+            .Subscribe(open =>
+            {
+                if (center.SceneId is "agent-files" or "agent-file")
+                    center.ShowSection(open ? "file" : "files");
+            })
+            .DisposeWith(_subscriptions);
         WatchAgent(main.Agent);
         Watch(main.SubTabs);
         Watch(center.Tasks?.Queue);
@@ -207,6 +216,7 @@ public partial class CommandCenterView : UserControl
     {
         "application" => ("application", ApplicationSurface(window, main)),
         "agent-git" => ("changes", window.FindControl<Control>("GitPanel")),
+        "agent-files" or "agent-file" => ("files", window.FindControl<Control>("FilesPanel")),
         "agent-chat" => ("transcript", window.FindControl<Control>("AgentChatPane")),
         "agent-overview" => ("overview", window.FindControl<Control>("OverviewContent")),
         _ => ("", null),
@@ -301,7 +311,7 @@ public partial class CommandCenterView : UserControl
 
     private void RestoreSceneSurfaces()
     {
-        foreach (var slot in new[] { "application", "changes", "transcript", "overview" })
+        foreach (var slot in new[] { "application", "changes", "files", "transcript", "overview" })
         {
             var control = Release(slot);
             if (control is null || !_homes.TryGetValue(control, out var home)) continue;
@@ -348,6 +358,9 @@ public partial class CommandCenterView : UserControl
                 break;
             case "tab-git":
                 center.ShowSection("git");
+                break;
+            case "tab-files":
+                center.ShowSection(main.Files.IsEditorOpen ? "file" : "files");
                 break;
             case "tab-application":
                 center.ShowSection("application");

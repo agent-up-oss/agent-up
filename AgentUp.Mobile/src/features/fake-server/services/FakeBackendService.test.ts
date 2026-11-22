@@ -729,3 +729,35 @@ test('a dequeued task can be picked into the queue again', () => {
     [44, 48, 39, 36, 51],
   );
 });
+
+test('the Demo serves the workspace files a folder at a time and saves an edit into Git', () => {
+  const service = backend();
+
+  const top = json(service, 'GET', '/api/workspaces/bob/files/directory');
+  const opened = JSON.parse(service.handle({ method: 'GET', path: '/api/workspaces/bob/files/file', query: '?path=README.md', body: null }).body!);
+  const saved = service.handle({
+    method: 'PUT',
+    path: '/api/workspaces/bob/files/file',
+    query: '',
+    body: JSON.stringify({ path: 'README.md', content: `${opened.content}Edited in the Demo.\n`, version: opened.version }),
+  });
+  const changes = json(service, 'GET', '/api/workspaces/bob/git/changes');
+
+  assert.ok(top.entries.some((entry: { name: string; changedFiles: number }) => entry.name === 'apps' && entry.changedFiles === 2));
+  assert.equal(saved.status, 200);
+  assert.ok(changes.root.files.some((file: { path: string }) => file.path === 'README.md'));
+});
+
+test('the Demo refuses a stale save with a conflict', () => {
+  const service = backend();
+
+  const saved = service.handle({
+    method: 'PUT',
+    path: '/api/workspaces/bob/files/file',
+    query: '',
+    body: JSON.stringify({ path: 'README.md', content: 'mine', version: 'demo-stale' }),
+  });
+
+  assert.equal(saved.status, 409);
+  assert.equal(JSON.parse(saved.body!).title, 'File changed on the Server');
+});

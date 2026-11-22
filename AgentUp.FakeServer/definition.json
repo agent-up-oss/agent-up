@@ -625,6 +625,19 @@
       }
     }
   },
+  "files": {
+    ".gitignore": "node_modules/\ndist/\n.env\n",
+    "README.md": "# Harbor Shop\n\nA small storefront, its orders API, and the inventory service behind them.\n\n- `apps/storefront` is the web shop.\n- `apps/api` serves orders.\n- `docs` explains how to run it.\n",
+    "agent-up.json": "{\n  \"name\": \"Harbor Shop\",\n  \"applications\": [\n    { \"name\": \"Storefront\", \"path\": \"apps/storefront\", \"command\": \"npm run dev\", \"ports\": [{ \"name\": \"web\", \"env\": \"WEB_PORT\", \"http\": true }] },\n    { \"name\": \"Orders API\", \"path\": \"apps/api\", \"command\": \"npm start\", \"ports\": [{ \"name\": \"api\", \"env\": \"API_PORT\", \"http\": true }] }\n  ]\n}\n",
+    "package.json": "{\n  \"name\": \"harbor-shop\",\n  \"private\": true,\n  \"workspaces\": [\"apps/*\"]\n}\n",
+    "apps/storefront/package.json": "{\n  \"name\": \"@harbor/storefront\",\n  \"scripts\": { \"dev\": \"vite --port $WEB_PORT\" }\n}\n",
+    "apps/storefront/index.tsx": "import { ProductGrid } from './ProductGrid';\n\nexport function App() {\n  return (\n    <main>\n      <h1>Harbor Shop</h1>\n      <ProductGrid />\n    </main>\n  );\n}\n",
+    "apps/storefront/ProductGrid.tsx": "export const featured = ['Harbor Mug', 'Canvas Tote', 'Chart Lamp'];\nexport function ProductGrid() {\n  return <section>Featured goods</section>;\n}\n",
+    "apps/api/package.json": "{\n  \"name\": \"@harbor/api\",\n  \"scripts\": { \"start\": \"node server.js\" }\n}\n",
+    "apps/api/orders.ts": "export const openOrders = 12;\nexport function listOrders() {\n  return [];\n}\n",
+    "apps/api/server.ts": "import { createServer } from 'node:http';\nimport { listOrders } from './orders';\n\ncreateServer((_, response) => {\n  response.setHeader('content-type', 'application/json');\n  response.end(JSON.stringify(listOrders()));\n}).listen(Number(process.env.API_PORT));\n",
+    "docs/getting-started.md": "# Getting started\n\nRun `agent-up start` in the repository root. Agent-Up allocates the ports and starts both applications.\n"
+  },
   "console": {
     "bob/Storefront": [
       {

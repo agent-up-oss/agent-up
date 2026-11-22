@@ -16,9 +16,14 @@ internal sealed class FakeHttpMessageHandler(
     public Func<HttpResponseMessage>? ApplicationProxyTicket { get; set; }
     public int ApplicationProxyTicketRequests { get; private set; }
 
+    public FakeWorkspaceFiles WorkspaceFiles { get; } = new();
+
     protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
     {
         var path = request.RequestUri?.AbsolutePath ?? "";
+
+        if (FakeWorkspaceFiles.IsFilesRoute(path))
+            return WorkspaceFiles.HandleAsync(request, path);
 
         if (request.Method == HttpMethod.Post && path.Contains("/viewer-ticket", StringComparison.Ordinal))
         {

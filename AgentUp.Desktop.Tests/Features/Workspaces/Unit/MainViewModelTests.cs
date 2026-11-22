@@ -406,7 +406,7 @@ public class MainViewModelTests
             Assert.That(vm.ShowValidation, Is.False);
             Assert.That(vm.IsValidationOpen, Is.False);
             Assert.That(vm.Validation!.IsCollapsed, Is.True);
-            Assert.That(vm.ShellTabs.Select(tab => tab.Label), Is.EqualTo(new[] { "Overview", "Agent", "Git", "Settings" }));
+            Assert.That(vm.ShellTabs.Select(tab => tab.Label), Is.EqualTo(new[] { "Overview", "Agent", "Git", "Files", "Settings" }));
         });
 
         vm.SelectedShellTab = WorkspaceShellTab.Application;

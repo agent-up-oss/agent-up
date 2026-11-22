@@ -308,11 +308,12 @@
         <button class="au-app-tab"><span class="au-status-dot au-status-dot--healthy"></span> Inventory</button>
       </div>
     </article>
-    <article data-au-component="workspace-tabs" data-au-title="Workspace tabs" data-au-note="Overview, Agent, and Git sit with the application tabs. Overview is selected. A hairline separates workspace chrome from running apps." data-au-avalonia="Border" data-au-class="au-app-tab" data-au-states="selected=au-app-tab/au-app-tab--selected" data-au-state-examples="selected:1|Agent tab selected|The live ACP session is the primary selection when Agent is open.;selected:2|Git tab selected|Working-tree review is the primary selection when Git is open.;selected:3|Application tab selected|Storefront is the primary selection when the running app is open.">
+    <article data-au-component="workspace-tabs" data-au-title="Workspace tabs" data-au-note="Overview, Agent, Git, and Files sit with the application tabs. Overview is selected. A hairline separates workspace chrome from running apps." data-au-avalonia="Border" data-au-class="au-app-tab" data-au-states="selected=au-app-tab/au-app-tab--selected" data-au-state-examples="selected:1|Agent tab selected|The live ACP session is the primary selection when Agent is open.;selected:2|Git tab selected|Working-tree review is the primary selection when Git is open.;selected:3|Files tab selected|The whole clone is the primary selection when Files is open.;selected:4|Application tab selected|Storefront is the primary selection when the running app is open.">
       <div class="au-cluster">
         <button class="au-app-tab au-app-tab--selected">Overview</button>
         <button class="au-app-tab">Agent</button>
         <button class="au-app-tab">Git</button>
+        <button class="au-app-tab">Files</button>
         <span class="au-tab-sep"></span>
         <button class="au-app-tab"><span class="au-status-dot au-status-dot--healthy"></span> Storefront</button>
         <button class="au-app-tab"><span class="au-status-dot au-status-dot--healthy"></span> Orders API</button>
@@ -961,7 +962,7 @@ Storefront listening on WEB_PORT</pre>
         </div>
       </div>
     </article>
-    <article data-au-component="mobile-tab-bar" data-au-title="Bottom tabs" data-au-note="Workspace chrome is Apps, Git, Agents, then Settings. Each tab has a 20px outline icon plus label. Selected uses the catalog subtab selected state, which is neutral." data-au-avalonia="Border" data-au-class="au-mobile-tab-bar" data-au-states="selected=au-nav-tab/au-subtab--selected" data-au-state-examples="selected:1|Git bottom tab|Git is the selected workspace tab.;selected:2|Agents bottom tab|Agents is the selected workspace tab.;selected:3|Settings bottom tab|Settings is the selected workspace tab.">
+    <article data-au-component="mobile-tab-bar" data-au-title="Bottom tabs" data-au-note="Workspace chrome is Apps, Git, Files, Agents, then Settings. Each tab has a 20px outline icon plus label. Selected uses the catalog subtab selected state, which is neutral." data-au-avalonia="Border" data-au-class="au-mobile-tab-bar" data-au-states="selected=au-nav-tab/au-subtab--selected" data-au-state-examples="selected:1|Git bottom tab|Git is the selected workspace tab.;selected:2|Files bottom tab|Files is the selected workspace tab.;selected:3|Agents bottom tab|Agents is the selected workspace tab.;selected:4|Settings bottom tab|Settings is the selected workspace tab.">
       <div class="au-mobile-tab-bar au-cluster" role="tablist">
         <button class="au-subtab au-nav-tab au-subtab--selected" aria-selected="true">
           <span data-au-icon="apps"></span>
@@ -970,6 +971,10 @@ Storefront listening on WEB_PORT</pre>
         <button class="au-subtab au-nav-tab">
           <span data-au-icon="git"></span>
           Git
+        </button>
+        <button class="au-subtab au-nav-tab">
+          <span data-au-icon="files"></span>
+          Files
         </button>
         <button class="au-subtab au-nav-tab">
           <span data-au-icon="agents"></span>

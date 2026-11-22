@@ -23,8 +23,8 @@ const components = Object.fromEntries(
 );
 const allowed = new Set([...css.matchAll(/\.((?:au-[a-z0-9-]+))/g)].map(match => match[1]));
 const requiredViews = {
-  desktop: ['sign-in', 'workspaces', 'applications', 'console', 'git', 'history', 'agents', 'diagnostics', 'metrics', 'validation', 'database', 'capabilities', 'file-viewer'],
-  mobile: ['sign-in', 'workspaces', 'apps', 'git', 'review', 'history', 'agents', 'settings', 'file-viewer', 'agent', 'application', 'database', 'workspace-list'],
+  desktop: ['sign-in', 'workspaces', 'applications', 'console', 'git', 'files', 'file', 'history', 'agents', 'diagnostics', 'metrics', 'validation', 'database', 'capabilities', 'file-viewer'],
+  mobile: ['sign-in', 'workspaces', 'apps', 'git', 'files', 'file', 'review', 'history', 'agents', 'settings', 'file-viewer', 'agent', 'application', 'database', 'workspace-list'],
 };
 
 test('assembled screens pair every scene for the showcase', () => {

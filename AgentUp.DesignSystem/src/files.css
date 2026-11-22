@@ -1,0 +1,162 @@
+/*
+ * Workspace files: the whole clone as a folded tree, and one file opened as a page to read and
+ * edit. The tree reuses the Git change list rows, guides, toggles and status glyphs, so a changed
+ * file reads the same in Files as in Git. Only what Git has no use for lives here: a folder's
+ * changed-file count, a file's size, and the editor page.
+ */
+
+.au-files {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--au-space-3);
+  min-height: 0;
+  color: var(--au-color-text-primary);
+}
+
+.au-files-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--au-space-2);
+  min-height: var(--au-control-height-compact);
+  color: var(--au-color-text-secondary);
+}
+
+.au-files-root {
+  flex: 1;
+  overflow: hidden;
+  min-width: 0;
+  color: var(--au-color-text-muted);
+  font-family: var(--au-font-mono);
+  font-size: var(--au-font-size-ui-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A folded folder still says it holds work: the count of changed files under it. */
+.au-files-count {
+  align-self: flex-start;
+  height: 1.125rem;
+  min-width: 1.25rem;
+  padding: 0 var(--au-space-1);
+  color: var(--au-color-status-info);
+  background: var(--au-color-surface-raised);
+  border-radius: var(--au-radius-sm);
+  font-family: var(--au-font-mono);
+  font-size: var(--au-font-size-ui-xs);
+  font-weight: var(--au-weight-ui-strong);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.au-files-size {
+  color: var(--au-color-text-faint);
+  font-family: var(--au-font-mono);
+  font-size: var(--au-font-size-ui-xs);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.au-files-notice {
+  padding: var(--au-space-2) var(--au-space-3);
+  color: var(--au-color-text-muted);
+  font-size: var(--au-font-size-ui-sm);
+}
+
+/* The editor is a page in the workspace pane, not an overlay: it replaces the tree until Back. */
+.au-file-editor {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 16rem;
+  min-width: 0;
+  color: var(--au-color-text-primary);
+  background: var(--au-color-surface);
+  border: 1px solid var(--au-color-border-subtle);
+  border-radius: var(--au-radius-xl);
+}
+
+.au-file-editor-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--au-space-2);
+}
+
+.au-file-editor-body {
+  display: flex;
+  flex: 1;
+  align-items: stretch;
+  overflow: auto;
+  min-height: 10rem;
+  color: var(--au-color-text-primary);
+  background: var(--au-color-canvas);
+}
+
+.au-file-editor-gutter {
+  min-width: 3.25rem;
+  padding: var(--au-space-2) var(--au-space-2) var(--au-space-2) 0;
+  color: var(--au-color-text-faint);
+  background: var(--au-color-canvas);
+  border-right: 1px solid var(--au-color-border-subtle);
+  font-family: var(--au-font-mono);
+  font-size: var(--au-font-size-ui-xs);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.375rem;
+  text-align: right;
+  white-space: pre;
+}
+
+.au-file-editor-input {
+  flex: 1;
+  min-width: 0;
+  padding: var(--au-space-2) var(--au-space-3);
+  color: var(--au-color-text-primary);
+  background: var(--au-color-canvas);
+  border: 0;
+  font-family: var(--au-font-mono);
+  font-size: var(--au-font-size-ui-xs);
+  line-height: 1.375rem;
+  white-space: pre;
+  resize: none;
+}
+
+.au-file-editor-footer {
+  display: flex;
+  align-items: center;
+  gap: var(--au-space-3);
+  min-height: var(--au-control-height-compact);
+  padding: var(--au-space-1) var(--au-space-4);
+  color: var(--au-color-text-muted);
+  background: var(--au-color-surface-raised);
+  border-top: 1px solid var(--au-color-border-subtle);
+  border-radius: 0 0 var(--au-radius-xl) var(--au-radius-xl);
+}
+
+.au-file-editor-caret {
+  color: var(--au-color-text-muted);
+  font-family: var(--au-font-mono);
+  font-size: var(--au-font-size-ui-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.au-file-editor-state {
+  flex: 1;
+  color: var(--au-color-text-muted);
+  font-size: var(--au-font-size-ui-xs);
+}
+.au-file-editor-state--dirty { color: var(--au-color-text-warning); }
+.au-file-editor-state--error { color: var(--au-color-text-danger); }
+
+.au-file-editor-notice {
+  margin: var(--au-space-3) var(--au-space-4);
+  padding: var(--au-space-3);
+  color: var(--au-color-text-secondary);
+  background: var(--au-color-surface-raised);
+  border: 1px solid var(--au-color-border-subtle);
+  border-radius: var(--au-radius-md);
+  font-size: var(--au-font-size-ui-sm);
+}
+.au-file-editor-notice--danger {
+  color: var(--au-color-text-primary);
+  background: var(--au-color-surface-danger);
+}

@@ -45,6 +45,25 @@ public sealed class GitChangeTreeService
             head.Commit.Length > 0 ? head.Commit : workspace.Commit);
     }
 
+    /// <summary>
+    /// The workspace's changed files relative to its own folder. Empty for a folder that is not a
+    /// repository, which is a valid workspace with nothing to report; null for an unknown workspace.
+    /// </summary>
+    public async Task<IReadOnlyList<GitChangeEntry>?> GetWorktreeChangesAsync(string workspaceId, CancellationToken cancellationToken = default)
+    {
+        var workspace = _workspaces.GetById(workspaceId);
+        if (workspace is null)
+            return null;
+        try
+        {
+            return await _git.GetWorktreeChangesAsync(workspace.WorktreePath, cancellationToken);
+        }
+        catch (InvalidOperationException)
+        {
+            return [];
+        }
+    }
+
     public async Task<GitHeadState?> GetHeadAsync(string workspaceId, CancellationToken cancellationToken = default)
     {
         var workspace = _workspaces.GetById(workspaceId);

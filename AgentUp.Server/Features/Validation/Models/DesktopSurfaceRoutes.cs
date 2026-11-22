@@ -7,6 +7,7 @@ public static class DesktopSurfaceRoutes
     public const string WorkspaceOverview = "workspace/overview";
     public const string WorkspaceApplications = "workspace/applications";
     public const string WorkspaceGit = "workspace/git";
+    public const string WorkspaceFiles = "workspace/files";
     public const string WorkspaceAgents = "workspace/agents";
     public const string WorkspaceSettings = "workspace/settings";
 
@@ -17,6 +18,7 @@ public static class DesktopSurfaceRoutes
         WorkspaceOverview,
         WorkspaceApplications,
         WorkspaceGit,
+        WorkspaceFiles,
         WorkspaceAgents,
         WorkspaceSettings
     ];

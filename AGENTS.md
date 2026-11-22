@@ -28,6 +28,7 @@ Do not leave implementation, `AGENTS.md`, and docs disagreeing. If the requested
 Product names that appear in more than one surface:
 
 - Desktop Git chrome is the **Git** tab; the heading inside it is **Git changes**. Mobile chrome is the **Git** tab, with inner **Review** and **History** pages. Do not call either tab "Commit".
+- **Files** is the tab after **Git** on Desktop, in the Mobile bottom bar, and on an open team member in the command center. It shows the whole clone, folders folded, and opens a file as a page, never as a modal.
 - The human Git slice is working-tree review. The agent queue is the **commit queue** (legacy local) or **proposal queue** when `commits.enabled` is true. Desktop Git and Mobile Review display that queue; they do not mutate it.
 - Desktop chrome for the live ACP session is the **Agent** tab. Mobile chrome for the picker is the **Agents** tab.
 - The installed CLI is `agent-up`. Do not document `agentup` or `agent-up register`.
@@ -301,7 +302,7 @@ The exact project list may evolve, but ownership must not drift:
 
 | Area | Owns |
 |---|---|
-| `AgentUp.Server` | Workspace registry, managed source clones, Git working-tree review and commits, the optional Git-backed dependent proposal queue and its managed worktree, forge hosting state and per-workspace forge credentials (including one dynamically registered GitHub App installation per GitHub workspace), process lifecycle, ports, authenticated HTTPS forwarding of allocated HTTP application ports, Docker, browser lifecycle, hosted Linux desktop application sessions, one active authenticated ACP agent session plus workspace-scoped saved session history, diagnostics, event recording, MCP, REST API |
+| `AgentUp.Server` | Workspace registry, managed source clones, Git working-tree review and commits, workspace file browsing and hand edits, the optional Git-backed dependent proposal queue and its managed worktree, forge hosting state and per-workspace forge credentials (including one dynamically registered GitHub App installation per GitHub workspace), process lifecycle, ports, authenticated HTTPS forwarding of allocated HTTP application ports, Docker, browser lifecycle, hosted Linux desktop application sessions, one active authenticated ACP agent session plus workspace-scoped saved session history, diagnostics, event recording, MCP, REST API |
 | `AgentUp.Browser.Streaming` | Reusable remote-display viewer and bounded multi-subscriber frame/input transport for Server-owned graphical sessions |
 | `AgentUp.Browser.Streaming.Benchmarks` | BenchmarkDotNet measurements for designated performance-sensitive browser streaming paths; runs as a receipt-backed slow verification check |
 | `AgentUp.Server.Benchmarks` | BenchmarkDotNet measurements and stored regression baseline for live agent event framing |
@@ -378,6 +379,13 @@ AgentUp.Server/
       Interfaces/
       Providers/
       Services/
+    Files/            (the workspace folder one level at a time, whole-file reads, version-checked hand edits)
+      Controllers/
+      DTOs/
+      Interfaces/
+      Models/
+      Providers/
+      Services/
     Forge/            (hosting-provider proposal, checks, threads, mergeability; Server-owned credentials)
       Controllers/
       DTOs/
@@ -422,6 +430,13 @@ AgentUp.Desktop/
       ViewModels/
     Console/          (console output/logs for the selected application)
       Providers/
+      ViewModels/
+    Files/            (Files tab: lazily unfolded tree with Git markers, full-pane file page with editor)
+      Controllers/
+      DTOs/
+      Interfaces/
+      Providers/
+      Services/
       ViewModels/
     Git/              (Git tab Git changes surface: change tree, file diff modal, commit box, inner history, proposal-queue display, hosting strip)
       Controllers/
@@ -659,6 +674,7 @@ The Server owns all orchestration:
 - Project path identity and optional Git worktree metadata.
 - Managed source clones and their storage root.
 - Git working-tree change trees, per-file diffs, selective commits, remote-tracking branches, fetch/pull/push, and a bounded commit log.
+- Workspace file browsing and version-checked hand edits.
 - Process lifecycle.
 - Port allocation.
 - Authenticated HTTPS forwarding of allocated HTTP application ports.
@@ -832,7 +848,7 @@ HTTP application pages keep a 50px Validation dock under the webview. Play is on
 
 Mobile renders `desktopApplications` through the same session-ticketed Server viewer as Desktop: `react-native-webview` on Android/iOS and an iframe in the PWA. It must not proxy or own the display stream.
 
-Each workspace has a local bottom bar with Apps, Git, Agents, and Settings overview tabs. Settings hosts Server-owned capability modules. The Git tab overview lists uncommitted changes and hosts Reload, Fetch, Pull, Push, and a History action. Force push is offered only after a rejected non-fast-forward push. Inner Git Review, History, application, and agent-chat pages return through the nav-bar back button. Mobile's Git Review page reads and displays the Server-owned proposal queue. The Git overview and Review page also display Server-owned forge hosting state. They must not reconstruct queue ancestry, infer verification state, or reconstruct hosting state locally.
+Each workspace has a local bottom bar with Apps, Git, Files, Agents, and Settings overview tabs. Settings hosts Server-owned capability modules. The Git tab overview lists uncommitted changes and hosts Reload, Fetch, Pull, Push, and a History action. Force push is offered only after a rejected non-fast-forward push. Inner Git Review, History, application, and agent-chat pages return through the nav-bar back button. Mobile's Git Review page reads and displays the Server-owned proposal queue. The Git overview and Review page also display Server-owned forge hosting state. They must not reconstruct queue ancestry, infer verification state, or reconstruct hosting state locally.
 
 Agent sign-in on every client goes through `AgentUp.AgentAuth` (`@agent-up/agent-auth`). It branches on the transport the Server reports - `poll`, `code`, or `redirect` - and never on which agent is signing in, so the real Claude, Codex, and Cursor CLIs and the test agents drive one code path rather than parallel ones. Platform behavior lives in an adapter behind a port; the state machine stays free of React and React Native imports so it is tested under plain Node.
 
@@ -1402,7 +1418,9 @@ Desktop Git always shows a hosting strip above the change tree, and Mobile alway
 
 Coding agents must still use the commit queue tools. The `Git` slice is a product surface for humans, not an escape hatch around `enqueue_commit`.
 
-Read: `docs/user-docs/git/index.md` and `docs/developer-guide/git/index.md`.
+The Server's `Files` slice shows the whole workspace folder beside it: one folder per request as a client unfolds it, a whole text file per read, and a hand edit that saves only when it names the version it was opened at (`409` otherwise, and while the workspace agent is in a turn). Reads need `git.read`, saves `git.write`. Files lists Git markers from `GitQueryController`; deleted files are not on disk and are not listed. It is a human observability surface with no MCP tools, and like Git it is not an escape hatch around `enqueue_commit`.
+
+Read: `docs/user-docs/git/index.md`, `docs/user-docs/git/files.md`, `docs/developer-guide/git/index.md`, and `docs/developer-guide/git/files.md`.
 
 ## Commits
 
