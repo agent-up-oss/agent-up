@@ -21,6 +21,8 @@ internal static class DesktopDomain
     public const string WorktreePath = "/worktrees/my-app";
     public const string Branch = "feat/dashboard";
     public const string Commit = "abc123";
+    public const string FileReadme = "README.md";
+    public const string FileProductGrid = "apps/storefront/ProductGrid.tsx";
     public const string RunningState = "Running";
     public const string StoppedState = "Stopped";
 

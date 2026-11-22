@@ -1,3 +1,4 @@
+using System.Reactive.Linq;
 using Avalonia.LogicalTree;
 using AgentUp.Desktop.Features.Ports.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
@@ -56,6 +57,27 @@ public sealed class AgentWorkspacePaneTests
             Assert.That(CommandCenter(driver).IsVisible, Is.True);
             Assert.That(ViewModel(driver).CommandCenter.SceneId, Is.EqualTo("agent-chat"));
             Assert.That(ViewModel(driver).CommandCenter.ShowsClassicLayout, Is.False);
+        });
+    }
+
+    [AvaloniaTest]
+    public async Task The_Files_tab_hosts_the_workspace_files_and_an_open_file_is_its_own_page()
+    {
+        var driver = await LaunchOnTheCommandCenterAsync();
+        await OpenAgentAsync(driver);
+
+        await driver.Window.ClickControlAsync(ButtonNamed(driver.Window, "Files"));
+        await WaitAsync(() => ViewModel(driver).Files.Nodes.Count > 0);
+        var panel = driver.Window.FindControl<Border>("FilesPanel")!;
+        var hosted = panel.GetVisualAncestors().Contains(CommandCenter(driver));
+        await ViewModel(driver).Files.Nodes.Single(node => node.Path == DesktopDomain.FileReadme).OpenCommand.Execute();
+        await WaitAsync(() => ViewModel(driver).CommandCenter!.SceneId == "agent-file");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(hosted, Is.True, "the command center hosts the classic Files panel rather than a copy");
+            Assert.That(ViewModel(driver).CommandCenter!.SceneId, Is.EqualTo("agent-file"));
+            Assert.That(ViewModel(driver).Files.Editor.Text, Is.EqualTo("# Harbor Shop\n"));
         });
     }
 
@@ -383,6 +405,15 @@ public sealed class AgentWorkspacePaneTests
     }
 
     private static MainViewModel ViewModel(AppDriver driver) => (MainViewModel)driver.Window.DataContext!;
+
+    private static async Task WaitAsync(Func<bool> condition)
+    {
+        for (var attempt = 0; attempt < 200 && !condition(); attempt++)
+        {
+            await HeadlessExtensions.FlushAsync();
+            await Task.Delay(10);
+        }
+    }
 
     private static Border Rail(AppDriver driver) => driver.Window.FindControl<Border>("SidebarRail")!;
 

@@ -25,6 +25,11 @@ using AgentUp.Desktop.Features.Authentication.Controllers;
 using AgentUp.Desktop.Features.Authentication.Providers;
 using AgentUp.Desktop.Features.Authentication.Services;
 using AgentUp.Desktop.Features.Authentication.ViewModels;
+using AgentUp.Desktop.Features.Files.Controllers;
+using AgentUp.Desktop.Features.Files.Interfaces;
+using AgentUp.Desktop.Features.Files.Providers;
+using AgentUp.Desktop.Features.Files.Services;
+using AgentUp.Desktop.Features.Files.ViewModels;
 using AgentUp.Desktop.Features.Git.Controllers;
 using AgentUp.Desktop.Features.Git.Providers;
 using AgentUp.Desktop.Features.Git.Services;
@@ -108,6 +113,7 @@ public static class MainViewModelFactory
         ApplicationAuditApiClient? auditClient = null,
         ValidationFlowApiClient? validationClient = null,
         GitApiClient? gitClient = null,
+        IWorkspaceFilesApiProvider? filesClient = null,
         AgentApiClient? agentClient = null,
         LoginViewModel? login = null,
         CapabilityModulesApiClient? capabilityModulesClient = null,
@@ -133,6 +139,8 @@ public static class MainViewModelFactory
         var audit = new ApplicationAuditController(new ApplicationAuditService(auditApi));
         var git = new GitController(new GitChangeListService(
             gitClient ?? new GitApiClient(DefaultGitHttpClient)));
+        var files = new WorkspaceFilesController(new WorkspaceFilesService(
+            filesClient ?? new WorkspaceFilesApiClient(DefaultGitHttpClient)));
         var agents = new AgentsController(new AgentChatService(agentClient ?? new AgentApiClient(DefaultGitHttpClient)));
         var validationApi = validationClient ?? new ValidationFlowApiClient(DefaultValidationHttpClient);
         var desktopEnvironment = new DesktopValidationEnvironment();
@@ -165,6 +173,7 @@ public static class MainViewModelFactory
                 audit,
                 new ApplicationAuditStreamClient(auditApi.Http)),
             new GitPanelViewModel(git),
+            new FilesPanelViewModel(files),
             new AgentChatViewModel(agents, modulesController),
             new WorkspaceOverviewViewModel(workspaces, reviewReportSave),
             login ?? CreateLogin(DefaultAuthHttpClient),
@@ -203,6 +212,7 @@ public static class MainViewModelFactory
             new ApplicationAuditApiClient(http),
             new ValidationFlowApiClient(http),
             gitClient: new GitApiClient(http),
+            filesClient: new WorkspaceFilesApiClient(http),
             capabilityModulesClient: new CapabilityModulesApiClient(http),
             agentClient: new AgentApiClient(http, agentEventsHttp ?? http),
             login: login ?? CreateLogin(http),

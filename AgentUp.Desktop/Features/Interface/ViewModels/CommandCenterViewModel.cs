@@ -160,6 +160,8 @@ public sealed class CommandCenterViewModel : ReactiveObject
             {
                 "chat" => "agent-chat",
                 "git" => "agent-git",
+                "files" => "agent-files",
+                "file" => "agent-file",
                 "application" => "application",
                 _ => "agent-overview",
             };
@@ -173,7 +175,7 @@ public sealed class CommandCenterViewModel : ReactiveObject
         this.RaisePropertyChanged(nameof(SceneId));
     }
 
-    /// <summary>Overview, Chat, Git, or the running application, once an agent is open.</summary>
+    /// <summary>Overview, Chat, Git, Files, a file opened from Files, or the running application, once an agent is open.</summary>
     public void ShowSection(string section)
     {
         if (Agent is null) return;

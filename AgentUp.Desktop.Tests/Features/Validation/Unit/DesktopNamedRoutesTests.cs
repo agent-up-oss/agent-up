@@ -9,6 +9,7 @@ public sealed class DesktopNamedRoutesTests
     {
         Assert.That(DesktopNamedRoutes.All.All(DesktopNamedRoutes.IsNamedRoute), Is.True);
         Assert.That(DesktopNamedRoutes.IsNamedRoute("workspace/git"), Is.True);
+        Assert.That(DesktopNamedRoutes.IsNamedRoute("workspace/files"), Is.True);
     }
 
     [Test]

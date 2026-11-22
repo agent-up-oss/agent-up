@@ -25,6 +25,8 @@ public sealed class DesktopSurfaceNavigator
                 return SelectShell(viewModel, WorkspaceShellTab.Application);
             case DesktopNamedRoutes.WorkspaceGit:
                 return SelectShell(viewModel, WorkspaceShellTab.Git);
+            case DesktopNamedRoutes.WorkspaceFiles:
+                return SelectShell(viewModel, WorkspaceShellTab.Files);
             case DesktopNamedRoutes.WorkspaceAgents:
                 return SelectShell(viewModel, WorkspaceShellTab.Agent);
             case DesktopNamedRoutes.WorkspaceSettings:

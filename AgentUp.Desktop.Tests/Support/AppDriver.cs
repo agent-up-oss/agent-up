@@ -1,3 +1,4 @@
+using AgentUp.Desktop.Features.Files.Providers;
 using AgentUp.Desktop.Features.Console.Providers;
 using AgentUp.Desktop.Features.Workspaces.DTOs;
 using AgentUp.Desktop.Features.Agents.Providers;
@@ -143,6 +144,7 @@ internal sealed class AppDriver
             workspaceClient,
             consoleClient,
             gitClient: gitClient,
+            filesClient: new WorkspaceFilesApiClient(serverHttp ?? new HttpClient(new FakeHttpMessageHandler([])) { BaseAddress = new Uri("http://localhost:5000") }),
             validationClient: validationClient,
             agentClient: agentClient,
             entitlementsHttp: serverHttp,
