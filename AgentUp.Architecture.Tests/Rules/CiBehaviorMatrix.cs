@@ -5,10 +5,11 @@ using YamlDotNet.RepresentationModel;
 namespace AgentUp.Architecture.Tests.Rules;
 
 /// <summary>
-/// Keeps .github/workflows/ci.yml and .github/behavior-matrix.json describing one pipeline. Every
-/// job is a declared leg that records its verdict last, every declared leg is a job, the Behavior
-/// matrix job waits for all of them and Release waits for it, and Source gates release only - no
-/// behavior leg waits for a source suite or for coverage. Definition: docs/developer-guide/repo/ci.md.
+/// Keeps .github/workflows/ci.yml and .github/behavior-matrix.json describing one pipeline. Each
+/// stage is one matrix job named after its domain, every matrix entry is a declared leg that records
+/// its verdict last, every declared leg is a matrix entry, the Behavior matrix job waits for all of
+/// them and Release waits for it, and Source gates release only - no behavior leg waits for a source
+/// suite or for coverage. Definition: docs/developer-guide/repo/ci.md.
 /// </summary>
 [TestFixture]
 public sealed class CiBehaviorMatrix
@@ -41,6 +42,17 @@ public sealed class CiBehaviorMatrix
             violations.AddRange(expected.Except(included).Select(id => $"Matrix job '{job}' has no include entry with leg '{id}'."));
             violations.AddRange(included.Except(expected).Select(id => $"Matrix job '{job}' runs leg '{id}', which behavior-matrix.json does not declare."));
         }
+
+        Assert.That(violations, Is.Empty);
+    }
+
+    [Test]
+    public void EveryStageIsOneMatrixJobNamedAfterItsDomain()
+    {
+        var violations = Legs().GroupBy(leg => leg.Stage, StringComparer.Ordinal)
+            .Where(stage => stage.Any(leg => !leg.Matrix || leg.Job != stage.Key))
+            .Select(stage => $"Stage '{stage.Key}' must run as the one matrix job '{stage.Key}', with each leg as a matrix entry.")
+            .ToArray();
 
         Assert.That(violations, Is.Empty);
     }

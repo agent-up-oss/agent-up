@@ -1,0 +1,189 @@
+name: Sign in on an Android emulator
+description: Every agent sign-in transport against a real Server, the test agents and the identity provider, on a real Android emulator.
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-dotnet@v6
+      with:
+        dotnet-version: "10.0.x"
+
+    - uses: actions/setup-node@v7
+      with:
+        node-version: 22
+        cache: npm
+        cache-dependency-path: |
+          AgentUp.Mobile.E2E.App/package-lock.json
+          AgentUp.Mobile.E2E/package-lock.json
+          AgentUp.Chat/package-lock.json
+          AgentUp.AgentAuth/package-lock.json
+          AgentUp.ServerClient/package-lock.json
+          AgentUp.WebAudit/package-lock.json
+
+    - name: Check emulator wake helpers
+      shell: bash
+      run: node --test .github/scripts/android-emulator-focus.test.mjs .github/scripts/install-android-emulator.test.mjs
+
+    - uses: actions/setup-java@v6
+      with:
+        distribution: temurin
+        java-version: "17"
+
+    - name: Describe what the app is built from
+      id: app
+      shell: bash
+      run: ./.github/scripts/mobile-app-key.sh
+
+    - name: Enable KVM for the emulator
+      shell: bash
+      run: |
+        echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+          | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+        sudo udevadm control --reload-rules
+        sudo udevadm trigger --name-match=kvm
+
+    # The app is a function of the client's sources and its dependency set, so a push that
+    # changed neither - the Server, the test agents, the suites themselves - reuses the one the
+    # last run compiled instead of spending ten minutes reaching the same bytes.
+
+    - name: Restore the app under test
+      id: apk
+      uses: actions/cache/restore@v6
+      with:
+        path: AgentUp.Mobile.E2E.App/android/app/build/outputs/apk
+        key: android-app-${{ steps.app.outputs.key }}
+
+    - name: Check the restored app is complete
+      id: restored
+      shell: bash
+      run: ./.github/scripts/mobile-app-restored.sh android
+
+    - name: Publish the Server and test agents
+      shell: bash
+      run: ./.github/scripts/build-mobile-e2e-stack.sh
+
+    # The Server confines agents with bubblewrap on Linux; macOS runs them unconfined.
+
+    - name: Install bubblewrap
+      shell: bash
+      run: ./.github/scripts/install-bubblewrap.sh
+
+    # Only the build needs the client's dependencies, so a run that reuses the app skips them.
+
+    - name: Install mobile dependencies
+      shell: bash
+      if: ${{ steps.restored.outputs.usable != 'true' }}
+      run: ./.github/scripts/install-mobile-deps.sh AgentUp.Mobile.E2E.App
+
+    - name: Generate the native project
+      shell: bash
+      if: ${{ steps.restored.outputs.usable != 'true' }}
+      working-directory: AgentUp.Mobile.E2E.App
+      run: npx expo prebuild --platform android --no-install
+
+    # Nothing on the runner preinstalls the NDK this build wants, so Gradle fetches it mid-build
+    # in one attempt. Here it is a step that can be retried instead of a build that cannot.
+
+    - name: Install the Android NDK the build will ask for
+      shell: bash
+      if: ${{ steps.restored.outputs.usable != 'true' }}
+      run: ./.github/scripts/install-android-ndk.sh AgentUp.Mobile.E2E.App
+
+    - uses: gradle/actions/setup-gradle@v6
+      if: ${{ steps.restored.outputs.usable != 'true' }}
+      with:
+        # Off by default on anything but the default branch, which means a branch never seeds
+        # the cache it is about to need.
+        cache-read-only: false
+
+    - name: Install the end-to-end runner
+      shell: bash
+      working-directory: AgentUp.Mobile.E2E
+      run: npm install --no-audit --no-fund
+
+    - name: Build the app under test
+      shell: bash
+      if: ${{ steps.restored.outputs.usable != 'true' }}
+      working-directory: AgentUp.Mobile.E2E
+      run: npx detox build --configuration android.emu.release
+
+    # Saved here rather than at the end of the job: a run whose tests fail would otherwise throw
+    # the build away and recompile it on the next push, which is exactly when iteration is
+    # happening and speed matters most.
+
+    - name: Keep the app under test
+      if: ${{ steps.restored.outputs.usable != 'true' }}
+      uses: actions/cache/save@v6
+      with:
+        path: AgentUp.Mobile.E2E.App/android/app/build/outputs/apk
+        key: android-app-${{ steps.app.outputs.key }}
+
+    - name: Restore the emulator
+      id: avd
+      uses: actions/cache@v6
+      with:
+        path: |
+          ~/.android/avd/*
+          ~/.android/adb*
+        key: avd-api35-google_apis-x86_64-pixel_6
+
+    # Creating the image and letting it write a snapshot costs minutes. Doing it in its own step
+    # means it happens once per image, not once per run. Verified, not trusted: a restore that
+    # came back short would otherwise skip the creation that would have fixed it.
+
+    - name: Check the restored emulator is complete
+      id: emulator
+      shell: bash
+      run: |
+        if [ -f ~/.android/avd/agent_up_e2e.ini ] && [ -d ~/.android/avd/agent_up_e2e.avd ]; then
+          echo "present: the agent_up_e2e emulator image"
+          echo "usable=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "MISSING: the agent_up_e2e emulator image; creating it."
+          echo "usable=false" >> "$GITHUB_OUTPUT"
+        fi
+
+    # Same truncated-zip failure as the NDK: android-emulator-runner installs the emulator and
+    # the system image once each and fails the job when Google's archive is not an archive.
+    # Retry here first so the action's own install is a no-op.
+
+    - name: Install the Android emulator
+      shell: bash
+      run: ./.github/scripts/install-android-emulator.sh
+
+    - name: Create the emulator
+      if: ${{ steps.emulator.outputs.usable != 'true' }}
+      uses: reactivecircus/android-emulator-runner@v2
+      with:
+        api-level: 35
+        target: google_apis
+        arch: x86_64
+        profile: pixel_6
+        avd-name: agent_up_e2e
+        force-avd-creation: false
+        emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+        disable-animations: false
+        script: echo "Emulator image created."
+
+    - name: Run sign-in end-to-end
+      uses: reactivecircus/android-emulator-runner@v2
+      with:
+        api-level: 35
+        target: google_apis
+        arch: x86_64
+        profile: pixel_6
+        avd-name: agent_up_e2e
+        force-avd-creation: false
+        emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+        disable-animations: true
+        script: |
+          ./.github/scripts/wake-android-emulator.sh
+          cd AgentUp.Mobile.E2E && npm run test:android -- --headless
+
+    - uses: actions/upload-artifact@v7
+      if: ${{ failure() }}
+      with:
+        name: sign-in-android-artifacts
+        path: AgentUp.Mobile.E2E/artifacts
+        if-no-files-found: ignore
+        retention-days: 7

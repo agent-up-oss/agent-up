@@ -1,0 +1,342 @@
+name: Source coverage
+description: Judges patch and slice coverage from the reports the .NET suites wrote, and uploads each suite's reports to Codecov under its own flag.
+
+inputs:
+  codecov-token:
+    description: Codecov upload token; uploads are skipped when it is empty, as on Dependabot and fork runs.
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    # Judged even when a suite failed: the reports the other suites wrote still say what this
+    # change covered, and the failing suite is already red on its own step.
+    - name: Enforce patch coverage
+      if: ${{ !cancelled() }}
+      shell: bash
+      run: |
+        # The coverage gate searches its report directory recursively, so making the whole tree
+        # of reports visible there is enough; it then measures only the lines this change touched,
+        # against the minimum in agent-up.json.
+        mkdir -p artifacts/coverage
+        cp -r artifacts/test-results/. artifacts/coverage/
+        dotnet build AgentUp.CLI/AgentUp.CLI.csproj --configuration Release
+        dotnet run --project AgentUp.CLI --configuration Release --no-build --no-launch-profile -- verify coverage
+
+    - name: Enforce per-slice coverage
+      if: ${{ !cancelled() }}
+      shell: bash
+      run: |
+        # Holds only where every suite has run, which is why the check is ciOnly: on a dev machine
+        # the architecture suite instruments every assembly with no hits, so a slice whose own suite
+        # was not selected would read as uncovered.
+        dotnet run --project AgentUp.CLI --configuration Release --no-build --no-launch-profile -- verify slices
+
+    - name: Locate module coverage reports
+      id: coverage-reports
+      if: ${{ !cancelled() && inputs.codecov-token != '' }}
+      shell: bash
+      run: |
+        ./.github/scripts/locate-coverage-reports.sh \
+          AgentUp.Architecture.Tests \
+          AgentUp.CLI.Tests \
+          AgentUp.Capabilities.Abstractions.Tests \
+          AgentUp.Sdk.Common.Tests \
+          AgentUp.Sdk.Runtime.Tests \
+          AgentUp.Sdk.Agent.Tests \
+          AgentUp.Sdk.Forge.Tests \
+          AgentUp.Capabilities.Common.Tests \
+          AgentUp.Capabilities.Claude.Tests \
+          AgentUp.Capabilities.Codex.Tests \
+          AgentUp.Capabilities.Cursor.Tests \
+          AgentUp.Capabilities.Github.Tests \
+          AgentUp.Capabilities.Forgejo.Tests \
+          AgentUp.Capabilities.Docker.Tests \
+          AgentUp.Capabilities.Dotnet.Tests \
+          AgentUp.Capabilities.Opencode.Tests \
+          AgentUp.Browser.Streaming.Tests \
+          AgentUp.CommitPolicy.Tests \
+          AgentUp.Desktop.Tests \
+          AgentUp.AUDebug.Tests \
+          AgentUp.InstallerConfig.Tests \
+          AgentUp.Server.Tests \
+          AgentUp.TestAgents.Tests \
+          AgentUp.Tray.Tests \
+          AgentUp.Verification.Tests
+
+    - name: Upload AgentUp.Architecture.Tests coverage
+      if: ${{ !cancelled() && inputs.codecov-token != '' }}
+      uses: codecov/codecov-action@v7
+      with:
+        token: ${{ inputs.codecov-token }}
+        files: ${{ steps.coverage-reports.outputs.agentup_architecture_tests }}
+        flags: agentup-architecture-tests
+        name: AgentUp.Architecture.Tests
+        fail_ci_if_error: true
+        disable_search: true
+        verbose: true
+
+    - name: Upload AgentUp.CLI.Tests coverage
+      if: ${{ !cancelled() && inputs.codecov-token != '' }}
+      uses: codecov/codecov-action@v7
+      with:
+        token: ${{ inputs.codecov-token }}
+        files: ${{ steps.coverage-reports.outputs.agentup_cli_tests }}
+        flags: agentup-cli-tests
+        name: AgentUp.CLI.Tests
+        fail_ci_if_error: true
+        disable_search: true
+
+    - name: Upload AgentUp.Capabilities.Abstractions.Tests coverage
+      if: ${{ !cancelled() && inputs.codecov-token != '' }}
+      uses: codecov/codecov-action@v7
+      with:
+        token: ${{ inputs.codecov-token }}
+        files: ${{ steps.coverage-reports.outputs.agentup_capabilities_abstractions_tests }}
+        flags: agentup-capabilities-abstractions-tests
+        name: AgentUp.Capabilities.Abstractions.Tests
+        fail_ci_if_error: true
+        disable_search: true
+
+    - name: Upload AgentUp.Sdk.Common.Tests coverage
+      if: ${{ !cancelled() && inputs.codecov-token != '' }}
+      uses: codecov/codecov-action@v7
+      with:
+        token: ${{ inputs.codecov-token }}
+        files: ${{ steps.coverage-reports.outputs.agentup_sdk_common_tests }}
+        flags: agentup-sdk-common-tests
+        name: AgentUp.Sdk.Common.Tests
+        fail_ci_if_error: true
+        disable_search: true
+
+    - name: Upload AgentUp.Sdk.Runtime.Tests coverage
+      if: ${{ !cancelled() && inputs.codecov-token != '' }}
+      uses: codecov/codecov-action@v7
+      with:
+        token: ${{ inputs.codecov-token }}
+        files: ${{ steps.coverage-reports.outputs.agentup_sdk_runtime_tests }}
+        flags: agentup-sdk-runtime-tests
+        name: AgentUp.Sdk.Runtime.Tests
+        fail_ci_if_error: true
+        disable_search: true
+
+    - name: Upload AgentUp.Sdk.Agent.Tests coverage
+      if: ${{ !cancelled() && inputs.codecov-token != '' }}
+      uses: codecov/codecov-action@v7
+      with:
+        token: ${{ inputs.codecov-token }}
+        files: ${{ steps.coverage-reports.outputs.agentup_sdk_agent_tests }}
+        flags: agentup-sdk-agent-tests
+        name: AgentUp.Sdk.Agent.Tests
+        fail_ci_if_error: true
+        disable_search: true
+
+    - name: Upload AgentUp.Sdk.Forge.Tests coverage
+      if: ${{ !cancelled() && inputs.codecov-token != '' }}
+      uses: codecov/codecov-action@v7
+      with:
+        token: ${{ inputs.codecov-token }}
+        files: ${{ steps.coverage-reports.outputs.agentup_sdk_forge_tests }}
+        flags: agentup-sdk-forge-tests
+        name: AgentUp.Sdk.Forge.Tests
+        fail_ci_if_error: true
+        disable_search: true
+
+    - name: Upload AgentUp.Capabilities.Common.Tests coverage
+      if: ${{ !cancelled() && inputs.codecov-token != '' }}
+      uses: codecov/codecov-action@v7
+      with:
+        token: ${{ inputs.codecov-token }}
+        files: ${{ steps.coverage-reports.outputs.agentup_capabilities_common_tests }}
+        flags: agentup-capabilities-common-tests
+        name: AgentUp.Capabilities.Common.Tests
+        fail_ci_if_error: true
+        disable_search: true
+
+    - name: Upload AgentUp.Capabilities.Claude.Tests coverage
+      if: ${{ !cancelled() && inputs.codecov-token != '' }}
+      uses: codecov/codecov-action@v7
+      with:
+        token: ${{ inputs.codecov-token }}
+        files: ${{ steps.coverage-reports.outputs.agentup_capabilities_claude_tests }}
+        flags: agentup-capabilities-claude-tests
+        name: AgentUp.Capabilities.Claude.Tests
+        fail_ci_if_error: true
+        disable_search: true
+
+    - name: Upload AgentUp.Capabilities.Codex.Tests coverage
+      if: ${{ !cancelled() && inputs.codecov-token != '' }}
+      uses: codecov/codecov-action@v7
+      with:
+        token: ${{ inputs.codecov-token }}
+        files: ${{ steps.coverage-reports.outputs.agentup_capabilities_codex_tests }}
+        flags: agentup-capabilities-codex-tests
+        name: AgentUp.Capabilities.Codex.Tests
+        fail_ci_if_error: true
+        disable_search: true
+
+    - name: Upload AgentUp.Capabilities.Cursor.Tests coverage
+      if: ${{ !cancelled() && inputs.codecov-token != '' }}
+      uses: codecov/codecov-action@v7
+      with:
+        token: ${{ inputs.codecov-token }}
+        files: ${{ steps.coverage-reports.outputs.agentup_capabilities_cursor_tests }}
+        flags: agentup-capabilities-cursor-tests
+        name: AgentUp.Capabilities.Cursor.Tests
+        fail_ci_if_error: true
+        disable_search: true
+
+    - name: Upload AgentUp.Capabilities.Github.Tests coverage
+      if: ${{ !cancelled() && inputs.codecov-token != '' }}
+      uses: codecov/codecov-action@v7
+      with:
+        token: ${{ inputs.codecov-token }}
+        files: ${{ steps.coverage-reports.outputs.agentup_capabilities_github_tests }}
+        flags: agentup-capabilities-github-tests
+        name: AgentUp.Capabilities.Github.Tests
+        fail_ci_if_error: true
+        disable_search: true
+
+    - name: Upload AgentUp.Capabilities.Forgejo.Tests coverage
+      if: ${{ !cancelled() && inputs.codecov-token != '' }}
+      uses: codecov/codecov-action@v7
+      with:
+        token: ${{ inputs.codecov-token }}
+        files: ${{ steps.coverage-reports.outputs.agentup_capabilities_forgejo_tests }}
+        flags: agentup-capabilities-forgejo-tests
+        name: AgentUp.Capabilities.Forgejo.Tests
+        fail_ci_if_error: true
+        disable_search: true
+
+    - name: Upload AgentUp.Capabilities.Docker.Tests coverage
+      if: ${{ !cancelled() && inputs.codecov-token != '' }}
+      uses: codecov/codecov-action@v7
+      with:
+        token: ${{ inputs.codecov-token }}
+        files: ${{ steps.coverage-reports.outputs.agentup_capabilities_docker_tests }}
+        flags: agentup-capabilities-docker-tests
+        name: AgentUp.Capabilities.Docker.Tests
+        fail_ci_if_error: true
+        disable_search: true
+
+    - name: Upload AgentUp.Capabilities.Dotnet.Tests coverage
+      if: ${{ !cancelled() && inputs.codecov-token != '' }}
+      uses: codecov/codecov-action@v7
+      with:
+        token: ${{ inputs.codecov-token }}
+        files: ${{ steps.coverage-reports.outputs.agentup_capabilities_dotnet_tests }}
+        flags: agentup-capabilities-dotnet-tests
+        name: AgentUp.Capabilities.Dotnet.Tests
+        fail_ci_if_error: true
+        disable_search: true
+
+    - name: Upload AgentUp.CommitPolicy.Tests coverage
+      if: ${{ !cancelled() && inputs.codecov-token != '' }}
+      uses: codecov/codecov-action@v7
+      with:
+        token: ${{ inputs.codecov-token }}
+        files: ${{ steps.coverage-reports.outputs.agentup_commit_policy_tests }}
+        flags: agentup-commit-policy-tests
+        name: AgentUp.CommitPolicy.Tests
+        fail_ci_if_error: true
+        disable_search: true
+
+    - name: Upload AgentUp.Desktop.Tests coverage
+      if: ${{ !cancelled() && inputs.codecov-token != '' }}
+      uses: codecov/codecov-action@v7
+      with:
+        token: ${{ inputs.codecov-token }}
+        files: ${{ steps.coverage-reports.outputs.agentup_desktop_tests }}
+        flags: agentup-desktop-tests
+        name: AgentUp.Desktop.Tests
+        fail_ci_if_error: true
+        disable_search: true
+
+    - name: Upload AgentUp.AUDebug.Tests coverage
+      if: ${{ !cancelled() && inputs.codecov-token != '' }}
+      uses: codecov/codecov-action@v7
+      with:
+        token: ${{ inputs.codecov-token }}
+        files: ${{ steps.coverage-reports.outputs.agentup_audebug_tests }}
+        flags: agentup-audebug-tests
+        name: AgentUp.AUDebug.Tests
+        fail_ci_if_error: true
+        disable_search: true
+
+    - name: Upload AgentUp.Server.Tests coverage
+      if: ${{ !cancelled() && inputs.codecov-token != '' }}
+      uses: codecov/codecov-action@v7
+      with:
+        token: ${{ inputs.codecov-token }}
+        files: ${{ steps.coverage-reports.outputs.agentup_server_tests }}
+        flags: agentup-server-tests
+        name: AgentUp.Server.Tests
+        fail_ci_if_error: true
+        disable_search: true
+
+    - name: Upload AgentUp.TestAgents.Tests coverage
+      if: ${{ !cancelled() && inputs.codecov-token != '' }}
+      uses: codecov/codecov-action@v7
+      with:
+        token: ${{ inputs.codecov-token }}
+        files: ${{ steps.coverage-reports.outputs.agentup_test_agents_tests }}
+        flags: agentup-test-agents-tests
+        name: AgentUp.TestAgents.Tests
+        fail_ci_if_error: true
+        disable_search: true
+
+    - name: Upload AgentUp.Verification.Tests coverage
+      if: ${{ !cancelled() && inputs.codecov-token != '' }}
+      uses: codecov/codecov-action@v7
+      with:
+        token: ${{ inputs.codecov-token }}
+        files: ${{ steps.coverage-reports.outputs.agentup_verification_tests }}
+        flags: agentup-verification-tests
+        name: AgentUp.Verification.Tests
+        fail_ci_if_error: true
+        disable_search: true
+
+    - name: Upload AgentUp.Capabilities.Opencode.Tests coverage
+      if: ${{ !cancelled() && inputs.codecov-token != '' }}
+      uses: codecov/codecov-action@v7
+      with:
+        token: ${{ inputs.codecov-token }}
+        files: ${{ steps.coverage-reports.outputs.agentup_capabilities_opencode_tests }}
+        flags: agentup-capabilities-opencode-tests
+        name: AgentUp.Capabilities.Opencode.Tests
+        fail_ci_if_error: true
+        disable_search: true
+
+    - name: Upload AgentUp.Browser.Streaming.Tests coverage
+      if: ${{ !cancelled() && inputs.codecov-token != '' }}
+      uses: codecov/codecov-action@v7
+      with:
+        token: ${{ inputs.codecov-token }}
+        files: ${{ steps.coverage-reports.outputs.agentup_browser_streaming_tests }}
+        flags: agentup-browser-streaming-tests
+        name: AgentUp.Browser.Streaming.Tests
+        fail_ci_if_error: true
+        disable_search: true
+
+    - name: Upload AgentUp.Tray.Tests coverage
+      if: ${{ !cancelled() && inputs.codecov-token != '' }}
+      uses: codecov/codecov-action@v7
+      with:
+        token: ${{ inputs.codecov-token }}
+        files: ${{ steps.coverage-reports.outputs.agentup_tray_tests }}
+        flags: agentup-tray-tests
+        name: AgentUp.Tray.Tests
+        fail_ci_if_error: true
+        disable_search: true
+
+    - name: Upload AgentUp.InstallerConfig.Tests coverage
+      if: ${{ !cancelled() && inputs.codecov-token != '' }}
+      uses: codecov/codecov-action@v7
+      with:
+        token: ${{ inputs.codecov-token }}
+        files: ${{ steps.coverage-reports.outputs.agentup_installer_config_tests }}
+        flags: agentup-installer-config-tests
+        name: AgentUp.InstallerConfig.Tests
+        fail_ci_if_error: true
+        disable_search: true

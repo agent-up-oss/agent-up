@@ -6,7 +6,7 @@ namespace AgentUp.Desktop.Tests.Features.FakeServer.Provider;
 
 /// <summary>
 /// Desktop's Demo held to AgentUp.FakeServer/parity.json, the client contract the real Server and
-/// Mobile's Demo answer too. The Backend · Demo (Desktop) leg of CI runs this fixture. The rules are
+/// Mobile's Demo answer too. The Backend · Contract · Demo (Desktop) leg of CI runs this fixture. The rules are
 /// the ones AgentUp.FakeServer/parity.mjs states for the other two legs: a shared read answers with
 /// the Server's status, body kind and keys, less and plus the differences the manifest declares,
 /// and an operation the manifest calls Server-only is one the Demo does not answer.

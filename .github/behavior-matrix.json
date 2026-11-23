@@ -1,44 +1,39 @@
 {
-  "$comment": "What CI proves, stage by stage. Every job in .github/workflows/ci.yml except Plan, Behavior matrix and Release is a leg here, and every leg records a verdict. The Behavior matrix job renders this file with those verdicts and fails when a leg failed or never ran. Gaps are cells of the behavior matrix that nothing proves yet; they are listed so they show up on every run instead of being forgotten. AgentUp.Architecture.Tests keeps this file and ci.yml in step. Definition: docs/developer-guide/repo/ci.md.",
+  "$comment": "What CI proves, domain by domain. Every job in .github/workflows/ci.yml except Plan, Behavior matrix and Release is one stage here - a matrix job named after its domain - and each of its matrix entries is a leg that records a verdict. The Behavior matrix job renders this file with those verdicts and fails when a leg failed or never ran. Gaps are cells of the behavior matrix that nothing proves yet; they are listed so they show up on every run instead of being forgotten. AgentUp.Architecture.Tests keeps this file and ci.yml in step. Definition: docs/developer-guide/repo/ci.md.",
   "stages": [
     {
       "id": "build",
       "title": "Build",
       "question": "Can every shipped artifact be produced from this commit?",
+      "matrixJob": "build",
       "legs": [
         {
           "id": "payloads",
-          "job": "payloads",
           "title": "Release payloads",
           "proves": "Self-contained Server, Desktop, CLI, Tray and installer payloads plus the packaging and smoke tools for every runtime, and the SBOM."
         },
         {
           "id": "container",
-          "job": "container",
           "title": "Server container",
           "proves": "The Server image builds and carries Nix, git and the agent CLIs it promises, as a non-root user."
         },
         {
           "id": "helm-chart",
-          "job": "helm-chart",
           "title": "Helm chart",
           "proves": "The chart lints and packages."
         },
         {
           "id": "au-check",
-          "job": "au-check",
           "title": "au-check binaries",
           "proves": "au-check publishes for every runtime and plans exactly what agent-up verify plans."
         },
         {
           "id": "jetbrains-plugin",
-          "job": "jetbrains-plugin",
           "title": "JetBrains plugin",
           "proves": "The plugin tests pass and it builds, when Plugins/ changed."
         },
         {
           "id": "docs",
-          "job": "docs",
           "title": "Docs site",
           "proves": "The API reference matches the Server controllers, the showcase follows its layout, and the site builds."
         }
@@ -49,34 +44,25 @@
       "title": "Source",
       "question": "Does the code hold its own contracts?",
       "gatesOnly": "release",
+      "matrixJob": "source",
       "legs": [
         {
           "id": "dotnet",
-          "job": "source-dotnet",
-          "title": ".NET suites",
-          "proves": "Every .NET test project except the cross-product AgentUp.Tests, once, with coverage."
-        },
-        {
-          "id": "coverage",
-          "job": "source-coverage",
-          "title": "Patch and slice coverage",
-          "proves": "Changed lines meet coverage.minimum and every slice meets its floor; Codecov receives each suite."
+          "title": ".NET suites and coverage",
+          "proves": "Every .NET test project except the cross-product AgentUp.Tests, once, with coverage; then patch coverage and per-slice coverage judged from the reports those suites wrote."
         },
         {
           "id": "typescript",
-          "job": "source-typescript",
           "title": "TypeScript and design-system suites",
           "proves": "Mobile, Chat, ServerClient, AgentAuth, WebAudit, the end-to-end harness, and the design system's own suite."
         },
         {
           "id": "budgets",
-          "job": "source-budgets",
           "title": "Test-tier budgets",
           "proves": "Unit, Provider and E2E tiers stay inside their wall-clock budgets."
         },
         {
           "id": "performance",
-          "job": "source-performance",
           "title": "Performance gates",
           "proves": "Hot paths stay inside their stored baselines."
         }
@@ -85,32 +71,24 @@
     {
       "id": "backend",
       "title": "Backend",
-      "question": "Do the real Server and both Demo backends answer the same client contract?",
+      "question": "Does the Server keep its client contract, and behave against every real thing it depends on?",
       "matrixJob": "backend",
       "legs": [
         {
-          "id": "server",
-          "title": "Server",
+          "id": "contract-server",
+          "title": "Contract · Server",
           "proves": "A published Server process answers every read in the API reference, and the API reference is the Server's route table."
         },
         {
-          "id": "demo-desktop",
-          "title": "Demo (Desktop)",
+          "id": "contract-demo-desktop",
+          "title": "Contract · Demo (Desktop)",
           "proves": "Desktop's in-process Demo answers every operation the parity manifest marks demo, and nothing it marks server-only."
         },
         {
-          "id": "demo-mobile",
-          "title": "Demo (Mobile)",
+          "id": "contract-demo-mobile",
+          "title": "Contract · Demo (Mobile)",
           "proves": "Mobile's in-process Demo answers every operation the parity manifest marks demo, and nothing it marks server-only."
-        }
-      ]
-    },
-    {
-      "id": "integration",
-      "title": "Integration",
-      "question": "Does the Server behave against the real thing it depends on?",
-      "matrixJob": "integration",
-      "legs": [
+        },
         {
           "id": "forgejo",
           "title": "Forgejo host",
@@ -162,16 +140,14 @@
       ]
     },
     {
-      "id": "frontend",
-      "title": "Frontend",
-      "question": "Does every client, in every shell, behave the same against every backend?",
+      "id": "desktop",
+      "title": "Desktop",
+      "question": "Does Desktop, in each shell, behave against every backend and on every native display?",
+      "matrixJob": "desktop",
       "axes": {
         "rows": [
-          "Desktop · classic",
-          "Desktop · command center",
-          "Mobile · classic",
-          "Mobile · command center",
-          "Mobile · chat module"
+          "Classic shell",
+          "Command center"
         ],
         "columns": [
           "Real Server",
@@ -181,152 +157,163 @@
       },
       "legs": [
         {
-          "id": "journeys-desktop",
-          "matrixJob": "journeys",
-          "title": "Journeys · Desktop",
-          "row": "Desktop · classic",
+          "id": "journeys",
+          "title": "Journeys on a real Server",
+          "row": "Classic shell",
           "column": "Real Server",
           "proves": "Every Desktop-surface QA flow replays on an isolated Server."
         },
         {
-          "id": "journeys-mobile",
-          "matrixJob": "journeys",
-          "title": "Journeys · Mobile",
-          "row": "Mobile · classic",
-          "column": "Real Server",
-          "proves": "Every Mobile-surface QA flow replays on the web export against an isolated Server."
-        },
-        {
-          "id": "showcase-desktop",
-          "matrixJob": "showcase",
-          "title": "Showcase · Desktop",
-          "row": "Desktop · classic",
+          "id": "showcase",
+          "title": "Showcase on the Demo",
+          "row": "Classic shell",
           "column": "Demo",
           "proves": "Every documented Desktop screen is reached and captured in a used state on the Demo."
         },
         {
-          "id": "showcase-mobile",
-          "matrixJob": "showcase",
-          "title": "Showcase · Mobile",
-          "row": "Mobile · classic",
-          "column": "Demo",
-          "proves": "Every documented Mobile screen is reached and captured in a used state on the Demo, and compared with the copy the design system documents for it."
-        },
-        {
-          "id": "sign-in-web",
-          "job": "sign-in-web",
-          "title": "Sign-in · installable web",
-          "row": "Mobile · chat module",
-          "column": "Real Server",
-          "proves": "Every sign-in transport against a real Server, test agents and identity provider, in the PWA."
-        },
-        {
-          "id": "sign-in-android",
-          "job": "sign-in-android",
-          "title": "Sign-in · Android",
-          "row": "Mobile · chat module",
-          "column": "Native platform",
-          "proves": "The same sign-ins on a real Android emulator."
-        },
-        {
-          "id": "sign-in-ios",
-          "job": "sign-in-ios",
-          "title": "Sign-in · iOS",
-          "row": "Mobile · chat module",
-          "column": "Native platform",
-          "proves": "The same sign-ins on a real iOS simulator."
-        },
-        {
           "id": "native-linux",
-          "title": "Native desktop · Linux",
-          "row": "Desktop · classic",
+          "title": "Native Linux (WebKitGTK)",
+          "row": "Classic shell",
           "column": "Native platform",
-          "proves": "WebKitGTK WebView, uploads, OAuth popups, streamed desktop applications and the installer dashboard on a real display.",
-          "job": "native-desktop-linux"
+          "proves": "WebKitGTK WebView, uploads, OAuth popups, streamed desktop applications and the installer dashboard on a real display."
         },
         {
           "id": "native-macos-arm64",
-          "matrixJob": "native-desktop",
-          "title": "Native desktop · macOS arm64",
-          "row": "Desktop · classic",
+          "title": "Native macOS arm64 (WKWebView)",
+          "row": "Classic shell",
           "column": "Native platform",
           "proves": "The published E2E suite on Avalonia Native and WKWebView."
         },
         {
           "id": "native-macos-x64",
-          "matrixJob": "native-desktop",
-          "title": "Native desktop · macOS x64",
-          "row": "Desktop · classic",
+          "title": "Native macOS x64 (WKWebView)",
+          "row": "Classic shell",
           "column": "Native platform",
           "proves": "The published E2E suite on Avalonia Native and WKWebView."
         },
         {
           "id": "native-windows",
-          "matrixJob": "native-desktop",
-          "title": "Native desktop · Windows",
-          "row": "Desktop · classic",
+          "title": "Native Windows (WebView2)",
+          "row": "Classic shell",
           "column": "Native platform",
           "proves": "The published E2E suite on WebView2."
         }
       ],
       "gaps": [
         {
-          "row": "Desktop · command center",
+          "row": "Command center",
           "column": "Real Server",
           "kind": "gap",
           "reason": "No command-center QA flows exist; the shell is proven by headless and scene tests only."
         },
         {
-          "row": "Desktop · command center",
+          "row": "Command center",
           "column": "Demo",
           "kind": "gap",
           "reason": "au-debug screens captures the classic screens only; none of the 9 command-center screens."
         },
         {
-          "row": "Desktop · command center",
+          "row": "Command center",
           "column": "Native platform",
           "kind": "gap",
           "reason": "The native-display suite drives the classic shell only."
         },
         {
-          "row": "Mobile · command center",
+          "leg": "showcase",
+          "kind": "gap",
+          "reason": "Desktop cannot report its own text, so no Desktop screen is compared with the design system at all."
+        }
+      ]
+    },
+    {
+      "id": "mobile",
+      "title": "Mobile",
+      "question": "Does Mobile and its chat module, in each shell, behave against every backend and on every native platform?",
+      "matrixJob": "mobile",
+      "axes": {
+        "rows": [
+          "Classic shell",
+          "Command center",
+          "Chat module"
+        ],
+        "columns": [
+          "Real Server",
+          "Demo",
+          "Native platform"
+        ]
+      },
+      "legs": [
+        {
+          "id": "journeys",
+          "title": "Journeys on a real Server",
+          "row": "Classic shell",
+          "column": "Real Server",
+          "proves": "Every Mobile-surface QA flow replays on the web export against an isolated Server."
+        },
+        {
+          "id": "showcase",
+          "title": "Showcase on the Demo",
+          "row": "Classic shell",
+          "column": "Demo",
+          "proves": "Every documented Mobile screen is reached and captured in a used state on the Demo, and compared with the copy the design system documents for it."
+        },
+        {
+          "id": "sign-in-web",
+          "title": "Sign-in on the installable web",
+          "row": "Chat module",
+          "column": "Real Server",
+          "proves": "Every sign-in transport against a real Server, test agents and identity provider, in the PWA."
+        },
+        {
+          "id": "sign-in-android",
+          "title": "Sign-in on Android",
+          "row": "Chat module",
+          "column": "Native platform",
+          "proves": "The same sign-ins on a real Android emulator."
+        },
+        {
+          "id": "sign-in-ios",
+          "title": "Sign-in on iOS",
+          "row": "Chat module",
+          "column": "Native platform",
+          "proves": "The same sign-ins on a real iOS simulator."
+        }
+      ],
+      "gaps": [
+        {
+          "row": "Command center",
           "column": "Real Server",
           "kind": "gap",
           "reason": "No command-center QA flows exist; the shell is proven by provider and scene tests only."
         },
         {
-          "row": "Mobile · command center",
+          "row": "Command center",
           "column": "Demo",
           "kind": "gap",
           "reason": "au-debug screens captures the classic screens only; none of the 9 command-center screens."
         },
         {
-          "row": "Mobile · classic",
+          "row": "Classic shell",
           "column": "Native platform",
           "kind": "elsewhere",
           "reason": "Mobile CI (mobile-ci.yaml) builds and signs the full client for Android and iOS; no journey runs on a device."
         },
         {
-          "row": "Mobile · command center",
+          "row": "Command center",
           "column": "Native platform",
           "kind": "elsewhere",
           "reason": "Mobile CI (mobile-ci.yaml) builds and signs the full client for Android and iOS; no journey runs on a device."
         },
         {
-          "row": "Mobile · chat module",
+          "row": "Chat module",
           "column": "Demo",
           "kind": "n/a",
           "reason": "Sign-in is Server-owned; the Demo has no identity provider to sign in against."
         },
         {
-          "leg": "showcase-mobile",
+          "leg": "showcase",
           "kind": "gap",
           "reason": "15 of 15 Mobile screens diverge from the copy the design-system showcase documents (au-debug screens compare). The comparison is reported on every run but does not gate until the showcase is re-authored from the real screens."
-        },
-        {
-          "leg": "showcase-desktop",
-          "kind": "gap",
-          "reason": "Desktop cannot report its own text, so no Desktop screen is compared with the design system at all."
         }
       ]
     },

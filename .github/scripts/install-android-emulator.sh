@@ -13,7 +13,7 @@
 # no-op on the same packages.
 #
 # The system-image id must match the android-emulator-runner inputs in
-# the Sign-in · Android job in .github/workflows/ci.yml (api-level 35, google_apis, x86_64).
+# .github/actions/sign-in-android/action.yml (api-level 35, google_apis, x86_64).
 set -euo pipefail
 
 SYSTEM_IMAGE='system-images;android-35;google_apis;x86_64'

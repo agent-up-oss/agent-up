@@ -1,15 +1,17 @@
 name: Agent-Up CI
 
-# One workflow, one question per job. Jobs are named "<Stage> · <what it proves>" and every one of
-# them is a leg of .github/behavior-matrix.json:
+# One workflow, one job per domain. Each job is a matrix whose entries are the legs of
+# .github/behavior-matrix.json, so the run graph reads as the domains and their legs:
 #
-#   Plan         the release version
-#   Build        every artifact that ships, produced once
-#   Source       the code's own suites, coverage, budgets and performance - gates release only
-#   Backend      the real Server and both Demo backends answer the same client contract
-#   Integration  the Server against each real external dependency, one leg per dependency
-#   Frontend     each client, in each shell, against each backend and on each native display
-#   Installer    each native package installs, runs and uninstalls where it ships
+#   Plan       the release version
+#   Build      every artifact that ships, produced once
+#   Source     the code's own suites, coverage, budgets and performance - gates release only
+#   Backend    the Server's client contract, held against both Demos, and the Server against each
+#              real external dependency, one leg per dependency
+#   Desktop    the Desktop client against a real Server, on its Demo, and on each native display
+#   Mobile     the Mobile client and its chat module against a real Server, on its Demo, and on
+#              each native platform
+#   Installer  each native package installs, runs and uninstalls where it ships
 #
 # Each leg records a verdict as its last step. The Behavior matrix job renders the matrix with
 # those verdicts on the run summary and fails when a leg failed or never ran, so a green run means
@@ -88,191 +90,93 @@ jobs:
             echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
 
-  # ── Build ────────────────────────────────────────────────────────────────────────────────────
+  # ── Build: every artifact that ships, produced once ──────────────────────────────────────────
 
-  payloads:
-    name: Build · release payloads
+  build:
+    name: Build · ${{ matrix.title }}
     runs-on: ubuntu-latest
     needs: version
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-dotnet@v6
-        with:
-          dotnet-version: "10.0.x"
-
-      - name: Generate SBOM
-        run: |
-          dotnet tool install --global CycloneDX
-          dotnet CycloneDX agent-up.sln --json --out artifacts/sbom --set-version "${{ needs.version.outputs.version }}"
-          mv artifacts/sbom/bom.json artifacts/sbom/agent-up-sbom.cdx.json
-
-      - name: Publish .NET CI artifacts
-        shell: bash
-        env:
-          SENTRY_DSN_DESKTOP: ${{ secrets.SENTRY_DSN_DESKTOP }}
-          SENTRY_DSN_CLI: ${{ secrets.SENTRY_DSN_CLI }}
-        run: |
-          ./.github/scripts/publish-dotnet-ci-artifacts.sh "${{ needs.version.outputs.version }}" "artifacts/dotnet-ci"
-
-      # Installer legs take packaging tools and payloads; native desktop legs take only the
-      # framework-dependent E2E runner. Splitting them lets each consumer delete what it used.
-      - name: Prepare per-consumer .NET CI artifacts
-        shell: bash
-        run: |
-          rm -rf artifacts/ci-transfer
-          for entry in \
-            ubuntu-linux-x64:linux-x64 \
-            nixos-linux-x64:linux-x64 \
-            macos-osx-arm64:osx-arm64 \
-            macos-osx-x64:osx-x64 \
-            windows-win-x64:win-x64
-          do
-            platform_rid="${entry%%:*}"
-            rid="${entry##*:}"
-            target="artifacts/ci-transfer/$platform_rid/dotnet-ci"
-            mkdir -p "$target/tools/$rid" "$target/payloads"
-            cp -a "artifacts/dotnet-ci/tools/$rid/packaging" "$target/tools/$rid/"
-            cp -a "artifacts/dotnet-ci/tools/$rid/package-smoke" "$target/tools/$rid/"
-            cp -a "artifacts/dotnet-ci/payloads/$rid" "$target/payloads/"
-          done
-          for rid in osx-arm64 osx-x64 win-x64; do
-            mkdir -p "artifacts/ci-transfer/native-e2e-$rid"
-            cp -a "artifacts/dotnet-ci/tools/$rid/agent-up-tests" "artifacts/ci-transfer/native-e2e-$rid/"
-          done
-
-      - uses: actions/upload-artifact@v7
-        with:
-          name: dotnet-ci-ubuntu-linux-x64
-          path: artifacts/ci-transfer/ubuntu-linux-x64/dotnet-ci
-          if-no-files-found: error
-          retention-days: 1
-
-      - uses: actions/upload-artifact@v7
-        with:
-          name: dotnet-ci-nixos-linux-x64
-          path: artifacts/ci-transfer/nixos-linux-x64/dotnet-ci
-          if-no-files-found: error
-          retention-days: 1
-
-      - uses: actions/upload-artifact@v7
-        with:
-          name: dotnet-ci-macos-osx-arm64
-          path: artifacts/ci-transfer/macos-osx-arm64/dotnet-ci
-          if-no-files-found: error
-          retention-days: 1
-
-      - uses: actions/upload-artifact@v7
-        with:
-          name: dotnet-ci-macos-osx-x64
-          path: artifacts/ci-transfer/macos-osx-x64/dotnet-ci
-          if-no-files-found: error
-          retention-days: 1
-
-      - uses: actions/upload-artifact@v7
-        with:
-          name: dotnet-ci-windows-win-x64
-          path: artifacts/ci-transfer/windows-win-x64/dotnet-ci
-          if-no-files-found: error
-          retention-days: 1
-
-      - uses: actions/upload-artifact@v7
-        with:
-          name: native-e2e-osx-arm64
-          path: artifacts/ci-transfer/native-e2e-osx-arm64
-          if-no-files-found: error
-          retention-days: 1
-
-      - uses: actions/upload-artifact@v7
-        with:
-          name: native-e2e-osx-x64
-          path: artifacts/ci-transfer/native-e2e-osx-x64
-          if-no-files-found: error
-          retention-days: 1
-
-      - uses: actions/upload-artifact@v7
-        with:
-          name: native-e2e-win-x64
-          path: artifacts/ci-transfer/native-e2e-win-x64
-          if-no-files-found: error
-          retention-days: 1
-
-      - uses: actions/upload-artifact@v7
-        with:
-          name: sbom
-          path: artifacts/sbom/agent-up-sbom.cdx.json
-          if-no-files-found: error
-          retention-days: 1
-
-      - uses: ./.github/actions/record-verdict
-        if: ${{ always() }}
-        with:
-          stage: build
-          leg: payloads
-          status: ${{ job.status }}
-
-  # The image used to be built for the first time inside Release, so a broken Dockerfile surfaced
-  # after the tag was planned. Building and checking it on every run moves that failure to the PR.
-  container:
-    name: Build · Server container
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: Build and check the Server image
-        env:
-          AGENTUP_CONTAINER_VERIFY_ONLY: "1"
-        run: ./.github/scripts/verify-container.sh AgentUp.Server agent-up-server
-
-      - uses: ./.github/actions/record-verdict
-        if: ${{ always() }}
-        with:
-          stage: build
-          leg: container
-          status: ${{ job.status }}
-
-  helm-chart:
-    name: Build · Helm chart
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: azure/setup-helm@v5
-        with:
-          version: latest
-
-      - uses: mikefarah/yq@v4
-
-      - name: Lint and package chart
-        run: ./.github/scripts/verify-chart.sh
-
-      - uses: ./.github/actions/record-verdict
-        if: ${{ always() }}
-        with:
-          stage: build
-          leg: helm-chart
-          status: ${{ job.status }}
-
-  au-check:
-    name: Build · au-check binaries
-    runs-on: ubuntu-latest
+    timeout-minutes: ${{ matrix.timeout }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - leg: payloads
+            title: release payloads
+            dotnet: true
+            timeout: 45
+          # The image used to be built for the first time inside Release, so a broken Dockerfile
+          # surfaced after the tag was planned. Building and checking it here moves that to the PR.
+          - leg: container
+            title: Server container
+            timeout: 45
+          - leg: helm-chart
+            title: Helm chart
+            timeout: 15
+          - leg: au-check
+            title: au-check binaries
+            dotnet: true
+            timeout: 30
+          - leg: jetbrains-plugin
+            title: JetBrains plugin
+            timeout: 30
+          # The docs build regenerates the API reference from the Server controllers with --check,
+          # so a route change without its reference fails the PR that made it.
+          - leg: docs
+            title: docs site
+            node: true
+            timeout: 30
     steps:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
 
       - uses: actions/setup-dotnet@v6
+        if: ${{ matrix.dotnet }}
         with:
           dotnet-version: "10.0.x"
 
-      - name: Publish au-check
-        run: ./.github/scripts/publish-au-check.sh artifacts/au-check
+      - uses: actions/setup-node@v7
+        if: ${{ matrix.node }}
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: docs/package-lock.json
 
-      - name: Compare the published plan with agent-up verify plan
-        run: ./.github/scripts/smoke-au-check.sh artifacts/au-check/au-check-linux-x64
+      - name: Publish release payloads
+        if: ${{ matrix.leg == 'payloads' }}
+        uses: ./.github/actions/build-payloads
+        with:
+          version: ${{ needs.version.outputs.version }}
+          sentry-dsn-desktop: ${{ secrets.SENTRY_DSN_DESKTOP }}
+          sentry-dsn-cli: ${{ secrets.SENTRY_DSN_CLI }}
+
+      - name: Build and check the Server image
+        if: ${{ matrix.leg == 'container' }}
+        env:
+          AGENTUP_CONTAINER_VERIFY_ONLY: "1"
+        run: ./.github/scripts/verify-container.sh AgentUp.Server agent-up-server
+
+      - uses: azure/setup-helm@v5
+        if: ${{ matrix.leg == 'helm-chart' }}
+        with:
+          version: latest
+
+      - uses: mikefarah/yq@v4
+        if: ${{ matrix.leg == 'helm-chart' }}
+
+      - name: Lint and package chart
+        if: ${{ matrix.leg == 'helm-chart' }}
+        run: ./.github/scripts/verify-chart.sh
+
+      - name: Publish au-check and compare its plan with agent-up verify plan
+        if: ${{ matrix.leg == 'au-check' }}
+        run: |
+          ./.github/scripts/publish-au-check.sh artifacts/au-check
+          ./.github/scripts/smoke-au-check.sh artifacts/au-check/au-check-linux-x64
 
       - uses: actions/upload-artifact@v7
+        if: ${{ matrix.leg == 'au-check' }}
         with:
           name: au-check
           path: |
@@ -284,30 +188,14 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-      - uses: ./.github/actions/record-verdict
-        if: ${{ always() }}
-        with:
-          stage: build
-          leg: au-check
-          status: ${{ job.status }}
-
-  jetbrains-plugin:
-    name: Build · JetBrains plugin
-    runs-on: ubuntu-latest
-    needs: version
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          persist-credentials: false
-
       - uses: actions/setup-java@v6
-        if: ${{ needs.version.outputs.plugin_changed == 'true' }}
+        if: ${{ matrix.leg == 'jetbrains-plugin' && needs.version.outputs.plugin_changed == 'true' }}
         with:
           distribution: temurin
           java-version: "21"
 
       - name: Build JetBrains plugin
-        if: ${{ needs.version.outputs.plugin_changed == 'true' }}
+        if: ${{ matrix.leg == 'jetbrains-plugin' && needs.version.outputs.plugin_changed == 'true' }}
         working-directory: Plugins/Jetbrains
         run: |
           ./gradlew --no-daemon test buildPlugin -PagentUpVersion="${{ needs.version.outputs.version }}"
@@ -316,35 +204,15 @@ jobs:
             "../../artifacts/jetbrains-plugin/agent-up-jetbrains-plugin.zip"
 
       - uses: actions/upload-artifact@v7
-        if: ${{ needs.version.outputs.plugin_changed == 'true' }}
+        if: ${{ matrix.leg == 'jetbrains-plugin' && needs.version.outputs.plugin_changed == 'true' }}
         with:
           name: jetbrains-plugin
           path: artifacts/jetbrains-plugin/agent-up-jetbrains-plugin.zip
           if-no-files-found: error
           retention-days: 1
 
-      - uses: ./.github/actions/record-verdict
-        if: ${{ always() }}
-        with:
-          stage: build
-          leg: jetbrains-plugin
-          status: ${{ job.status }}
-
-  # Runs on every event, not only main: the build regenerates the API reference from the Server
-  # controllers with --check, so a route change without its reference fails the PR that made it.
-  docs:
-    name: Build · docs site
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: docs/package-lock.json
-
       - name: Test and build docs
+        if: ${{ matrix.leg == 'docs' }}
         run: |
           npm --prefix docs ci
           npm --prefix docs test
@@ -354,618 +222,15 @@ jobs:
         if: ${{ always() }}
         with:
           stage: build
-          leg: docs
-          status: ${{ job.status }}
-
-  # ── Source: gates release only ───────────────────────────────────────────────────────────────
-
-  # Every .NET suite runs once, with coverage. Coverage is judged by the next job from the reports
-  # this one uploads, so a coverage miss and a failing test read as two different red checks.
-  source-dotnet:
-    name: Source · .NET suites
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      checks: write
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-dotnet@v6
-        with:
-          dotnet-version: "10.0.x"
-
-      - name: Install hosted desktop test dependencies
-        shell: bash
-        run: |
-          sudo apt-get update -o Acquire::Retries=3
-          sudo apt-get install -y --no-install-recommends -o Acquire::Retries=3 xvfb x11-apps libxtst6
-
-      - name: Run every suite with coverage
-        shell: bash
-        run: ./.github/scripts/run-dotnet-tests.sh
-
-      - name: Test Report
-        uses: dorny/test-reporter@v3
-        if: ${{ !cancelled() }}
-        with:
-          name: .NET suites
-          path: "artifacts/test-results/**/test-results.trx"
-          reporter: dotnet-trx
-
-      - uses: actions/upload-artifact@v7
-        if: ${{ !cancelled() }}
-        with:
-          name: source-dotnet-results
-          path: artifacts/test-results
-          if-no-files-found: error
-          retention-days: 3
-
-      - uses: ./.github/actions/record-verdict
-        if: ${{ always() }}
-        with:
-          stage: source
-          leg: dotnet
-          status: ${{ job.status }}
-
-  source-coverage:
-    name: Source · patch and slice coverage
-    runs-on: ubuntu-latest
-    needs: source-dotnet
-    # Judged even when a suite failed: the reports the other suites wrote still say what this
-    # change covered, and the test failure is already red on its own check.
-    if: ${{ !cancelled() }}
-    env:
-      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-
-      - uses: actions/setup-dotnet@v6
-        with:
-          dotnet-version: "10.0.x"
-
-      - uses: actions/download-artifact@v8
-        with:
-          name: source-dotnet-results
-          path: artifacts/test-results
-
-      - name: Locate module coverage reports
-        id: coverage-reports
-        shell: bash
-        run: |
-          ./.github/scripts/locate-coverage-reports.sh \
-            AgentUp.Architecture.Tests \
-            AgentUp.CLI.Tests \
-            AgentUp.Capabilities.Abstractions.Tests \
-            AgentUp.Sdk.Common.Tests \
-            AgentUp.Sdk.Runtime.Tests \
-            AgentUp.Sdk.Agent.Tests \
-            AgentUp.Sdk.Forge.Tests \
-            AgentUp.Capabilities.Common.Tests \
-            AgentUp.Capabilities.Claude.Tests \
-            AgentUp.Capabilities.Codex.Tests \
-            AgentUp.Capabilities.Cursor.Tests \
-            AgentUp.Capabilities.Github.Tests \
-            AgentUp.Capabilities.Forgejo.Tests \
-            AgentUp.Capabilities.Docker.Tests \
-            AgentUp.Capabilities.Dotnet.Tests \
-            AgentUp.Capabilities.Opencode.Tests \
-            AgentUp.Browser.Streaming.Tests \
-            AgentUp.CommitPolicy.Tests \
-            AgentUp.Desktop.Tests \
-            AgentUp.AUDebug.Tests \
-            AgentUp.InstallerConfig.Tests \
-            AgentUp.Server.Tests \
-            AgentUp.TestAgents.Tests \
-            AgentUp.Tray.Tests \
-            AgentUp.Verification.Tests
-
-      - name: Enforce patch coverage
-        shell: bash
-        run: |
-          # The coverage gate searches its report directory recursively, so making the whole
-          # tree of downloaded reports visible there is enough; it then measures only the lines
-          # this change touched, against the minimum in agent-up.json.
-          mkdir -p artifacts/coverage
-          cp -r artifacts/test-results/. artifacts/coverage/
-
-          dotnet build AgentUp.CLI/AgentUp.CLI.csproj --configuration Release
-          dotnet run --project AgentUp.CLI --configuration Release --no-build --no-launch-profile -- verify coverage
-
-      - name: Enforce per-slice coverage
-        if: ${{ !cancelled() }}
-        shell: bash
-        run: |
-          # This only holds where every suite has run, which is why the check is ciOnly: on a dev
-          # machine the architecture suite instruments every assembly with no hits, so a slice
-          # whose own suite was not selected would read as uncovered.
-          dotnet run --project AgentUp.CLI --configuration Release --no-build --no-launch-profile -- verify slices
-
-      - name: Upload AgentUp.Architecture.Tests coverage
-        if: ${{ !cancelled() && env.CODECOV_TOKEN != '' }}
-        uses: codecov/codecov-action@v7
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ${{ steps.coverage-reports.outputs.agentup_architecture_tests }}
-          flags: agentup-architecture-tests
-          name: AgentUp.Architecture.Tests
-          fail_ci_if_error: true
-          disable_search: true
-          verbose: true
-
-      - name: Upload AgentUp.CLI.Tests coverage
-        if: ${{ !cancelled() && env.CODECOV_TOKEN != '' }}
-        uses: codecov/codecov-action@v7
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ${{ steps.coverage-reports.outputs.agentup_cli_tests }}
-          flags: agentup-cli-tests
-          name: AgentUp.CLI.Tests
-          fail_ci_if_error: true
-          disable_search: true
-
-      - name: Upload AgentUp.Capabilities.Abstractions.Tests coverage
-        if: ${{ !cancelled() && env.CODECOV_TOKEN != '' }}
-        uses: codecov/codecov-action@v7
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ${{ steps.coverage-reports.outputs.agentup_capabilities_abstractions_tests }}
-          flags: agentup-capabilities-abstractions-tests
-          name: AgentUp.Capabilities.Abstractions.Tests
-          fail_ci_if_error: true
-          disable_search: true
-
-      - name: Upload AgentUp.Sdk.Common.Tests coverage
-        if: ${{ !cancelled() && env.CODECOV_TOKEN != '' }}
-        uses: codecov/codecov-action@v7
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ${{ steps.coverage-reports.outputs.agentup_sdk_common_tests }}
-          flags: agentup-sdk-common-tests
-          name: AgentUp.Sdk.Common.Tests
-          fail_ci_if_error: true
-          disable_search: true
-
-      - name: Upload AgentUp.Sdk.Runtime.Tests coverage
-        if: ${{ !cancelled() && env.CODECOV_TOKEN != '' }}
-        uses: codecov/codecov-action@v7
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ${{ steps.coverage-reports.outputs.agentup_sdk_runtime_tests }}
-          flags: agentup-sdk-runtime-tests
-          name: AgentUp.Sdk.Runtime.Tests
-          fail_ci_if_error: true
-          disable_search: true
-
-      - name: Upload AgentUp.Sdk.Agent.Tests coverage
-        if: ${{ !cancelled() && env.CODECOV_TOKEN != '' }}
-        uses: codecov/codecov-action@v7
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ${{ steps.coverage-reports.outputs.agentup_sdk_agent_tests }}
-          flags: agentup-sdk-agent-tests
-          name: AgentUp.Sdk.Agent.Tests
-          fail_ci_if_error: true
-          disable_search: true
-
-      - name: Upload AgentUp.Sdk.Forge.Tests coverage
-        if: ${{ !cancelled() && env.CODECOV_TOKEN != '' }}
-        uses: codecov/codecov-action@v7
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ${{ steps.coverage-reports.outputs.agentup_sdk_forge_tests }}
-          flags: agentup-sdk-forge-tests
-          name: AgentUp.Sdk.Forge.Tests
-          fail_ci_if_error: true
-          disable_search: true
-
-      - name: Upload AgentUp.Capabilities.Common.Tests coverage
-        if: ${{ !cancelled() && env.CODECOV_TOKEN != '' }}
-        uses: codecov/codecov-action@v7
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ${{ steps.coverage-reports.outputs.agentup_capabilities_common_tests }}
-          flags: agentup-capabilities-common-tests
-          name: AgentUp.Capabilities.Common.Tests
-          fail_ci_if_error: true
-          disable_search: true
-
-      - name: Upload AgentUp.Capabilities.Claude.Tests coverage
-        if: ${{ !cancelled() && env.CODECOV_TOKEN != '' }}
-        uses: codecov/codecov-action@v7
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ${{ steps.coverage-reports.outputs.agentup_capabilities_claude_tests }}
-          flags: agentup-capabilities-claude-tests
-          name: AgentUp.Capabilities.Claude.Tests
-          fail_ci_if_error: true
-          disable_search: true
-
-      - name: Upload AgentUp.Capabilities.Codex.Tests coverage
-        if: ${{ !cancelled() && env.CODECOV_TOKEN != '' }}
-        uses: codecov/codecov-action@v7
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ${{ steps.coverage-reports.outputs.agentup_capabilities_codex_tests }}
-          flags: agentup-capabilities-codex-tests
-          name: AgentUp.Capabilities.Codex.Tests
-          fail_ci_if_error: true
-          disable_search: true
-
-      - name: Upload AgentUp.Capabilities.Cursor.Tests coverage
-        if: ${{ !cancelled() && env.CODECOV_TOKEN != '' }}
-        uses: codecov/codecov-action@v7
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ${{ steps.coverage-reports.outputs.agentup_capabilities_cursor_tests }}
-          flags: agentup-capabilities-cursor-tests
-          name: AgentUp.Capabilities.Cursor.Tests
-          fail_ci_if_error: true
-          disable_search: true
-
-      - name: Upload AgentUp.Capabilities.Github.Tests coverage
-        if: ${{ !cancelled() && env.CODECOV_TOKEN != '' }}
-        uses: codecov/codecov-action@v7
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ${{ steps.coverage-reports.outputs.agentup_capabilities_github_tests }}
-          flags: agentup-capabilities-github-tests
-          name: AgentUp.Capabilities.Github.Tests
-          fail_ci_if_error: true
-          disable_search: true
-
-      - name: Upload AgentUp.Capabilities.Forgejo.Tests coverage
-        if: ${{ !cancelled() && env.CODECOV_TOKEN != '' }}
-        uses: codecov/codecov-action@v7
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ${{ steps.coverage-reports.outputs.agentup_capabilities_forgejo_tests }}
-          flags: agentup-capabilities-forgejo-tests
-          name: AgentUp.Capabilities.Forgejo.Tests
-          fail_ci_if_error: true
-          disable_search: true
-
-      - name: Upload AgentUp.Capabilities.Docker.Tests coverage
-        if: ${{ !cancelled() && env.CODECOV_TOKEN != '' }}
-        uses: codecov/codecov-action@v7
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ${{ steps.coverage-reports.outputs.agentup_capabilities_docker_tests }}
-          flags: agentup-capabilities-docker-tests
-          name: AgentUp.Capabilities.Docker.Tests
-          fail_ci_if_error: true
-          disable_search: true
-
-      - name: Upload AgentUp.Capabilities.Dotnet.Tests coverage
-        if: ${{ !cancelled() && env.CODECOV_TOKEN != '' }}
-        uses: codecov/codecov-action@v7
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ${{ steps.coverage-reports.outputs.agentup_capabilities_dotnet_tests }}
-          flags: agentup-capabilities-dotnet-tests
-          name: AgentUp.Capabilities.Dotnet.Tests
-          fail_ci_if_error: true
-          disable_search: true
-
-      - name: Upload AgentUp.CommitPolicy.Tests coverage
-        if: ${{ !cancelled() && env.CODECOV_TOKEN != '' }}
-        uses: codecov/codecov-action@v7
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ${{ steps.coverage-reports.outputs.agentup_commit_policy_tests }}
-          flags: agentup-commit-policy-tests
-          name: AgentUp.CommitPolicy.Tests
-          fail_ci_if_error: true
-          disable_search: true
-
-      - name: Upload AgentUp.Desktop.Tests coverage
-        if: ${{ !cancelled() && env.CODECOV_TOKEN != '' }}
-        uses: codecov/codecov-action@v7
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ${{ steps.coverage-reports.outputs.agentup_desktop_tests }}
-          flags: agentup-desktop-tests
-          name: AgentUp.Desktop.Tests
-          fail_ci_if_error: true
-          disable_search: true
-
-      - name: Upload AgentUp.AUDebug.Tests coverage
-        if: ${{ !cancelled() && env.CODECOV_TOKEN != '' }}
-        uses: codecov/codecov-action@v7
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ${{ steps.coverage-reports.outputs.agentup_audebug_tests }}
-          flags: agentup-audebug-tests
-          name: AgentUp.AUDebug.Tests
-          fail_ci_if_error: true
-          disable_search: true
-
-      - name: Upload AgentUp.Server.Tests coverage
-        if: ${{ !cancelled() && env.CODECOV_TOKEN != '' }}
-        uses: codecov/codecov-action@v7
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ${{ steps.coverage-reports.outputs.agentup_server_tests }}
-          flags: agentup-server-tests
-          name: AgentUp.Server.Tests
-          fail_ci_if_error: true
-          disable_search: true
-
-      - name: Upload AgentUp.TestAgents.Tests coverage
-        if: ${{ !cancelled() && env.CODECOV_TOKEN != '' }}
-        uses: codecov/codecov-action@v7
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ${{ steps.coverage-reports.outputs.agentup_test_agents_tests }}
-          flags: agentup-test-agents-tests
-          name: AgentUp.TestAgents.Tests
-          fail_ci_if_error: true
-          disable_search: true
-
-      - name: Upload AgentUp.Verification.Tests coverage
-        if: ${{ !cancelled() && env.CODECOV_TOKEN != '' }}
-        uses: codecov/codecov-action@v7
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ${{ steps.coverage-reports.outputs.agentup_verification_tests }}
-          flags: agentup-verification-tests
-          name: AgentUp.Verification.Tests
-          fail_ci_if_error: true
-          disable_search: true
-
-      - name: Upload AgentUp.Capabilities.Opencode.Tests coverage
-        if: ${{ !cancelled() && env.CODECOV_TOKEN != '' }}
-        uses: codecov/codecov-action@v7
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ${{ steps.coverage-reports.outputs.agentup_capabilities_opencode_tests }}
-          flags: agentup-capabilities-opencode-tests
-          name: AgentUp.Capabilities.Opencode.Tests
-          fail_ci_if_error: true
-          disable_search: true
-
-      - name: Upload AgentUp.Browser.Streaming.Tests coverage
-        if: ${{ !cancelled() && env.CODECOV_TOKEN != '' }}
-        uses: codecov/codecov-action@v7
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ${{ steps.coverage-reports.outputs.agentup_browser_streaming_tests }}
-          flags: agentup-browser-streaming-tests
-          name: AgentUp.Browser.Streaming.Tests
-          fail_ci_if_error: true
-          disable_search: true
-
-      - name: Upload AgentUp.Tray.Tests coverage
-        if: ${{ !cancelled() && env.CODECOV_TOKEN != '' }}
-        uses: codecov/codecov-action@v7
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ${{ steps.coverage-reports.outputs.agentup_tray_tests }}
-          flags: agentup-tray-tests
-          name: AgentUp.Tray.Tests
-          fail_ci_if_error: true
-          disable_search: true
-
-      - name: Upload AgentUp.InstallerConfig.Tests coverage
-        if: ${{ !cancelled() && env.CODECOV_TOKEN != '' }}
-        uses: codecov/codecov-action@v7
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          files: ${{ steps.coverage-reports.outputs.agentup_installer_config_tests }}
-          flags: agentup-installer-config-tests
-          name: AgentUp.InstallerConfig.Tests
-          fail_ci_if_error: true
-          disable_search: true
-
-      - uses: ./.github/actions/record-verdict
-        if: ${{ always() }}
-        with:
-          stage: source
-          leg: coverage
-          status: ${{ job.status }}
-
-  source-typescript:
-    name: Source · TypeScript and design-system suites
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          # plan-mobile-version.test.js reads tags.
-          fetch-depth: 0
-
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 22
-
-      - name: Install mobile dependencies
-        run: ./.github/scripts/install-mobile-deps.sh
-
-      - name: Typecheck and unit test
-        working-directory: AgentUp.Mobile
-        run: |
-          npm --prefix ../AgentUp.AgentAuth test
-          npx tsc --noEmit -p tsconfig.test.json
-          npx tsc --noEmit -p ../AgentUp.ServerClient/tsconfig.json
-          npx tsx --test ../AgentUp.ServerClient/src/*.test.ts
-          npx tsx --test ../AgentUp.Chat/src/providers/*.test.ts
-          npx tsx --test src/features/**/*.test.ts
-          node --test scripts/*.test.mjs
-
-      - name: WebAudit unit tests
-        working-directory: AgentUp.WebAudit
-        run: |
-          npm ci
-          npm test
-
-      # The design system's own suite: one palette, catalog-only paint, scenes the command
-      # centers mount, and every rule that keeps it the only visual source. It never ran in CI
-      # before, and had drifted.
-      - name: Design-system suite
-        run: |
-          npm --prefix AgentUp.DesignSystem ci
-          npm --prefix AgentUp.DesignSystem test
-
-      - name: Typecheck the chat module and the app that harnesses it
-        run: |
-          npm --prefix AgentUp.Chat run typecheck
-          npm --prefix AgentUp.Mobile.E2E.App install --no-audit --no-fund
-          npx --prefix AgentUp.Mobile.E2E.App tsc --noEmit -p AgentUp.Mobile.E2E.App/tsconfig.json
-
-      - name: Check the shared sign-in module's committed build is current
-        shell: bash
-        run: |
-          # Cloudflare Pages builds the web client with one script and cannot build sibling
-          # packages, so their dist/ is committed. That only works while it is in step with src.
-          npm --prefix AgentUp.AgentAuth run build
-          git diff --exit-code -- AgentUp.AgentAuth/dist
-
-      - name: Check the end-to-end suite for fixed delays
-        working-directory: AgentUp.Mobile.E2E
-        run: node scripts/forbid-sleep.mjs
-
-      - name: Test the end-to-end harness
-        working-directory: AgentUp.Mobile.E2E
-        run: node --test test/*.test.mjs
-
-      # The sign-in jobs run these on a macOS runner, whose bash is 3.2. A construct newer than
-      # that fails there and nowhere else, at the first step that uses it.
-      - name: Test this workflow's own scripts and behavior matrix
-        run: |
-          node .github/scripts/check-shell-portability.mjs
-          node --test .github/scripts/*.test.mjs .github/scripts/*.test.js
-          ./.github/scripts/install-ubuntu-browser-test-deps.test.sh
-          node .github/scripts/behavior-matrix.mjs check
-
-      - uses: ./.github/actions/record-verdict
-        if: ${{ always() }}
-        with:
-          stage: source
-          leg: typescript
-          status: ${{ job.status }}
-
-  source-budgets:
-    name: Source · test-tier budgets
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-dotnet@v6
-        with:
-          dotnet-version: "10.0.x"
-
-      - name: Install GUI watchdog dependencies
-        run: ./.github/scripts/install-ubuntu-browser-test-deps.sh
-
-      - name: Restore .NET projects
-        run: dotnet restore agent-up.sln
-
-      - name: Build Release test payloads
-        run: dotnet build agent-up.sln --configuration Release --no-restore
-
-      - name: Enforce test-kind wall-clock budgets
-        run: ./.github/scripts/run-test-kind-watchdog.sh
-
-      - uses: actions/upload-artifact@v7
-        if: ${{ !cancelled() }}
-        with:
-          name: source-budgets-results
-          path: artifacts/test-kind-watchdog/*.trx
-          if-no-files-found: error
-          retention-days: 7
-
-      - uses: ./.github/actions/record-verdict
-        if: ${{ always() }}
-        with:
-          stage: source
-          leg: budgets
-          status: ${{ job.status }}
-
-  source-performance:
-    name: Source · performance gates
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-dotnet@v6
-        with:
-          dotnet-version: "10.0.x"
-
-      - uses: actions/setup-node@v7
-        with:
-          node-version: "22"
-          cache: npm
-          cache-dependency-path: AgentUp.Mobile/package-lock.json
-
-      - name: Restore .NET projects
-        run: dotnet restore agent-up.sln
-
-      - name: Build Release test payloads
-        run: dotnet build agent-up.sln --configuration Release --no-restore
-
-      - name: Run .NET performance regression gates
-        run: |
-          ./scripts/run-benchmark-gate.sh browser
-          ./scripts/run-benchmark-gate.sh server
-
-      - name: Run Mobile performance regression gate
-        working-directory: AgentUp.Mobile
-        run: |
-          npm ci --ignore-scripts
-          npx tsx src/features/agents/benchmark/MobilePerformanceGate.ts
-
-      - uses: ./.github/actions/record-verdict
-        if: ${{ always() }}
-        with:
-          stage: source
-          leg: performance
-          status: ${{ job.status }}
-
-  # ── Backend: one contract, three implementations ─────────────────────────────────────────────
-
-  # AgentUp.FakeServer/parity.json classifies every operation in the API reference as one the
-  # Demo answers or one only a real Server can. Each leg holds its own implementation to that one
-  # manifest, so a route added to the Server, or to one Demo but not the other, turns a leg red.
-  backend:
-    name: Backend · ${{ matrix.title }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - leg: server
-            title: Server
-          - leg: demo-desktop
-            title: Demo (Desktop)
-          - leg: demo-mobile
-            title: Demo (Mobile)
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-dotnet@v6
-        if: ${{ matrix.leg != 'demo-mobile' }}
-        with:
-          dotnet-version: "10.0.x"
-
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 22
-
-      - name: Hold ${{ matrix.title }} to the parity manifest
-        run: ./.github/scripts/run-backend-parity.sh ${{ matrix.leg }}
-
-      - uses: ./.github/actions/record-verdict
-        if: ${{ always() }}
-        with:
-          stage: backend
           leg: ${{ matrix.leg }}
           status: ${{ job.status }}
 
-  # ── Integration: one leg per real external dependency ────────────────────────────────────────
+  # ── Source: the code's own suites; gates release only ────────────────────────────────────────
 
-  integration:
-    name: Integration · ${{ matrix.title }}
+  # No other job waits for this one. A failing suite or a coverage miss fails the release, and
+  # never hides what a behavior leg would have shown.
+  source:
+    name: Source · ${{ matrix.title }}
     runs-on: ubuntu-latest
     timeout-minutes: ${{ matrix.timeout }}
     permissions:
@@ -975,6 +240,142 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - leg: dotnet
+            title: .NET suites and coverage
+            dotnet: true
+            timeout: 60
+          - leg: typescript
+            title: TypeScript and design-system suites
+            node: true
+            timeout: 30
+          - leg: budgets
+            title: test-tier budgets
+            dotnet: true
+            timeout: 30
+          - leg: performance
+            title: performance gates
+            dotnet: true
+            node: true
+            timeout: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # The coverage gate diffs against the base, and plan-mobile-version.test.js reads tags.
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v6
+        if: ${{ matrix.dotnet }}
+        with:
+          dotnet-version: "10.0.x"
+
+      - uses: actions/setup-node@v7
+        if: ${{ matrix.node }}
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: AgentUp.Mobile/package-lock.json
+
+      # Every .NET suite runs once, with coverage, and the same leg then judges that coverage.
+      - name: Install hosted desktop test dependencies
+        if: ${{ matrix.leg == 'dotnet' }}
+        run: |
+          sudo apt-get update -o Acquire::Retries=3
+          sudo apt-get install -y --no-install-recommends -o Acquire::Retries=3 xvfb x11-apps libxtst6
+
+      - name: Run every .NET suite with coverage
+        if: ${{ matrix.leg == 'dotnet' }}
+        run: ./.github/scripts/run-dotnet-tests.sh
+
+      - name: Test Report
+        uses: dorny/test-reporter@v3
+        if: ${{ !cancelled() && matrix.leg == 'dotnet' }}
+        with:
+          name: Source · .NET suites
+          path: "artifacts/test-results/**/test-results.trx"
+          reporter: dotnet-trx
+
+      - name: Judge patch and slice coverage
+        if: ${{ !cancelled() && matrix.leg == 'dotnet' }}
+        uses: ./.github/actions/source-coverage
+        with:
+          codecov-token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Run the TypeScript and design-system suites
+        if: ${{ matrix.leg == 'typescript' }}
+        run: ./.github/scripts/run-typescript-suites.sh
+
+      - name: Install GUI watchdog dependencies
+        if: ${{ matrix.leg == 'budgets' }}
+        run: ./.github/scripts/install-ubuntu-browser-test-deps.sh
+
+      - name: Build Release test payloads
+        if: ${{ matrix.leg == 'budgets' || matrix.leg == 'performance' }}
+        run: |
+          dotnet restore agent-up.sln
+          dotnet build agent-up.sln --configuration Release --no-restore
+
+      - name: Enforce test-kind wall-clock budgets
+        if: ${{ matrix.leg == 'budgets' }}
+        run: ./.github/scripts/run-test-kind-watchdog.sh
+
+      - name: Run .NET performance regression gates
+        if: ${{ matrix.leg == 'performance' }}
+        run: |
+          ./scripts/run-benchmark-gate.sh browser
+          ./scripts/run-benchmark-gate.sh server
+
+      - name: Run Mobile performance regression gate
+        if: ${{ matrix.leg == 'performance' }}
+        working-directory: AgentUp.Mobile
+        run: |
+          npm ci --ignore-scripts
+          npx tsx src/features/agents/benchmark/MobilePerformanceGate.ts
+
+      - uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() && (matrix.leg == 'dotnet' || matrix.leg == 'budgets') }}
+        with:
+          name: source-${{ matrix.leg }}-results
+          path: |
+            artifacts/test-results/**/*.trx
+            artifacts/test-kind-watchdog/*.trx
+          if-no-files-found: warn
+          retention-days: 7
+
+      - uses: ./.github/actions/record-verdict
+        if: ${{ always() }}
+        with:
+          stage: source
+          leg: ${{ matrix.leg }}
+          status: ${{ job.status }}
+
+  # ── Backend: one contract, and every real dependency ─────────────────────────────────────────
+
+  # The contract legs hold the real Server and both Demo backends to AgentUp.FakeServer/parity.json,
+  # which classifies every operation in the API reference. The dependency legs run the Server
+  # against one real external dependency each, so a red leg names what broke.
+  backend:
+    name: Backend · ${{ matrix.title }}
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ matrix.timeout }}
+    permissions:
+      contents: read
+      checks: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - leg: contract-server
+            title: Contract · Server
+            run: ./.github/scripts/run-backend-parity.sh server
+            timeout: 30
+          - leg: contract-demo-desktop
+            title: Contract · Demo (Desktop)
+            run: ./.github/scripts/run-backend-parity.sh demo-desktop
+            timeout: 30
+          - leg: contract-demo-mobile
+            title: Contract · Demo (Mobile)
+            run: ./.github/scripts/run-backend-parity.sh demo-mobile
+            timeout: 30
           - leg: forgejo
             title: Forgejo host
             run: ./.github/scripts/run-forgejo-e2e.sh
@@ -1033,10 +434,9 @@ jobs:
       # The runtime-capability workspace runs `npm install` for Docs before it can serve. Example
       # Web installs with --package-lock=false and shares the same warmed ~/.npm.
       - uses: actions/setup-node@v7
-        if: ${{ matrix.display }}
         with:
           node-version: 22
-          cache: npm
+          cache: ${{ matrix.display && 'npm' || '' }}
           cache-dependency-path: docs/package-lock.json
 
       # Pinned GGUF shared by the CPU-inference and OpenCode legs; the model server and the loop
@@ -1054,25 +454,23 @@ jobs:
 
       - name: Install Ubuntu browser test dependencies
         if: ${{ matrix.display }}
-        shell: bash
         run: ./.github/scripts/install-ubuntu-browser-test-deps.sh
 
-      - name: Run against ${{ matrix.title }}
-        shell: bash
+      - name: Run ${{ matrix.title }}
         run: ${{ matrix.run }}
 
       - name: Test Report
         uses: dorny/test-reporter@v3
-        if: ${{ !cancelled() && hashFiles(format('artifacts/test-results/{0}/*.trx', matrix.results)) != '' }}
+        if: ${{ !cancelled() && matrix.results && hashFiles(format('artifacts/test-results/{0}/*.trx', matrix.results)) != '' }}
         with:
-          name: Integration · ${{ matrix.title }}
+          name: Backend · ${{ matrix.title }}
           path: artifacts/test-results/${{ matrix.results }}/*.trx
           reporter: dotnet-trx
 
       - uses: actions/upload-artifact@v7
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && matrix.results }}
         with:
-          name: integration-${{ matrix.leg }}-results
+          name: backend-${{ matrix.leg }}-results
           path: artifacts/test-results/${{ matrix.results }}
           if-no-files-found: warn
           retention-days: 7
@@ -1080,583 +478,119 @@ jobs:
       - uses: ./.github/actions/record-verdict
         if: ${{ always() }}
         with:
-          stage: integration
+          stage: backend
           leg: ${{ matrix.leg }}
           status: ${{ job.status }}
 
-  # ── Frontend: client × shell × backend × native display ──────────────────────────────────────
+  # ── Desktop: the Desktop client against each backend and on each native display ──────────────
 
-  # The QA flows of docs/developer-guide/verification/qa-coverage.md, replayed against an isolated
-  # real Server. Before this job they ran only when someone remembered au-debug validate, and two
-  # of them had drifted from the shipping UI without anyone seeing it.
-  journeys:
-    name: Journeys · ${{ matrix.title }} · real Server
-    runs-on: ubuntu-latest
-    timeout-minutes: 75
+  # Journeys replay the QA flows of docs/developer-guide/verification/qa-coverage.md on an isolated
+  # real Server. Showcase drives the client on its Demo through every screen the design system
+  # documents. Native runs AgentUp.Tests on a real display: Linux from source, macOS and Windows
+  # from the runner Build published for them, which is why this domain waits for Build.
+  desktop:
+    name: Desktop · ${{ matrix.title }}
+    runs-on: ${{ matrix.os }}
+    needs: build
+    timeout-minutes: ${{ matrix.timeout }}
+    permissions:
+      contents: read
+      actions: write
+      checks: write
+    env:
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - leg: journeys-desktop
-            title: Desktop
-            surface: desktop
-          - leg: journeys-mobile
-            title: Mobile
-            surface: mobile
+          - leg: journeys
+            title: Journeys on a real Server
+            os: ubuntu-latest
+            timeout: 75
+          - leg: showcase
+            title: Showcase on the Demo
+            os: ubuntu-latest
+            timeout: 40
+          - leg: native-linux
+            title: Native Linux (WebKitGTK)
+            os: ubuntu-latest
+            timeout: 60
+          - leg: native-macos-arm64
+            title: Native macOS arm64 (WKWebView)
+            os: macos-latest
+            rid: osx-arm64
+            timeout: 30
+          - leg: native-macos-x64
+            title: Native macOS x64 (WKWebView)
+            os: macos-15-intel
+            rid: osx-x64
+            timeout: 30
+          - leg: native-windows
+            title: Native Windows (WebView2)
+            os: windows-latest
+            rid: win-x64
+            timeout: 30
     steps:
       - uses: actions/checkout@v7
 
+      # The macOS and Windows runners are published framework-dependent and need the shared
+      # framework; the Linux legs build from source.
       - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: "10.0.x"
 
       - uses: actions/setup-node@v7
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: |
-            AgentUp.Mobile/package-lock.json
-            AgentUp.Mobile.E2E/package-lock.json
-
-      - name: Install Ubuntu desktop dependencies
-        if: ${{ matrix.surface == 'desktop' }}
-        shell: bash
-        run: ./.github/scripts/install-ubuntu-browser-test-deps.sh
-
-      - name: Replay every ${{ matrix.title }} journey
-        shell: bash
-        run: ./.github/scripts/run-journeys.sh ${{ matrix.surface }}
-
-      - uses: actions/upload-artifact@v7
-        if: ${{ !cancelled() }}
-        with:
-          name: journeys-${{ matrix.surface }}
-          path: artifacts/${{ matrix.surface }}-validation
-          if-no-files-found: warn
-          retention-days: 14
-
-      - uses: ./.github/actions/record-verdict
-        if: ${{ always() }}
-        with:
-          stage: frontend
-          leg: ${{ matrix.leg }}
-          status: ${{ job.status }}
-
-  # The real clients against their built-in Demo backend, driven through every screen the design
-  # system documents under Assembled screens and photographed in a used state. Reaching every
-  # screen gates; the old Product screens job ran with continue-on-error and had been capturing
-  # 10 of 30 screens unnoticed. Mobile is then compared with the copy the design system shows for
-  # each screen; Desktop cannot report its own text yet. One client per job: Mobile used to flake
-  # waiting for its first paint on a runner that Desktop capture had just saturated.
-  showcase:
-    name: Showcase · ${{ matrix.title }} · Demo
-    runs-on: ubuntu-latest
-    timeout-minutes: 40
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - leg: showcase-desktop
-            title: Desktop
-            surface: desktop
-          - leg: showcase-mobile
-            title: Mobile
-            surface: mobile
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-dotnet@v6
-        with:
-          dotnet-version: "10.0.x"
-
-      - uses: actions/setup-node@v7
+        if: ${{ matrix.leg == 'journeys' || matrix.leg == 'showcase' }}
         with:
           node-version: 22
           cache: npm
           cache-dependency-path: AgentUp.Mobile/package-lock.json
 
       - name: Install Ubuntu browser test dependencies
+        if: ${{ runner.os == 'Linux' }}
         shell: bash
         run: ./.github/scripts/install-ubuntu-browser-test-deps.sh
 
-      # xdotool drives the Desktop window and ImageMagick's import captures it.
+      # Journeys: one flow per au-debug validate run on a fresh Server data directory.
+      - name: Replay every Desktop journey
+        if: ${{ matrix.leg == 'journeys' }}
+        shell: bash
+        run: ./.github/scripts/run-journeys.sh desktop
+
+      # Showcase: reaching every screen gates. The comparison with the design system's copy is
+      # reported, not yet gating: Desktop cannot report its own text (a declared gap).
       - name: Install window capture dependencies
-        if: ${{ matrix.surface == 'desktop' }}
+        if: ${{ matrix.leg == 'showcase' }}
         shell: bash
         run: |
           sudo apt-get update -o Acquire::Retries=3
           sudo apt-get install -y --no-install-recommends -o Acquire::Retries=3 xdotool imagemagick libsm6 libice6
 
-      - name: Capture every documented ${{ matrix.title }} screen on the Demo
+      - name: Capture every documented Desktop screen on the Demo
+        if: ${{ matrix.leg == 'showcase' }}
         shell: bash
-        run: ./.github/scripts/capture-product-screens.sh ${{ matrix.surface }}
+        run: ./.github/scripts/capture-product-screens.sh desktop
 
-      # Reported, not yet gating: every Mobile screen currently diverges from the copy the
-      # showcase documents (a declared gap in .github/behavior-matrix.json). The report lands on
-      # the run summary and the step shows as a warning until the showcase is re-authored.
       - name: Compare the captured screens with the design system
+        if: ${{ matrix.leg == 'showcase' }}
         continue-on-error: true
         shell: bash
-        run: |
-          set -o pipefail
-          ./au-debug screens compare ${{ matrix.surface }} 2>&1 | tee "$RUNNER_TEMP/compare.txt"
-          {
-            echo "### ${{ matrix.title }} screens against the design system"
-            echo
-            echo '```'
-            cat "$RUNNER_TEMP/compare.txt"
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
+        run: ./.github/scripts/compare-product-screens.sh desktop
 
-      - uses: actions/upload-artifact@v7
-        if: ${{ !cancelled() }}
-        with:
-          name: showcase-${{ matrix.surface }}
-          path: artifacts/product-screens
-          if-no-files-found: warn
-          retention-days: 14
-
-      - uses: ./.github/actions/record-verdict
-        if: ${{ always() }}
-        with:
-          stage: frontend
-          leg: ${{ matrix.leg }}
-          status: ${{ job.status }}
-
-  # Agent sign-in is the one thing in this repository that needs a simulator, an emulator and a
-  # browser to prove. Each job publishes the Server and test agents itself, while it is already
-  # busy provisioning an emulator or an Xcode toolchain, rather than waiting on Build: an artifact
-  # dependency would serialise the slowest jobs in the pipeline behind the next slowest. What
-  # bounds their cost is the cache - an unchanged client reuses the app it already built.
-  sign-in-web:
-    name: Sign-in · installable web
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-dotnet@v6
-        with:
-          dotnet-version: "10.0.x"
-
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 22
-          cache: npm
-          # What these jobs install, which is the harness app and the modules it mounts - not
-          # the full client, which they never build.
-          cache-dependency-path: |
-            AgentUp.Mobile.E2E.App/package-lock.json
-            AgentUp.Mobile.E2E/package-lock.json
-            AgentUp.Chat/package-lock.json
-            AgentUp.AgentAuth/package-lock.json
-            AgentUp.ServerClient/package-lock.json
-            AgentUp.WebAudit/package-lock.json
-
-      - name: Publish the Server and test agents
-        run: ./.github/scripts/build-mobile-e2e-stack.sh
-
-      # The Server confines agents with bubblewrap on Linux; macOS runs them unconfined.
-      - name: Install bubblewrap
-        run: ./.github/scripts/install-bubblewrap.sh
-
-      - name: Install mobile dependencies
-        run: ./.github/scripts/install-mobile-deps.sh AgentUp.Mobile.E2E.App
-
-      - name: Export the installable web build
-        working-directory: AgentUp.Mobile.E2E.App
-        run: npx expo export --platform web --output-dir dist
-
-      # The browser is a fixed ~140MB download that changes only when Playwright does.
-      - name: Restore the browser
-        uses: actions/cache@v6
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('AgentUp.Mobile.E2E/package.json') }}
-
-      - name: Install Playwright
-        working-directory: AgentUp.Mobile.E2E
-        run: |
-          npm install --no-audit --no-fund
-          npx playwright install --with-deps chromium
-
-      - name: Run sign-in end-to-end
-        working-directory: AgentUp.Mobile.E2E
-        env:
-          AGENTUP_E2E_WEB_EXPORT: ../AgentUp.Mobile.E2E.App/dist
-        run: npm run test:pwa
-
-      - uses: actions/upload-artifact@v7
-        if: ${{ failure() }}
-        with:
-          name: sign-in-web-artifacts
-          path: AgentUp.Mobile.E2E/artifacts
-          if-no-files-found: ignore
-          retention-days: 7
-
-      - uses: ./.github/actions/record-verdict
-        if: ${{ always() }}
-        with:
-          stage: frontend
-          leg: sign-in-web
-          status: ${{ job.status }}
-
-  sign-in-android:
-    name: Sign-in · Android
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-dotnet@v6
-        with:
-          dotnet-version: "10.0.x"
-
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: |
-            AgentUp.Mobile.E2E.App/package-lock.json
-            AgentUp.Mobile.E2E/package-lock.json
-            AgentUp.Chat/package-lock.json
-            AgentUp.AgentAuth/package-lock.json
-            AgentUp.ServerClient/package-lock.json
-            AgentUp.WebAudit/package-lock.json
-
-      - name: Check emulator wake helpers
-        run: node --test .github/scripts/android-emulator-focus.test.mjs .github/scripts/install-android-emulator.test.mjs
-
-      - uses: actions/setup-java@v6
-        with:
-          distribution: temurin
-          java-version: "17"
-
-      - name: Describe what the app is built from
-        id: app
-        shell: bash
-        run: ./.github/scripts/mobile-app-key.sh
-
-      - name: Enable KVM for the emulator
-        run: |
-          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
-            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
-          sudo udevadm control --reload-rules
-          sudo udevadm trigger --name-match=kvm
-
-      # The app is a function of the client's sources and its dependency set, so a push that
-      # changed neither - the Server, the test agents, the suites themselves - reuses the one the
-      # last run compiled instead of spending ten minutes reaching the same bytes.
-      - name: Restore the app under test
-        id: apk
-        uses: actions/cache/restore@v6
-        with:
-          path: AgentUp.Mobile.E2E.App/android/app/build/outputs/apk
-          key: android-app-${{ steps.app.outputs.key }}
-
-      - name: Check the restored app is complete
-        id: restored
-        shell: bash
-        run: ./.github/scripts/mobile-app-restored.sh android
-
-      - name: Publish the Server and test agents
-        run: ./.github/scripts/build-mobile-e2e-stack.sh
-
-      # The Server confines agents with bubblewrap on Linux; macOS runs them unconfined.
-      - name: Install bubblewrap
-        run: ./.github/scripts/install-bubblewrap.sh
-
-      # Only the build needs the client's dependencies, so a run that reuses the app skips them.
-      - name: Install mobile dependencies
-        if: ${{ steps.restored.outputs.usable != 'true' }}
-        run: ./.github/scripts/install-mobile-deps.sh AgentUp.Mobile.E2E.App
-
-      - name: Generate the native project
-        if: ${{ steps.restored.outputs.usable != 'true' }}
-        working-directory: AgentUp.Mobile.E2E.App
-        run: npx expo prebuild --platform android --no-install
-
-      # Nothing on the runner preinstalls the NDK this build wants, so Gradle fetches it mid-build
-      # in one attempt. Here it is a step that can be retried instead of a build that cannot.
-      - name: Install the Android NDK the build will ask for
-        if: ${{ steps.restored.outputs.usable != 'true' }}
-        run: ./.github/scripts/install-android-ndk.sh AgentUp.Mobile.E2E.App
-
-      - uses: gradle/actions/setup-gradle@v6
-        if: ${{ steps.restored.outputs.usable != 'true' }}
-        with:
-          # Off by default on anything but the default branch, which means a branch never seeds
-          # the cache it is about to need.
-          cache-read-only: false
-
-      - name: Install the end-to-end runner
-        working-directory: AgentUp.Mobile.E2E
-        run: npm install --no-audit --no-fund
-
-      - name: Build the app under test
-        if: ${{ steps.restored.outputs.usable != 'true' }}
-        working-directory: AgentUp.Mobile.E2E
-        run: npx detox build --configuration android.emu.release
-
-      # Saved here rather than at the end of the job: a run whose tests fail would otherwise throw
-      # the build away and recompile it on the next push, which is exactly when iteration is
-      # happening and speed matters most.
-      - name: Keep the app under test
-        if: ${{ steps.restored.outputs.usable != 'true' }}
-        uses: actions/cache/save@v6
-        with:
-          path: AgentUp.Mobile.E2E.App/android/app/build/outputs/apk
-          key: android-app-${{ steps.app.outputs.key }}
-
-      - name: Restore the emulator
-        id: avd
-        uses: actions/cache@v6
-        with:
-          path: |
-            ~/.android/avd/*
-            ~/.android/adb*
-          key: avd-api35-google_apis-x86_64-pixel_6
-
-      # Creating the image and letting it write a snapshot costs minutes. Doing it in its own step
-      # means it happens once per image, not once per run. Verified, not trusted: a restore that
-      # came back short would otherwise skip the creation that would have fixed it.
-      - name: Check the restored emulator is complete
-        id: emulator
-        shell: bash
-        run: |
-          if [ -f ~/.android/avd/agent_up_e2e.ini ] && [ -d ~/.android/avd/agent_up_e2e.avd ]; then
-            echo "present: the agent_up_e2e emulator image"
-            echo "usable=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "MISSING: the agent_up_e2e emulator image; creating it."
-            echo "usable=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      # Same truncated-zip failure as the NDK: android-emulator-runner installs the emulator and
-      # the system image once each and fails the job when Google's archive is not an archive.
-      # Retry here first so the action's own install is a no-op.
-      - name: Install the Android emulator
-        run: ./.github/scripts/install-android-emulator.sh
-
-      - name: Create the emulator
-        if: ${{ steps.emulator.outputs.usable != 'true' }}
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 35
-          target: google_apis
-          arch: x86_64
-          profile: pixel_6
-          avd-name: agent_up_e2e
-          force-avd-creation: false
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
-          disable-animations: false
-          script: echo "Emulator image created."
-
-      - name: Run sign-in end-to-end
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 35
-          target: google_apis
-          arch: x86_64
-          profile: pixel_6
-          avd-name: agent_up_e2e
-          force-avd-creation: false
-          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
-          disable-animations: true
-          script: |
-            ./.github/scripts/wake-android-emulator.sh
-            cd AgentUp.Mobile.E2E && npm run test:android -- --headless
-
-      - uses: actions/upload-artifact@v7
-        if: ${{ failure() }}
-        with:
-          name: sign-in-android-artifacts
-          path: AgentUp.Mobile.E2E/artifacts
-          if-no-files-found: ignore
-          retention-days: 7
-
-      - uses: ./.github/actions/record-verdict
-        if: ${{ always() }}
-        with:
-          stage: frontend
-          leg: sign-in-android
-          status: ${{ job.status }}
-
-  sign-in-ios:
-    name: Sign-in · iOS
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-dotnet@v6
-        with:
-          dotnet-version: "10.0.x"
-
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: |
-            AgentUp.Mobile.E2E.App/package-lock.json
-            AgentUp.Mobile.E2E/package-lock.json
-            AgentUp.Chat/package-lock.json
-            AgentUp.AgentAuth/package-lock.json
-            AgentUp.ServerClient/package-lock.json
-            AgentUp.WebAudit/package-lock.json
-
-      - name: Describe what the app is built from
-        id: app
-        shell: bash
-        run: ./.github/scripts/mobile-app-key.sh
-
-      # The app is a function of the client's sources and its dependency set, so a push that
-      # changed neither reuses the one the last run compiled instead of spending eighteen minutes
-      # reaching the same bytes.
-      - name: Restore the app under test
-        id: built-app
-        uses: actions/cache/restore@v6
-        with:
-          path: AgentUp.Mobile.E2E.App/ios/build/Build/Products/Release-iphonesimulator
-          key: ios-app-${{ steps.app.outputs.key }}
-
-      - name: Check the restored app is complete
-        id: restored
-        shell: bash
-        run: ./.github/scripts/mobile-app-restored.sh ios
-
-      - name: Publish the Server and test agents
-        run: ./.github/scripts/build-mobile-e2e-stack.sh
-
-      # Only the build needs the client's dependencies, so a run that reuses the app skips them.
-      - name: Install mobile dependencies
-        if: ${{ steps.restored.outputs.usable != 'true' }}
-        run: ./.github/scripts/install-mobile-deps.sh AgentUp.Mobile.E2E.App
-
-      - name: Generate the native project
-        if: ${{ steps.restored.outputs.usable != 'true' }}
-        working-directory: AgentUp.Mobile.E2E.App
-        run: npx expo prebuild --platform ios --no-install
-
-      # Pods and their compiled objects are the bulk of that build and change only when the
-      # dependency set does, so a client-only change relinks instead of recompiling the world.
-      - name: Restore the pods and their objects
-        if: ${{ steps.restored.outputs.usable != 'true' }}
-        id: pods
-        uses: actions/cache/restore@v6
-        with:
-          path: |
-            AgentUp.Mobile.E2E.App/ios/Pods
-            AgentUp.Mobile.E2E.App/ios/build/Build/Intermediates.noindex
-            ~/Library/Caches/CocoaPods
-          key: ios-pods-${{ steps.app.outputs.dependencies }}
-
-      - name: Install pods
-        if: ${{ steps.restored.outputs.usable != 'true' }}
-        working-directory: AgentUp.Mobile.E2E.App/ios
-        run: pod install
-
-      - name: Install the end-to-end runner
-        working-directory: AgentUp.Mobile.E2E
-        run: |
-          npm install --no-audit --no-fund
-          # Detox needs applesimutils to drive the simulator. Homebrew refuses formulae from a
-          # third-party tap until the tap is trusted.
-          brew tap wix/brew
-          brew trust wix/brew
-          brew install applesimutils
-
-      - name: Choose the simulator
-        shell: bash
-        run: |
-          # Pinning a runtime version fails outright when the runner image moves on, so the newest
-          # iPhone the image ships is resolved and logged instead. The choice is recorded in the
-          # run, so a behaviour change between runs is still traceable.
-          device="$(xcrun simctl list devicetypes --json \
-            | python3 -c "import json,sys;print(max((d['name'] for d in json.load(sys.stdin)['devicetypes'] if d['name'].startswith('iPhone')), key=lambda n:[int(p) for p in n.split() if p.isdigit()] or [0]))")"
-          echo "Using simulator: $device"
-          echo "AGENTUP_E2E_IOS_DEVICE=$device" >> "$GITHUB_ENV"
-
-      - name: Build the app under test
-        if: ${{ steps.restored.outputs.usable != 'true' }}
-        working-directory: AgentUp.Mobile.E2E
-        run: npx detox build --configuration ios.sim.release
-
-      - name: Keep the app under test
-        if: ${{ steps.restored.outputs.usable != 'true' }}
-        uses: actions/cache/save@v6
-        with:
-          path: AgentUp.Mobile.E2E.App/ios/build/Build/Products/Release-iphonesimulator
-          key: ios-app-${{ steps.app.outputs.key }}
-
-      - name: Keep the pods and their objects
-        if: ${{ steps.restored.outputs.usable != 'true' && steps.pods.outputs.cache-hit != 'true' }}
-        uses: actions/cache/save@v6
-        with:
-          path: |
-            AgentUp.Mobile.E2E.App/ios/Pods
-            AgentUp.Mobile.E2E.App/ios/build/Build/Intermediates.noindex
-            ~/Library/Caches/CocoaPods
-          key: ios-pods-${{ steps.app.outputs.dependencies }}
-
-      - name: Run sign-in end-to-end
-        working-directory: AgentUp.Mobile.E2E
-        run: npm run test:ios -- --headless
-
-      - uses: actions/upload-artifact@v7
-        if: ${{ failure() }}
-        with:
-          name: sign-in-ios-artifacts
-          path: AgentUp.Mobile.E2E/artifacts
-          if-no-files-found: ignore
-          retention-days: 7
-
-      - uses: ./.github/actions/record-verdict
-        if: ${{ always() }}
-        with:
-          stage: frontend
-          leg: sign-in-ios
-          status: ${{ job.status }}
-
-  # AgentUp.Tests on a real display: the WebView upload bridge, OAuth through redirects and native
-  # popups, streamed desktop applications and the installer dashboard. Linux builds and runs it from
-  # source; macOS and Windows run the framework-dependent runner Build published for them.
-  native-desktop-linux:
-    name: Native desktop · Linux (WebKitGTK)
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      checks: write
-    env:
-      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-    steps:
-      - uses: actions/checkout@v7
-
-      - uses: actions/setup-dotnet@v6
-        with:
-          dotnet-version: "10.0.x"
-
-      - name: Install Ubuntu browser test dependencies
-        shell: bash
-        run: ./.github/scripts/install-ubuntu-browser-test-deps.sh
-
-      - name: Run the native-display suite
+      # Native Linux: native-display tests, then HeadlessE2E, from source.
+      - name: Run the native-display suite from source
+        if: ${{ matrix.leg == 'native-linux' }}
         shell: bash
         run: ./.github/scripts/run-dotnet-gui-tests.sh
 
-      - name: Test Report
-        uses: dorny/test-reporter@v3
-        if: ${{ !cancelled() }}
-        with:
-          name: Native desktop · Linux
-          path: "**/test-results.trx,**/e2e-results.trx"
-          reporter: dotnet-trx
-
       - name: Locate AgentUp.Tests coverage reports
         id: coverage-reports
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && matrix.leg == 'native-linux' }}
         shell: bash
         run: ./.github/scripts/locate-coverage-reports.sh AgentUp.Tests
 
       - name: Upload AgentUp.Tests coverage
-        if: ${{ !cancelled() && env.CODECOV_TOKEN != '' }}
+        if: ${{ !cancelled() && matrix.leg == 'native-linux' && env.CODECOV_TOKEN != '' }}
         uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -1666,51 +600,15 @@ jobs:
           fail_ci_if_error: true
           disable_search: true
 
-      - uses: ./.github/actions/record-verdict
-        if: ${{ always() }}
-        with:
-          stage: frontend
-          leg: native-linux
-          status: ${{ job.status }}
-
-  native-desktop:
-    name: Native desktop · ${{ matrix.title }}
-    runs-on: ${{ matrix.os }}
-    needs: payloads
-    permissions:
-      contents: read
-      actions: write
-      checks: write
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - leg: native-macos-arm64
-            title: macOS arm64 (WKWebView)
-            os: macos-latest
-            rid: osx-arm64
-          - leg: native-macos-x64
-            title: macOS x64 (WKWebView)
-            os: macos-15-intel
-            rid: osx-x64
-          - leg: native-windows
-            title: Windows (WebView2)
-            os: windows-latest
-            rid: win-x64
-    steps:
-      - uses: actions/checkout@v7
-
-      # The runner is published framework-dependent, so it needs the shared framework it targets.
-      - uses: actions/setup-dotnet@v6
-        with:
-          dotnet-version: "10.0.x"
-
+      # Native macOS and Windows: the published runner, which Build uploaded per runtime.
       - uses: actions/download-artifact@v8
+        if: ${{ matrix.rid }}
         with:
           name: native-e2e-${{ matrix.rid }}
           path: native-e2e
 
       - name: Delete consumed native E2E artifact
+        if: ${{ matrix.rid }}
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -1721,10 +619,10 @@ jobs:
             gh api -X DELETE "repos/${{ github.repository }}/actions/artifacts/$artifact_id" >/dev/null 2>&1 || true
           fi
 
-      - name: Run the native-display suite
-        if: ${{ runner.os == 'macOS' }}
-        # The suite takes seconds. A fixture that blocks the Avalonia UI thread waits on it
-        # forever, so cap the step rather than let a hang hold the runner for the job default.
+      # The suite takes seconds. A fixture that blocks the Avalonia UI thread waits on it forever,
+      # so cap the step rather than let a hang hold the runner for the job default.
+      - name: Run the published native-display suite
+        if: ${{ matrix.rid && runner.os == 'macOS' }}
         timeout-minutes: 10
         shell: bash
         run: |
@@ -1736,8 +634,8 @@ jobs:
             --result="artifacts/platform-tests/agent-up-tests-${{ matrix.rid }}.xml;format=nunit3" \
             2>&1 | tee "artifacts/platform-tests/agent-up-tests-${{ matrix.rid }}.log"
 
-      - name: Run the native-display suite
-        if: ${{ runner.os == 'Windows' }}
+      - name: Run the published native-display suite
+        if: ${{ matrix.rid && runner.os == 'Windows' }}
         timeout-minutes: 10
         shell: pwsh
         run: |
@@ -1752,36 +650,147 @@ jobs:
 
       - name: Test Report
         uses: dorny/test-reporter@v3
-        if: ${{ !cancelled() && hashFiles('artifacts/platform-tests/*.xml') != '' }}
+        if: ${{ !cancelled() && matrix.leg == 'native-linux' }}
         with:
-          name: Native desktop · ${{ matrix.title }}
+          name: Desktop · ${{ matrix.title }}
+          path: "**/test-results.trx,**/e2e-results.trx"
+          reporter: dotnet-trx
+
+      - name: Test Report
+        uses: dorny/test-reporter@v3
+        if: ${{ !cancelled() && matrix.rid && hashFiles('artifacts/platform-tests/*.xml') != '' }}
+        with:
+          name: Desktop · ${{ matrix.title }}
           path: artifacts/platform-tests/*.xml
           reporter: dotnet-nunit
 
-      - name: Upload native-display diagnostics
-        uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@v7
         if: ${{ !cancelled() }}
         with:
-          name: native-desktop-${{ matrix.rid }}
-          path: artifacts/platform-tests
-          if-no-files-found: error
-          retention-days: 7
+          name: desktop-${{ matrix.leg }}
+          path: |
+            artifacts/desktop-validation
+            artifacts/product-screens
+            artifacts/platform-tests
+          if-no-files-found: warn
+          retention-days: 14
 
       - uses: ./.github/actions/record-verdict
         if: ${{ always() }}
         with:
-          stage: frontend
+          stage: desktop
+          leg: ${{ matrix.leg }}
+          status: ${{ job.status }}
+
+  # ── Mobile: the Mobile client and its chat module, against each backend and native platform ──
+
+  # Journeys and Showcase mirror Desktop's. Sign-in drives the chat module's agent sign-in, every
+  # transport, against a real Server, the test agents and the identity provider, on the PWA, a
+  # real Android emulator and a real iOS simulator. Each sign-in leg publishes the Server and test
+  # agents itself while it provisions its emulator or toolchain; its cache keeps an unchanged
+  # client from being rebuilt.
+  mobile:
+    name: Mobile · ${{ matrix.title }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: ${{ matrix.timeout }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - leg: journeys
+            title: Journeys on a real Server
+            os: ubuntu-latest
+            timeout: 75
+          - leg: showcase
+            title: Showcase on the Demo
+            os: ubuntu-latest
+            timeout: 40
+          - leg: sign-in-web
+            title: Sign-in on the installable web
+            os: ubuntu-latest
+            timeout: 60
+          - leg: sign-in-android
+            title: Sign-in on Android
+            os: ubuntu-latest
+            timeout: 120
+          - leg: sign-in-ios
+            title: Sign-in on iOS
+            os: macos-latest
+            timeout: 150
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        if: ${{ matrix.leg == 'journeys' || matrix.leg == 'showcase' }}
+        with:
+          dotnet-version: "10.0.x"
+
+      - uses: actions/setup-node@v7
+        if: ${{ matrix.leg == 'journeys' || matrix.leg == 'showcase' }}
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            AgentUp.Mobile/package-lock.json
+            AgentUp.Mobile.E2E/package-lock.json
+
+      - name: Replay every Mobile journey
+        if: ${{ matrix.leg == 'journeys' }}
+        run: ./.github/scripts/run-journeys.sh mobile
+
+      - name: Install Ubuntu browser test dependencies
+        if: ${{ matrix.leg == 'showcase' }}
+        run: ./.github/scripts/install-ubuntu-browser-test-deps.sh
+
+      - name: Capture every documented Mobile screen on the Demo
+        if: ${{ matrix.leg == 'showcase' }}
+        run: ./.github/scripts/capture-product-screens.sh mobile
+
+      # Reported, not yet gating: every Mobile screen diverges from the copy the showcase
+      # documents (a declared gap in .github/behavior-matrix.json).
+      - name: Compare the captured screens with the design system
+        if: ${{ matrix.leg == 'showcase' }}
+        continue-on-error: true
+        run: ./.github/scripts/compare-product-screens.sh mobile
+
+      - name: Sign in on the installable web build
+        if: ${{ matrix.leg == 'sign-in-web' }}
+        uses: ./.github/actions/sign-in-web
+
+      - name: Sign in on an Android emulator
+        if: ${{ matrix.leg == 'sign-in-android' }}
+        uses: ./.github/actions/sign-in-android
+
+      - name: Sign in on an iOS simulator
+        if: ${{ matrix.leg == 'sign-in-ios' }}
+        uses: ./.github/actions/sign-in-ios
+
+      # The sign-in actions upload their own diagnostics when they fail.
+      - uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() && (matrix.leg == 'journeys' || matrix.leg == 'showcase') }}
+        with:
+          name: mobile-${{ matrix.leg }}
+          path: |
+            artifacts/mobile-validation
+            artifacts/product-screens
+          if-no-files-found: warn
+          retention-days: 14
+
+      - uses: ./.github/actions/record-verdict
+        if: ${{ always() }}
+        with:
+          stage: mobile
           leg: ${{ matrix.leg }}
           status: ${{ job.status }}
 
   # ── Installer: each native package where it ships ────────────────────────────────────────────
 
-  # Waits for the payloads it packages and nothing else. Source suites and coverage gate the
+  # Waits for the payloads Build publishes and nothing else. Source suites and coverage gate the
   # release, not the packages, so a test failure never hides an installer failure.
   installer:
     name: Installer · ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
-    needs: [payloads, version]
+    needs: [build, version]
     permissions:
       contents: read
       actions: write
@@ -2037,26 +1046,11 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ always() }}
     needs:
-      - payloads
-      - container
-      - helm-chart
-      - au-check
-      - jetbrains-plugin
-      - docs
-      - source-dotnet
-      - source-coverage
-      - source-typescript
-      - source-budgets
-      - source-performance
+      - build
+      - source
       - backend
-      - integration
-      - journeys
-      - showcase
-      - sign-in-web
-      - sign-in-android
-      - sign-in-ios
-      - native-desktop-linux
-      - native-desktop
+      - desktop
+      - mobile
       - installer
     steps:
       - uses: actions/checkout@v7

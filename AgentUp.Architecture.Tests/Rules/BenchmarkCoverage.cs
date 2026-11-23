@@ -100,8 +100,11 @@ public sealed class BenchmarkCoverage
         workflow.Load(reader);
         var rootNode = (YamlMappingNode)workflow.Documents[0].RootNode;
         var jobs = GetMapping(rootNode, "jobs");
-        var performanceRuns = GetStepRuns(GetMapping(jobs, "source-performance"));
-        var watchdogRuns = GetStepRuns(GetMapping(jobs, "source-budgets"));
+        // The gates are legs of the Source matrix job: a step runs them only on its own leg, and
+        // nothing else may condition it.
+        var source = GetMapping(jobs, "source");
+        var performanceRuns = GetLegStepRuns(source, "performance");
+        var watchdogRuns = GetLegStepRuns(source, "budgets");
         // Release waits only for the Behavior matrix job, which fails unless every leg passed.
         var gateNeeds = GetSequenceValues(GetMapping(jobs, "behavior-matrix"), "needs");
         var releaseNeeds = GetSequenceValues(GetMapping(jobs, "release"), "needs");
@@ -111,8 +114,9 @@ public sealed class BenchmarkCoverage
             (HasUnconditionalCommand(performanceRuns, "./scripts/run-benchmark-gate.sh server"), "server performance command"),
             (HasUnconditionalCommand(performanceRuns, "npx tsx src/features/agents/benchmark/MobilePerformanceGate.ts"), "mobile performance command"),
             (HasUnconditionalCommand(watchdogRuns, "./.github/scripts/run-test-kind-watchdog.sh"), "test-kind watchdog command"),
-            (gateNeeds.Contains("source-performance", StringComparer.Ordinal), "behavior-matrix source-performance dependency"),
-            (gateNeeds.Contains("source-budgets", StringComparer.Ordinal), "behavior-matrix source-budgets dependency"),
+            (GetMatrixLegs(source).Contains("performance", StringComparer.Ordinal), "source performance leg"),
+            (GetMatrixLegs(source).Contains("budgets", StringComparer.Ordinal), "source budgets leg"),
+            (gateNeeds.Contains("source", StringComparer.Ordinal), "behavior-matrix source dependency"),
             (releaseNeeds.Contains("behavior-matrix", StringComparer.Ordinal), "release behavior-matrix dependency")
         }.Where(requirement => !requirement.Item1).Select(requirement => requirement.Item2).ToArray();
 
@@ -201,14 +205,24 @@ public sealed class BenchmarkCoverage
     private static YamlMappingNode GetMapping(YamlMappingNode parent, string key)
         => (YamlMappingNode)parent.Children[new YamlScalarNode(key)];
 
-    private static string[] GetStepRuns(YamlMappingNode job)
+    private static string[] GetLegStepRuns(YamlMappingNode job, string leg)
     {
         var steps = (YamlSequenceNode)job.Children[new YamlScalarNode("steps")];
+        var legOnly = $"${{{{ matrix.leg == '{leg}' }}}}";
         return steps.Children.OfType<YamlMappingNode>()
             .Where(step => step.Children.TryGetValue(new YamlScalarNode("run"), out _))
+            .Where(step => !step.Children.TryGetValue(new YamlScalarNode("if"), out var condition)
+                           || ((YamlScalarNode)condition).Value == legOnly)
             .Select(step => ((YamlScalarNode)step.Children[new YamlScalarNode("run")]).Value ?? string.Empty)
             .ToArray();
     }
+
+    private static string[] GetMatrixLegs(YamlMappingNode job)
+        => ((YamlSequenceNode)GetMapping(GetMapping(job, "strategy"), "matrix").Children[new YamlScalarNode("include")])
+            .Children.OfType<YamlMappingNode>()
+            .Select(entry => entry.Children.TryGetValue(new YamlScalarNode("leg"), out var leg) ? (leg as YamlScalarNode)?.Value : null)
+            .OfType<string>()
+            .ToArray();
 
     private static string[] GetSequenceValues(YamlMappingNode parent, string key)
         => ((YamlSequenceNode)parent.Children[new YamlScalarNode(key)]).Children
