@@ -6,7 +6,7 @@ import test from 'node:test';
 
 import { parseArgs } from '../pwa/flows/args.mjs';
 import { interpolate } from '../pwa/flows/interpolate.mjs';
-import { locatorPlan } from '../pwa/flows/locate.mjs';
+import { locatorPlan, visibleTextLocator } from '../pwa/flows/locate.mjs';
 import { emptyReport, finishReport, relativeScreenshot, screenshotName, summaryReport, writeJson } from '../pwa/flows/report.mjs';
 import { scriptedAgentEnvironment } from '../pwa/flows/host.mjs';
 
@@ -51,6 +51,22 @@ test('locatorPlan prefers role, then label, then text, and rejects coordinates',
   );
   assert.throws(() => locatorPlan({ selector: '#x' }), /reject Selector, X, and Y/);
   assert.throws(() => locatorPlan({ x: 10, y: 20 }), /reject Selector, X, and Y/);
+});
+
+test('free-text expectations wait on a visible match, not on a hidden earlier screen', () => {
+  const calls = [];
+  const locator = {
+    filter(options) { calls.push(['filter', options]); return this; },
+    first() { calls.push(['first']); return this; },
+  };
+  const page = { getByText(text, options) { calls.push(['getByText', text, options]); return locator; } };
+
+  assert.equal(visibleTextLocator(page, 'Databases'), locator);
+  assert.deepEqual(calls, [
+    ['getByText', 'Databases', { exact: false }],
+    ['filter', { visible: true }],
+    ['first'],
+  ]);
 });
 
 test('report.json names each step screenshot and the overall verdict', async () => {

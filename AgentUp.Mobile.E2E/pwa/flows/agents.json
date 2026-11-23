@@ -2,7 +2,7 @@
   "id": "agents",
   "application": "Mobile",
   "name": "See agent availability and start a session",
-  "description": "A person opens the Agents tab, reads availability and remedies, and starts test-agent-scripted. Fixture: isolated Development Server with test-agent-scripted on PATH, listed as Available. Enable is not clicked.",
+  "description": "A person opens the Agents tab, creates the workspace's bound agent from the list of agents and whether each is ready, and lands in the conversation with test-agent-scripted. Fixture: isolated Development Server with test-agent-scripted on PATH, listed as Available; the vendor agents are not enabled. Enable is not clicked.",
   "surface": "Mobile",
   "initialPath": "/connect",
   "initialExpectations": [
@@ -35,16 +35,26 @@
       "target": { "role": "tab", "name": "Agents" },
       "expectations": [
         { "kind": "Url", "value": "/workspace/{workspaceId}/agents" },
-        { "kind": "Text", "value": "Start a session" },
+        { "kind": "Visible", "value": "true", "target": { "role": "button", "name": "Create bound agent" } }
+      ]
+    },
+    {
+      "id": "choose-agent",
+      "description": "Choose which agent the workspace binds",
+      "action": "Click",
+      "target": { "role": "button", "name": "Create bound agent" },
+      "expectations": [
+        { "kind": "Url", "value": "/workspace/{workspaceId}/agent-create" },
         { "kind": "Text", "value": "Scripted test agent" },
-        { "kind": "Text", "value": "Not enabled" }
+        { "kind": "Text", "value": "Ready" },
+        { "kind": "Text", "value": "Disabled" }
       ]
     },
     {
       "id": "start-scripted",
-      "description": "Start a test-agent-scripted session",
+      "description": "Create the test-agent-scripted agent and open its conversation",
       "action": "Click",
-      "target": { "testId": "agent-start-test-agent-scripted" },
+      "target": { "testId": "agent-create-test-agent-scripted" },
       "expectations": [
         { "kind": "Url", "value": "/workspace/{workspaceId}/agent" }
       ]

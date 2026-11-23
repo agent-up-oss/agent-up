@@ -1035,7 +1035,7 @@
       "id": "agents",
       "application": "Desktop",
       "name": "See agent availability and start a session",
-      "description": "A person opens the Chat tab, reads availability and remedies, and starts test-agent-scripted. Fixture: isolated Development Server with test-agent-scripted on PATH, listed as Available. Other agent packages are not enabled, so Enable is not clicked.",
+      "description": "A person opens the Agent tab, follows its summary line to the workspace Settings tab, reads availability and remedies in the picker there, and starts test-agent-scripted, which returns them to the conversation on the Agent tab. Fixture: isolated Development Server with test-agent-scripted on PATH, listed as Available. Other agent packages are not enabled, so Enable is not clicked.",
       "surface": "Desktop",
       "initialPath": "login",
       "initialExpectations": [
@@ -1085,10 +1085,34 @@
         },
         {
           "id": "open-agent",
-          "description": "Open the Chat tab",
+          "description": "Open the Agent tab",
           "action": "Click",
           "target": {
             "testId": "shell.tab.agent"
+          },
+          "expectations": [
+            {
+              "kind": "Visible",
+              "value": "true",
+              "target": {
+                "testId": "agent.settings-summary"
+              }
+            },
+            {
+              "kind": "Visible",
+              "value": "true",
+              "target": {
+                "testId": "agent.open-settings"
+              }
+            }
+          ]
+        },
+        {
+          "id": "open-settings",
+          "description": "Follow the summary line to Settings, where the agent is chosen",
+          "action": "Click",
+          "target": {
+            "testId": "agent.open-settings"
           },
           "expectations": [
             {
@@ -1123,7 +1147,7 @@
         },
         {
           "id": "start-scripted",
-          "description": "Start a test-agent-scripted session",
+          "description": "Start a test-agent-scripted session and return to the conversation",
           "action": "Click",
           "target": {
             "testId": "agent.picker.test-agent-scripted"
@@ -1139,8 +1163,8 @@
           ]
         }
       ],
-      "updatedAtUtc": "2026-10-24T00:00:00.0000000+00:00",
-      "version": 1
+      "updatedAtUtc": "2026-11-23T00:00:00.0000000+00:00",
+      "version": 2
     },
     {
       "id": "autonomous-loop",

@@ -7,7 +7,7 @@ import { chromium, devices } from '@playwright/test';
 import { parseArgs } from './args.mjs';
 import { startValidationHost, varsFor } from './host.mjs';
 import { interpolate } from './interpolate.mjs';
-import { locatorFor } from './locate.mjs';
+import { locatorFor, visibleTextLocator } from './locate.mjs';
 import {
   emptyReport,
   finishReport,
@@ -170,13 +170,13 @@ async function assertExpectations(page, expectations, description) {
         }, { timeoutMs: 180_000 });
         continue;
       }
-      await page.getByText(expectation.value, { exact: false }).first().waitFor({ state: 'visible', timeout: 180_000 });
+      await visibleTextLocator(page, expectation.value).waitFor({ state: 'visible', timeout: 180_000 });
       continue;
     }
     if (kind === 'Visible') {
       const locator = expectation.target
         ? locatorFor(page, expectation.target)
-        : page.getByText(expectation.value, { exact: false }).first();
+        : visibleTextLocator(page, expectation.value);
       const shouldBeVisible = String(expectation.value ?? 'true').toLowerCase() !== 'false';
       await locator.waitFor({ state: shouldBeVisible ? 'visible' : 'hidden', timeout: 180_000 });
       continue;
