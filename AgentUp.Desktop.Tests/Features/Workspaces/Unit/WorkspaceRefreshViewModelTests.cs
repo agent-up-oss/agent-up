@@ -1,4 +1,5 @@
 using System.Reactive.Linq;
+using System.Reactive.Threading.Tasks;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
 
 namespace AgentUp.Desktop.Tests.Features.Workspaces.Unit;
@@ -6,6 +7,8 @@ namespace AgentUp.Desktop.Tests.Features.Workspaces.Unit;
 [TestFixture]
 public sealed class WorkspaceRefreshViewModelTests
 {
+    private static readonly TimeSpan Bounded = TimeSpan.FromSeconds(10);
+
     [Test]
     public async Task ConfirmCommand_isDisabledUntilARevisionIsEntered()
     {
@@ -45,8 +48,11 @@ public sealed class WorkspaceRefreshViewModelTests
     [Test]
     public async Task ConfirmCommand_keepsTheDialogOpenWhenTheRefreshFails()
     {
-        var gate = new TaskCompletionSource<bool>();
-        var started = new TaskCompletionSource();
+        // Continuations run asynchronously so the test never resumes inline inside the
+        // command's own pipeline, and every wait is bounded: in the full suite this test once
+        // stalled until the hang detector killed the test host and took every later result with it.
+        var gate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var viewModel = new WorkspaceRefreshViewModel(async (_, _) =>
         {
             started.TrySetResult();
@@ -54,18 +60,18 @@ public sealed class WorkspaceRefreshViewModelTests
         });
         viewModel.Show("review", "topic");
 
-        var completed = new TaskCompletionSource();
+        var completed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         using var subscription = viewModel.ConfirmCommand.Execute().Subscribe(
             _ => completed.TrySetResult(),
-            completed.SetException);
-        await started.Task;
+            exception => completed.TrySetException(exception));
+        await started.Task.WaitAsync(Bounded);
 
         Assert.That(viewModel.IsBusy, Is.True);
         Assert.That(viewModel.ConfirmLabel, Is.EqualTo("Refreshing…"));
-        Assert.That(await viewModel.ConfirmCommand.CanExecute.FirstAsync(), Is.False);
+        Assert.That(await viewModel.ConfirmCommand.CanExecute.FirstAsync().ToTask().WaitAsync(Bounded), Is.False);
 
         gate.SetResult(false);
-        await completed.Task;
+        await completed.Task.WaitAsync(Bounded);
 
         Assert.That(viewModel.IsVisible, Is.True);
         Assert.That(viewModel.Revision, Is.EqualTo("topic"));
