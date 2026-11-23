@@ -1056,8 +1056,10 @@ test('the scene owns the board: groups, labels, grips, tones, and the empty copy
   const h = (type, props, ...children) => ({ type, props: props ?? {}, children: children.flat() });
   const React = { createElement: h };
   const Scene = createNewUiScene(React, { View: 'View', Text: 'Text', Pressable: 'Pressable', ScrollView: 'ScrollView' });
+  // The board is the Issues tab of Tasks. The client always names the open tab, so mount it the
+  // way the client does rather than with no tab, which draws only the tab strip.
   const mount = items => {
-    const tree = Scene({ scene: 'mobile-tasks', items });
+    const tree = Scene({ scene: 'mobile-tasks', state: { tasksTab: 'issues', issuesTab: '1' }, items });
     const expand = node => (node && typeof node.type === 'function' ? expand(node.type(node.props)) : node);
     return expand(tree);
   };
