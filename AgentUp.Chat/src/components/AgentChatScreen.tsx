@@ -9,6 +9,7 @@ import { authenticateAgent, bindAgent, cancelAgent, decideAgentPermission, enabl
 import { AgentLoopControls } from './AgentLoopControls';
 import { presentAgentRow } from '../providers/AgentAvailabilityProvider';
 import { shouldShowLoopControls } from '../providers/LoopSurfaceProvider';
+import { composerState } from '../providers/ComposerProvider';
 import { AgentSignIn } from './AgentSignIn';
 import { MarkdownView } from './MarkdownView';
 import { Arrive, Reveal, useReducedMotion } from './Motion';
@@ -228,8 +229,9 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent, on
     catch (cause) { setError(readError(cause)); }
   };
   // A running turn does not block sending: the Server queues the message as steering for the next turn.
-  const steering = session?.state === 'running' && !permission;
-  const sendBlocked = waiting && !steering;
+  const composer = composerState({ state: session?.state, permission: Boolean(permission), busy });
+  const steering = composer.steering;
+  const sendBlocked = composer.blocked;
   const send = async () => {
     const text = message.trim(); if (!server || !text || sendBlocked) return;
     setMessage(''); setBusy(true); setError(null);
@@ -352,7 +354,7 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent, on
           </View>}
           {error && <Text style={styles.error}>{error}</Text>}
           {session?.sessionId && <View style={styles.composer}>
-            <TextInput accessibilityLabel="Message the agent" multiline value={message} onChangeText={setMessage} editable={!waiting} placeholder={permission ? 'Choose an option to continue…' : 'Ask the agent…'} placeholderTextColor={agentUpTheme.colors.textFaint} style={styles.input}/>
+            <TextInput accessibilityLabel="Message the agent" multiline value={message} onChangeText={setMessage} editable={composer.editable} placeholder={permission ? 'Choose an option to continue…' : 'Ask the agent…'} placeholderTextColor={agentUpTheme.colors.textFaint} style={styles.input}/>
             <Pressable accessibilityRole="button" accessibilityLabel={steering ? 'Steer' : 'Send'} disabled={sendBlocked || busy || !message.trim()} onPress={() => void send()} style={[styles.send, (sendBlocked || busy || !message.trim()) && styles.disabled]}>{busy ? <ActivityIndicator color={agentUpTheme.colors.onAccent} /> : <Text style={styles.sendText}>{steering ? 'Steer' : 'Send'}</Text>}</Pressable>
           </View>}
         </View>}
