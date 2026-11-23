@@ -1,0 +1,145 @@
+name: Build the iOS store archive
+# Mobile · iOS store archive. The steps the native store pipeline ran before it was folded into
+# ci.yml, up to and including the artifact; Mobile release uploads that artifact to App Store
+# Connect. Runs on macos-26 with Xcode 26.4: CocoaPods and xcodebuild cannot run on Linux, and
+# Expo SDK 58 needs the iOS 27 SDK.
+description: Builds, signs and validates the App Store IPA of the full Mobile client and uploads it with its checksum and release manifest.
+
+inputs:
+  version:
+    description: Marketing version for the binary.
+    required: true
+  version-code:
+    description: CFBundleVersion for the binary.
+    required: true
+  source-tag:
+    description: Product tag the version came from, or ci on an ordinary run.
+    required: true
+  appstore-key-id:
+    description: App Store Connect API key id.
+    required: true
+  appstore-issuer-id:
+    description: App Store Connect API issuer id.
+    required: true
+  appstore-p8:
+    description: App Store Connect API private key.
+    required: true
+  match-password:
+    description: Fastlane Match passphrase.
+    required: true
+  match-repository:
+    description: Match git store as org/repo.
+    required: true
+  match-deploy-key:
+    description: Read-only deploy key for the Match store.
+    required: true
+  sentry-dsn:
+    description: Optional Mobile Sentry DSN baked into the build.
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Describe the build
+      id: build
+      shell: bash
+      run: |
+        name="Agent-Up-${{ inputs.version }}-${{ inputs.version-code }}"
+        echo "artifact_name=$name" >> "$GITHUB_OUTPUT"
+        {
+          echo "AGENTUP_MOBILE_VERSION=${{ inputs.version }}"
+          echo "AGENTUP_MOBILE_VERSION_CODE=${{ inputs.version-code }}"
+          echo "EXPO_NO_TELEMETRY=1"
+          echo "IOS_BUNDLE_ID=net.themassiveone.agent-up.ios"
+        } >> "$GITHUB_ENV"
+
+    - uses: actions/setup-node@v7
+      with:
+        node-version: 22
+        cache: npm
+        cache-dependency-path: |
+          AgentUp.Mobile/package-lock.json
+          AgentUp.Chat/package-lock.json
+          AgentUp.AgentAuth/package-lock.json
+          AgentUp.ServerClient/package-lock.json
+
+    - uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: "26.4"
+
+    - uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: "3.3"
+        bundler-cache: true
+
+    - name: Require iOS secrets
+      shell: bash
+      env:
+        APPSTORE_KEY_ID: ${{ inputs.appstore-key-id }}
+        APPSTORE_ISSUER_ID: ${{ inputs.appstore-issuer-id }}
+        APPSTORE_P8: ${{ inputs.appstore-p8 }}
+        MATCH_PASSWORD: ${{ inputs.match-password }}
+        MATCH_REPOSITORY: ${{ inputs.match-repository }}
+        MATCH_DEPLOY_KEY: ${{ inputs.match-deploy-key }}
+      run: bash .github/scripts/require-env.sh APPSTORE_KEY_ID APPSTORE_ISSUER_ID APPSTORE_P8 MATCH_PASSWORD MATCH_REPOSITORY MATCH_DEPLOY_KEY
+
+    - uses: webfactory/ssh-agent@v0.10.0
+      with:
+        ssh-private-key: ${{ inputs.match-deploy-key }}
+
+    - name: Install JavaScript dependencies
+      shell: bash
+      run: ./.github/scripts/install-mobile-deps.sh
+
+    - name: Prebuild iOS
+      shell: bash
+      working-directory: AgentUp.Mobile
+      env:
+        EXPO_PUBLIC_SENTRY_DSN: ${{ inputs.sentry-dsn }}
+        EXPO_PUBLIC_SENTRY_RELEASE: ${{ inputs.version }}
+      run: npx expo prebuild --platform ios --clean --non-interactive
+
+    - name: Build signed IPA
+      shell: bash
+      env:
+        APPSTORE_KEY_ID: ${{ inputs.appstore-key-id }}
+        APPSTORE_ISSUER_ID: ${{ inputs.appstore-issuer-id }}
+        APPSTORE_P8: ${{ inputs.appstore-p8 }}
+        MATCH_PASSWORD: ${{ inputs.match-password }}
+        MATCH_REPOSITORY: ${{ inputs.match-repository }}
+        MOBILE_OUTPUT_DIR: dist-native
+        IOS_OUTPUT_NAME: ${{ steps.build.outputs.artifact_name }}
+      run: bundle exec fastlane ios build
+
+    - name: Prepare iOS artifact
+      shell: bash
+      working-directory: AgentUp.Mobile
+      run: |
+        bash ../.github/scripts/prepare-mobile-artifact.sh \
+          "dist-native/${{ steps.build.outputs.artifact_name }}.ipa" \
+          "../artifacts/mobile/${{ steps.build.outputs.artifact_name }}.ipa"
+
+    - name: Validate iOS artifact
+      shell: bash
+      run: |
+        bash .github/scripts/verify-mobile-artifact.sh \
+          "artifacts/mobile/${{ steps.build.outputs.artifact_name }}.ipa" \
+          ipa
+
+    - name: Write the release manifest
+      shell: bash
+      run: |
+        node .github/scripts/mobile-release-manifest.mjs write artifacts/mobile/release.json \
+          ios "${{ inputs.version }}" "${{ inputs.version-code }}" "${{ inputs.source-tag }}" \
+          "${{ steps.build.outputs.artifact_name }}.ipa"
+
+    - uses: actions/upload-artifact@v7
+      with:
+        name: mobile-ios
+        path: |
+          artifacts/mobile/${{ steps.build.outputs.artifact_name }}.ipa
+          artifacts/mobile/${{ steps.build.outputs.artifact_name }}.ipa.sha256
+          artifacts/mobile/release.json
+        if-no-files-found: error
+        retention-days: 1

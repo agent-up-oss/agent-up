@@ -5,7 +5,9 @@
 // A leg is proven only by its own verdict. A leg with no verdict did not run - it was skipped,
 // cancelled, or failed before it could record one - and that fails the gate exactly like a leg
 // that ran and failed. A green run therefore means every declared leg ran and passed, never that
-// a leg quietly decided it had nothing to do.
+// a leg quietly decided it had nothing to do. The one exception is declared: a leg whose
+// `skippable` says when it cannot run may record a skipped verdict then, and the summary names
+// it as skipped with that reason rather than counting it as passed.
 //
 //   node .github/scripts/behavior-matrix.mjs render \
 //     --matrix .github/behavior-matrix.json --verdicts verdicts [--needs needs.json] [--summary out.md]
@@ -73,6 +75,8 @@ export function validate(matrix) {
       legIds.add(leg.id);
       if (!leg.job && !leg.matrixJob && !stage.matrixJob)
         problems.push(`Leg '${stage.id}/${leg.id}' names no job.`);
+      if ('skippable' in leg && (typeof leg.skippable !== 'string' || leg.skippable.trim() === ''))
+        problems.push(`Leg '${stage.id}/${leg.id}' declares skippable without saying when it skips.`);
     }
 
     if (stage.axes) {
@@ -142,8 +146,10 @@ export function evaluate(matrix, verdicts, needs = {}) {
     else if (needs[leg.job]?.result === 'skipped') status = 'skipped';
     return { ...leg, status };
   });
-  const unproven = legs.filter(leg => leg.status !== 'success');
-  return { legs, unproven, passed: unproven.length === 0 };
+  const declaredSkip = leg => leg.status === 'skipped' && Boolean(verdicts.get(`${leg.stage}/${leg.id}`)) && Boolean(leg.skippable);
+  const skipped = legs.filter(declaredSkip);
+  const unproven = legs.filter(leg => leg.status !== 'success' && !declaredSkip(leg));
+  return { legs, unproven, skipped, passed: unproven.length === 0 };
 }
 
 function normalise(status) {
@@ -163,13 +169,18 @@ export function render(matrix, evaluation) {
 
   const lines = ['# Behavior matrix', ''];
   const total = evaluation.legs.length;
-  const passed = total - evaluation.unproven.length;
+  const skipped = evaluation.skipped ?? [];
+  const passed = total - evaluation.unproven.length - skipped.length;
   const named = evaluation.unproven.slice(0, 8).map(leg => `${leg.stage}/${leg.id} ${WORD[leg.status]}`);
   const more = evaluation.unproven.length - named.length;
+  const skips = skipped.length > 0 ? ` ${skipped.length} skipped as declared.` : '';
   lines.push(evaluation.passed
-    ? `${ICON.success} **All ${total} legs passed.** ${gapCount} known gap(s) are listed below; nothing proves those cells yet.`
-    : `${ICON.failure} **${passed} of ${total} legs passed.** ${named.join(', ')}${more > 0 ? `, and ${more} more` : ''}.`);
+    ? `${ICON.success} **${skipped.length > 0 ? `${passed} of ${total} legs passed.**${skips}` : `All ${total} legs passed.**`} ${gapCount} known gap(s) are listed below; nothing proves those cells yet.`
+    : `${ICON.failure} **${passed} of ${total} legs passed.** ${named.join(', ')}${more > 0 ? `, and ${more} more` : ''}.${skips}`);
   lines.push('');
+  for (const leg of skipped)
+    lines.push(`- ${ICON.skipped} **${leg.title}** skipped as declared: ${leg.skippable}`);
+  if (skipped.length > 0) lines.push('');
 
   for (const stage of matrix.stages) {
     const legs = byStage.get(stage.id) ?? [];

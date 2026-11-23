@@ -8,8 +8,9 @@ namespace AgentUp.Architecture.Tests.Rules;
 /// Keeps .github/workflows/ci.yml and .github/behavior-matrix.json describing one pipeline. Each
 /// stage is one matrix job named after its domain, every matrix entry is a declared leg that records
 /// its verdict last, every declared leg is a matrix entry, the Behavior matrix job waits for all of
-/// them and Release waits for it, and Source gates release only - no behavior leg waits for a source
-/// suite or for coverage. Definition: docs/developer-guide/repo/ci.md.
+/// them, Release and Mobile release wait for it and never run in the same run, and Source gates
+/// release only - no behavior leg waits for a source suite or for coverage. Definition:
+/// docs/developer-guide/repo/ci.md.
 /// </summary>
 [TestFixture]
 public sealed class CiBehaviorMatrix
@@ -17,7 +18,8 @@ public sealed class CiBehaviorMatrix
     private const string VerdictAction = "./.github/actions/record-verdict";
     private const string Gate = "behavior-matrix";
     private const string Release = "release";
-    private static readonly string[] StructuralJobs = ["version", Gate, Release];
+    private const string MobileRelease = "mobile-release";
+    private static readonly string[] StructuralJobs = ["version", Gate, Release, MobileRelease];
 
     [Test]
     public void EveryCiJobIsADeclaredLeg_andEveryLegIsAJob()
@@ -77,7 +79,7 @@ public sealed class CiBehaviorMatrix
             else if (!(Scalar(step, "if") ?? string.Empty).Contains("always()", StringComparison.Ordinal))
                 violations.Add($"Job '{group.Key}' records its verdict only on success; use if: ${{{{ always() }}}}.");
             else if (with is null || Scalar(with, "stage") != first.Stage || Scalar(with, "leg") != expectedLeg
-                     || Scalar(with, "status") != "${{ job.status }}")
+                     || !RecordsJobStatus(Scalar(with, "status")))
                 violations.Add($"Job '{group.Key}' must record stage '{first.Stage}', leg '{expectedLeg}' and job.status.");
             if (group.Select(leg => leg.Stage).Distinct(StringComparer.Ordinal).Count() > 1)
                 violations.Add($"Job '{group.Key}' runs legs of more than one stage.");
@@ -104,6 +106,22 @@ public sealed class CiBehaviorMatrix
     }
 
     [Test]
+    public void ReleaseRunsOnPushes_andMobileReleaseOnDispatches_withTheSameGate()
+    {
+        var jobs = Jobs();
+        var release = (YamlMappingNode)jobs.Children[new YamlScalarNode(Release)];
+        var mobile = (YamlMappingNode)jobs.Children[new YamlScalarNode(MobileRelease)];
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(Scalar(release, "if"), Does.Contain("github.event_name == 'push'"), "Release must run only on a push.");
+            Assert.That(Scalar(mobile, "if"), Does.Contain("github.event_name == 'workflow_dispatch'"), "Mobile release must run only on a dispatch.");
+            Assert.That(Needs(mobile).Order(StringComparer.Ordinal), Is.EqualTo(Needs(release).Order(StringComparer.Ordinal)),
+                "Mobile release waits for exactly what Release waits for.");
+        });
+    }
+
+    [Test]
     public void SourceGatesReleaseOnly()
     {
         var jobs = Jobs();
@@ -111,7 +129,7 @@ public sealed class CiBehaviorMatrix
             .ToDictionary(group => group.Key, group => group.First().Stage, StringComparer.Ordinal);
 
         var violations = JobNames(jobs)
-            .Where(job => job is not Gate and not Release)
+            .Where(job => job is not Gate and not Release and not MobileRelease)
             .SelectMany(job => Needs((YamlMappingNode)jobs.Children[new YamlScalarNode(job)])
                 .Where(need => stageOf.GetValueOrDefault(need) == "source" && stageOf.GetValueOrDefault(job) != "source")
                 .Select(need => $"'{job}' waits for source job '{need}'; source suites and coverage gate release only."))
@@ -175,6 +193,14 @@ public sealed class CiBehaviorMatrix
             _ => []
         };
     }
+
+    /// <summary>
+    /// A leg records the job's status, or a declared skip that falls back to it. A leg may never
+    /// record a fixed status, which would report success whatever happened.
+    /// </summary>
+    private static bool RecordsJobStatus(string? status)
+        => status is not null && status.StartsWith("${{", StringComparison.Ordinal)
+           && status.TrimEnd().EndsWith("job.status }}", StringComparison.Ordinal);
 
     private static string? Scalar(YamlMappingNode node, string key)
         => node.Children.TryGetValue(new YamlScalarNode(key), out var value) ? (value as YamlScalarNode)?.Value : null;

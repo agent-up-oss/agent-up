@@ -3,24 +3,27 @@ name: Agent-Up CI
 # One workflow, one job per domain. Each job is a matrix whose entries are the legs of
 # .github/behavior-matrix.json, so the run graph reads as the domains and their legs:
 #
-#   Plan       the release version
-#   Build      every artifact that ships, produced once
-#   Source     the code's own suites, coverage, budgets and performance - gates release only
-#   Backend    the Server's client contract, held against both Demos, and the Server against each
-#              real external dependency, one leg per dependency
-#   Desktop    the Desktop client against a real Server, on its Demo, and on each native display
-#   Mobile     the Mobile client and its chat module against a real Server, on its Demo, and on
-#              each native platform
-#   Installer  each native package installs, runs and uninstalls where it ships
+#   Plan            the release version, and which Mobile release legs a dispatch ships
+#   Build           the artifacts the desktop release ships, produced once
+#   Source          the code's own suites, coverage, budgets and performance - gates release only
+#   Backend         the Server's client contract, held against both Demos, and the Server against
+#                   each real external dependency, one leg per dependency
+#   Desktop         the Desktop client against a real Server, on its Demo, and on each native display
+#   Mobile          the Mobile client and its chat module against a real Server, its Demo, the
+#                   identity front door and each native platform, and its signed store binaries
+#   Docs            the docs site and the design-system catalog it publishes
+#   Installer       each native package installs, runs and uninstalls where it ships
 #
-# Each leg records a verdict as its last step. The Behavior matrix job renders the matrix with
-# those verdicts on the run summary and fails when a leg failed or never ran, so a green run means
-# every declared leg ran and passed. It is the one check to require on pull requests, and the only
-# job Release waits for. Nothing waits for Source except Release: a red suite or coverage miss never
-# hides what the behavior legs would have shown.
+# Only Build and Installer wait for anything: Build for the version it stamps, Installer for the
+# payloads it packages. Each leg records a verdict as its last step. The Behavior matrix job
+# renders the matrix with those verdicts on the run summary and fails when a leg failed or never
+# ran, so a green run means every declared leg ran and passed or was skipped for its declared
+# reason. It is the one check to require on pull requests. Release and Mobile release wait for it
+# and nothing else; Release runs on a push to main, Mobile release on a dispatch that names a
+# mobile channel, never both. Nothing waits for Source except them: a red suite or coverage miss
+# never hides what the behavior legs would have shown.
 #
-# Definition: docs/developer-guide/repo/ci.md. The native mobile store pipeline stays in
-# mobile-ci.yaml, which this workflow does not drive.
+# Definition: docs/developer-guide/repo/ci.md.
 
 on:
   push:
@@ -32,17 +35,39 @@ on:
   pull_request:
     branches:
       - '**'
+  # A dispatch runs the whole matrix. With a mobile channel it then ships the Mobile store
+  # binaries that run built; it never runs Release, which belongs to pushes to main.
   workflow_dispatch:
+    inputs:
+      mobile-channel:
+        description: Mobile store channel to ship to after the matrix passes
+        type: choice
+        required: true
+        default: none
+        options:
+          - none
+          - beta
+          - prod
+      mobile-platforms:
+        description: Mobile platforms to ship
+        type: choice
+        required: true
+        default: both
+        options:
+          - both
+          - android
+          - ios
 
 # Runs on main share one group and never cancel, so every commit that can release is built.
-# Everywhere else the newest push wins: a branch run that a later push has already superseded
-# only holds runners that the push it belongs to is waiting for.
+# A dispatch never cancels and is never cancelled: a second one on the same ref waits, so a store
+# upload is never cut off. Everywhere else the newest push wins: a branch run that a later push
+# has already superseded only holds runners that the push it belongs to is waiting for.
 concurrency:
   group: >-
-    ${{ github.ref == 'refs/heads/main'
+    ${{ github.ref == 'refs/heads/main' && github.event_name != 'workflow_dispatch'
       && format('{0}-main-release', github.workflow)
-      || format('{0}-{1}', github.workflow, github.ref) }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+      || format('{0}-{1}-{2}', github.workflow, github.event_name == 'workflow_dispatch' && 'dispatch' || 'run', github.ref) }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' && github.event_name != 'workflow_dispatch' }}
 
 permissions:
   contents: read
@@ -59,6 +84,7 @@ jobs:
       version: ${{ steps.plan.outputs.version }}
       publish: ${{ steps.plan.outputs.publish }}
       plugin_changed: ${{ steps.plugin-changes.outputs.changed }}
+      mobile_release_matrix: ${{ steps.mobile.outputs.matrix }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -90,6 +116,21 @@ jobs:
             echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
 
+      # The legs of Mobile release: the platforms a dispatch ships, both on any other run.
+      - name: Plan the Mobile release legs
+        id: mobile
+        env:
+          MOBILE_PLATFORMS: ${{ inputs.mobile-platforms }}
+        run: |
+          android='{"platform":"android","title":"Google Play","os":"ubuntu-latest"}'
+          ios='{"platform":"ios","title":"App Store Connect","os":"macos-26"}'
+          case "$MOBILE_PLATFORMS" in
+            android) legs="$android" ;;
+            ios) legs="$ios" ;;
+            *) legs="$android,$ios" ;;
+          esac
+          echo "matrix={\"include\":[$legs]}" >> "$GITHUB_OUTPUT"
+
   # ── Build: every artifact that ships, produced once ──────────────────────────────────────────
 
   build:
@@ -120,12 +161,6 @@ jobs:
           - leg: jetbrains-plugin
             title: JetBrains plugin
             timeout: 30
-          # The docs build regenerates the API reference from the Server controllers with --check,
-          # so a route change without its reference fails the PR that made it.
-          - leg: docs
-            title: docs site
-            node: true
-            timeout: 30
     steps:
       - uses: actions/checkout@v7
         with:
@@ -135,13 +170,6 @@ jobs:
         if: ${{ matrix.dotnet }}
         with:
           dotnet-version: "10.0.x"
-
-      - uses: actions/setup-node@v7
-        if: ${{ matrix.node }}
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: docs/package-lock.json
 
       - name: Publish release payloads
         if: ${{ matrix.leg == 'payloads' }}
@@ -211,13 +239,6 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-      - name: Test and build docs
-        if: ${{ matrix.leg == 'docs' }}
-        run: |
-          npm --prefix docs ci
-          npm --prefix docs test
-          npm --prefix docs run build
-
       - uses: ./.github/actions/record-verdict
         if: ${{ always() }}
         with:
@@ -245,7 +266,7 @@ jobs:
             dotnet: true
             timeout: 60
           - leg: typescript
-            title: TypeScript and design-system suites
+            title: TypeScript suites
             node: true
             timeout: 30
           - leg: budgets
@@ -300,7 +321,7 @@ jobs:
         with:
           codecov-token: ${{ secrets.CODECOV_TOKEN }}
 
-      - name: Run the TypeScript and design-system suites
+      - name: Run the TypeScript suites
         if: ${{ matrix.leg == 'typescript' }}
         run: ./.github/scripts/run-typescript-suites.sh
 
@@ -331,14 +352,22 @@ jobs:
           npm ci --ignore-scripts
           npx tsx src/features/agents/benchmark/MobilePerformanceGate.ts
 
+      # The whole tree, not only TRX files: a hung suite leaves its blame sequence and hang
+      # dump beside the results, and those are what name the test that hung.
       - uses: actions/upload-artifact@v7
-        if: ${{ !cancelled() && (matrix.leg == 'dotnet' || matrix.leg == 'budgets') }}
+        if: ${{ !cancelled() && matrix.leg == 'dotnet' }}
         with:
-          name: source-${{ matrix.leg }}-results
-          path: |
-            artifacts/test-results/**/*.trx
-            artifacts/test-kind-watchdog/*.trx
-          if-no-files-found: warn
+          name: source-dotnet-results
+          path: artifacts/test-results
+          if-no-files-found: error
+          retention-days: 7
+
+      - uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() && matrix.leg == 'budgets' }}
+        with:
+          name: source-budgets-results
+          path: artifacts/test-kind-watchdog/*.trx
+          if-no-files-found: error
           retention-days: 7
 
       - uses: ./.github/actions/record-verdict
@@ -487,15 +516,14 @@ jobs:
   # Journeys replay the QA flows of docs/developer-guide/verification/qa-coverage.md on an isolated
   # real Server. Showcase drives the client on its Demo through every screen the design system
   # documents. Native runs AgentUp.Tests on a real display: Linux from source, macOS and Windows
-  # from the runner Build published for them, which is why this domain waits for Build.
+  # from a framework-dependent runner each leg publishes for its own runtime, so this domain
+  # waits for nothing.
   desktop:
     name: Desktop · ${{ matrix.title }}
     runs-on: ${{ matrix.os }}
-    needs: build
     timeout-minutes: ${{ matrix.timeout }}
     permissions:
       contents: read
-      actions: write
       checks: write
     env:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
@@ -600,24 +628,12 @@ jobs:
           fail_ci_if_error: true
           disable_search: true
 
-      # Native macOS and Windows: the published runner, which Build uploaded per runtime.
-      - uses: actions/download-artifact@v8
-        if: ${{ matrix.rid }}
-        with:
-          name: native-e2e-${{ matrix.rid }}
-          path: native-e2e
-
-      - name: Delete consumed native E2E artifact
+      # Native macOS and Windows: Avalonia Native has to initialise on the process main thread,
+      # so the suite runs from its NUnitLite entry point rather than under dotnet test.
+      - name: Publish the native-display runner for this runtime
         if: ${{ matrix.rid }}
         shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          artifact_name="native-e2e-${{ matrix.rid }}"
-          artifact_id="$(gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" --jq ".artifacts[] | select(.name == \"$artifact_name\") | .id" 2>/dev/null | head -n 1)"
-          if [ -n "$artifact_id" ]; then
-            gh api -X DELETE "repos/${{ github.repository }}/actions/artifacts/$artifact_id" >/dev/null 2>&1 || true
-          fi
+        run: ./.github/scripts/publish-native-e2e-runner.sh ${{ matrix.rid }} native-e2e/agent-up-tests
 
       # The suite takes seconds. A fixture that blocks the Avalonia UI thread waits on it forever,
       # so cap the step rather than let a hang hold the runner for the job default.
@@ -682,13 +698,67 @@ jobs:
           leg: ${{ matrix.leg }}
           status: ${{ job.status }}
 
+  # ── Docs: the docs site and the design-system catalog it publishes ───────────────────────────
+
+  # The site build regenerates the API reference from the Server controllers with --check, so a
+  # route change without its reference fails the change that made it, and holds every page to the
+  # page standard. The catalog leg holds the design system to being the only visual source: one
+  # palette, catalog-only paint, and the scenes both command centers mount.
+  docs:
+    name: Docs · ${{ matrix.title }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - leg: site
+            title: Site and API reference
+          - leg: design-system
+            title: Design-system catalog
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            docs/package-lock.json
+            AgentUp.DesignSystem/package-lock.json
+
+      - name: Test and build the docs site
+        if: ${{ matrix.leg == 'site' }}
+        run: |
+          npm --prefix docs ci
+          npm --prefix docs test
+          npm --prefix docs run build
+
+      - name: Run the design-system suite
+        if: ${{ matrix.leg == 'design-system' }}
+        run: |
+          npm --prefix AgentUp.DesignSystem ci
+          npm --prefix AgentUp.DesignSystem test
+
+      - uses: ./.github/actions/record-verdict
+        if: ${{ always() }}
+        with:
+          stage: docs
+          leg: ${{ matrix.leg }}
+          status: ${{ job.status }}
+
   # ── Mobile: the Mobile client and its chat module, against each backend and native platform ──
 
-  # Journeys and Showcase mirror Desktop's. Sign-in drives the chat module's agent sign-in, every
+  # Journeys and Showcase mirror Desktop's. Browser SSO signs the installable web client in through
+  # the identity front door example. Sign-in drives the chat module's agent sign-in, every
   # transport, against a real Server, the test agents and the identity provider, on the PWA, a
-  # real Android emulator and a real iOS simulator. Each sign-in leg publishes the Server and test
-  # agents itself while it provisions its emulator or toolchain; its cache keeps an unchanged
-  # client from being rebuilt.
+  # real Android emulator and a real iOS simulator; each sign-in leg publishes the Server and test
+  # agents itself while it provisions its emulator or toolchain, and its cache keeps an unchanged
+  # client from being rebuilt. The store legs build, sign and validate the full client for Google
+  # Play and the App Store on every run, so a change that breaks a store build is red where it was
+  # made; Mobile release uploads exactly those binaries.
   mobile:
     name: Mobile · ${{ matrix.title }}
     runs-on: ${{ matrix.os }}
@@ -705,6 +775,10 @@ jobs:
             title: Showcase on the Demo
             os: ubuntu-latest
             timeout: 40
+          - leg: browser-sso
+            title: Browser SSO front door
+            os: ubuntu-latest
+            timeout: 30
           - leg: sign-in-web
             title: Sign-in on the installable web
             os: ubuntu-latest
@@ -717,8 +791,21 @@ jobs:
             title: Sign-in on iOS
             os: macos-latest
             timeout: 150
+          - leg: store-android
+            title: Android store bundle
+            os: ubuntu-latest
+            platform: android
+            timeout: 120
+          - leg: store-ios
+            title: iOS store archive
+            os: macos-26
+            platform: ios
+            timeout: 150
     steps:
       - uses: actions/checkout@v7
+        with:
+          # A mobile release versions from the newest product tag reachable from this commit.
+          fetch-depth: ${{ matrix.platform && '0' || '1' }}
 
       - uses: actions/setup-dotnet@v6
         if: ${{ matrix.leg == 'journeys' || matrix.leg == 'showcase' }}
@@ -726,13 +813,14 @@ jobs:
           dotnet-version: "10.0.x"
 
       - uses: actions/setup-node@v7
-        if: ${{ matrix.leg == 'journeys' || matrix.leg == 'showcase' }}
+        if: ${{ matrix.leg == 'journeys' || matrix.leg == 'showcase' || matrix.leg == 'browser-sso' }}
         with:
           node-version: 22
           cache: npm
           cache-dependency-path: |
             AgentUp.Mobile/package-lock.json
             AgentUp.Mobile.E2E/package-lock.json
+            Examples/browser-sso/package-lock.json
 
       - name: Replay every Mobile journey
         if: ${{ matrix.leg == 'journeys' }}
@@ -753,6 +841,10 @@ jobs:
         continue-on-error: true
         run: ./.github/scripts/compare-product-screens.sh mobile
 
+      - name: Sign in through the browser SSO front door
+        if: ${{ matrix.leg == 'browser-sso' }}
+        run: ./.github/scripts/run-browser-sso.sh
+
       - name: Sign in on the installable web build
         if: ${{ matrix.leg == 'sign-in-web' }}
         uses: ./.github/actions/sign-in-web
@@ -765,7 +857,67 @@ jobs:
         if: ${{ matrix.leg == 'sign-in-ios' }}
         uses: ./.github/actions/sign-in-ios
 
-      # The sign-in actions upload their own diagnostics when they fail.
+      # A store leg signs on every run except where GitHub withholds the signing secrets, and on a
+      # mobile release dispatch that ships the other platform only. Those record a declared skip
+      # with its reason, which the Behavior matrix shows as skipped rather than passed.
+      - name: Decide whether this store leg signs
+        id: store
+        if: ${{ matrix.platform }}
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          ACTOR: ${{ github.actor }}
+          REPOSITORY: ${{ github.repository }}
+          HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
+          MOBILE_CHANNEL: ${{ inputs.mobile-channel }}
+          MOBILE_PLATFORMS: ${{ inputs.mobile-platforms }}
+          STORE_PLATFORM: ${{ matrix.platform }}
+        run: node .github/scripts/mobile-store-leg.mjs
+
+      # An ordinary run builds 0.0.0; a mobile release versions from the newest vX.Y.Z tag
+      # reachable from this commit. Either way the build number is this run's number.
+      - name: Plan the store version
+        id: store-version
+        if: ${{ steps.store.outputs.sign == 'true' }}
+        run: |
+          if [ "${{ steps.store.outputs.release }}" = true ]; then
+            node .github/scripts/plan-mobile-version.js
+          else
+            {
+              echo "source_tag=ci"
+              echo "version=0.0.0"
+              echo "version_code=${GITHUB_RUN_NUMBER}"
+            } >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build, sign and validate the Android store bundle
+        if: ${{ steps.store.outputs.sign == 'true' && matrix.platform == 'android' }}
+        uses: ./.github/actions/mobile-store-android
+        with:
+          version: ${{ steps.store-version.outputs.version }}
+          version-code: ${{ steps.store-version.outputs.version_code }}
+          source-tag: ${{ steps.store-version.outputs.source_tag }}
+          keystore-base64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          keystore-pass: ${{ secrets.ANDROID_KEYSTORE_PASS }}
+          keyalias-name: ${{ secrets.ANDROID_KEYALIAS_NAME }}
+          keyalias-pass: ${{ secrets.ANDROID_KEYALIAS_PASS }}
+          sentry-dsn: ${{ secrets.SENTRY_DSN_MOBILE }}
+
+      - name: Build, sign and validate the iOS store archive
+        if: ${{ steps.store.outputs.sign == 'true' && matrix.platform == 'ios' }}
+        uses: ./.github/actions/mobile-store-ios
+        with:
+          version: ${{ steps.store-version.outputs.version }}
+          version-code: ${{ steps.store-version.outputs.version_code }}
+          source-tag: ${{ steps.store-version.outputs.source_tag }}
+          appstore-key-id: ${{ secrets.APPSTORE_KEY_ID }}
+          appstore-issuer-id: ${{ secrets.APPSTORE_ISSUER_ID }}
+          appstore-p8: ${{ secrets.APPSTORE_P8 }}
+          match-password: ${{ secrets.MATCH_PASSWORD }}
+          match-repository: ${{ secrets.MATCH_REPOSITORY }}
+          match-deploy-key: ${{ secrets.MATCH_DEPLOY_KEY }}
+          sentry-dsn: ${{ secrets.SENTRY_DSN_MOBILE }}
+
+      # The sign-in and store actions upload their own diagnostics and binaries.
       - uses: actions/upload-artifact@v7
         if: ${{ !cancelled() && (matrix.leg == 'journeys' || matrix.leg == 'showcase') }}
         with:
@@ -781,7 +933,7 @@ jobs:
         with:
           stage: mobile
           leg: ${{ matrix.leg }}
-          status: ${{ job.status }}
+          status: ${{ steps.store.outputs.sign == 'false' && 'skipped' || job.status }}
 
   # ── Installer: each native package where it ships ────────────────────────────────────────────
 
@@ -1051,6 +1203,7 @@ jobs:
       - backend
       - desktop
       - mobile
+      - docs
       - installer
     steps:
       - uses: actions/checkout@v7
@@ -1078,6 +1231,8 @@ jobs:
             --needs "$RUNNER_TEMP/needs.json" \
             --summary "$GITHUB_STEP_SUMMARY"
 
+  # Release runs only on a push to main. A dispatch, with or without a mobile channel, never
+  # reaches it.
   release:
     name: Release
     runs-on: ubuntu-latest
@@ -1189,3 +1344,87 @@ jobs:
           fi
 
           ./gradlew --no-daemon publishPlugin -PagentUpVersion="${{ needs.version.outputs.version }}"
+
+  # Mobile release sits beside Release and waits for the same two things. It runs only on a
+  # dispatch that names a mobile channel, and Release only on a push to main, so one run never
+  # does both. It uploads the binaries the Mobile store legs built, verified against their
+  # checksums, rather than building again.
+  mobile-release:
+    name: Mobile release · ${{ matrix.title }}
+    runs-on: ${{ matrix.os }}
+    needs: [behavior-matrix, version]
+    if: ${{ github.event_name == 'workflow_dispatch' && (inputs.mobile-channel == 'beta' || inputs.mobile-channel == 'prod') }}
+    timeout-minutes: 60
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.version.outputs.mobile_release_matrix) }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: maxim-lobanov/setup-xcode@v1
+        if: ${{ matrix.platform == 'ios' }}
+        with:
+          xcode-version: "26.4"
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: mobile-${{ matrix.platform }}
+          path: artifacts/mobile
+
+      - name: Read what the store leg built
+        id: built
+        run: node .github/scripts/mobile-release-manifest.mjs read artifacts/mobile/release.json ${{ matrix.platform }} >> "$GITHUB_OUTPUT"
+
+      - name: Verify the binary against its checksum
+        run: (cd artifacts/mobile && shasum -a 256 -c "$(basename "${{ steps.built.outputs.checksumPath }}")")
+
+      - name: Require Play upload secrets
+        if: ${{ matrix.platform == 'android' }}
+        env:
+          GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+        run: bash .github/scripts/require-env.sh GOOGLE_PLAY_SERVICE_ACCOUNT_JSON
+
+      - name: Write Play service account
+        if: ${{ matrix.platform == 'android' }}
+        env:
+          GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          printf '%s' "$GOOGLE_PLAY_SERVICE_ACCOUNT_JSON" > "$RUNNER_TEMP/google-play.json"
+          python3 -c 'import json,sys; json.load(open(sys.argv[1]))' "$RUNNER_TEMP/google-play.json"
+
+      - name: Upload to Google Play
+        if: ${{ matrix.platform == 'android' }}
+        env:
+          ANDROID_AAB_PATH: ${{ github.workspace }}/${{ steps.built.outputs.path }}
+          ANDROID_PACKAGE_NAME: net.themassiveone.agentup.android
+          GOOGLE_PLAY_KEY_FILE_PATH: ${{ runner.temp }}/google-play.json
+        run: bundle exec fastlane android ${{ inputs.mobile-channel == 'prod' && 'release' || 'beta' }}
+
+      - name: Upload to App Store Connect
+        if: ${{ matrix.platform == 'ios' }}
+        env:
+          APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
+          APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+          APPSTORE_P8: ${{ secrets.APPSTORE_P8 }}
+          IOS_IPA_PATH: ${{ github.workspace }}/${{ steps.built.outputs.path }}
+        run: bundle exec fastlane ios ${{ inputs.mobile-channel == 'prod' && 'release' || 'beta' }}
+
+      - name: Publish the ${{ matrix.platform }}-v GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          bash .github/scripts/publish-mobile-github-release.sh \
+            ${{ matrix.platform }} \
+            "${{ steps.built.outputs.version }}" \
+            "${{ steps.built.outputs.versionCode }}" \
+            "${{ inputs.mobile-channel }}" \
+            "${{ steps.built.outputs.sourceTag }}" \
+            "${{ steps.built.outputs.path }}" \
+            "${{ steps.built.outputs.checksumPath }}"

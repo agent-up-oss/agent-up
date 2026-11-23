@@ -1,5 +1,5 @@
 name: Build release payloads
-description: Publishes the self-contained payloads, packaging and smoke tools, the native E2E runners and the SBOM, split per consumer.
+description: Publishes the self-contained payloads, the packaging and smoke tools and the SBOM, split per Installer leg.
 
 inputs:
   version:
@@ -31,8 +31,8 @@ runs:
         SENTRY_DSN_CLI: ${{ inputs.sentry-dsn-cli }}
       run: ./.github/scripts/publish-dotnet-ci-artifacts.sh "${{ inputs.version }}" "artifacts/dotnet-ci"
 
-    # Installer legs take packaging tools and payloads; native desktop legs take only the
-    # framework-dependent E2E runner. Splitting them lets each consumer delete what it used.
+    # Each Installer leg takes the packaging tools and payloads of its own runtime only, and
+    # deletes the artifact it used.
     - name: Prepare per-consumer .NET CI artifacts
       shell: bash
       run: |
@@ -51,10 +51,6 @@ runs:
           cp -a "artifacts/dotnet-ci/tools/$rid/packaging" "$target/tools/$rid/"
           cp -a "artifacts/dotnet-ci/tools/$rid/package-smoke" "$target/tools/$rid/"
           cp -a "artifacts/dotnet-ci/payloads/$rid" "$target/payloads/"
-        done
-        for rid in osx-arm64 osx-x64 win-x64; do
-          mkdir -p "artifacts/ci-transfer/native-e2e-$rid"
-          cp -a "artifacts/dotnet-ci/tools/$rid/agent-up-tests" "artifacts/ci-transfer/native-e2e-$rid/"
         done
 
     - uses: actions/upload-artifact@v7
@@ -89,27 +85,6 @@ runs:
       with:
         name: dotnet-ci-windows-win-x64
         path: artifacts/ci-transfer/windows-win-x64/dotnet-ci
-        if-no-files-found: error
-        retention-days: 1
-
-    - uses: actions/upload-artifact@v7
-      with:
-        name: native-e2e-osx-arm64
-        path: artifacts/ci-transfer/native-e2e-osx-arm64
-        if-no-files-found: error
-        retention-days: 1
-
-    - uses: actions/upload-artifact@v7
-      with:
-        name: native-e2e-osx-x64
-        path: artifacts/ci-transfer/native-e2e-osx-x64
-        if-no-files-found: error
-        retention-days: 1
-
-    - uses: actions/upload-artifact@v7
-      with:
-        name: native-e2e-win-x64
-        path: artifacts/ci-transfer/native-e2e-win-x64
         if-no-files-found: error
         retention-days: 1
 

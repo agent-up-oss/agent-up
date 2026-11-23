@@ -131,3 +131,38 @@ test('verdict files are read recursively and the later file for a leg wins', () 
   assert.equal(readVerdicts(directory).get('frontend/journeys-mobile').status, 'success');
   assert.equal(readVerdicts(join(directory, 'absent')).size, 0);
 });
+
+test('a skipped verdict passes the gate only for a leg that declares when it skips', () => {
+  const matrix = sample();
+  const everyLeg = status => verdicts([
+    ['source', 'dotnet', 'success'],
+    ['frontend', 'journeys-desktop', 'success'],
+    ['frontend', 'showcase-desktop', 'success'],
+    ['frontend', 'journeys-mobile', status],
+  ]);
+  assert.equal(evaluate(matrix, everyLeg('skipped')).passed, false);
+
+  matrix.stages[1].legs[2].skippable = 'Without signing secrets.';
+  const evaluation = evaluate(matrix, everyLeg('skipped'));
+  assert.equal(evaluation.passed, true);
+  assert.deepEqual(evaluation.skipped.map(leg => leg.id), ['journeys-mobile']);
+  assert.match(render(matrix, evaluation), /3 of 4 legs passed\.\*\* 1 skipped as declared\./);
+  assert.match(render(matrix, evaluation), /Journeys · Mobile\*\* skipped as declared: Without signing secrets\./);
+});
+
+test('a declared skippable leg that recorded nothing still fails the gate', () => {
+  const matrix = sample();
+  matrix.stages[1].legs[2].skippable = 'Without signing secrets.';
+  const evaluation = evaluate(matrix, verdicts([
+    ['source', 'dotnet', 'success'],
+    ['frontend', 'journeys-desktop', 'success'],
+    ['frontend', 'showcase-desktop', 'success'],
+  ]), { journeys: { result: 'skipped' } });
+  assert.equal(evaluation.passed, false);
+});
+
+test('skippable must say when the leg skips', () => {
+  const matrix = sample();
+  matrix.stages[1].legs[2].skippable = ' ';
+  assert.match(validate(matrix).join('\n'), /declares skippable without saying when it skips/);
+});

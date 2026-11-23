@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Source · TypeScript and design-system suites: every TypeScript client module, the design
-# system's own suite, the end-to-end harness, and this workflow's own scripts. The CI runner has
-# no Nix, so the commands the repository npm scripts wrap in nix-shell run directly.
+# Source · TypeScript suites: every TypeScript client module, the end-to-end harness, and this
+# workflow's own scripts. The design system's own suite runs in Docs · Design-system catalog. The
+# CI runner has no Nix, so the commands the repository npm scripts wrap in nix-shell run directly.
 set -euo pipefail
 
 root="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -15,6 +15,7 @@ echo "::group::Mobile, Chat, ServerClient and AgentAuth"
 npm --prefix AgentUp.AgentAuth test
 (
   cd AgentUp.Mobile
+  npx tsc --noEmit
   npx tsc --noEmit -p tsconfig.test.json
   npx tsc --noEmit -p ../AgentUp.ServerClient/tsconfig.json
   npx tsx --test ../AgentUp.ServerClient/src/*.test.ts
@@ -27,13 +28,6 @@ echo "::endgroup::"
 echo "::group::WebAudit"
 npm --prefix AgentUp.WebAudit ci
 npm --prefix AgentUp.WebAudit test
-echo "::endgroup::"
-
-# One palette, catalog-only paint, the scenes the command centers mount: the rules that keep the
-# design system the only visual source. This suite never ran in CI before, and had drifted.
-echo "::group::Design system"
-npm --prefix AgentUp.DesignSystem ci
-npm --prefix AgentUp.DesignSystem test
 echo "::endgroup::"
 
 echo "::group::Chat module and the app that harnesses it"

@@ -4,7 +4,7 @@
     {
       "id": "build",
       "title": "Build",
-      "question": "Can every shipped artifact be produced from this commit?",
+      "question": "Can every artifact the desktop release ships be produced from this commit?",
       "matrixJob": "build",
       "legs": [
         {
@@ -31,11 +31,6 @@
           "id": "jetbrains-plugin",
           "title": "JetBrains plugin",
           "proves": "The plugin tests pass and it builds, when Plugins/ changed."
-        },
-        {
-          "id": "docs",
-          "title": "Docs site",
-          "proves": "The API reference matches the Server controllers, the showcase follows its layout, and the site builds."
         }
       ]
     },
@@ -53,8 +48,8 @@
         },
         {
           "id": "typescript",
-          "title": "TypeScript and design-system suites",
-          "proves": "Mobile, Chat, ServerClient, AgentAuth, WebAudit, the end-to-end harness, and the design system's own suite."
+          "title": "TypeScript suites",
+          "proves": "Mobile (full typecheck and tests), Chat, ServerClient, AgentAuth, WebAudit, the end-to-end harness, and this workflow's own scripts."
         },
         {
           "id": "budgets",
@@ -152,6 +147,7 @@
         "columns": [
           "Real Server",
           "Demo",
+          "Identity front door",
           "Native platform"
         ]
       },
@@ -222,13 +218,25 @@
           "leg": "showcase",
           "kind": "gap",
           "reason": "Desktop cannot report its own text, so no Desktop screen is compared with the design system at all."
+        },
+        {
+          "row": "Classic shell",
+          "column": "Identity front door",
+          "kind": "gap",
+          "reason": "Desktop reads a browserSso connection in unit tests only; nothing signs Desktop in through the example front door."
+        },
+        {
+          "row": "Command center",
+          "column": "Identity front door",
+          "kind": "gap",
+          "reason": "No command-center flow signs in through an identity front door."
         }
       ]
     },
     {
       "id": "mobile",
       "title": "Mobile",
-      "question": "Does Mobile and its chat module, in each shell, behave against every backend and on every native platform?",
+      "question": "Does Mobile and its chat module, in each shell, behave against every backend and on every native platform, and do its store binaries build?",
       "matrixJob": "mobile",
       "axes": {
         "rows": [
@@ -239,6 +247,7 @@
         "columns": [
           "Real Server",
           "Demo",
+          "Identity front door",
           "Native platform"
         ]
       },
@@ -256,6 +265,13 @@
           "row": "Classic shell",
           "column": "Demo",
           "proves": "Every documented Mobile screen is reached and captured in a used state on the Demo, and compared with the copy the design system documents for it."
+        },
+        {
+          "id": "browser-sso",
+          "title": "Browser SSO front door",
+          "row": "Classic shell",
+          "column": "Identity front door",
+          "proves": "The installable web client signs in through Examples/browser-sso, which advertises browserSso and a restricted entitlement document, and hides what that document forbids; the example's own HTTP tests first."
         },
         {
           "id": "sign-in-web",
@@ -277,6 +293,22 @@
           "row": "Chat module",
           "column": "Native platform",
           "proves": "The same sign-ins on a real iOS simulator."
+        },
+        {
+          "id": "store-android",
+          "title": "Android store bundle",
+          "row": "Classic shell",
+          "column": "Native platform",
+          "proves": "The full client prebuilds, builds, signs with the Play upload key and validates as an AAB; Mobile release ships that file.",
+          "skippable": "GitHub withholds the signing secrets from Dependabot and fork pull requests, and a mobile release that ships iOS only has no Android binary to build."
+        },
+        {
+          "id": "store-ios",
+          "title": "iOS store archive",
+          "row": "Classic shell",
+          "column": "Native platform",
+          "proves": "The full client prebuilds, builds, signs through Match and validates as an App Store IPA; Mobile release ships that file.",
+          "skippable": "GitHub withholds the signing secrets from Dependabot and fork pull requests, and a mobile release that ships Android only has no iOS binary to build."
         }
       ],
       "gaps": [
@@ -293,16 +325,10 @@
           "reason": "au-debug screens captures the classic screens only; none of the 9 command-center screens."
         },
         {
-          "row": "Classic shell",
-          "column": "Native platform",
-          "kind": "elsewhere",
-          "reason": "Mobile CI (mobile-ci.yaml) builds and signs the full client for Android and iOS; no journey runs on a device."
-        },
-        {
           "row": "Command center",
           "column": "Native platform",
-          "kind": "elsewhere",
-          "reason": "Mobile CI (mobile-ci.yaml) builds and signs the full client for Android and iOS; no journey runs on a device."
+          "kind": "gap",
+          "reason": "The store binaries carry the command center, but no journey runs it on a device."
         },
         {
           "row": "Chat module",
@@ -314,6 +340,46 @@
           "leg": "showcase",
           "kind": "gap",
           "reason": "15 of 15 Mobile screens diverge from the copy the design-system showcase documents (au-debug screens compare). The comparison is reported on every run but does not gate until the showcase is re-authored from the real screens."
+        },
+        {
+          "row": "Command center",
+          "column": "Identity front door",
+          "kind": "gap",
+          "reason": "No command-center flow signs in through an identity front door."
+        },
+        {
+          "row": "Chat module",
+          "column": "Identity front door",
+          "kind": "n/a",
+          "reason": "The chat module signs agents in; signing in to the Server belongs to the shell."
+        },
+        {
+          "leg": "store-android",
+          "kind": "gap",
+          "reason": "Builds, signs and validates the binary; no journey runs it on a device."
+        },
+        {
+          "leg": "store-ios",
+          "kind": "gap",
+          "reason": "Builds, signs and validates the binary; no journey runs it on a device."
+        }
+      ]
+    },
+    {
+      "id": "docs",
+      "title": "Docs",
+      "question": "Does the docs site build from this commit, and is the design system it publishes still the only visual source?",
+      "matrixJob": "docs",
+      "legs": [
+        {
+          "id": "site",
+          "title": "Site and API reference",
+          "proves": "The API reference matches the Server controllers, the showcase follows its layout, and the site builds."
+        },
+        {
+          "id": "design-system",
+          "title": "Design-system catalog",
+          "proves": "One palette, catalog-only paint, the scenes both command centers mount, and committed React Native and Avalonia bindings that match their source."
         }
       ]
     },
