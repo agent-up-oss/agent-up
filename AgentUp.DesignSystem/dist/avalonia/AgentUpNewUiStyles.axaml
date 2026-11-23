@@ -4456,6 +4456,19 @@
     <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceBrush}"/>
     <Setter Property="Padding" Value="16,12,16,12"/>
   </Style>
+  <Style Selector="Button.aun-task-row">
+    <Setter Property="MinHeight" Value="64"/>
+    <Setter Property="CornerRadius" Value="{DynamicResource AgentUpCornerRadiusLg}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceBrush}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
+    <Setter Property="Padding" Value="16,12,16,12"/>
+  </Style>
+  <Style Selector="Button.aun-task-row /template/ ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceBrush}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
+    <Setter Property="Padding" Value="16,12,16,12"/>
+  </Style>
   <Style Selector="Border.aun-task-row__body">
     <Setter Property="MinWidth" Value="0"/>
   </Style>

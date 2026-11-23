@@ -1,46 +1,46 @@
-/** A repository host this Server could read a backlog from. */
+/** One repository host, and whether a personal access token is stored for it. */
 export type TaskSourceModule = {
   moduleId: string;
   displayName: string;
+  connected: boolean;
+  detail: string;
 };
 
-/** Where this Server's agents take their work from, and whether it can be read. */
+/** The forge connections. The token is never in this document. */
 export type TaskSource = {
-  moduleId: string | null;
-  owner: string | null;
-  repository: string | null;
-  configured: boolean;
-  connected: boolean;
-  /** True when a sign-in can be started: a host is installed and OAuth is set up. */
-  canConnect: boolean;
-  detail: string;
   modules: TaskSourceModule[];
 };
 
-/** The repository as one string, which is how the source is named on screen. */
-export function sourceLabel(source: TaskSource): string {
-  return source.owner && source.repository ? `${source.owner}/${source.repository}` : 'Not set';
+/** A repository the stored token can see. */
+export type TaskSourceRepository = {
+  moduleId: string;
+  owner: string;
+  name: string;
+};
+
+/** One kind of review inferred from a pull request. */
+export type TaskSourceReview = {
+  kind: string;
+  standing: string;
+  login?: string | null;
+  verdict?: string | null;
+};
+
+/** An open pull request and the reviews the Server inferred from it. */
+export type TaskSourcePull = {
+  id: string;
+  number: number;
+  title: string;
+  url: string;
+  reviews: TaskSourceReview[];
+};
+
+/** The id a repository row carries, so opening it names the host and the repository. */
+export function repositoryId(repository: TaskSourceRepository): string {
+  return `${repository.moduleId}/${repository.owner}/${repository.name}`;
 }
 
-/**
- * Whether what the reader has typed could be saved.
- *
- * A half-named source is not kept: a repository needs a host, an owner and a name, and saving
- * two of the three would leave the Server pointed at nothing while looking configured.
- */
-export function canSaveSource(moduleId: string, owner: string, repository: string): boolean {
-  return moduleId.trim().length > 0 && owner.trim().length > 0 && repository.trim().length > 0;
-}
-
-/**
- * Splits what a reader pasted into owner and repository.
- *
- * People paste `owner/repo`, a full browser URL, or type the two parts separately. All three mean
- * the same repository, so all three are accepted rather than only the one shape we asked for.
- */
-export function splitRepository(typed: string): { owner: string; repository: string } | null {
-  const cleaned = typed.trim().replace(/^https?:\/\/[^/]+\//i, '').replace(/\.git$/i, '').replace(/\/+$/, '');
-  const parts = cleaned.split('/').filter(part => part.length > 0);
-  if (parts.length < 2) return null;
-  return { owner: parts[parts.length - 2], repository: parts[parts.length - 1] };
+/** The host a repository row names under its owner and name. */
+export function forgeHostLabel(moduleId: string): string {
+  return moduleId === 'forgejo' ? 'Forgejo' : 'GitHub';
 }

@@ -6,98 +6,96 @@ using AgentUp.Desktop.Tests.Support;
 namespace AgentUp.Desktop.Tests.Features.FakeServer.Unit;
 
 /// <summary>
-/// The Demo's own task source. It starts pointed at the example repository and signed in, so the
-/// Tasks surface has something to offer without a round trip to a host that is not there.
+/// The Demo's forge connections. GitHub starts with a token, so the Tasks page can list the
+/// example repository without asking for one.
 /// </summary>
 [TestFixture]
 public sealed class FakeBackendTaskSourceTests
 {
     [Test]
-    public void TheDemoStartsPointedAtTheExampleRepositoryAndSignedIn()
+    public void TheDemoStartsWithGitHubConnected()
     {
         var backend = FakeServerTestComposition.Backend();
 
-        var source = Json(backend, Get("/api/task-source"));
+        var modules = Json(backend, Get("/api/task-source"))["modules"]!.AsArray();
 
         Assert.Multiple(() =>
         {
-            Assert.That(source["configured"]!.GetValue<bool>(), Is.True);
-            Assert.That(source["connected"]!.GetValue<bool>(), Is.True);
-            Assert.That(source["owner"]!.GetValue<string>(), Is.EqualTo("example"));
-            Assert.That(source["repository"]!.GetValue<string>(), Is.EqualTo("repository"));
+            Assert.That(modules.Single(module => module!["moduleId"]!.GetValue<string>() == "github")!["connected"]!.GetValue<bool>(), Is.True);
+            Assert.That(modules.Single(module => module!["moduleId"]!.GetValue<string>() == "forgejo")!["connected"]!.GetValue<bool>(), Is.False);
         });
     }
 
     [Test]
-    public void TheDemoOffersTheExampleRepositorysOpenIssues()
+    public void TheDemoListsTheExampleRepositoryAndItsIssues()
     {
         var backend = FakeServerTestComposition.Backend();
 
-        var issues = Json(backend, Get("/api/task-source/issues")).AsArray();
-
-        Assert.That(issues, Is.Not.Empty);
-    }
-
-    [Test]
-    public void NamingAnotherRepositoryKeepsIt()
-    {
-        var backend = FakeServerTestComposition.Backend();
-
-        var source = Json(backend, Put("/api/task-source", """{"moduleId":"github","owner":"acme","repository":"widgets"}"""));
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(source["owner"]!.GetValue<string>(), Is.EqualTo("acme"));
-            Assert.That(source["repository"]!.GetValue<string>(), Is.EqualTo("widgets"));
-        });
-    }
-
-    [Test]
-    public void ForgettingTheSourceLeavesNothingConfiguredAndNothingToOffer()
-    {
-        var backend = FakeServerTestComposition.Backend();
-
-        var source = Json(backend, Delete("/api/task-source"));
+        var repositories = Json(backend, Get("/api/task-source/repositories")).AsArray();
         var issues = Json(backend, Get("/api/task-source/issues")).AsArray();
 
         Assert.Multiple(() =>
         {
-            Assert.That(source["configured"]!.GetValue<bool>(), Is.False);
-            Assert.That(issues, Is.Empty);
+            Assert.That(repositories.Single()!["name"]!.GetValue<string>(), Is.EqualTo("repository"));
+            Assert.That(issues, Is.Not.Empty);
         });
     }
 
     [Test]
-    public void SigningInBeforeARepositoryIsNamedIsRefused()
+    public void ATokenThatCannotReadPullRequestsIsRefused()
     {
         var backend = FakeServerTestComposition.Backend();
-        Run(backend, Delete("/api/task-source"));
 
-        Assert.That(Run(backend, Post("/api/task-source/login")).Status, Is.EqualTo(409));
+        var refused = Run(backend, Put("/api/task-source", """{"moduleId":"forgejo","token":"denied"}"""));
+
+        Assert.That(refused.Status, Is.EqualTo(409));
     }
 
     [Test]
-    public void SigningInConnectsTheSourceAndHandsBackSomewhereToGo()
+    public void SavingATokenConnectsThatHost()
     {
         var backend = FakeServerTestComposition.Backend();
-        Run(backend, Delete("/api/task-source"));
-        Run(backend, Put("/api/task-source", """{"moduleId":"github","owner":"example","repository":"repository"}"""));
 
-        var login = Json(backend, Post("/api/task-source/login"));
+        var source = Json(backend, Put("/api/task-source", """{"moduleId":"forgejo","token":"forgejo-token"}"""));
+
+        Assert.That(
+            source["modules"]!.AsArray().Single(module => module!["moduleId"]!.GetValue<string>() == "forgejo")!["connected"]!.GetValue<bool>(),
+            Is.True);
+    }
+
+    [Test]
+    public void ForgettingGitHubLeavesItsIssuesUnreadable()
+    {
+        var backend = FakeServerTestComposition.Backend();
+
+        Json(backend, Delete("/api/task-source/github"));
+        var issues = Json(backend, Get("/api/task-source/issues")).AsArray();
+
+        Assert.That(issues, Is.Empty);
+    }
+
+    [Test]
+    public void ForgettingEveryHostLeavesNothingToPick()
+    {
+        var backend = FakeServerTestComposition.Backend();
+
+        Json(backend, Delete("/api/task-source"));
+
+        Assert.That(Run(backend, Post("/api/tasks", """{"issueId":"I-57"}""")).Status, Is.EqualTo(404));
+    }
+
+    [Test]
+    public void TheOpenPullRequestCarriesTheReviewItStillNeeds()
+    {
+        var backend = FakeServerTestComposition.Backend();
+
+        var review = Json(backend, Get("/api/task-source/pulls")).AsArray().Single()!["reviews"]!.AsArray().Single()!;
 
         Assert.Multiple(() =>
         {
-            Assert.That(login["authorizeUrl"]!.GetValue<string>(), Does.Contain("authorize"));
-            Assert.That(Json(backend, Get("/api/task-source"))["connected"]!.GetValue<bool>(), Is.True);
+            Assert.That(review["kind"]!.GetValue<string>(), Is.EqualTo("devReviewer"));
+            Assert.That(review["standing"]!.GetValue<string>(), Is.EqualTo("reviewing"));
         });
-    }
-
-    [Test]
-    public void TaskSource_saysNotFoundForARouteTheSurfaceNeverAsksFor()
-    {
-        var backend = FakeServerTestComposition.Backend();
-
-        Assert.That(Run(backend, Get("/api/task-source/nonsense")).Status, Is.EqualTo(404));
     }
 
     private static FakeBackendRequestDtoBuilder Get(string path) => new FakeBackendRequestDtoBuilder().Get(path);
@@ -105,8 +103,8 @@ public sealed class FakeBackendTaskSourceTests
     private static FakeBackendRequestDtoBuilder Put(string path, string body)
         => new FakeBackendRequestDtoBuilder().Put(path, body);
 
-    private static FakeBackendRequestDtoBuilder Post(string path)
-        => new FakeBackendRequestDtoBuilder().Post(path);
+    private static FakeBackendRequestDtoBuilder Post(string path, string body)
+        => new FakeBackendRequestDtoBuilder().Post(path, body);
 
     private static FakeBackendRequestDtoBuilder Delete(string path)
         => new FakeBackendRequestDtoBuilder().Delete(path);

@@ -261,9 +261,31 @@ public sealed class CommandCenterSceneTests
         {
             Assert.That(binding.State["tasksTab"], Is.EqualTo("dev"));
             Assert.That(binding.State["devTab"], Is.EqualTo("1"));
+            Assert.That(binding.State["repoList"], Is.EqualTo("1"));
             Assert.That(binding.State.ContainsKey("issuesTab"), Is.False);
             Assert.That(binding.Items["devReview"].Single().Action, Is.EqualTo("reviewing"));
             Assert.That(binding.Items["pmReview"], Is.Empty);
+        });
+    }
+
+    [Test]
+    public void An_open_repository_replaces_the_repository_list()
+    {
+        var binding = CommandCenterScene.Bind(Input([], sceneId: "tasks") with
+        {
+            OpenRepository = "example/repository",
+            Repositories = [new CommandCenterRepositorySlot("github/example/repository", "example/repository", "GitHub")],
+            ForgeTab = "forgejo",
+            ForgeConnected = true,
+        });
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(binding.State["repoOpen"], Is.EqualTo("1"));
+            Assert.That(binding.State.ContainsKey("repoList"), Is.False);
+            Assert.That(binding.Text["repository"], Is.EqualTo("example/repository"));
+            Assert.That(binding.Items["repos"].Single().Text["host"], Is.EqualTo("GitHub"));
+            Assert.That(binding.State["forgeConnected"], Is.EqualTo("1"));
         });
     }
 

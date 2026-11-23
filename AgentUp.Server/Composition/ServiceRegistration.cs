@@ -251,11 +251,9 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<ForgeService>();
         builder.Services.AddSingleton<ForgeController>();
         builder.Services.AddSingleton<ITaskQueueStore>(_ => new JsonTaskQueueStore(dataDir));
-        // The repository the agents take work from, named once for the Server rather than
-        // inferred from whichever workspace a reader happened to open.
-        builder.Services.AddSingleton<ITaskSourceStore>(_ => new JsonTaskSourceStore(dataDir));
+        // One personal access token per repository host, kept apart from per-workspace forge credentials.
         builder.Services.AddSingleton<ITaskSourceCredentialStore>(_ => new JsonTaskSourceCredentialStore(dataDir));
-        builder.Services.AddSingleton<ITaskSourceStateStore, TaskSourceStateStore>();
+        builder.Services.AddSingleton<ITaskSourceTeam, WorkspaceTaskSourceTeam>();
         builder.Services.AddSingleton<TaskSourceService>();
         builder.Services.AddSingleton<TaskSourceController>();
         builder.Services.AddSingleton<TaskQueueService>();

@@ -65,7 +65,7 @@ public sealed class NewUiSceneActionTests
                     },
                 ],
             },
-            new Dictionary<string, string> { ["nav"] = "1", ["tasksTab"] = "dev", ["devTab"] = "1" });
+            new Dictionary<string, string> { ["nav"] = "1", ["tasksTab"] = "dev", ["devTab"] = "1", ["repoOpen"] = "1" });
         var window = new Window { Width = 1440, Height = 900, Content = scene };
         window.Show();
 

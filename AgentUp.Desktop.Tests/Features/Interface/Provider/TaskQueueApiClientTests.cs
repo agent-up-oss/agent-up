@@ -121,29 +121,18 @@ public sealed class TaskQueueApiClientTests
     }
 
     [Test]
-    public async Task ListSourceIssuesAsync_readsTheSourceIssuesOnlyWhenASourceIsConfigured()
+    public async Task ListRepositoryIssuesAsync_asksForTheNamedRepository()
     {
-        var configured = new RoutedHandler(new Dictionary<string, string>
+        var handler = new RoutedHandler(new Dictionary<string, string>
         {
-            ["api/task-source"] = SourceJson(configured: true),
-            ["api/task-source/issues"] = """[{"id":"I-57","number":57,"title":"Cart badge","url":"u"}]""",
+            ["api/task-source/issues?moduleId=github&owner=example&repository=repository"] = """[{"id":"I-57","number":57,"title":"Cart badge","url":"u"}]""",
         });
-        var unconfigured = new RoutedHandler(new Dictionary<string, string> { ["api/task-source"] = SourceJson(configured: false) });
 
-        var issues = await new TaskQueueApiClient(new HttpClient(configured) { BaseAddress = new Uri("http://localhost:5000/") }).ListSourceIssuesAsync(CancellationToken.None);
-        var none = await new TaskQueueApiClient(new HttpClient(unconfigured) { BaseAddress = new Uri("http://localhost:5000/") }).ListSourceIssuesAsync(CancellationToken.None);
+        var issues = await new TaskQueueApiClient(new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000/") })
+            .ListRepositoryIssuesAsync("github", "example", "repository", CancellationToken.None);
 
-        Assert.Multiple(() =>
-        {
-            Assert.That(issues!.Single().Number, Is.EqualTo(57));
-            Assert.That(configured.Requests, Is.EqualTo(new[] { "GET api/task-source", "GET api/task-source/issues" }));
-            Assert.That(none, Is.Null);
-            Assert.That(unconfigured.Requests, Is.EqualTo(new[] { "GET api/task-source" }));
-        });
+        Assert.That(issues.Single().Number, Is.EqualTo(57));
     }
-
-    private static string SourceJson(bool configured) =>
-        $$"""{"moduleId":"github","owner":"example","repository":"repository","configured":{{(configured ? "true" : "false")}},"connected":true,"canConnect":true,"detail":"","modules":[]}""";
 
     private sealed class RoutedHandler(IReadOnlyDictionary<string, string> bodies) : HttpMessageHandler
     {

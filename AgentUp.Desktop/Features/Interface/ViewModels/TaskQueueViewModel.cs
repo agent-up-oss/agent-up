@@ -22,8 +22,11 @@ public sealed class TaskQueueViewModel : ReactiveObject
     private string? _errorMessage;
     private bool _hasRead;
     private string? _offeringWorkspaceId;
-    /// <summary>Where the issues on offer are picked from; null when the Server's task source offered them.</summary>
+    /// <summary>Where the issues on offer are picked from; null when a chosen repository offered them.</summary>
     private string? _pickFrom;
+    private string? _moduleId;
+    private string? _owner;
+    private string? _repository;
     /// <summary>The whole queue as the Server holds it, which the screen shows in two parts.</summary>
     private IReadOnlyList<QueuedTask> _wholeQueue = [];
 
@@ -82,6 +85,17 @@ public sealed class TaskQueueViewModel : ReactiveObject
     public void Attach(IReadOnlyList<TeamMember> team) =>
         _offeringWorkspaceId = team.FirstOrDefault()?.WorkspaceId;
 
+    /// <summary>
+    /// The repository the Tasks page is drilled into. Null returns to offering the open
+    /// workspace's own issues, which is what the classic shell still does.
+    /// </summary>
+    public void SelectRepository(string? moduleId, string? owner, string? repository)
+    {
+        _moduleId = moduleId;
+        _owner = owner;
+        _repository = repository;
+    }
+
     public async Task ReadAsync(CancellationToken cancellationToken = default)
     {
         var read = ++_reads;
@@ -90,10 +104,15 @@ public sealed class TaskQueueViewModel : ReactiveObject
         try
         {
             var queued = await _queue.ListAsync(cancellationToken);
-            var offered = await _queue.ListOfferedAsync(_offeringWorkspaceId, cancellationToken);
+            var offered = _moduleId is { Length: > 0 } && _owner is { Length: > 0 } && _repository is { Length: > 0 }
+                ? await _queue.ListRepositoryAsync(_moduleId, _owner, _repository, cancellationToken)
+                : await _queue.ListOfferedAsync(_offeringWorkspaceId, cancellationToken);
             if (read != _reads) return;
             _hasRead = true;
             _pickFrom = offered.PickFrom;
+            _moduleId = offered.ModuleId ?? _moduleId;
+            _owner = offered.Owner ?? _owner;
+            _repository = offered.Repository ?? _repository;
             Apply(queued, offered.Issues);
         }
         catch (Exception failure) when (failure is HttpRequestException or TaskCanceledException)
@@ -138,10 +157,14 @@ public sealed class TaskQueueViewModel : ReactiveObject
 
     internal async Task PickAsync(OfferedIssue issue)
     {
-        // An issue the task source offered is picked from that source, which the Server reads
-        // when no workspace is named. Naming one would send it to that workspace's repository,
-        // where the issue may not exist.
-        // A workspace's own issues are only picked while that workspace is still the one offering.
+        // A chosen repository is picked through the token stored for that host. Naming a workspace
+        // would send the Server to that workspace's repository, where the issue may not exist.
+        if (_moduleId is { Length: > 0 } && _owner is { Length: > 0 } && _repository is { Length: > 0 })
+        {
+            await Run(token => _queue.EnqueueAsync(null, issue.Id, null, token, _moduleId, _owner, _repository));
+            return;
+        }
+
         if (_pickFrom is not null && _pickFrom != _offeringWorkspaceId) return;
         await Run(token => _queue.EnqueueAsync(_pickFrom, issue.Id, null, token));
     }

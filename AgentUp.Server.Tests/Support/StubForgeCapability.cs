@@ -29,6 +29,12 @@ internal sealed class StubForgeCapability : IForgeCapability
 
     public IReadOnlyList<ForgeIssue> Issues { get; init; } = [];
 
+    public ForgeTokenAccess TokenAccess { get; init; } = new(true, true, null);
+
+    public IReadOnlyList<ForgeRepository> Repositories { get; init; } = [];
+
+    public IReadOnlyList<ForgePullRequest> PullRequests { get; init; } = [];
+
     public Exception? ReadFailure { get; init; }
 
     public Exception? ListAssignedFailure { get; init; }
@@ -65,6 +71,15 @@ internal sealed class StubForgeCapability : IForgeCapability
         => ListAssignedFailure is not null
             ? Task.FromException<IReadOnlyList<ForgeIssue>>(ListAssignedFailure)
             : Task.FromResult(Assigned);
+
+    public Task<ForgeTokenAccess> ReadTokenAccessAsync(string token, CancellationToken cancellationToken = default)
+        => Task.FromResult(TokenAccess);
+
+    public Task<IReadOnlyList<ForgeRepository>> ListRepositoriesAsync(string token, CancellationToken cancellationToken = default)
+        => Task.FromResult(Repositories);
+
+    public Task<IReadOnlyList<ForgePullRequest>> ListPullRequestsAsync(ForgeRequest request, CancellationToken cancellationToken = default)
+        => Task.FromResult(PullRequests);
 
     public Task<IReadOnlyList<ForgeIssue>> ListIssuesAsync(
         ForgeRequest request,

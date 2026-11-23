@@ -87,4 +87,13 @@ public sealed class GithubForgeCapability : IForgeCapability
 
     public Task RequestReviewAsync(ForgeRequest request, string proposalNumber, string login, CancellationToken cancellationToken = default)
         => _api.RequestReviewAsync(request, proposalNumber, login, cancellationToken);
+
+    public Task<IReadOnlyList<ForgeRepository>> ListRepositoriesAsync(string token, CancellationToken cancellationToken = default)
+        => _api.ListRepositoriesAsync(token, cancellationToken);
+
+    public Task<IReadOnlyList<ForgePullRequest>> ListPullRequestsAsync(ForgeRequest request, CancellationToken cancellationToken = default)
+        => _api.ListPullRequestsAsync(request, cancellationToken);
+
+    public Task<ForgeTokenAccess> ReadTokenAccessAsync(string token, CancellationToken cancellationToken = default)
+        => _api.ReadTokenAccessAsync(token, cancellationToken);
 }

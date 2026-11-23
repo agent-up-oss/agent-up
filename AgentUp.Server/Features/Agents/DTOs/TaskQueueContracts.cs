@@ -39,7 +39,13 @@ public sealed record TaskReviewDto(string WorkspaceId, string Verdict, int Revis
 /// on, and is left out once the Server has its own task source: then the issue comes from there,
 /// which is one backlog for the whole team rather than one per workspace.
 /// </summary>
-public sealed record EnqueueTaskRequest(string? WorkspaceId, string IssueId, string? TargetWorkspaceId = null);
+public sealed record EnqueueTaskRequest(
+    string? WorkspaceId,
+    string IssueId,
+    string? TargetWorkspaceId = null,
+    string? ModuleId = null,
+    string? Owner = null,
+    string? Repository = null);
 
 /// <summary>Moves a task to a position in the queue, counted from zero.</summary>
 public sealed record MoveTaskRequest(int Index);

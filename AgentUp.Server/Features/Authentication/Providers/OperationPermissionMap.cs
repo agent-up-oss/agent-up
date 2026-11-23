@@ -106,10 +106,12 @@ public static class OperationPermissionMap
         // the queue's own mutations carry, so it is held to the same permission rather than a new
         // one nobody issues yet.
         [("TaskSourceHttp", "Get")] = OperationPermissions.ServerRead,
+        [("TaskSourceHttp", "Repositories")] = OperationPermissions.ServerRead,
         [("TaskSourceHttp", "Issues")] = OperationPermissions.ServerRead,
+        [("TaskSourceHttp", "Pulls")] = OperationPermissions.ServerRead,
         [("TaskSourceHttp", "Set")] = OperationPermissions.AgentPrompt,
         [("TaskSourceHttp", "Clear")] = OperationPermissions.AgentPrompt,
-        [("TaskSourceHttp", "Login")] = OperationPermissions.AgentPrompt,
+        [("TaskSourceHttp", "Forget")] = OperationPermissions.AgentPrompt,
         [("TrainingHttp", "Repositories")] = OperationPermissions.AgentRead,
         [("TrainingHttp", "Decisions")] = OperationPermissions.AgentRead,
         [("TrainingHttp", "Evidence")] = OperationPermissions.AgentRead,

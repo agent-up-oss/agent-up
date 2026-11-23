@@ -11,69 +11,56 @@ public sealed class TaskSourceApiClientTests
     public async Task ReadAsync_readsWhereTheWorkComesFrom()
     {
         var handler = Returning("""
-            {"moduleId":"github","owner":"agent-up-oss","repository":"agent-up","configured":true,
-             "connected":true,"canConnect":true,"detail":"Reading issues.","modules":[]}
+            {"modules":[{"moduleId":"github","displayName":"GitHub","connected":true,"detail":"Reading repositories."}]}
             """);
 
         var source = await new TaskSourceApiClient(Client(handler)).ReadAsync(CancellationToken.None);
 
         Assert.Multiple(() =>
         {
-            Assert.That(source!.Label, Is.EqualTo("agent-up-oss/agent-up"));
-            Assert.That(source.Connected, Is.True);
+            Assert.That(source!.Modules.Single().Connected, Is.True);
             Assert.That(handler.Requests.Single(), Is.EqualTo("GET api/task-source"));
         });
     }
 
     [Test]
-    public async Task SetAsync_putsTheRepositoryTheReaderNamed()
+    public async Task SaveAsync_putsTheTokenAndDoesNotKeepItInTheAnswer()
     {
-        var handler = Returning("""{"configured":true,"connected":false,"canConnect":true,"detail":"","modules":[]}""");
+        var handler = Returning("""{"modules":[{"moduleId":"github","displayName":"GitHub","connected":true,"detail":"Reading."}]}""");
 
-        await new TaskSourceApiClient(Client(handler))
-            .SetAsync("github", "acme", "widgets", CancellationToken.None);
+        var source = await new TaskSourceApiClient(Client(handler)).SaveAsync("github", "secret-token", CancellationToken.None);
 
         Assert.Multiple(() =>
         {
             Assert.That(handler.Requests.Single(), Is.EqualTo("PUT api/task-source"));
-            Assert.That(handler.Bodies.Single(), Does.Contain("\"owner\":\"acme\""));
-            Assert.That(handler.Bodies.Single(), Does.Contain("\"repository\":\"widgets\""));
+            Assert.That(handler.Bodies.Single(), Does.Contain("\"token\":\"secret-token\""));
+            Assert.That(source!.Modules.Single().Detail, Does.Not.Contain("secret-token"));
         });
     }
 
     [Test]
-    public async Task StartLoginAsync_answersWithSomewhereToSendTheReader()
+    public async Task SaveAsync_surfacesTheServersReasonWhenTheTokenIsRefused()
     {
-        var handler = Returning("""{"authorizeUrl":"https://example.test/authorize"}""");
+        var client = new TaskSourceApiClient(Client(Returning(
+            """{"title":"Task source","detail":"The token cannot read pull requests."}""",
+            HttpStatusCode.Conflict)));
 
-        var url = await new TaskSourceApiClient(Client(handler)).StartLoginAsync(CancellationToken.None);
+        var error = await Assert.ThrowsAsync<HttpRequestException>(() => client.SaveAsync("github", "narrow", CancellationToken.None));
 
-        Assert.Multiple(() =>
-        {
-            Assert.That(url, Is.EqualTo("https://example.test/authorize"));
-            Assert.That(handler.Requests.Single(), Is.EqualTo("POST api/task-source/login"));
-        });
+        Assert.That(error!.Message, Does.Contain("pull requests"));
     }
 
     [Test]
-    public async Task AServerThatRefusesTheSignInAnswersWithNowhereRatherThanThrowing()
+    public async Task ForgetAsync_forgetsOneHost()
     {
-        var client = new TaskSourceApiClient(Client(Returning("{}", HttpStatusCode.Conflict)));
+        var handler = Returning("""{"modules":[{"moduleId":"github","displayName":"GitHub","connected":false,"detail":""}]}""");
 
-        Assert.That(await client.StartLoginAsync(CancellationToken.None), Is.Null);
-    }
-
-    [Test]
-    public async Task ClearAsync_takesTheSourceBackOut()
-    {
-        var handler = Returning("""{"configured":false,"connected":false,"canConnect":true,"detail":"","modules":[]}""");
-
-        var source = await new TaskSourceApiClient(Client(handler)).ClearAsync(CancellationToken.None);
+        var source = await new TaskSourceApiClient(Client(handler)).ForgetAsync("github", CancellationToken.None);
 
         Assert.Multiple(() =>
         {
-            Assert.That(source!.Configured, Is.False);
-            Assert.That(handler.Requests.Single(), Is.EqualTo("DELETE api/task-source"));
+            Assert.That(source!.Modules.Single().Connected, Is.False);
+            Assert.That(handler.Requests.Single(), Is.EqualTo("DELETE api/task-source/github"));
         });
     }
 

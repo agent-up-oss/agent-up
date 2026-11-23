@@ -314,6 +314,9 @@ function nodeFrom(tag) {
   if (tag.name === 'input') {
     const value = attr(tag.attrs, 'value');
     if (value) node.x = decode(value);
+    const placeholder = attr(tag.attrs, 'placeholder');
+    if (placeholder) node.placeholder = decode(placeholder);
+    if ((attr(tag.attrs, 'type') || '') === 'password') node.secret = true;
   }
   if (data(tag.attrs, 'kind') === '1') node.kindHost = true;
   const layout = layoutOf(node.c ?? []);
@@ -579,7 +582,8 @@ function holdsSlot(node) {
  * with 24-unit path data; without it an icon keeps its box and draws nothing.
  */
 export function createNewUiScene(React, native) {
-  const { View, Text, Pressable, ScrollView, Icon } = native;
+  const { View, Text, Pressable, ScrollView, Icon, TextInput } = native;
+  const drafts = {};
   const h = React.createElement;
   // The page sets the ink on the web (.aun sets color); a React Native Text has none of its own.
   const root = { scope: [], ink: { color: newUiTheme.colors.textPrimary } };
@@ -649,6 +653,17 @@ export function createNewUiScene(React, native) {
     const childNodes = words ? [] : (node.k ?? []);
     const children = childNodes.map((child, index) => render(child, model, item, index, inner)).filter(child => child != null);
     const action = node.action ? (item?.action || node.action) : null;
+    if (node.t === 'input') {
+      if (!TextInput) return h(View, { key, style: [box, { minHeight: 36 }] });
+      return h(TextInput, {
+        key,
+        defaultValue: node.x ?? '',
+        placeholder: node.placeholder,
+        secureTextEntry: node.secret === true,
+        onChangeText: (value) => { if (node.action) drafts[node.action] = value; },
+        style: [box, ink, { flexGrow: 1, minWidth: 0 }],
+      });
+    }
     const block = !inlineTags.has(node.t) && (!node.flow || node.flow.d === 'column');
     if (action && block) {
       // A card that opens something is still a card: it stacks and spans its column.
@@ -657,7 +672,7 @@ export function createNewUiScene(React, native) {
         key,
         accessibilityRole: 'button',
         accessibilityLabel: node.label,
-        onPress: () => model.onAction(action, item?.id ?? null),
+        onPress: () => model.onAction(action, item?.id ?? null, drafts[action]),
         style: [box, measure(node.c), layoutStyle(node), { alignSelf: 'stretch' }, node.push ? { marginLeft: 'auto' } : null],
       }, body);
     }
@@ -679,7 +694,7 @@ export function createNewUiScene(React, native) {
         accessibilityLabel: spoken || undefined,
         accessibilityState: locked ? { disabled: true } : undefined,
         disabled: locked,
-        onPress: () => model.onAction(action, item?.id ?? null),
+        onPress: locked ? undefined : () => model.onAction(action, item?.id ?? null, drafts[action]),
         style: [{ alignItems: 'center', justifyContent: 'center' }, box, node.grow ? { flex: 1 } : null, node.push ? { marginLeft: 'auto' } : null, locked ? { opacity: 0.4 } : null],
       }, inner);
     }
@@ -819,6 +834,7 @@ public sealed class NewUiScene : UserControl
     private readonly Dictionary<string, IReadOnlyList<NewUiSlotItem>> _items = new(StringComparer.Ordinal);
     private readonly Dictionary<string, Control> _content = new(StringComparer.Ordinal);
     private readonly Dictionary<string, string> _state = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, TextBox> _fields = new(StringComparer.Ordinal);
     private string _scene = "";
     private bool _applying;
 
@@ -859,6 +875,7 @@ public sealed class NewUiScene : UserControl
     {
         if (_applying) return;
         _applying = true;
+        _fields.Clear();
         try
         {
             Content = Document.Scenes.TryGetValue(_scene, out var tree)
@@ -1087,10 +1104,17 @@ public sealed class NewUiScene : UserControl
             button.Click += (_, args) =>
             {
                 if (!ReferenceEquals(args.Source, button)) return;
-                ActionInvoked?.Invoke(this, new NewUiActionEventArgs { Name = name, Id = id });
+                ActionInvoked?.Invoke(this, new NewUiActionEventArgs
+                {
+                    Name = name,
+                    Id = id,
+                    Text = _fields.TryGetValue(name, out var field) ? field.Text : null,
+                });
             };
             return button;
         }
+        if (node.T == "input" && !string.IsNullOrEmpty(node.Action))
+            return Field(node);
         if (node.T == "input")
             return AddressField(text, classes);
         if (classes.Contains("au-chrome-mark"))
@@ -1537,6 +1561,21 @@ public sealed class NewUiScene : UserControl
         }
     }
 
+    private Control Field(SceneNode node)
+    {
+        var box = new TextBox
+        {
+            MinWidth = 0,
+            PlaceholderText = node.Placeholder ?? "",
+            PasswordChar = node.Secret == true ? '•' : default,
+        };
+        Paint(box, node.C ?? []);
+        box.HorizontalAlignment = HorizontalAlignment.Stretch;
+        box.VerticalAlignment = VerticalAlignment.Center;
+        _fields[node.Action!] = box;
+        return box;
+    }
+
     private Control AddressField(string? text, IReadOnlyList<string> classes)
     {
         var box = new TextBox { Text = text ?? "", MinWidth = 0 };
@@ -1692,6 +1731,8 @@ internal sealed class SceneNode
     public Dictionary<string, string>? Labels { get; set; }
     public List<string>? For { get; set; }
     public string? Empty { get; set; }
+    public bool? Secret { get; set; }
+    public string? Placeholder { get; set; }
     public SceneFlow? Flow { get; set; }
     public List<SceneNode>? K { get; set; }
 }

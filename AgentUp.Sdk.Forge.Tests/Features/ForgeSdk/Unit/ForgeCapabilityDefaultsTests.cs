@@ -23,6 +23,25 @@ public sealed class ForgeCapabilityDefaultsTests
     }
 
     [Test]
+    public async Task A_host_that_cannot_read_a_token_denies_it_and_lists_nothing()
+    {
+        IForgeCapability forge = new MinimalForge();
+
+        var access = await forge.ReadTokenAccessAsync("token");
+        var repositories = await forge.ListRepositoriesAsync("token");
+        var pulls = await forge.ListPullRequestsAsync(new ForgeRequest("token", "acme", "widgets", "main"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(access.CanListRepositories, Is.False);
+            Assert.That(access.CanReadPullRequests, Is.False);
+            Assert.That(access.Detail, Does.Contain("personal access token"));
+            Assert.That(repositories, Is.Empty);
+            Assert.That(pulls, Is.Empty);
+        });
+    }
+
+    [Test]
     public void A_review_can_carry_findings_at_code_locations()
     {
         var review = new ForgeSubmitReviewCommand("7", "Two things.", "REQUEST_CHANGES",

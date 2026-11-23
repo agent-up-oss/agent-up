@@ -68,9 +68,8 @@ export function useTaskQueue(): TaskQueueState {
     const ticket = ++newest.current;
     setLoading(true);
     try {
-      // The Server's own task source is where issues come from once one is configured. Only when
-      // none is does the opened workspace's repository stand in, which is how a Server that was
-      // never pointed anywhere still offers something to pick.
+      // The opened workspace's repository. The command center's Tasks page asks a saved token for
+      // the repository it has opened, separately from this list.
       const [queued, open] = await Promise.all([
         readQueue(server),
         readOffered(server, offeringWorkspaceId),

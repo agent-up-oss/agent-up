@@ -648,12 +648,12 @@
         }
       }
     },
-    "/api/task-source/callback": {
-      "get": {
+    "/api/task-source/{moduleId}": {
+      "delete": {
         "tags": [
           "TaskSource"
         ],
-        "operationId": "TaskSourceOAuthHttpController_Callback",
+        "operationId": "TaskSourceHttpController_Forget",
         "responses": {
           "200": {
             "description": "Success"
@@ -674,12 +674,25 @@
         }
       }
     },
-    "/api/task-source/login": {
-      "post": {
+    "/api/task-source/pulls": {
+      "get": {
         "tags": [
           "TaskSource"
         ],
-        "operationId": "TaskSourceHttpController_Login",
+        "operationId": "TaskSourceHttpController_Pulls",
+        "responses": {
+          "200": {
+            "description": "Success"
+          }
+        }
+      }
+    },
+    "/api/task-source/repositories": {
+      "get": {
+        "tags": [
+          "TaskSource"
+        ],
+        "operationId": "TaskSourceHttpController_Repositories",
         "responses": {
           "200": {
             "description": "Success"

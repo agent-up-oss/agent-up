@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { createNewUiScene } from '@agent-up/design-system/new-ui-scene';
 import { WorkspaceAgentChatScreen } from '@/features/agents/components/WorkspaceAgentChatScreen';
 import { ApplicationSpaceScreen } from '@/features/applications/components/ApplicationSpaceScreen';
@@ -23,6 +23,10 @@ import {
 } from '@/features/capabilities/providers/CapabilityModulesApiProvider';
 import { SceneIcon } from './SceneIcon';
 import { runTaskAction } from '../providers/TaskActionProvider';
+import { pickIssue } from '../providers/TaskQueueProvider';
+import { readRepositoryIssues, readRepositoryPulls } from '../providers/TaskSourceProvider';
+import { forgeHostLabel, repositoryId, type TaskSourcePull } from '../models/TaskSource';
+import type { OfferedIssue } from '../models/TaskQueue';
 import {
   bindAgent,
   enableAgentCapability,
@@ -42,7 +46,7 @@ import {
   type TasksTab,
 } from '../providers/CommandCenterSceneProvider';
 
-const Scene = createNewUiScene(React, { View, Text, Pressable, ScrollView, Icon: SceneIcon });
+const Scene = createNewUiScene(React, { View, Text, Pressable, ScrollView, Icon: SceneIcon, TextInput });
 
 type Section = 'overview' | 'chat' | 'git' | 'files' | 'file' | 'application';
 
@@ -66,6 +70,11 @@ function CommandCenterBinder() {
   const { workspaces, refresh } = useWorkspaces();
   const [nav, setNav] = useState<0 | 1 | 2>(0);
   const [tasksTab, setTasksTab] = useState<TasksTab>('issues');
+  const [forgeTab, setForgeTab] = useState('github');
+  const [openRepo, setOpenRepo] = useState<{ moduleId: string; owner: string; name: string } | null>(null);
+  const [repoIssues, setRepoIssues] = useState<OfferedIssue[]>([]);
+  const [pulls, setPulls] = useState<TaskSourcePull[]>([]);
+  const [repoNonce, setRepoNonce] = useState(0);
   const [section, setSection] = useState<Section>('overview');
   const [openAgent, setOpenAgent] = useState<string | null>(null);
   // The file opened from Files, and a request for its page to leave, which it answers by asking
@@ -114,6 +123,22 @@ function CommandCenterBinder() {
     void change.catch(() => undefined).finally(() => setModulesNonce(current => current + 1));
   };
 
+  useEffect(() => {
+    if (!activeServer || !openRepo) {
+      setRepoIssues([]);
+      setPulls([]);
+      return;
+    }
+    let live = true;
+    Promise.all([
+      readRepositoryIssues(activeServer, openRepo.moduleId, openRepo.owner, openRepo.name),
+      readRepositoryPulls(activeServer, openRepo.moduleId, openRepo.owner, openRepo.name),
+    ])
+      .then(([issues, listed]) => { if (live) { setRepoIssues(issues); setPulls(listed); } })
+      .catch(() => { if (live) { setRepoIssues([]); setPulls([]); } });
+    return () => { live = false; };
+  }, [activeServer, openRepo, repoNonce]);
+
   const agent = openAgent === null ? null : standing.team.find(item => item.workspaceId === openAgent) ?? null;
   const workspace = agent ? workspaces.find(item => item.id === agent.workspaceId) ?? null : null;
   const applicationName = workspace?.applications?.[0]?.name ?? '';
@@ -132,9 +157,19 @@ function CommandCenterBinder() {
     team: standing.team,
     queue: tasks.queue,
     working: tasks.working,
-    offered: tasks.offered,
+    offered: openRepo ? repoIssues : tasks.offered,
     names: tasks.names,
     tasksTab,
+    repository: openRepo ? `${openRepo.owner}/${openRepo.name}` : null,
+    repositories: source.repositories.map(repository => ({
+      id: repositoryId(repository),
+      name: `${repository.owner}/${repository.name}`,
+      host: forgeHostLabel(repository.moduleId),
+    })),
+    pulls: openRepo ? pulls : undefined,
+    forgeTab,
+    forgeDetail: source.source?.modules.find(module => module.moduleId === forgeTab)?.detail ?? '',
+    forgeConnected: source.source?.modules.some(module => module.moduleId === forgeTab && module.connected) ?? false,
     // The application page carries the client's own dock, which replays a flow for real.
     flows: [],
     modules,
@@ -192,7 +227,7 @@ function CommandCenterBinder() {
     content.overview = <WorkspaceDashboardScreen workspace={workspace} />;
   }
 
-  const onAction = (name: string, id: string | null) => {
+  const onAction = (name: string, id: string | null, text?: string) => {
     if (name === 'nav-team') { setOpenAgent(null); setNav(0); return; }
     if (name === 'nav-tasks') { setOpenAgent(null); setNav(1); return; }
     if (name === 'nav-settings') { setOpenAgent(null); setNav(2); return; }
@@ -212,7 +247,22 @@ function CommandCenterBinder() {
     if (name === 'logout') { logout(); return; }
     if (name === 'use-classic') { choose('classic'); return; }
     if (name === 'reload') { refresh(); return; }
-    if (name === 'connect-source') { void source.connect(); return; }
+    if (name === 'forge-tab' && id) { setForgeTab(id); return; }
+    if (name === 'save-token' && text?.trim()) { void source.save(forgeTab, text.trim()); return; }
+    if (name === 'forget-token') { void source.forget(forgeTab); return; }
+    if (name === 'open-repo' && id) {
+      const [moduleId, owner, name] = id.split('/');
+      if (moduleId && owner && name) setOpenRepo({ moduleId, owner, name });
+      return;
+    }
+    if (name === 'tasks-back') { setOpenRepo(null); setTasksTab('issues'); return; }
+    if (name === 'queue' && openRepo && id && activeServer) {
+      void pickIssue(activeServer, null, id, null, fetch, openRepo).then(() => {
+        tasks.refresh();
+        setRepoNonce(current => current + 1);
+      });
+      return;
+    }
     if (name === 'enable-module') { changeModule(id, true); return; }
     if (name === 'disable-module') { changeModule(id, false); return; }
     if (runTaskAction(name, id, tasks)) return;

@@ -449,6 +449,136 @@ public sealed class ForgejoApiProvider(HttpMessageHandler? handler = null, strin
     private static string TrimHeads(string @ref)
         => @ref.StartsWith("refs/heads/", StringComparison.Ordinal) ? @ref["refs/heads/".Length..] : @ref;
 
+    public async Task<IReadOnlyList<ForgeRepository>> ListRepositoriesAsync(string token, CancellationToken cancellationToken)
+    {
+        using var client = CreateClient(token);
+        var repos = await client.GetFromJsonAsync<JsonElement>("user/repos?limit=100", Json, cancellationToken);
+        return Repositories(repos);
+    }
+
+    public async Task<IReadOnlyList<ForgePullRequest>> ListPullRequestsAsync(
+        ForgeRequest request,
+        CancellationToken cancellationToken)
+    {
+        using var client = CreateClient(request.Token);
+        var pulls = await client.GetFromJsonAsync<JsonElement>(
+            $"repos/{request.Owner}/{request.Repository}/pulls?state=open&limit=20",
+            Json,
+            cancellationToken);
+        if (pulls.ValueKind != JsonValueKind.Array)
+            return [];
+
+        var listed = new List<ForgePullRequest>();
+        foreach (var pull in pulls.EnumerateArray())
+        {
+            var number = pull.GetProperty("number").GetRawText();
+            IReadOnlyList<ForgeReview> reviews;
+            try
+            {
+                var body = await client.GetFromJsonAsync<JsonElement>(
+                    $"repos/{request.Owner}/{request.Repository}/pulls/{number}/reviews?limit=100",
+                    Json,
+                    cancellationToken);
+                reviews = body.ValueKind == JsonValueKind.Array
+                    ? body.EnumerateArray().Select(ReadOneReview).OfType<ForgeReview>().ToArray()
+                    : [];
+            }
+            catch (HttpRequestException)
+            {
+                reviews = [];
+            }
+
+            listed.Add(new ForgePullRequest(
+                pull.GetProperty("id").GetRawText(),
+                pull.GetProperty("number").GetInt32(),
+                pull.GetProperty("title").GetString() ?? "",
+                pull.GetProperty("html_url").GetString() ?? "",
+                Logins(pull, "requested_reviewers"),
+                reviews));
+        }
+
+        return listed;
+    }
+
+    public async Task<ForgeTokenAccess> ReadTokenAccessAsync(string token, CancellationToken cancellationToken)
+    {
+        using var client = CreateClient(token);
+        using var user = await client.GetAsync("user", cancellationToken);
+        if (user.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+            return new ForgeTokenAccess(false, false, "The token was refused.");
+        user.EnsureSuccessStatusCode();
+
+        using var repos = await client.GetAsync("user/repos?limit=1", cancellationToken);
+        if (repos.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+            return new ForgeTokenAccess(false, false, "The token cannot list repositories.");
+        repos.EnsureSuccessStatusCode();
+        var listed = await repos.Content.ReadFromJsonAsync<JsonElement>(Json, cancellationToken);
+        if (listed.ValueKind != JsonValueKind.Array || listed.GetArrayLength() == 0)
+            return new ForgeTokenAccess(true, true, null);
+
+        var first = listed[0];
+        var owner = OwnerOf(first);
+        var name = first.GetProperty("name").GetString();
+        using var pulls = await client.GetAsync($"repos/{owner}/{name}/pulls?state=open&limit=1", cancellationToken);
+        if (pulls.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+        {
+            return new ForgeTokenAccess(
+                true,
+                false,
+                "The token cannot read pull requests. Dev review and PM review are inferred from them.");
+        }
+
+        pulls.EnsureSuccessStatusCode();
+        return new ForgeTokenAccess(true, true, null);
+    }
+
+    private static IReadOnlyList<ForgeRepository> Repositories(JsonElement repos)
+    {
+        if (repos.ValueKind != JsonValueKind.Array)
+            return [];
+
+        return repos.EnumerateArray()
+            .Select(repo => new ForgeRepository(OwnerOf(repo), repo.GetProperty("name").GetString() ?? ""))
+            .Where(repo => repo.Owner.Length > 0 && repo.Name.Length > 0)
+            .ToArray();
+    }
+
+    private static string OwnerOf(JsonElement repo)
+    {
+        if (!repo.TryGetProperty("owner", out var owner) || owner.ValueKind != JsonValueKind.Object)
+            return "";
+        if (owner.TryGetProperty("login", out var login) && login.GetString() is { Length: > 0 } named)
+            return named;
+        return owner.TryGetProperty("username", out var username) ? username.GetString() ?? "" : "";
+    }
+
+    private static ForgeReview? ReadOneReview(JsonElement review)
+    {
+        var login = review.TryGetProperty("user", out var user) && user.ValueKind == JsonValueKind.Object
+            ? user.TryGetProperty("login", out var name) ? name.GetString() : null
+            : null;
+        if (string.IsNullOrWhiteSpace(login))
+            return null;
+        var state = review.TryGetProperty("state", out var verdict) ? verdict.GetString() ?? "" : "";
+        var submitted = review.TryGetProperty("submitted_at", out var at) && at.ValueKind == JsonValueKind.String
+            ? at.GetDateTimeOffset()
+            : DateTimeOffset.MinValue;
+        var commit = review.TryGetProperty("commit_id", out var sha) && sha.ValueKind == JsonValueKind.String ? sha.GetString() : null;
+        return new ForgeReview(login, state, submitted, commit);
+    }
+
+    private static IReadOnlyList<string> Logins(JsonElement element, string property)
+    {
+        if (!element.TryGetProperty(property, out var users) || users.ValueKind != JsonValueKind.Array)
+            return [];
+
+        return users.EnumerateArray()
+            .Select(user => user.TryGetProperty("login", out var login) ? login.GetString() : null)
+            .OfType<string>()
+            .Where(login => login.Length > 0)
+            .ToArray();
+    }
+
     private HttpClient CreateClient(string token)
     {
         var client = handler is null ? new HttpClient() : new HttpClient(handler, disposeHandler: false);

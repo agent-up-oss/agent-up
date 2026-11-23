@@ -1,8 +1,8 @@
 import { jsonBody, requestServerJson, type ServerSession } from '@/features/servers/providers/ServerRequestProvider';
-import type { TaskSource } from '../models/TaskSource';
 import type { OfferedIssue } from '../models/TaskQueue';
+import type { TaskSource, TaskSourcePull, TaskSourceRepository } from '../models/TaskSource';
 
-/** Where this Server's agents take their work from. */
+/** The forge connections, without their tokens. */
 export async function readTaskSource(
   server: ServerSession,
   request: typeof fetch = fetch,
@@ -10,58 +10,81 @@ export async function readTaskSource(
   return await requestServerJson<TaskSource>(server, '/api/task-source', undefined, undefined, request);
 }
 
-export async function setTaskSource(
+/** Stores a personal access token for one host. The Server checks it and does not return it. */
+export async function saveTaskSourceToken(
   server: ServerSession,
   moduleId: string,
-  owner: string,
-  repository: string,
+  token: string,
   request: typeof fetch = fetch,
 ): Promise<TaskSource | null> {
   return await requestServerJson<TaskSource>(
     server,
     '/api/task-source',
-    { ...jsonBody({ moduleId, owner, repository }), method: 'PUT' },
+    { ...jsonBody({ moduleId, token }), method: 'PUT' },
     undefined,
     request,
   );
 }
 
-export async function clearTaskSource(
+/** Forgets the token stored for one host. */
+export async function forgetTaskSource(
   server: ServerSession,
+  moduleId: string,
   request: typeof fetch = fetch,
 ): Promise<TaskSource | null> {
   return await requestServerJson<TaskSource>(
     server,
-    '/api/task-source',
+    `/api/task-source/${encodeURIComponent(moduleId)}`,
     { method: 'DELETE' },
     undefined,
     request,
   );
 }
 
-/** Where to send the reader to authorize. */
-export async function startTaskSourceLogin(
+/** Every repository the stored tokens can see. */
+export async function readRepositories(
   server: ServerSession,
   request: typeof fetch = fetch,
-): Promise<string | null> {
-  const started = await requestServerJson<{ authorizeUrl: string }>(
+): Promise<TaskSourceRepository[]> {
+  return (await requestServerJson<TaskSourceRepository[]>(
     server,
-    '/api/task-source/login',
-    { method: 'POST' },
+    '/api/task-source/repositories',
+    undefined,
     undefined,
     request,
-  );
-  return started?.authorizeUrl ?? null;
+  )) ?? [];
 }
 
-/** The open issues the configured source serves. */
-export async function readSourceIssues(
+/** The open issues of one repository. */
+export async function readRepositoryIssues(
   server: ServerSession,
+  moduleId: string,
+  owner: string,
+  repository: string,
   request: typeof fetch = fetch,
 ): Promise<OfferedIssue[]> {
+  const query = new URLSearchParams({ moduleId, owner, repository });
   return (await requestServerJson<OfferedIssue[]>(
     server,
-    '/api/task-source/issues',
+    `/api/task-source/issues?${query}`,
+    undefined,
+    undefined,
+    request,
+  )) ?? [];
+}
+
+/** The open pull requests of one repository, with the reviews inferred from them. */
+export async function readRepositoryPulls(
+  server: ServerSession,
+  moduleId: string,
+  owner: string,
+  repository: string,
+  request: typeof fetch = fetch,
+): Promise<TaskSourcePull[]> {
+  const query = new URLSearchParams({ moduleId, owner, repository });
+  return (await requestServerJson<TaskSourcePull[]>(
+    server,
+    `/api/task-source/pulls?${query}`,
     undefined,
     undefined,
     request,

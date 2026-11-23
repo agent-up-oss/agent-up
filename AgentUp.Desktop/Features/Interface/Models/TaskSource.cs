@@ -1,23 +1,16 @@
 namespace AgentUp.Desktop.Features.Interface.Models;
 
-/// <summary>Where the Server says to send the reader to authorize.</summary>
-public sealed record TaskSourceLogin(string AuthorizeUrl);
+/// <summary>One repository host, and whether a personal access token is stored for it.</summary>
+public sealed record TaskSourceModule(string ModuleId, string DisplayName, bool Connected, string Detail);
 
-/// <summary>A repository host this Server could read a backlog from.</summary>
-public sealed record TaskSourceModule(string ModuleId, string DisplayName);
+/// <summary>The forge connections. The token is never in this document.</summary>
+public sealed record TaskSource(IReadOnlyList<TaskSourceModule> Modules);
 
-/// <summary>Where this Server's agents take their work from, and whether it can be read.</summary>
-public sealed record TaskSource(
-    string? ModuleId,
-    string? Owner,
-    string? Repository,
-    bool Configured,
-    bool Connected,
-    bool CanConnect,
-    string Detail,
-    IReadOnlyList<TaskSourceModule> Modules)
-{
-    public string Label => Owner is { Length: > 0 } && Repository is { Length: > 0 }
-        ? $"{Owner}/{Repository}"
-        : "Not set";
-}
+/// <summary>A repository the stored token can see.</summary>
+public sealed record TaskSourceRepository(string ModuleId, string Owner, string Name);
+
+/// <summary>An open pull request and the review standings the Server inferred from it.</summary>
+public sealed record TaskSourcePull(string Id, int Number, string Title, string Url, IReadOnlyList<TaskSourceReview> Reviews);
+
+/// <summary>One kind of review. Standing is waiting, reviewing, or reviewed.</summary>
+public sealed record TaskSourceReview(string Kind, string Standing, string? Login, string? Verdict);

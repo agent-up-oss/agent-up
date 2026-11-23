@@ -723,6 +723,32 @@ public sealed class ForgejoApiProviderTests
     }
 
 
+    [Test]
+    public async Task ListRepositoriesAsync_readsTheRepositoriesTheTokenCanSee()
+    {
+        var handler = Recorded(("GET /user/repos?limit=100", """
+            [{"name":"widgets","owner":{"login":"acme"}}]
+            """));
+
+        var repositories = await new ForgejoForgeCapability(handler).ListRepositoriesAsync("token");
+
+        Assert.That(repositories.Select(repository => $"{repository.Owner}/{repository.Name}"), Is.EqualTo(new[] { "acme/widgets" }));
+    }
+
+    [Test]
+    public async Task ReadTokenAccessAsync_refusesATokenTheHostWillNotAccept()
+    {
+        var handler = Recorded(("GET /user", HttpStatusCode.Unauthorized, ""));
+
+        var access = await new ForgejoForgeCapability(handler).ReadTokenAccessAsync("token");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(access.CanListRepositories, Is.False);
+            Assert.That(access.CanReadPullRequests, Is.False);
+        });
+    }
+
     private static ForgeRequest Request() => new("token", "acme", "widgets", "topic");
 
     private static RecordedHandler Recorded()

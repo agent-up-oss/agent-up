@@ -1,4 +1,3 @@
-using System.Reactive.Linq;
 using AgentUp.Desktop.Features.Interface.Controllers;
 using AgentUp.Desktop.Features.Interface.Interfaces;
 using AgentUp.Desktop.Features.Interface.Models;
@@ -11,225 +10,128 @@ namespace AgentUp.Desktop.Tests.Features.Interface.Unit;
 public sealed class TaskSourceViewModelTests
 {
     [Test]
-    public async Task AServerNobodyHasPointedAnywhereOffersToSetOne()
+    public async Task LoadAsync_showsWhichHostsAreConnected()
     {
-        var source = ViewModel(new FakeTaskSourceApi());
+        var source = ViewModel(new FakeTaskSourceApi { State = Connected() });
 
         await source.LoadAsync();
 
         Assert.Multiple(() =>
         {
-            Assert.That(source.Label, Is.EqualTo("Not set"));
-            Assert.That(source.Configured, Is.False);
-            Assert.That(source.EditLabel, Is.EqualTo("Set repository"));
-            Assert.That(source.ShowsConnect, Is.False, "there is nothing to sign in to yet");
+            Assert.That(source.IsConnected("github"), Is.True);
+            Assert.That(source.DetailFor("github"), Does.Contain("GitHub"));
+            Assert.That(source.IsConnected("forgejo"), Is.False);
         });
     }
 
     [Test]
-    public async Task AConfiguredButUnconnectedSourceOffersToConnect()
+    public async Task SaveAsync_sendsTheTokenAndDoesNotKeepIt()
     {
-        var source = ViewModel(new FakeTaskSourceApi { State = Source(connected: false) });
-
-        await source.LoadAsync();
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(source.Label, Is.EqualTo("agent-up-oss/agent-up"));
-            Assert.That(source.ShowsConnect, Is.True);
-            Assert.That(source.EditLabel, Is.EqualTo("Change"));
-        });
-    }
-
-    [Test]
-    public async Task ASourceThatCannotStartASignInDoesNotOfferOne()
-    {
-        var source = ViewModel(new FakeTaskSourceApi { State = Source(connected: false, canConnect: false) });
-
-        await source.LoadAsync();
-
-        Assert.That(source.ShowsConnect, Is.False);
-    }
-
-    [Test]
-    public async Task SavingTakesTheRepositoryHoweverTheReaderWroteIt()
-    {
-        var api = new FakeTaskSourceApi { State = Source() };
+        var api = new FakeTaskSourceApi { State = Connected(false) };
         var source = ViewModel(api);
-        await source.LoadAsync();
 
-        source.EditCommand.Execute().Subscribe();
-        source.Typed = "https://github.com/acme/widgets.git";
-        await source.SaveCommand.Execute();
+        await source.SaveAsync("github", " secret-token ");
 
         Assert.Multiple(() =>
         {
-            Assert.That(api.Saved, Is.EqualTo(("github", "acme", "widgets")));
-            Assert.That(source.Editing, Is.False);
+            Assert.That(api.Saved, Is.EqualTo(("github", "secret-token")));
+            Assert.That(source.DetailFor("github"), Does.Not.Contain("secret-token"));
+            Assert.That(source.IsConnected("github"), Is.True);
         });
     }
 
     [Test]
-    public async Task SomethingThatIsNotARepositoryCannotBeSaved()
+    public async Task SaveAsync_showsTheServersReasonWhenTheTokenIsRefused()
     {
-        var api = new FakeTaskSourceApi();
-        var source = ViewModel(api);
-        await source.LoadAsync();
+        var source = ViewModel(new FakeTaskSourceApi { Failure = new HttpRequestException("The token cannot read pull requests.") });
 
-        source.EditCommand.Execute().Subscribe();
-        source.Typed = "agent-up";
-        await source.SaveCommand.Execute();
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(source.CanSave, Is.False);
-            Assert.That(api.Saved, Is.Null, "a half-named source would point the Server at nothing");
-        });
-    }
-
-    [Test]
-    public async Task AMachineWithNoBrowserToOpenSaysSoRatherThanDoingNothingVisible()
-    {
-        var api = new FakeTaskSourceApi { State = Source(connected: false) };
-        var source = ViewModel(api, _ => false);
-        await source.LoadAsync();
-
-        await source.ConnectCommand.Execute();
+        await source.SaveAsync("github", "narrow");
 
         Assert.Multiple(() =>
         {
             Assert.That(source.HasError, Is.True);
-            Assert.That(source.Detail, Does.Contain("Could not open a browser"));
+            Assert.That(source.DetailFor("github"), Does.Contain("pull requests"));
         });
     }
 
     [Test]
-    public async Task ConnectingHandsTheAuthorizePageToTheBrowser()
+    public async Task ForgetAsync_dropsThatHost()
     {
-        var opened = new List<string>();
-        var api = new FakeTaskSourceApi { State = Source(connected: false), AuthorizeUrl = "https://example.test/authorize" };
-        var source = ViewModel(api, url => { opened.Add(url); return true; });
-        await source.LoadAsync();
-
-        await source.ConnectCommand.Execute();
-
-        Assert.That(opened.Single(), Is.EqualTo("https://example.test/authorize"));
-    }
-
-    [Test]
-    public async Task AServerThatCannotStartTheSignInSaysSoRatherThanOpeningNothing()
-    {
-        var opened = new List<string>();
-        var api = new FakeTaskSourceApi { State = Source(connected: false), AuthorizeUrl = null };
-        var source = ViewModel(api, url => { opened.Add(url); return true; });
-        await source.LoadAsync();
-
-        await source.ConnectCommand.Execute();
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(opened, Is.Empty);
-            Assert.That(source.HasError, Is.True);
-            Assert.That(source.Detail, Does.Contain("could not start a sign-in"));
-        });
-    }
-
-    [Test]
-    public async Task ForgettingTakesTheSourceBackOut()
-    {
-        var api = new FakeTaskSourceApi { State = Source() };
+        var api = new FakeTaskSourceApi { State = Connected() };
         var source = ViewModel(api);
         await source.LoadAsync();
 
-        await source.ForgetCommand.Execute();
+        await source.ForgetAsync("github");
 
         Assert.Multiple(() =>
         {
-            Assert.That(api.Cleared, Is.True);
-            Assert.That(source.Configured, Is.False);
+            Assert.That(api.Forgotten, Is.EqualTo("github"));
+            Assert.That(source.IsConnected("github"), Is.False);
         });
     }
 
     [Test]
-    public async Task AServerThatCannotBeReachedSaysWhatWentWrong()
+    public async Task RepositoriesLoadFromTheStoredTokens()
     {
-        var source = ViewModel(new FakeTaskSourceApi { Failure = new HttpRequestException("no route") });
-
-        await source.LoadAsync();
-
-        Assert.Multiple(() =>
+        var source = ViewModel(new FakeTaskSourceApi
         {
-            Assert.That(source.HasError, Is.True);
-            Assert.That(source.Detail, Is.EqualTo("no route"));
+            State = Connected(),
+            Repositories = [new TaskSourceRepository("github", "example", "repository")],
         });
+
+        await source.LoadRepositoriesAsync();
+
+        Assert.That(source.Repositories.Single().Name, Is.EqualTo("repository"));
     }
 
-    [Test]
-    public void ARepositoryIsTakenHoweverItWasWritten()
-    {
-        Assert.Multiple(() =>
-        {
-            Assert.That(TaskSourceService.Split("agent-up-oss/agent-up"), Is.EqualTo(("agent-up-oss", "agent-up")));
-            Assert.That(TaskSourceService.Split("  agent-up-oss/agent-up "), Is.EqualTo(("agent-up-oss", "agent-up")));
-            Assert.That(
-                TaskSourceService.Split("https://github.com/agent-up-oss/agent-up"),
-                Is.EqualTo(("agent-up-oss", "agent-up")));
-            Assert.That(
-                TaskSourceService.Split("https://github.com/agent-up-oss/agent-up.git"),
-                Is.EqualTo(("agent-up-oss", "agent-up")));
-            Assert.That(TaskSourceService.Split("agent-up"), Is.Null);
-            Assert.That(TaskSourceService.Split("   "), Is.Null);
-        });
-    }
+    private static TaskSource Connected(bool github = true) => new(
+    [
+        new TaskSourceModule("github", "GitHub", github, github ? "Reading repositories and pull requests from GitHub." : "Paste a token."),
+        new TaskSourceModule("forgejo", "Forgejo", false, "Enable the Forgejo capability, then paste a personal access token."),
+    ]);
 
-    private static TaskSource Source(bool connected = true, bool canConnect = true)
-        => new(
-            "github",
-            "agent-up-oss",
-            "agent-up",
-            Configured: true,
-            Connected: connected,
-            CanConnect: canConnect,
-            Detail: connected ? "Reading issues." : "Sign in to read issues.",
-            Modules: [new TaskSourceModule("github", "GitHub")]);
-
-    private static TaskSourceViewModel ViewModel(ITaskSourceApiProvider api, Func<string, bool>? open = null)
-        => new(new TaskSourceController(new TaskSourceService(api)), open ?? (_ => true));
+    private static TaskSourceViewModel ViewModel(ITaskSourceApiProvider api)
+        => new(new TaskSourceController(new TaskSourceService(api)));
 
     private sealed class FakeTaskSourceApi : ITaskSourceApiProvider
     {
         public TaskSource? State { get; set; }
 
-        public string? AuthorizeUrl { get; init; } = "https://example.test/authorize";
+        public IReadOnlyList<TaskSourceRepository> Repositories { get; init; } = [];
 
         public Exception? Failure { get; init; }
 
-        public (string Module, string Owner, string Repository)? Saved { get; private set; }
+        public (string Module, string Token)? Saved { get; private set; }
 
-        public bool Cleared { get; private set; }
+        public string? Forgotten { get; private set; }
 
         public Task<TaskSource?> ReadAsync(CancellationToken cancellationToken)
             => Failure is null ? Task.FromResult(State) : Task.FromException<TaskSource?>(Failure);
 
-        public Task<TaskSource?> SetAsync(
+        public Task<TaskSource?> SaveAsync(string moduleId, string token, CancellationToken cancellationToken)
+        {
+            if (Failure is not null)
+                return Task.FromException<TaskSource?>(Failure);
+            Saved = (moduleId, token);
+            State = Connected();
+            return Task.FromResult<TaskSource?>(State);
+        }
+
+        public Task<TaskSource?> ForgetAsync(string moduleId, CancellationToken cancellationToken)
+        {
+            Forgotten = moduleId;
+            State = Connected(false);
+            return Task.FromResult<TaskSource?>(State);
+        }
+
+        public Task<IReadOnlyList<TaskSourceRepository>> ListRepositoriesAsync(CancellationToken cancellationToken)
+            => Task.FromResult(Repositories);
+
+        public Task<IReadOnlyList<TaskSourcePull>> ListPullsAsync(
             string moduleId,
             string owner,
             string repository,
             CancellationToken cancellationToken)
-        {
-            Saved = (moduleId, owner, repository);
-            State = Source() with { Owner = owner, Repository = repository };
-            return Task.FromResult(State);
-        }
-
-        public Task<TaskSource?> ClearAsync(CancellationToken cancellationToken)
-        {
-            Cleared = true;
-            State = null;
-            return Task.FromResult(State);
-        }
-
-        public Task<string?> StartLoginAsync(CancellationToken cancellationToken)
-            => Task.FromResult(AuthorizeUrl);
+            => Task.FromResult<IReadOnlyList<TaskSourcePull>>([]);
     }
 }

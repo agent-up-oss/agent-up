@@ -3,9 +3,6 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using AgentUp.Sdk.Forge;
 using AgentUp.Server.Features.Capabilities.Interfaces;
-using AgentUp.Server.Features.Forge.DTOs;
-using AgentUp.Server.Features.Forge.Interfaces;
-using AgentUp.Server.Features.Forge.Models;
 using AgentUp.Server.Features.TaskSource.Controllers;
 using AgentUp.Server.Features.TaskSource.DTOs;
 using AgentUp.Server.Features.TaskSource.Interfaces;
@@ -13,6 +10,7 @@ using AgentUp.Server.Features.TaskSource.Providers;
 using AgentUp.Server.Features.TaskSource.Services;
 using AgentUp.Server.Tests.Support;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace AgentUp.Server.Tests.Features.TaskSource.HTTP;
@@ -23,182 +21,130 @@ public sealed class TaskSourceHttpTests
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
     [Test]
-    public async Task GetSource_describesAServerNobodyHasPointedAnywhere()
+    public async Task Get_listsBothHostsAndDoesNotIncludeAToken()
     {
         await using var host = await HostAsync();
 
-        var source = await host.Client.GetFromJsonAsync<TaskSourceDto>("/api/task-source", Json);
+        var body = await host.Client.GetStringAsync("/api/task-source");
+        var source = JsonSerializer.Deserialize<TaskSourceDto>(body, Json);
 
         Assert.Multiple(() =>
         {
-            Assert.That(source!.Configured, Is.False);
-            Assert.That(source.Modules.Single().ModuleId, Is.EqualTo("github"));
+            Assert.That(source!.Modules.Select(module => module.ModuleId), Is.EqualTo(new[] { "github", "forgejo" }));
+            Assert.That(body, Does.Not.Contain("secret-token"));
         });
     }
 
     [Test]
-    public async Task PutSource_namesTheRepositoryTheAgentsWorkFrom()
+    public async Task Put_storesATokenThatCanReadPullRequestsAndDoesNotEchoIt()
     {
         await using var host = await HostAsync();
 
-        var response = await host.Client.PutAsJsonAsync(
-            "/api/task-source",
-            new SetTaskSourceRequest("github", "agent-up-oss", "agent-up"),
-            Json);
-        var source = await response.Content.ReadFromJsonAsync<TaskSourceDto>(Json);
-
-        Assert.Multiple(() =>
-        {
-            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-            Assert.That(source!.Configured, Is.True);
-            Assert.That(source.Owner, Is.EqualTo("agent-up-oss"));
-            Assert.That(source.Connected, Is.False);
-        });
-    }
-
-    [Test]
-    public async Task PostLogin_answersWithSomewhereToSendTheReader()
-    {
-        await using var host = await HostAsync();
-        await host.Client.PutAsJsonAsync(
-            "/api/task-source",
-            new SetTaskSourceRequest("github", "agent-up-oss", "agent-up"),
-            Json);
-
-        var response = await host.Client.PostAsync("/api/task-source/login", null);
-        var login = await response.Content.ReadFromJsonAsync<TaskSourceLoginDto>(Json);
+        var response = await host.Client.PutAsJsonAsync("/api/task-source", new SaveTaskSourceTokenRequest("github", "secret-token"), Json);
+        var body = await response.Content.ReadAsStringAsync();
 
         Assert.Multiple(() =>
         {
             Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-            Assert.That(login!.AuthorizeUrl, Does.Contain("client_id=client"));
+            Assert.That(body, Does.Not.Contain("secret-token"));
+            Assert.That(host.Credentials.Read("github"), Is.EqualTo("secret-token"));
         });
     }
 
     [Test]
-    public async Task PostLogin_beforeARepositoryIsNamedIsRefused()
+    public async Task Put_refusesATokenThatCannotReadPullRequests()
     {
-        await using var host = await HostAsync();
+        await using var host = await HostAsync(new ForgeTokenAccess(true, false, "The token cannot read pull requests."));
 
-        var response = await host.Client.PostAsync("/api/task-source/login", null);
-
-        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Conflict));
-    }
-
-    [Test]
-    public async Task TheCallbackConnectsTheSourceAndThenServesItsIssues()
-    {
-        var issue = new ForgeIssue("7", 3, "Restock", "body", DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch, "u");
-        await using var host = await HostAsync(issue);
-        await host.Client.PutAsJsonAsync(
-            "/api/task-source",
-            new SetTaskSourceRequest("github", "agent-up-oss", "agent-up"),
-            Json);
-        var login = await (await host.Client.PostAsync("/api/task-source/login", null))
-            .Content.ReadFromJsonAsync<TaskSourceLoginDto>(Json);
-        var state = System.Web.HttpUtility.ParseQueryString(new Uri(login!.AuthorizeUrl).Query)["state"];
-
-        var callback = await host.Client.GetAsync($"/api/task-source/callback?code=abc&state={state}");
-        var issues = await host.Client.GetFromJsonAsync<List<ForgeIssueDto>>("/api/task-source/issues", Json);
+        var response = await host.Client.PutAsJsonAsync("/api/task-source", new SaveTaskSourceTokenRequest("github", "narrow"), Json);
+        var body = await response.Content.ReadAsStringAsync();
 
         Assert.Multiple(() =>
         {
-            Assert.That(callback.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-            Assert.That(issues!.Single().Number, Is.EqualTo(3));
+            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Conflict));
+            Assert.That(body, Does.Contain("pull requests"));
+            Assert.That(host.Credentials.Read("github"), Is.Null);
         });
     }
 
-    // The host returns the reader to the path it was given, and only this slice can spend its state.
     [Test]
-    public async Task TheSignInReturnsToTheTaskSourcesOwnCallbackAndExchangesWithIt()
+    public async Task Delete_forgetsOneHost()
     {
-        var exchange = new FixedForgeOAuthExchange("exchanged");
-        await using var host = await HostAsync(exchange);
-        await host.Client.PutAsJsonAsync("/api/task-source", new SetTaskSourceRequest("github", "harbor", "storefront"), Json);
-        var login = await (await host.Client.PostAsync("/api/task-source/login", null)).Content.ReadFromJsonAsync<TaskSourceLoginDto>(Json);
-        var query = System.Web.HttpUtility.ParseQueryString(new Uri(login!.AuthorizeUrl).Query);
+        await using var host = await HostAsync();
+        host.Credentials.Write("github", "github-token");
+        host.Credentials.Write("forgejo", "forgejo-token");
 
-        await host.Client.GetAsync($"/api/task-source/callback?code=abc&state={query["state"]}");
+        var response = await host.Client.DeleteAsync("/api/task-source/github");
 
         Assert.Multiple(() =>
         {
-            Assert.That(query["redirect_uri"], Is.EqualTo("https://example.test/api/task-source/callback"));
-            Assert.That(exchange.LastRedirectUri, Is.EqualTo("https://example.test/api/task-source/callback"));
+            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.That(host.Credentials.Read("github"), Is.Null);
+            Assert.That(host.Credentials.Read("forgejo"), Is.EqualTo("forgejo-token"));
         });
     }
 
     [Test]
-    public async Task TheCallbackLeavesTheSourceUnconnectedWhenTheHostRefusesTheCode()
-    {
-        await using var host = await HostAsync(new FixedForgeOAuthExchange("unused", refusal: "The host refused the sign-in code (400)."));
-        await host.Client.PutAsJsonAsync("/api/task-source", new SetTaskSourceRequest("github", "harbor", "storefront"), Json);
-        var login = await (await host.Client.PostAsync("/api/task-source/login", null)).Content.ReadFromJsonAsync<TaskSourceLoginDto>(Json);
-        var state = System.Web.HttpUtility.ParseQueryString(new Uri(login!.AuthorizeUrl).Query)["state"];
-
-        var callback = await host.Client.GetAsync($"/api/task-source/callback?code=abc&state={state}");
-
-        Assert.That(callback.StatusCode, Is.EqualTo(HttpStatusCode.NotFound), "a refused code is not a server error");
-    }
-
-    [Test]
-    public async Task TheCallbackRefusesAStateNobodyIssued()
+    public async Task Get_repositoriesAndIssuesAndPullsUseTheStoredToken()
     {
         await using var host = await HostAsync();
+        host.Credentials.Write("github", "token");
 
-        var callback = await host.Client.GetAsync("/api/task-source/callback?code=abc&state=invented");
+        var repositories = await host.Client.GetFromJsonAsync<TaskSourceRepositoryDto[]>("/api/task-source/repositories", Json);
+        var issues = await host.Client.GetFromJsonAsync<JsonElement>(
+            "/api/task-source/issues?moduleId=github&owner=acme&repository=widgets", Json);
+        var pulls = await host.Client.GetFromJsonAsync<TaskSourcePullDto[]>(
+            "/api/task-source/pulls?moduleId=github&owner=acme&repository=widgets", Json);
 
-        Assert.That(callback.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
+        Assert.Multiple(() =>
+        {
+            Assert.That(repositories!.Single().Name, Is.EqualTo("widgets"));
+            Assert.That(issues.GetArrayLength(), Is.EqualTo(1));
+            Assert.That(pulls!.Single().Reviews.Single().Standing, Is.EqualTo("reviewing"));
+        });
     }
 
-    [Test]
-    public async Task DeleteSource_forgetsTheRepository()
-    {
-        await using var host = await HostAsync();
-        await host.Client.PutAsJsonAsync(
-            "/api/task-source",
-            new SetTaskSourceRequest("github", "agent-up-oss", "agent-up"),
-            Json);
-
-        var response = await host.Client.DeleteAsync("/api/task-source");
-        var source = await response.Content.ReadFromJsonAsync<TaskSourceDto>(Json);
-
-        Assert.That(source!.Configured, Is.False);
-    }
-
-    private static Task<Host> HostAsync(params ForgeIssue[] issues) => HostAsync(new FixedForgeOAuthExchange("exchanged"), issues);
-
-    private static async Task<Host> HostAsync(FixedForgeOAuthExchange exchange, params ForgeIssue[] issues)
+    private static async Task<Host> HostAsync(ForgeTokenAccess? access = null)
     {
         var builder = WebApplication.CreateBuilder(new WebApplicationOptions { Args = ["--urls=http://127.0.0.1:0"] });
         builder.Services.AddControllers().AddApplicationPart(typeof(TaskSourceHttpController).Assembly);
 
         var directory = Path.Join(Path.GetTempPath(), $"task-source-{Guid.NewGuid():N}");
         Directory.CreateDirectory(directory);
-        builder.Services.AddSingleton<IEnabledCapabilityPackages>(
-            new FakeEnabledCapabilityPackages().WithForges(new StubForgeCapability { Issues = issues }));
-        builder.Services.AddSingleton<IForgeOAuthSettings>(
-            new FixedForgeOAuthSettings(new ForgeOAuthConfiguration("client", "secret", "https://example.test/callback")));
-        builder.Services.AddSingleton<IForgeOAuthExchange>(exchange);
-        builder.Services.AddSingleton<ITaskSourceStore>(_ => new JsonTaskSourceStore(directory));
-        builder.Services.AddSingleton<ITaskSourceCredentialStore>(_ => new JsonTaskSourceCredentialStore(directory));
-        builder.Services.AddSingleton<ITaskSourceStateStore, TaskSourceStateStore>();
+        var credentials = new JsonTaskSourceCredentialStore(directory);
+        var forge = new StubForgeCapability
+        {
+            TokenAccess = access ?? new ForgeTokenAccess(true, true, null),
+            Repositories = [new ForgeRepository("acme", "widgets")],
+            Issues = [new ForgeIssue("I-7", 7, "Cart badge", "", DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch, "https://example.test/7")],
+            PullRequests = [new ForgePullRequest("42", 42, "Product cards", "https://example.test/42", ["hector"], [])],
+        };
+        builder.Services.AddSingleton<IEnabledCapabilityPackages>(new FakeEnabledCapabilityPackages().WithForges(forge));
+        builder.Services.AddSingleton<ITaskSourceCredentialStore>(credentials);
+        builder.Services.AddSingleton<ITaskSourceTeam>(new FixedTeam());
         builder.Services.AddSingleton<TaskSourceService>();
         builder.Services.AddSingleton<TaskSourceController>();
 
         var app = builder.Build();
         app.MapControllers();
         await app.StartAsync();
-
-        return new Host(app, new HttpClient { BaseAddress = new Uri(app.Urls.First()) }, directory);
+        return new Host(app, new HttpClient { BaseAddress = new Uri(app.Urls.First()) }, directory, credentials);
     }
 
-    private sealed record Host(WebApplication App, HttpClient Client, string Directory) : IAsyncDisposable
+    private sealed class FixedTeam : ITaskSourceTeam
+    {
+        public Task<TaskSourceTeam> ForAsync(string owner, string repository, CancellationToken cancellationToken)
+            => Task.FromResult(new TaskSourceTeam(new Dictionary<string, string> { ["hector"] = "devReviewer" }, ["devReviewer"]));
+    }
+
+    private sealed record Host(WebApplication App, HttpClient Client, string Directory, JsonTaskSourceCredentialStore Credentials) : IAsyncDisposable
     {
         public async ValueTask DisposeAsync()
         {
             Client.Dispose();
             await App.DisposeAsync();
-            if (System.IO.Directory.Exists(Directory)) System.IO.Directory.Delete(Directory, recursive: true);
+            if (System.IO.Directory.Exists(Directory))
+                System.IO.Directory.Delete(Directory, recursive: true);
         }
     }
 }

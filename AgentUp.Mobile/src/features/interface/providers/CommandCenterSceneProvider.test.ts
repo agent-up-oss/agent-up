@@ -177,7 +177,25 @@ test('the board opens one of its three queues and sorts proposals into each kind
   assert.equal(scene.state.issuesTab, undefined);
   assert.deepEqual(scene.items.devReview.map(item => [item.action, item.text?.agent]), [['reviewing', 'Hector · revision 1']]);
   assert.deepEqual(scene.items.pmReview.map(item => [item.action, item.text?.agent]), [['waiting', 'Waiting for a reviewer · revision 1']]);
+  assert.equal(scene.state.repoList, '1');
   assert.equal(tasksTabFor('nav-tasks'), null);
+});
+
+test('an open repository shows its pull requests instead of the queue', () => {
+  const scene = commandCenterScene({
+    surface: 'mobile', nav: 1, section: 'overview', agentOpen: false, serverLabel: 'Demo', openWorkspaceId: null,
+    team: [], queue: [], working: [], offered: [], names: new Map(), flows: [],
+    repository: 'example/repository',
+    repositories: [{ id: 'github/example/repository', name: 'example/repository', host: 'GitHub' }],
+    pulls: [{ id: '42', number: 42, title: 'Long names', reviews: [{ kind: 'devReviewer', standing: 'reviewing', login: 'hector' }] }],
+    validationsOpen: false, validationRunning: false, validationPassed: false, validationSummary: '',
+  });
+
+  assert.equal(scene.state.repoOpen, '1');
+  assert.equal(scene.state.repoList, undefined);
+  assert.equal(scene.text.repository, 'example/repository');
+  assert.deepEqual(scene.items.devReview.map(item => [item.action, item.text?.agent]), [['reviewing', 'hector']]);
+  assert.deepEqual(scene.items.pmReview, []);
 });
 
 test('a capability row names its state and the one change it offers; the scene words both', () => {

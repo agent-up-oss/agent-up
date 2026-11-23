@@ -54,6 +54,13 @@ export type CommandCenterSceneInput = {
   names: Map<string, string>;
   /** Which of the Tasks board's three queues is open. */
   tasksTab?: TasksTab;
+  /** The repository the Tasks page has opened. Empty shows the repository list. */
+  repository?: string | null;
+  repositories?: { id: string; name: string; host: string }[];
+  pulls?: { id: string; number: number; title: string; reviews: { kind: string; standing: string; login?: string | null; verdict?: string | null }[] }[];
+  forgeTab?: string;
+  forgeDetail?: string;
+  forgeConnected?: boolean;
   flows: CommandCenterFlowSlot[];
   modules?: CommandCenterModuleSlot[];
   /** Settings · Chat: the team as tabs, and the selected workspace's agent and loop fields. */
@@ -103,6 +110,8 @@ export function commandCenterScene(input: CommandCenterSceneInput): CommandCente
     member: input.team.find(item => item.workspaceId === input.openWorkspaceId)?.displayName ?? '',
     branch: input.openBranch ? input.openBranch : 'not on a git branch',
     'file-name': input.openFile ? input.openFile.slice(input.openFile.lastIndexOf('/') + 1) : '',
+    repository: input.repository ?? '',
+    forgeDetail: input.forgeDetail ?? '',
   };
   const state: Record<string, string> = {
     selected: scene === 'mobile-tasks' ? '1' : scene === 'mobile-settings' ? '2' : '0',
@@ -110,6 +119,10 @@ export function commandCenterScene(input: CommandCenterSceneInput): CommandCente
   const tab = input.tasksTab ?? 'issues';
   state.tasksTab = tab;
   state[`${tab}Tab`] = '1';
+  state.forgeTab = input.forgeTab ?? 'github';
+  if (input.forgeConnected) state.forgeConnected = '1';
+  if (input.repository) state.repoOpen = '1';
+  else state.repoList = '1';
   if (input.chat && input.chat.workspaces.length > 0) state.chatSettings = '1';
   if (input.validationsOpen) state.open = '1';
   if (input.validationRunning) state.running = '1';
@@ -121,6 +134,11 @@ export function commandCenterScene(input: CommandCenterSceneInput): CommandCente
     items: {
       fleet: lanes(input.team),
       queue: tasks(input),
+      repos: (input.repositories ?? []).map(repository => ({
+        id: repository.id,
+        action: 'open-repo',
+        text: { name: repository.name, host: repository.host },
+      })),
       devReview: reviews(input, 'devReviewer'),
       pmReview: reviews(input, 'pmReviewer'),
       modules: (input.modules ?? []).map(moduleRow),
@@ -186,18 +204,36 @@ function host(standing: TeamStanding): SceneSlotItem {
 /** The board's rows as the Server holds them. The scene groups, labels, and tones them. */
 function tasks(input: CommandCenterSceneInput): SceneSlotItem[] {
   const name = (id: string | null) => (id ? input.names.get(id) ?? '' : '');
+  const open = input.repository;
+  const working = open ? input.working.filter(task => repositoryLabel(task) === open) : input.working;
+  const queue = open ? input.queue.filter(task => repositoryLabel(task) === open) : input.queue;
   return [
-    ...input.working.map(task => row(task.id, 'stop', taskLabel(task), repositoryLabel(task), name(task.heldByWorkspaceId))),
-    ...input.queue.map(task => row(task.id, 'dequeue', taskLabel(task), repositoryLabel(task), name(task.heldByWorkspaceId))),
-    ...input.offered.map(issue => row(issue.id, 'queue', issueLabel(issue), '', '')),
+    ...working.map(task => row(task.id, 'stop', taskLabel(task), repositoryLabel(task), name(task.heldByWorkspaceId))),
+    ...queue.map(task => row(task.id, 'dequeue', taskLabel(task), repositoryLabel(task), name(task.heldByWorkspaceId))),
+    ...input.offered.map(issue => row(issue.id, 'queue', issueLabel(issue), open ?? '', '')),
   ];
 }
 
-/** One kind of reviewer's queue. Review rows carry no action of their own: reviewers take reviews. */
+/** One kind of reviewer's queue. An open repository reads its pull requests; otherwise the queue. */
 function reviews(input: CommandCenterSceneInput, kind: ReviewKind): SceneSlotItem[] {
+  if (input.repository && input.pulls) return pullRows(input, kind);
   const name = (id: string | null) => (id ? input.names.get(id) ?? id : '');
   return reviewQueue([...input.working, ...input.queue], kind)
     .map(entry => row(entry.task.id, entry.standing, taskLabel(entry.task), repositoryLabel(entry.task), reviewLine(entry, name(entry.reviewerId))));
+}
+
+function pullRows(input: CommandCenterSceneInput, kind: ReviewKind): SceneSlotItem[] {
+  return (input.pulls ?? []).flatMap(pull => pull.reviews.filter(review => review.kind === kind).map(review => row(
+    `${pull.id}:${kind}`,
+    review.standing,
+    `#${pull.number} · ${pull.title}`,
+    input.repository ?? '',
+    review.standing === 'reviewing'
+      ? (review.login ?? '')
+      : review.standing === 'reviewed'
+        ? `${review.verdict ?? ''} by ${review.login ?? ''}`.trim()
+        : 'Waiting for a reviewer',
+  )));
 }
 
 function row(id: string, action: string, title: string, repo: string, agent: string): SceneSlotItem {

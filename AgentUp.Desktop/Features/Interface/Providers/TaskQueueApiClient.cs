@@ -25,15 +25,17 @@ public sealed class TaskQueueApiClient(HttpClient http) : ITaskQueueApiProvider
         return await response.Content.ReadFromJsonAsync<IReadOnlyList<OfferedIssue>>(Options, cancellationToken) ?? [];
     }
 
-    public async Task<IReadOnlyList<OfferedIssue>?> ListSourceIssuesAsync(CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<OfferedIssue>> ListRepositoryIssuesAsync(
+        string moduleId,
+        string owner,
+        string repository,
+        CancellationToken cancellationToken)
     {
-        using (var described = await http.GetAsync("api/task-source", cancellationToken))
-        {
-            described.EnsureSuccessStatusCode();
-            var source = await described.Content.ReadFromJsonAsync<TaskSource>(Options, cancellationToken);
-            if (source is not { Configured: true }) return null;
-        }
-        using var response = await http.GetAsync("api/task-source/issues", cancellationToken);
+        var path = "api/task-source/issues"
+            + $"?moduleId={Uri.EscapeDataString(moduleId)}"
+            + $"&owner={Uri.EscapeDataString(owner)}"
+            + $"&repository={Uri.EscapeDataString(repository)}";
+        using var response = await http.GetAsync(path, cancellationToken);
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync<IReadOnlyList<OfferedIssue>>(Options, cancellationToken) ?? [];
     }
@@ -42,12 +44,24 @@ public sealed class TaskQueueApiClient(HttpClient http) : ITaskQueueApiProvider
         string? workspaceId,
         string issueId,
         string? targetWorkspaceId,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        string? moduleId = null,
+        string? owner = null,
+        string? repository = null)
     {
-        using var response = await http.PostAsJsonAsync(
-            "api/tasks",
-            new { workspaceId, issueId, targetWorkspaceId },
-            cancellationToken);
+        var body = new Dictionary<string, string?>
+        {
+            ["workspaceId"] = workspaceId,
+            ["issueId"] = issueId,
+            ["targetWorkspaceId"] = targetWorkspaceId,
+        };
+        if (moduleId is not null)
+            body["moduleId"] = moduleId;
+        if (owner is not null)
+            body["owner"] = owner;
+        if (repository is not null)
+            body["repository"] = repository;
+        using var response = await http.PostAsJsonAsync("api/tasks", body, cancellationToken);
         response.EnsureSuccessStatusCode();
     }
 

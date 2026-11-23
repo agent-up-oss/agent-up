@@ -16,21 +16,35 @@ public sealed class TaskQueueService(ITaskQueueApiProvider api)
         api.ListIssuesAsync(workspaceId, cancellationToken);
 
     /// <summary>
-    /// The issues a reader can pick from. A configured task source answers for the whole Server;
-    /// without one, the workspace's own repository answers, as every Server did before a source
-    /// could be named.
+    /// The issues a reader can pick from a workspace's own repository. The command center's Tasks
+    /// page uses <see cref="ListRepositoryAsync"/> once a repository has been chosen.
     /// </summary>
     public async Task<OfferedIssues> ListOfferedAsync(string? workspaceId, CancellationToken cancellationToken)
-    {
-        var fromSource = await api.ListSourceIssuesAsync(cancellationToken);
-        if (fromSource is not null) return new OfferedIssues(fromSource, PickFrom: null);
-        return workspaceId is null
+        => workspaceId is null
             ? new OfferedIssues([], PickFrom: null)
             : new OfferedIssues(await api.ListIssuesAsync(workspaceId, cancellationToken), workspaceId);
-    }
 
-    public Task EnqueueAsync(string? workspaceId, string issueId, string? targetWorkspaceId, CancellationToken cancellationToken) =>
-        api.EnqueueAsync(workspaceId, issueId, targetWorkspaceId, cancellationToken);
+    public async Task<OfferedIssues> ListRepositoryAsync(
+        string moduleId,
+        string owner,
+        string repository,
+        CancellationToken cancellationToken)
+        => new(
+            await api.ListRepositoryIssuesAsync(moduleId, owner, repository, cancellationToken),
+            PickFrom: null,
+            moduleId,
+            owner,
+            repository);
+
+    public Task EnqueueAsync(
+        string? workspaceId,
+        string issueId,
+        string? targetWorkspaceId,
+        CancellationToken cancellationToken,
+        string? moduleId = null,
+        string? owner = null,
+        string? repository = null) =>
+        api.EnqueueAsync(workspaceId, issueId, targetWorkspaceId, cancellationToken, moduleId, owner, repository);
 
     public Task RemoveAsync(QueuedTask task, CancellationToken cancellationToken) =>
         api.RemoveAsync(task, cancellationToken);

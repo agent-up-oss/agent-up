@@ -466,9 +466,8 @@ export class FakeBackendService {
   }
 
   /**
-   * The Demo's own task source. It starts already pointed at the example repository and signed
-   * in, because the Demo is there to show the product working rather than to walk a reader
-   * through an OAuth round trip against a host that does not exist.
+   * The Demo's forge connections. GitHub starts with a token already stored, so the Tasks page
+   * can list the example repository. A token that cannot read pull requests is refused.
    */
   private taskSource(method: string, path: string, body: string | undefined): FakeBackendResponse {
     const rest = path.slice('/api/task-source'.length);
@@ -476,60 +475,70 @@ export class FakeBackendService {
     if (method === 'GET' && (rest === '' || rest === '/')) return json(this.describeSource());
 
     if (method === 'PUT') {
-      const asked = body ? (JSON.parse(body) as { moduleId?: string; owner?: string; repository?: string }) : {};
-      this.source = {
-        moduleId: asked.moduleId?.trim() || 'github',
-        owner: asked.owner?.trim() ?? '',
-        repository: asked.repository?.trim() ?? '',
-        connected: this.source?.connected ?? true,
-      };
+      const asked = body ? (JSON.parse(body) as { moduleId?: string; token?: string }) : {};
+      const moduleId = asked.moduleId?.trim() ?? '';
+      const token = asked.token?.trim() ?? '';
+      if ((moduleId !== 'github' && moduleId !== 'forgejo') || token.length === 0 || token === 'denied') {
+        return {
+          status: 409,
+          contentType: 'application/json',
+          body: JSON.stringify({ title: 'Task source', detail: 'The token needs access to repositories and pull requests.' }),
+        };
+      }
+      if (moduleId === 'github') this.githubToken = token;
+      else this.forgejoToken = token;
       return json(this.describeSource());
     }
 
-    if (method === 'DELETE') {
-      this.source = null;
+    if (method === 'DELETE' && (rest === '' || rest === '/')) {
+      this.githubToken = null;
+      this.forgejoToken = null;
       return json(this.describeSource());
     }
 
-    if (method === 'POST' && rest === '/login') {
-      if (!this.source) return { status: 409, contentType: 'application/json', body: '{}' };
-      this.source = { ...this.source, connected: true };
-      return json({ authorizeUrl: 'https://example.test/login/oauth/authorize?demo=1' });
+    if (method === 'DELETE' && rest.length > 1) {
+      const moduleId = decodeURIComponent(rest.slice(1));
+      if (moduleId === 'github') this.githubToken = null;
+      if (moduleId === 'forgejo') this.forgejoToken = null;
+      return json(this.describeSource());
+    }
+
+    if (method === 'GET' && rest.startsWith('/repositories')) {
+      return json(this.githubToken ? [{ moduleId: 'github', owner: 'example', name: 'repository' }] : []);
     }
 
     if (method === 'GET' && rest.startsWith('/issues')) {
-      // The Demo's issues belong to the example repository, which is the first workspace's.
       const first = (this.state.workspaces[0] as { id?: string } | undefined)?.id;
-      return json(this.source?.connected && first ? this.openIssues(first) : []);
+      return json(this.githubToken && first ? this.openIssues(first) : []);
+    }
+
+    if (method === 'GET' && rest.startsWith('/pulls')) {
+      return json(this.githubToken ? [{
+        id: '42',
+        number: 42,
+        title: 'Product cards cut off long names',
+        url: 'https://example.test/42',
+        reviews: [{ kind: 'devReviewer', standing: 'reviewing', login: 'hector', verdict: null }],
+      }] : []);
     }
 
     return notFound();
   }
 
   private describeSource() {
-    const source = this.source;
-    return {
-      moduleId: source?.moduleId ?? null,
-      owner: source?.owner ?? null,
-      repository: source?.repository ?? null,
-      configured: !!source && !!source.owner && !!source.repository,
-      connected: !!source?.connected,
-      canConnect: true,
-      detail: source?.connected
-        ? `Reading issues from ${source.owner}/${source.repository}.`
-        : source
-          ? `Sign in to read issues from ${source.owner}/${source.repository}.`
-          : 'Name the repository the agents take their work from.',
-      modules: [{ moduleId: 'github', displayName: 'GitHub' }],
-    };
+    const module = (id: string, name: string, connected: boolean) => ({
+      moduleId: id,
+      displayName: name,
+      connected,
+      detail: connected
+        ? `Reading repositories and pull requests from ${name}.`
+        : 'Paste a personal access token. It needs access to repositories and pull requests.',
+    });
+    return { modules: [module('github', 'GitHub', this.githubToken !== null), module('forgejo', 'Forgejo', this.forgejoToken !== null)] };
   }
 
-  private source: { moduleId: string; owner: string; repository: string; connected: boolean } | null = {
-    moduleId: 'github',
-    owner: 'example',
-    repository: 'repository',
-    connected: true,
-  };
+  private githubToken: string | null = 'demo';
+  private forgejoToken: string | null = null;
 
   private decisions(): FakeProductDecision[] {
     return this.state.productDecisions ?? [];
@@ -627,7 +636,7 @@ export class FakeBackendService {
     // No workspace named means the Server's task source, which the Demo reads from the first
     // workspace's repository, the same place GET /api/task-source/issues reads.
     const workspaceId = named
-      ?? (this.source?.connected ? (this.state.workspaces[0] as { id?: string } | undefined)?.id : undefined);
+      ?? (this.githubToken ? (this.state.workspaces[0] as { id?: string } | undefined)?.id : undefined);
     if (!workspaceId) return notFound();
 
     const issue = (this.state.issues?.[workspaceId] ?? []).find(item => item.id === issueId);

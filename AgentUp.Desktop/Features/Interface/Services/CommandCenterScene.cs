@@ -4,6 +4,9 @@ using AgentUp.Desktop.Features.Interface.Models;
 
 namespace AgentUp.Desktop.Features.Interface.Services;
 
+/// <summary>One repository the Tasks page can be drilled into.</summary>
+public sealed record CommandCenterRepositorySlot(string Id, string Name, string Host);
+
 /// <summary>One task row the scene repeats. The action is the catalog button the row runs; the scene words and tones it.</summary>
 public sealed record CommandCenterTaskSlot(
     string Id,
@@ -76,7 +79,12 @@ public sealed record CommandCenterSceneInput(
     IReadOnlyList<CommandCenterApplicationSlot>? Applications = null,
     IReadOnlyList<CommandCenterTaskSlot>? DevReviews = null,
     IReadOnlyList<CommandCenterTaskSlot>? PmReviews = null,
-    string TasksTab = "issues");
+    string TasksTab = "issues",
+    IReadOnlyList<CommandCenterRepositorySlot>? Repositories = null,
+    string? OpenRepository = null,
+    string ForgeTab = "github",
+    string ForgeDetail = "",
+    bool ForgeConnected = false);
 
 /// <summary>One application of the open workspace, as its tab shows it.</summary>
 public sealed record CommandCenterApplicationSlot(string Name, bool Running);
@@ -117,6 +125,21 @@ public static class CommandCenterScene
         binding.Items["queue"] = input.Tasks.Select(Task).ToArray();
         binding.Items["devReview"] = (input.DevReviews ?? []).Select(Task).ToArray();
         binding.Items["pmReview"] = (input.PmReviews ?? []).Select(Task).ToArray();
+        binding.Items["repos"] = (input.Repositories ?? []).Select(repo => new NewUiSlotItem
+        {
+            Id = repo.Id,
+            Action = "open-repo",
+            Text = new Dictionary<string, string>(StringComparer.Ordinal) { ["name"] = repo.Name, ["host"] = repo.Host },
+        }).ToArray();
+        binding.Text["repository"] = input.OpenRepository ?? "";
+        binding.Text["forgeDetail"] = input.ForgeDetail;
+        binding.State["forgeTab"] = input.ForgeTab;
+        if (input.ForgeConnected)
+            binding.State["forgeConnected"] = "1";
+        if (string.IsNullOrEmpty(input.OpenRepository))
+            binding.State["repoList"] = "1";
+        else
+            binding.State["repoOpen"] = "1";
         // The Tasks board shows one of its three queues; the scene marks the tab and the page.
         binding.State["tasksTab"] = input.TasksTab;
         binding.State[$"{input.TasksTab}Tab"] = "1";
