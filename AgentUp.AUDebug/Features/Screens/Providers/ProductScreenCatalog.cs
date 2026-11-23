@@ -147,8 +147,10 @@ public sealed class ProductScreenCatalog : IProductScreenCatalog
             ScreenStepDto.Tap("Close sidebar", 1200),
             ScreenStepDto.Tap("Agents", 1500),
             ScreenStepDto.Tap("Open Codex", 2500),
-            .. MobilePrompt(FirstPrompt),
-            .. MobilePrompt(SecondPrompt),
+            .. MobilePrompt(FirstPrompt, "Send"),
+            // Lands while the Demo run from the first prompt still plays, so the composer offers
+            // Steer rather than Send and the screen is captured with steering queued.
+            .. MobilePrompt(SecondPrompt, "Steer"),
             ScreenStepDto.Navigate($"/workspace/{DebugLayout.DemoWorkspaceId}/agents")
         ]),
         MobileScreen("git", "Mobile Git",
@@ -220,10 +222,10 @@ public sealed class ProductScreenCatalog : IProductScreenCatalog
         ])
     ];
 
-    private static ScreenStepDto[] MobilePrompt(string text) =>
+    private static ScreenStepDto[] MobilePrompt(string text, string action) =>
     [
         ScreenStepDto.Fill("Ask the agent", text),
-        ScreenStepDto.Tap("Send", 2500)
+        ScreenStepDto.Tap(action, 2500)
     ];
 
     /// <summary>Ticks the two files the Agent route asked for, by the label the row carries.</summary>

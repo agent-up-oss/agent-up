@@ -82,6 +82,19 @@ public sealed class ProductScreenCatalogTests
     }
 
     [Test]
+    public void Catalog_sendsTheFirstMobilePromptAndSteersWithTheSecond()
+    {
+        var agents = new ProductScreenCatalog().Screens(ProductSurface.Mobile).Single(screen => screen.Id == "mobile-agents");
+
+        // The chat composer reads Steer while a turn runs; the second prompt is sent mid-run.
+        var actions = agents.Steps
+            .Where(step => step.Kind == ScreenStepKind.Tap && step.Target is "Send" or "Steer")
+            .Select(step => step.Target);
+
+        Assert.That(actions, Is.EqualTo(new[] { "Send", "Steer" }));
+    }
+
+    [Test]
     public void Catalog_sizesDesktopAndMobileForTheirOwnSurface()
     {
         var catalog = new ProductScreenCatalog();

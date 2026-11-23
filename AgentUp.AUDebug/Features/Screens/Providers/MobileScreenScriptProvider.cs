@@ -53,7 +53,10 @@ public static class MobileScreenScriptProvider
               const exact = labelled.length > 0 ? labelled : all.filter(node => read(node) === want);
               const matches = exact.length > 0 ? exact : all.filter(node => read(node).startsWith(want));
               const innermost = matches.filter(node => !matches.some(other => other !== node && node.contains(other)));
-              const target = innermost[0] || matches[0];
+              // Expo Router keeps the screens a route left mounted, only hidden, so the first match
+              // in document order is often on a page nobody can see. Prefer one that has a box.
+              const shown = node => { const rect = node.getBoundingClientRect(); return rect.width > 0 && rect.height > 0; };
+              const target = innermost.find(shown) || matches.find(shown) || innermost[0] || matches[0];
               if (!target) return null;
               // Fill leaves the composer focused. Headless mobile Chromium then keeps the
               // visual viewport on that field, so a control at the top of the shell — Go back
