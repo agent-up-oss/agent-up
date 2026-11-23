@@ -39,6 +39,14 @@ internal sealed class FakeBackendRequestDtoBuilder
         return this;
     }
 
+    /// <summary>Any method, for tests that walk a list of routes rather than name one.</summary>
+    public FakeBackendRequestDtoBuilder Send(string method, string path)
+    {
+        _method = method;
+        _path = path;
+        return this;
+    }
+
     public FakeBackendRequestDtoBuilder WithQuery(string query)
     {
         _query = query;

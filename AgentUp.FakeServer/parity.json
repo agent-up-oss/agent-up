@@ -1,0 +1,1440 @@
+{
+  "$comment": "One client contract, three implementations. Every operation in docs/api-reference/openapi.json is listed once. A read records the real Server's answer (server, re-recorded with .github/scripts/run-backend-parity.sh server --record) and the Demo's: the same answer, the same answer with declared differences (omits, extra, because), its own answer where the Server cannot give one without a browser, a saved flow or picture, or absent with the reason. A write says whether the Demo answers it. The Backend stage of CI holds the Server, Desktop's Demo and Mobile's Demo to this file. Definition: docs/developer-guide/repo/ci.md.",
+  "fixtures": {
+    "server": {
+      "application": "Web",
+      "database": "Web",
+      "flow": "absent-flow",
+      "file": "README.md",
+      "changedFile": "probe.txt",
+      "evidence": "absent-evidence",
+      "session": "absent-session",
+      "owner": "absent",
+      "repository": "absent"
+    },
+    "demo": {
+      "workspace": "bob",
+      "application": "Storefront",
+      "database": "Inventory",
+      "flow": "checkout-featured-goods",
+      "file": "README.md",
+      "changedFile": "apps/storefront/ProductGrid.tsx",
+      "evidence": "ev-1",
+      "session": "absent-session",
+      "owner": "shop",
+      "repository": "store"
+    }
+  },
+  "operations": [
+    {
+      "route": "DELETE /api/task-source",
+      "demo": true
+    },
+    {
+      "route": "DELETE /api/tasks/{owner}/{repository}/{id}",
+      "demo": true
+    },
+    {
+      "route": "DELETE /api/workspaces/{id}",
+      "demo": true
+    },
+    {
+      "route": "DELETE /api/workspaces/{workspaceId}/agent",
+      "demo": true
+    },
+    {
+      "route": "DELETE /api/workspaces/{workspaceId}/agent/binding",
+      "demo": true
+    },
+    {
+      "route": "DELETE /api/workspaces/{workspaceId}/agent/role",
+      "demo": true
+    },
+    {
+      "route": "DELETE /api/workspaces/{workspaceId}/validation-flows/{id}",
+      "params": {
+        "id": "flow"
+      },
+      "demo": true
+    },
+    {
+      "route": "GET /api/audit/workspaces/{workspaceId}/applications/{application}",
+      "demo": {
+        "absent": "Audit is a Diagnostics surface, which Desktop hides while the Demo is connected."
+      },
+      "server": {
+        "status": 200,
+        "body": "object",
+        "keys": [
+          "items",
+          "nextBefore",
+          "nextBeforeEventId"
+        ]
+      }
+    },
+    {
+      "route": "GET /api/audit/workspaces/{workspaceId}/applications/{application}/stream",
+      "demo": {
+        "absent": "Audit is a Diagnostics surface, which Desktop hides while the Demo is connected."
+      },
+      "server": {
+        "status": 200,
+        "body": "stream"
+      }
+    },
+    {
+      "route": "GET /api/auth/status",
+      "demo": {
+        "status": 200,
+        "body": "object",
+        "omits": [
+          "accessToken"
+        ],
+        "because": "A Server with authentication off still issues an access token; the Demo has no session to give one for."
+      },
+      "server": {
+        "status": 200,
+        "body": "object",
+        "keys": [
+          "accessToken",
+          "authenticationRequired"
+        ]
+      }
+    },
+    {
+      "route": "GET /api/autonomy",
+      "demo": {
+        "status": 200
+      },
+      "server": {
+        "status": 200,
+        "body": "object",
+        "keys": [
+          "enabled",
+          "preconditions"
+        ]
+      }
+    },
+    {
+      "route": "GET /api/browser/chromium-status",
+      "demo": {
+        "absent": "The Server's headless browser and its remote display. The Demo renders applications in the client's own WebView and runs no browser to drive."
+      },
+      "server": {
+        "status": 200,
+        "body": "object",
+        "keys": [
+          "progress",
+          "state"
+        ]
+      }
+    },
+    {
+      "route": "GET /api/browser/current-url/{workspaceId}",
+      "demo": {
+        "absent": "The Server's headless browser and its remote display. The Demo renders applications in the client's own WebView and runs no browser to drive."
+      },
+      "server": {
+        "status": 404,
+        "body": "object",
+        "keys": [
+          "status",
+          "title",
+          "traceId",
+          "type"
+        ]
+      }
+    },
+    {
+      "route": "GET /api/browser/events",
+      "demo": {
+        "absent": "The Server's headless browser and its remote display. The Demo renders applications in the client's own WebView and runs no browser to drive."
+      },
+      "server": {
+        "status": 200,
+        "body": "stream"
+      }
+    },
+    {
+      "route": "GET /api/browser/input/control-mode/{workspaceId}",
+      "demo": {
+        "absent": "The Server's headless browser and its remote display. The Demo renders applications in the client's own WebView and runs no browser to drive."
+      },
+      "server": {
+        "status": 200,
+        "body": "object",
+        "keys": [
+          "authority",
+          "height",
+          "width"
+        ]
+      }
+    },
+    {
+      "route": "GET /api/browser/mode",
+      "demo": {
+        "absent": "The Server's headless browser and its remote display. The Demo renders applications in the client's own WebView and runs no browser to drive."
+      },
+      "server": {
+        "status": 200,
+        "body": "text"
+      }
+    },
+    {
+      "route": "GET /api/browser/rdp-viewer",
+      "demo": {
+        "absent": "The Server's headless browser and its remote display. The Demo renders applications in the client's own WebView and runs no browser to drive."
+      },
+      "server": {
+        "status": 400,
+        "body": "text"
+      }
+    },
+    {
+      "route": "GET /api/browser/rdp/{workspaceId}",
+      "demo": {
+        "absent": "The Server's headless browser and its remote display. The Demo renders applications in the client's own WebView and runs no browser to drive."
+      },
+      "server": {
+        "status": 400,
+        "body": "empty"
+      }
+    },
+    {
+      "route": "GET /api/browser/rdp/{workspaceId}/frame",
+      "demo": {
+        "absent": "The Server's headless browser and its remote display. The Demo renders applications in the client's own WebView and runs no browser to drive."
+      },
+      "server": {
+        "status": 404,
+        "body": "empty"
+      }
+    },
+    {
+      "route": "GET /api/browser/remote-session/{workspaceId}",
+      "demo": {
+        "absent": "The Server's headless browser and its remote display. The Demo renders applications in the client's own WebView and runs no browser to drive."
+      },
+      "server": {
+        "status": 200,
+        "body": "object",
+        "keys": [
+          "controlAuthority",
+          "displayWebSocketPath",
+          "height",
+          "latestFramePath",
+          "selectedPresetId",
+          "touchCapable",
+          "transport",
+          "viewerPath",
+          "viewportPresets",
+          "width",
+          "workspaceId"
+        ]
+      }
+    },
+    {
+      "route": "GET /api/capabilities",
+      "demo": {
+        "status": 200
+      },
+      "server": {
+        "status": 200,
+        "body": "array"
+      }
+    },
+    {
+      "route": "GET /api/connection",
+      "demo": {
+        "status": 200
+      },
+      "server": {
+        "status": 200,
+        "body": "object",
+        "keys": [
+          "apiVersion",
+          "authentication",
+          "connectionId",
+          "displayName",
+          "kind",
+          "workspacePresentation"
+        ]
+      }
+    },
+    {
+      "route": "GET /api/desktop-applications/session/{sessionId}/display",
+      "demo": {
+        "absent": "Hosted Linux desktop applications need Xvfb on a Server host; the Demo hosts no display."
+      },
+      "server": {
+        "status": 401,
+        "body": "empty"
+      }
+    },
+    {
+      "route": "GET /api/desktop-applications/session/{sessionId}/viewer",
+      "demo": {
+        "absent": "Hosted Linux desktop applications need Xvfb on a Server host; the Demo hosts no display."
+      },
+      "server": {
+        "status": 401,
+        "body": "object",
+        "keys": [
+          "status",
+          "title",
+          "traceId",
+          "type"
+        ]
+      }
+    },
+    {
+      "route": "GET /api/desktop-applications/{workspaceId}/{application}",
+      "demo": {
+        "absent": "Hosted Linux desktop applications need Xvfb on a Server host; the Demo hosts no display."
+      },
+      "server": {
+        "status": 404,
+        "body": "object",
+        "keys": [
+          "status",
+          "title",
+          "traceId",
+          "type"
+        ]
+      }
+    },
+    {
+      "route": "GET /api/desktop-applications/{workspaceId}/{application}/screenshot",
+      "demo": {
+        "absent": "Hosted Linux desktop applications need Xvfb on a Server host; the Demo hosts no display."
+      },
+      "server": {
+        "status": 500,
+        "body": "empty"
+      }
+    },
+    {
+      "route": "GET /api/diagnostics/workspaces/{workspaceId}",
+      "demo": {
+        "absent": "Diagnostics, which Desktop hides while the Demo is connected."
+      },
+      "server": {
+        "status": 200,
+        "body": "object",
+        "keys": [
+          "applications",
+          "capturedAt",
+          "entries",
+          "health",
+          "processState",
+          "workspaceId",
+          "workspaceName"
+        ]
+      }
+    },
+    {
+      "route": "GET /api/entitlements",
+      "demo": {
+        "status": 200
+      },
+      "server": {
+        "status": 200,
+        "body": "object",
+        "keys": [
+          "apiVersion",
+          "billing",
+          "connectionId",
+          "displayName",
+          "edition",
+          "expiresAt",
+          "features",
+          "limits",
+          "revision",
+          "source",
+          "subject"
+        ]
+      }
+    },
+    {
+      "route": "GET /api/forge/callback",
+      "demo": {
+        "absent": "Completes an OAuth or GitHub App sign-in with a real host; the Demo signs in to nothing."
+      },
+      "server": {
+        "status": 400,
+        "body": "object",
+        "keys": [
+          "errors",
+          "status",
+          "title",
+          "traceId",
+          "type"
+        ]
+      }
+    },
+    {
+      "route": "GET /api/forge/github/install/callback",
+      "demo": {
+        "absent": "Completes an OAuth or GitHub App sign-in with a real host; the Demo signs in to nothing."
+      },
+      "server": {
+        "status": 400,
+        "body": "object",
+        "keys": [
+          "errors",
+          "status",
+          "title",
+          "traceId",
+          "type"
+        ]
+      }
+    },
+    {
+      "route": "GET /api/forge/github/manifest/callback",
+      "demo": {
+        "absent": "Completes an OAuth or GitHub App sign-in with a real host; the Demo signs in to nothing."
+      },
+      "server": {
+        "status": 400,
+        "body": "object",
+        "keys": [
+          "errors",
+          "status",
+          "title",
+          "traceId",
+          "type"
+        ]
+      }
+    },
+    {
+      "route": "GET /api/forge/github/register",
+      "demo": {
+        "absent": "Completes an OAuth or GitHub App sign-in with a real host; the Demo signs in to nothing."
+      },
+      "server": {
+        "status": 400,
+        "body": "object",
+        "keys": [
+          "errors",
+          "status",
+          "title",
+          "traceId",
+          "type"
+        ]
+      }
+    },
+    {
+      "route": "GET /api/source-clones/root",
+      "demo": {
+        "absent": "Where the Server clones repositories on its host; the Demo clones in memory. Neither client reads it."
+      },
+      "server": {
+        "status": 200,
+        "body": "object",
+        "keys": [
+          "path"
+        ]
+      }
+    },
+    {
+      "route": "GET /api/task-source",
+      "demo": {
+        "status": 200
+      },
+      "server": {
+        "status": 200,
+        "body": "object",
+        "keys": [
+          "canConnect",
+          "configured",
+          "connected",
+          "detail",
+          "moduleId",
+          "modules",
+          "owner",
+          "repository"
+        ]
+      }
+    },
+    {
+      "route": "GET /api/task-source/callback",
+      "demo": {
+        "absent": "Completes an OAuth or GitHub App sign-in with a real host; the Demo signs in to nothing."
+      },
+      "server": {
+        "status": 400,
+        "body": "object",
+        "keys": [
+          "errors",
+          "status",
+          "title",
+          "traceId",
+          "type"
+        ]
+      }
+    },
+    {
+      "route": "GET /api/task-source/issues",
+      "demo": {
+        "status": 200
+      },
+      "server": {
+        "status": 200,
+        "body": "array"
+      }
+    },
+    {
+      "route": "GET /api/tasks",
+      "demo": {
+        "status": 200
+      },
+      "server": {
+        "status": 200,
+        "body": "array"
+      }
+    },
+    {
+      "route": "GET /api/training/decisions",
+      "demo": {
+        "status": 200
+      },
+      "server": {
+        "status": 200,
+        "body": "array"
+      }
+    },
+    {
+      "route": "GET /api/training/evidence/{evidenceId}",
+      "demo": {
+        "status": 200,
+        "body": "object",
+        "keys": [
+          "base64",
+          "evidenceId",
+          "mimeType"
+        ],
+        "because": "The probe Server has no evidence picture to return; the Demo's decision carries one."
+      },
+      "server": {
+        "status": 404,
+        "body": "object",
+        "keys": [
+          "status",
+          "title",
+          "traceId",
+          "type"
+        ]
+      }
+    },
+    {
+      "route": "GET /api/training/export",
+      "demo": {
+        "status": 200,
+        "body": "text",
+        "because": "The Demo has judged decisions to export; the probe Server has none, so it answers an empty export."
+      },
+      "server": {
+        "status": 200,
+        "body": "empty"
+      }
+    },
+    {
+      "route": "GET /api/training/repositories",
+      "demo": {
+        "status": 200
+      },
+      "server": {
+        "status": 200,
+        "body": "array"
+      }
+    },
+    {
+      "route": "GET /api/workspaces",
+      "demo": {
+        "status": 200
+      },
+      "server": {
+        "status": 200,
+        "body": "array"
+      }
+    },
+    {
+      "route": "GET /api/workspaces/events",
+      "demo": {
+        "status": 200
+      },
+      "server": {
+        "status": 200,
+        "body": "stream"
+      }
+    },
+    {
+      "route": "GET /api/workspaces/{id}",
+      "demo": {
+        "status": 200,
+        "body": "object",
+        "omits": [
+          "boundAgentModuleId",
+          "derived",
+          "lastError",
+          "sourceRepository",
+          "sourceRevision"
+        ],
+        "extra": [
+          "healthState"
+        ],
+        "because": "The Demo predates derived clones, bound agents and start errors, and still carries healthState, which the Server no longer returns. Clients read none of these on the Demo."
+      },
+      "server": {
+        "status": 200,
+        "body": "object",
+        "keys": [
+          "applications",
+          "boundAgentModuleId",
+          "branch",
+          "commit",
+          "derived",
+          "displayName",
+          "id",
+          "lastActivityAtUtc",
+          "lastError",
+          "repositoryPath",
+          "sourceRepository",
+          "sourceRevision",
+          "state",
+          "worktreePath"
+        ]
+      }
+    },
+    {
+      "route": "GET /api/workspaces/{id}/applications",
+      "demo": {
+        "absent": "Neither client reads applications on their own: they arrive inside the workspace, which the Demo does answer."
+      },
+      "server": {
+        "status": 200,
+        "body": "array"
+      }
+    },
+    {
+      "route": "GET /api/workspaces/{id}/applications/{name}/database/databases",
+      "params": {
+        "name": "database"
+      },
+      "demo": {
+        "status": 200,
+        "body": "object",
+        "keys": [
+          "databases"
+        ],
+        "because": "The probe workspace declares no database application; the Demo's Inventory does."
+      },
+      "server": {
+        "status": 404,
+        "body": "object",
+        "keys": [
+          "status",
+          "title",
+          "traceId",
+          "type"
+        ]
+      }
+    },
+    {
+      "route": "GET /api/workspaces/{id}/applications/{name}/database/tables",
+      "params": {
+        "name": "database"
+      },
+      "demo": {
+        "status": 200,
+        "body": "object",
+        "keys": [
+          "tables"
+        ],
+        "because": "The probe workspace declares no database application; the Demo's Inventory does."
+      },
+      "server": {
+        "status": 400,
+        "body": "object",
+        "keys": [
+          "errors",
+          "status",
+          "title",
+          "traceId",
+          "type"
+        ]
+      }
+    },
+    {
+      "route": "GET /api/workspaces/{id}/applications/{name}/metrics",
+      "demo": {
+        "status": 200,
+        "body": "array",
+        "because": "Desktop hides Metrics while the Demo is connected, and this answer is the bare series list from before metrics gained a summary. Nothing reads it; it drifted."
+      },
+      "server": {
+        "status": 200,
+        "body": "object",
+        "keys": [
+          "series",
+          "summary"
+        ]
+      }
+    },
+    {
+      "route": "GET /api/workspaces/{id}/applications/{name}/output",
+      "demo": {
+        "status": 200
+      },
+      "server": {
+        "status": 200,
+        "body": "array"
+      }
+    },
+    {
+      "route": "GET /api/workspaces/{id}/overview",
+      "demo": {
+        "status": 200
+      },
+      "server": {
+        "status": 200,
+        "body": "object",
+        "keys": [
+          "applicationCount",
+          "branch",
+          "commit",
+          "cpuPercent",
+          "displayName",
+          "id",
+          "memoryBytes",
+          "processCount",
+          "repositoryPath",
+          "state",
+          "storageBytes",
+          "worktreePath"
+        ]
+      }
+    },
+    {
+      "route": "GET /api/workspaces/{workspaceId}/agent",
+      "demo": {
+        "status": 200,
+        "body": "object",
+        "omits": [
+          "authMethods",
+          "loginChallenge"
+        ],
+        "because": "Agent sign-in is Server-owned; the Demo's agents are always signed in, so it never offers a sign-in method or challenge."
+      },
+      "server": {
+        "status": 200,
+        "body": "object",
+        "keys": [
+          "agent",
+          "agents",
+          "authMethods",
+          "boundAgent",
+          "error",
+          "loginChallenge",
+          "loop",
+          "role",
+          "sessionId",
+          "sessions",
+          "state",
+          "workspaceId"
+        ]
+      }
+    },
+    {
+      "route": "GET /api/workspaces/{workspaceId}/agent/autonomy",
+      "demo": {
+        "status": 200
+      },
+      "server": {
+        "status": 200,
+        "body": "object",
+        "keys": [
+          "enabled",
+          "preconditions"
+        ]
+      }
+    },
+    {
+      "route": "GET /api/workspaces/{workspaceId}/agent/events",
+      "demo": {
+        "status": 200
+      },
+      "server": {
+        "status": 200,
+        "body": "stream"
+      }
+    },
+    {
+      "route": "GET /api/workspaces/{workspaceId}/agent/loop",
+      "demo": {
+        "status": 200
+      },
+      "server": {
+        "status": 200,
+        "body": "object",
+        "keys": [
+          "active",
+          "blockReason",
+          "permissionRuleIds",
+          "phase",
+          "stopReason",
+          "taskId",
+          "taskNumber",
+          "taskTitle",
+          "terminal"
+        ]
+      }
+    },
+    {
+      "route": "GET /api/workspaces/{workspaceId}/agent/member",
+      "demo": {
+        "absent": "A team member's grants are enforced by the Server and read by agents over MCP; neither client reads them."
+      },
+      "server": {
+        "status": 200,
+        "body": "object",
+        "keys": [
+          "controlsBrowser",
+          "fixture",
+          "kind",
+          "operationPermissions",
+          "readsRepository",
+          "submitsReviews",
+          "writesRepository"
+        ]
+      }
+    },
+    {
+      "route": "GET /api/workspaces/{workspaceId}/agent/policy",
+      "demo": {
+        "status": 200
+      },
+      "server": {
+        "status": 200,
+        "body": "object",
+        "keys": [
+          "rules"
+        ]
+      }
+    },
+    {
+      "route": "GET /api/workspaces/{workspaceId}/agent/role",
+      "demo": {
+        "absent": "An agent's role is read by the loop on the Server; neither client reads it."
+      },
+      "server": {
+        "status": 204,
+        "body": "empty"
+      }
+    },
+    {
+      "route": "GET /api/workspaces/{workspaceId}/commit-queue",
+      "demo": {
+        "status": 200,
+        "body": "object",
+        "omits": [
+          "activeSession",
+          "operationState"
+        ],
+        "because": "The Demo queue has no edit session and no in-progress Git operation to report."
+      },
+      "server": {
+        "status": 200,
+        "body": "object",
+        "keys": [
+          "activeSession",
+          "baseCommit",
+          "entries",
+          "generation",
+          "operationState",
+          "queueWorktreePath",
+          "tipCommit",
+          "unassignedFiles"
+        ]
+      }
+    },
+    {
+      "route": "GET /api/workspaces/{workspaceId}/files/directory",
+      "query": {
+        "path": ""
+      },
+      "demo": {
+        "status": 200
+      },
+      "server": {
+        "status": 200,
+        "body": "object",
+        "keys": [
+          "entries",
+          "path",
+          "truncated",
+          "workspaceId"
+        ]
+      }
+    },
+    {
+      "route": "GET /api/workspaces/{workspaceId}/files/file",
+      "query": {
+        "path": "file"
+      },
+      "demo": {
+        "status": 200
+      },
+      "server": {
+        "status": 200,
+        "body": "object",
+        "keys": [
+          "content",
+          "isBinary",
+          "isTooLarge",
+          "path",
+          "size",
+          "status",
+          "version"
+        ]
+      }
+    },
+    {
+      "route": "GET /api/workspaces/{workspaceId}/forge",
+      "demo": {
+        "status": 200
+      },
+      "server": {
+        "status": 200,
+        "body": "object",
+        "keys": [
+          "account",
+          "availability",
+          "checks",
+          "detail",
+          "mergeability",
+          "moduleId",
+          "proposal",
+          "remedy",
+          "reviews",
+          "threads"
+        ]
+      }
+    },
+    {
+      "route": "GET /api/workspaces/{workspaceId}/forge/issues",
+      "demo": {
+        "status": 200
+      },
+      "server": {
+        "status": 200,
+        "body": "array"
+      }
+    },
+    {
+      "route": "GET /api/workspaces/{workspaceId}/git/changes",
+      "demo": {
+        "status": 200
+      },
+      "server": {
+        "status": 200,
+        "body": "object",
+        "keys": [
+          "ahead",
+          "behind",
+          "branch",
+          "commit",
+          "fileCount",
+          "localBranches",
+          "remoteBranches",
+          "root",
+          "upstream",
+          "workspaceId"
+        ]
+      }
+    },
+    {
+      "route": "GET /api/workspaces/{workspaceId}/git/file",
+      "query": {
+        "path": "changedFile"
+      },
+      "demo": {
+        "status": 200
+      },
+      "server": {
+        "status": 200,
+        "body": "object",
+        "keys": [
+          "diff",
+          "isBinary",
+          "path",
+          "status"
+        ]
+      }
+    },
+    {
+      "route": "GET /api/workspaces/{workspaceId}/git/head",
+      "demo": {
+        "status": 200,
+        "body": "object",
+        "omits": [
+          "isRepository"
+        ],
+        "because": "Every Demo workspace is a repository, so the Demo never says whether one is."
+      },
+      "server": {
+        "status": 200,
+        "body": "object",
+        "keys": [
+          "ahead",
+          "behind",
+          "branch",
+          "commit",
+          "isRepository",
+          "localBranches",
+          "remoteBranches",
+          "upstream"
+        ]
+      }
+    },
+    {
+      "route": "GET /api/workspaces/{workspaceId}/git/log",
+      "demo": {
+        "status": 200
+      },
+      "server": {
+        "status": 200,
+        "body": "object",
+        "keys": [
+          "commits",
+          "hasMore"
+        ]
+      }
+    },
+    {
+      "route": "GET /api/workspaces/{workspaceId}/review-snapshot",
+      "demo": {
+        "status": 200
+      },
+      "server": {
+        "status": 200,
+        "body": "text"
+      }
+    },
+    {
+      "route": "GET /api/workspaces/{workspaceId}/validation-flows",
+      "query": {
+        "application": "application"
+      },
+      "demo": {
+        "status": 200
+      },
+      "server": {
+        "status": 200,
+        "body": "array"
+      }
+    },
+    {
+      "route": "GET /api/workspaces/{workspaceId}/validation-flows/{id}",
+      "params": {
+        "id": "flow"
+      },
+      "demo": {
+        "status": 200,
+        "body": "object",
+        "keys": [
+          "application",
+          "description",
+          "id",
+          "initialExpectations",
+          "initialPath",
+          "name",
+          "steps",
+          "surface",
+          "updatedAtUtc",
+          "version",
+          "workspaceId"
+        ],
+        "because": "The probe Server has no saved flow; the Demo's Storefront has six."
+      },
+      "server": {
+        "status": 404,
+        "body": "object",
+        "keys": [
+          "status",
+          "title",
+          "traceId",
+          "type"
+        ]
+      }
+    },
+    {
+      "route": "GET /api/workspaces/{workspaceId}/validation-flows/{id}/playwright",
+      "params": {
+        "id": "flow"
+      },
+      "demo": {
+        "absent": "Playwright export of a validation flow. Desktop offers it, so on the Demo the export fails: a gap, not a design."
+      },
+      "server": {
+        "status": 404,
+        "body": "object",
+        "keys": [
+          "status",
+          "title",
+          "traceId",
+          "type"
+        ]
+      }
+    },
+    {
+      "route": "GET /api/workspaces/{workspaceId}/verification/export",
+      "demo": {
+        "absent": "The verification export is read by agents and by the review snapshot the Server renders; neither client reads it."
+      },
+      "server": {
+        "status": 200,
+        "body": "object",
+        "keys": [
+          "changedFileCount",
+          "checks",
+          "coveredDigest",
+          "exportedAtUtc",
+          "revision",
+          "unmatchedFiles"
+        ]
+      }
+    },
+    {
+      "route": "PATCH /api/workspaces/{id}/state",
+      "demo": true
+    },
+    {
+      "route": "POST /api/apps/tickets",
+      "demo": true
+    },
+    {
+      "route": "POST /api/audit/record",
+      "demo": true
+    },
+    {
+      "route": "POST /api/auth/login",
+      "demo": true
+    },
+    {
+      "route": "POST /api/browser/input/control-mode/{workspaceId}",
+      "demo": {
+        "absent": "The Server's headless browser and its remote display. The Demo renders applications in the client's own WebView and runs no browser to drive."
+      }
+    },
+    {
+      "route": "POST /api/browser/input/viewport/{workspaceId}",
+      "demo": {
+        "absent": "The Server's headless browser and its remote display. The Demo renders applications in the client's own WebView and runs no browser to drive."
+      }
+    },
+    {
+      "route": "POST /api/browser/navigate-back/{workspaceId}",
+      "demo": {
+        "absent": "The Server's headless browser and its remote display. The Demo renders applications in the client's own WebView and runs no browser to drive."
+      }
+    },
+    {
+      "route": "POST /api/browser/navigate-forward/{workspaceId}",
+      "demo": {
+        "absent": "The Server's headless browser and its remote display. The Demo renders applications in the client's own WebView and runs no browser to drive."
+      }
+    },
+    {
+      "route": "POST /api/browser/navigate/{workspaceId}",
+      "demo": {
+        "absent": "The Server's headless browser and its remote display. The Demo renders applications in the client's own WebView and runs no browser to drive."
+      }
+    },
+    {
+      "route": "POST /api/browser/reload/{workspaceId}",
+      "demo": {
+        "absent": "The Server's headless browser and its remote display. The Demo renders applications in the client's own WebView and runs no browser to drive."
+      }
+    },
+    {
+      "route": "POST /api/capabilities/disable/{id}",
+      "demo": true
+    },
+    {
+      "route": "POST /api/capabilities/enable",
+      "demo": true
+    },
+    {
+      "route": "POST /api/desktop-applications/{workspaceId}/{application}/key",
+      "demo": {
+        "absent": "Hosted Linux desktop applications need Xvfb on a Server host; the Demo hosts no display."
+      }
+    },
+    {
+      "route": "POST /api/desktop-applications/{workspaceId}/{application}/pointer-down",
+      "demo": {
+        "absent": "Hosted Linux desktop applications need Xvfb on a Server host; the Demo hosts no display."
+      }
+    },
+    {
+      "route": "POST /api/desktop-applications/{workspaceId}/{application}/pointer-up",
+      "demo": {
+        "absent": "Hosted Linux desktop applications need Xvfb on a Server host; the Demo hosts no display."
+      }
+    },
+    {
+      "route": "POST /api/desktop-applications/{workspaceId}/{application}/viewer-ticket",
+      "demo": {
+        "absent": "Hosted Linux desktop applications need Xvfb on a Server host; the Demo hosts no display."
+      }
+    },
+    {
+      "route": "POST /api/service/restart",
+      "demo": {
+        "absent": "Restarts the Server process; the Demo lives inside the client."
+      }
+    },
+    {
+      "route": "POST /api/service/shutdown",
+      "demo": {
+        "absent": "Stops the Server process; the Demo lives inside the client."
+      }
+    },
+    {
+      "route": "POST /api/source-clones",
+      "demo": true
+    },
+    {
+      "route": "POST /api/source-clones/{workspaceId}/refresh",
+      "demo": true
+    },
+    {
+      "route": "POST /api/task-source/login",
+      "demo": true
+    },
+    {
+      "route": "POST /api/tasks",
+      "demo": true
+    },
+    {
+      "route": "POST /api/tasks/{owner}/{repository}/{id}/release",
+      "demo": true
+    },
+    {
+      "route": "POST /api/training/decisions",
+      "demo": true
+    },
+    {
+      "route": "POST /api/training/decisions/{id}/review",
+      "demo": true
+    },
+    {
+      "route": "POST /api/tray/heartbeat",
+      "demo": {
+        "absent": "The tray heartbeats an installed Server; the Demo has no tray."
+      }
+    },
+    {
+      "route": "POST /api/workspaces",
+      "demo": true
+    },
+    {
+      "route": "POST /api/workspaces/tutorial/cleanup",
+      "demo": true
+    },
+    {
+      "route": "POST /api/workspaces/{id}/applications/{name}/database/query",
+      "params": {
+        "name": "database"
+      },
+      "demo": true
+    },
+    {
+      "route": "POST /api/workspaces/{id}/applications/{name}/restart",
+      "demo": {
+        "absent": "Restarts one application for the CLI and agents. Neither client calls it; both stop and start instead, which the Demo answers."
+      }
+    },
+    {
+      "route": "POST /api/workspaces/{id}/applications/{name}/start",
+      "demo": true
+    },
+    {
+      "route": "POST /api/workspaces/{id}/applications/{name}/stop",
+      "demo": true
+    },
+    {
+      "route": "POST /api/workspaces/{id}/start",
+      "demo": true
+    },
+    {
+      "route": "POST /api/workspaces/{id}/stop",
+      "demo": true
+    },
+    {
+      "route": "POST /api/workspaces/{workspaceId}/agent",
+      "demo": true
+    },
+    {
+      "route": "POST /api/workspaces/{workspaceId}/agent/authenticate",
+      "demo": true
+    },
+    {
+      "route": "POST /api/workspaces/{workspaceId}/agent/cancel",
+      "demo": true
+    },
+    {
+      "route": "POST /api/workspaces/{workspaceId}/agent/login/callback",
+      "demo": true
+    },
+    {
+      "route": "POST /api/workspaces/{workspaceId}/agent/login/code",
+      "demo": true
+    },
+    {
+      "route": "POST /api/workspaces/{workspaceId}/agent/messages",
+      "demo": true
+    },
+    {
+      "route": "POST /api/workspaces/{workspaceId}/agent/permissions",
+      "demo": true
+    },
+    {
+      "route": "POST /api/workspaces/{workspaceId}/agent/sessions/{sessionId}/resume",
+      "demo": true
+    },
+    {
+      "route": "POST /api/workspaces/{workspaceId}/forge/comments",
+      "demo": {
+        "absent": "Forge writes go to a real host with the workspace's credential. Clients only display hosting state, and the Demo has no host."
+      }
+    },
+    {
+      "route": "POST /api/workspaces/{workspaceId}/forge/login",
+      "demo": true
+    },
+    {
+      "route": "POST /api/workspaces/{workspaceId}/forge/logout",
+      "demo": {
+        "absent": "Disconnects a host credential the Demo never holds."
+      }
+    },
+    {
+      "route": "POST /api/workspaces/{workspaceId}/forge/proposals",
+      "demo": {
+        "absent": "Forge writes go to a real host with the workspace's credential. Clients only display hosting state, and the Demo has no host."
+      }
+    },
+    {
+      "route": "POST /api/workspaces/{workspaceId}/forge/refs",
+      "demo": {
+        "absent": "Forge writes go to a real host with the workspace's credential. Clients only display hosting state, and the Demo has no host."
+      }
+    },
+    {
+      "route": "POST /api/workspaces/{workspaceId}/forge/reviews",
+      "demo": {
+        "absent": "Forge writes go to a real host with the workspace's credential. Clients only display hosting state, and the Demo has no host."
+      }
+    },
+    {
+      "route": "POST /api/workspaces/{workspaceId}/git/branch",
+      "demo": true
+    },
+    {
+      "route": "POST /api/workspaces/{workspaceId}/git/checkout",
+      "demo": true
+    },
+    {
+      "route": "POST /api/workspaces/{workspaceId}/git/commit",
+      "demo": true
+    },
+    {
+      "route": "POST /api/workspaces/{workspaceId}/git/discard",
+      "demo": true
+    },
+    {
+      "route": "POST /api/workspaces/{workspaceId}/git/fetch",
+      "demo": true
+    },
+    {
+      "route": "POST /api/workspaces/{workspaceId}/git/pull",
+      "demo": true
+    },
+    {
+      "route": "POST /api/workspaces/{workspaceId}/git/push",
+      "demo": true
+    },
+    {
+      "route": "POST /api/workspaces/{workspaceId}/validation-flows/{id}/run",
+      "params": {
+        "id": "flow"
+      },
+      "demo": {
+        "absent": "Runs a flow in the Server's headless browser; the Demo replays flows in the client's own WebView."
+      }
+    },
+    {
+      "route": "PUT /api/autonomy",
+      "demo": true
+    },
+    {
+      "route": "PUT /api/capabilities/{id}/settings",
+      "demo": true
+    },
+    {
+      "route": "PUT /api/task-source",
+      "demo": true
+    },
+    {
+      "route": "PUT /api/tasks/{owner}/{repository}/{id}/position",
+      "demo": true
+    },
+    {
+      "route": "PUT /api/tasks/{owner}/{repository}/{id}/target",
+      "demo": true
+    },
+    {
+      "route": "PUT /api/workspaces/{workspaceId}/agent/autonomy",
+      "demo": true
+    },
+    {
+      "route": "PUT /api/workspaces/{workspaceId}/agent/binding",
+      "demo": true
+    },
+    {
+      "route": "PUT /api/workspaces/{workspaceId}/agent/host-connection",
+      "demo": true
+    },
+    {
+      "route": "PUT /api/workspaces/{workspaceId}/agent/member",
+      "demo": {
+        "absent": "A team member's grants are enforced by the Server and read by agents over MCP; neither client reads them."
+      }
+    },
+    {
+      "route": "PUT /api/workspaces/{workspaceId}/agent/policy",
+      "demo": true
+    },
+    {
+      "route": "PUT /api/workspaces/{workspaceId}/agent/queue-order",
+      "demo": true
+    },
+    {
+      "route": "PUT /api/workspaces/{workspaceId}/agent/role",
+      "demo": true
+    },
+    {
+      "route": "PUT /api/workspaces/{workspaceId}/files/file",
+      "query": {
+        "path": "file"
+      },
+      "demo": true
+    },
+    {
+      "route": "PUT /api/workspaces/{workspaceId}/validation-flows",
+      "demo": true
+    }
+  ]
+}
