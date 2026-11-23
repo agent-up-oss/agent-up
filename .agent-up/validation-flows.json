@@ -1035,7 +1035,7 @@
       "id": "agents",
       "application": "Desktop",
       "name": "See agent availability and start a session",
-      "description": "A person opens the Agent tab, follows its summary line to the workspace Settings tab, reads availability and remedies in the picker there, and starts test-agent-scripted, which returns them to the conversation on the Agent tab. Fixture: isolated Development Server with test-agent-scripted on PATH, listed as Available. Other agent packages are not enabled, so Enable is not clicked.",
+      "description": "A person opens the Agent tab, follows its summary line to the workspace Settings tab, reads availability and remedies in the picker there, and starts test-agent-scripted, which returns them to the conversation on the Agent tab. Fixture: isolated Development Server with test-agent-scripted on PATH, listed as Available. Whether the other agents read Not enabled or Not found depends on the software on the host, so the flow asserts only the scripted agent's state and never clicks Enable.",
       "surface": "Desktop",
       "initialPath": "login",
       "initialExpectations": [
@@ -1140,7 +1140,7 @@
               "kind": "Visible",
               "value": "true",
               "target": {
-                "text": "Not enabled"
+                "text": "Available"
               }
             }
           ]
@@ -1164,7 +1164,7 @@
         }
       ],
       "updatedAtUtc": "2026-11-23T00:00:00.0000000+00:00",
-      "version": 2
+      "version": 3
     },
     {
       "id": "autonomous-loop",
