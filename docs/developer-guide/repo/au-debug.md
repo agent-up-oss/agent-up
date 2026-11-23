@@ -150,7 +150,7 @@ Desktop click points live in `DesktopScreenGeometry` and were read off a real 14
 session, so a Desktop layout change moves those numbers and nothing else. Mobile addresses
 controls by the accessible label the client gives them, so it needs no coordinates.
 
-CI runs this in **Showcase · Desktop** and **Showcase · Mobile**, one client per job, and uploads
+CI runs this in **Desktop · Showcase on the Demo** and **Mobile · Showcase on the Demo**, one client per leg, and uploads
 `artifacts/product-screens`. A screen the route cannot reach fails the leg. The comparison is
 reported on the run summary and does not gate yet; see [CI](./ci.md).
 
