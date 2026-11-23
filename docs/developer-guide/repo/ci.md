@@ -11,54 +11,66 @@ This page is how Agent-Up CI is shaped and why. There is one job per domain, eac
 <DocSpine>
 <DocBeat>Each domain is one matrix job, and each matrix entry is a leg of `.github/behavior-matrix.json` that records its verdict last</DocBeat>
 <DocBeat>Behavior matrix renders every leg and gap on the run summary</DocBeat>
-<DocBeat>Release waits for Behavior matrix and nothing else</DocBeat>
+<DocBeat>Release and Mobile release wait for Behavior matrix and Plan, and never run together</DocBeat>
 </DocSpine>
 
 <DocContract label="Required check">Behavior matrix</DocContract>
 
-Everything runs from `.github/workflows/ci.yml` on pull requests and pushes to `main`. The native store pipeline for Android and iOS stays in `.github/workflows/mobile-ci.yaml`; see [Mobile store release](./mobile-store-release.md). Secrets and variables are on [CI Configuration](./ci-configuration.md).
+Everything runs from `.github/workflows/ci.yml` on pull requests, pushes to `main`, and dispatches, including the Android and iOS store builds and their release; see [Mobile store release](./mobile-store-release.md). Only `mobile-ios-certs.yaml`, the one-time Match bootstrap, is a separate workflow. Secrets and variables are on [CI Configuration](./ci-configuration.md).
 
 ## Domains
 
-Each domain is one job id (`build`, `source`, `backend`, `desktop`, `mobile`, `installer`) with a matrix of legs. Legs are named `<Domain> · <what it proves>`, so the run graph reads as the matrix: one group per domain, one row per leg.
+Each domain is one job id (`build`, `source`, `backend`, `desktop`, `mobile`, `docs`, `installer`) with a matrix of legs. Legs are named `<Domain> · <what it proves>`, so the run graph reads as the matrix: one group per domain, one row per leg.
 
 <DocFacts>
-<DocFact label="Plan">The release version. A single job.</DocFact>
-<DocFact label="Build">Every artifact that ships, produced once: payloads, Server container, Helm chart, au-check, JetBrains plugin, docs site.</DocFact>
-<DocFact label="Source">The code's own suites with patch and slice coverage, the TypeScript and design-system suites, test-tier budgets, performance gates. Gates release only.</DocFact>
+<DocFact label="Plan">The release version, and which Mobile release legs a dispatch ships. A single job.</DocFact>
+<DocFact label="Build">The artifacts the desktop release ships, produced once: payloads, Server container, Helm chart, au-check, JetBrains plugin.</DocFact>
+<DocFact label="Source">The .NET suites with patch and slice coverage, the TypeScript suites, test-tier budgets, performance gates. Gates release only.</DocFact>
 <DocFact label="Backend">The Server's client contract, held against both Demos, and the Server against each real external dependency, one leg per dependency.</DocFact>
 <DocFact label="Desktop">The Desktop client against a real Server, on its Demo, and on each native display.</DocFact>
-<DocFact label="Mobile">The Mobile client and its chat module against a real Server, on its Demo, and on each native platform.</DocFact>
+<DocFact label="Mobile">The Mobile client and its chat module against a real Server, its Demo, the identity front door and each native platform, and its signed store binaries.</DocFact>
+<DocFact label="Docs">The docs site and its API reference, and the design-system catalog the site publishes.</DocFact>
 <DocFact label="Installer">Each native package installs, runs and uninstalls where it ships.</DocFact>
 </DocFacts>
 
-The `needs` edges follow artifacts:
+The `needs` edges follow artifacts, and nothing else:
 
 - Build waits for Plan, which names the version it stamps.
-- Desktop and Installer wait for Build. They run what it published: the native-display runner for macOS and Windows, and the release payloads. Desktop's Linux legs build from source and do not need Build, so waiting delays them by Build's duration. That is the price of one Desktop group instead of two.
-- Source, Backend and Mobile wait for nothing.
+- Installer waits for Build and Plan: it packages the payloads Build published.
+- Source, Backend, Desktop, Mobile and Docs wait for nothing. Desktop's macOS and Windows legs publish their own native-display runner, and the Mobile store legs plan their own version.
 
-Source gates release only. No Backend, Desktop, Mobile or Installer leg waits for a source suite or for coverage, so a failing test never hides what a behavior leg would have shown. `AgentUp.Architecture.Tests` `CiBehaviorMatrix` enforces that.
+Source gates release only. No other domain waits for a source suite or for coverage, so a failing test never hides what a behavior leg would have shown. `AgentUp.Architecture.Tests` `CiBehaviorMatrix` enforces that.
 
-Long legs keep their steps in a composite action under `.github/actions/`, so a matrix entry stays one readable block: `build-payloads`, `source-coverage`, and `sign-in-web`, `sign-in-android` and `sign-in-ios`.
+Long legs keep their steps in a composite action under `.github/actions/`, so a matrix entry stays one readable block: `build-payloads`, `source-coverage`, `sign-in-web`, `sign-in-android`, `sign-in-ios`, `mobile-store-android` and `mobile-store-ios`.
+
+## Releases
+
+Release and Mobile release sit on one tier and wait for the same two jobs, Behavior matrix and Plan.
+
+- **Release** runs on a push to `main` when Plan says to publish.
+- **Mobile release** runs on a `workflow_dispatch` whose `mobile-channel` is `beta` or `prod`. It has one leg per platform `mobile-platforms` names, and uploads the binaries the Mobile store legs built to Google Play and App Store Connect.
+
+A dispatch never reaches Release, and a push never reaches Mobile release. A dispatch with `mobile-channel: none` runs the matrix and ships nothing. A dispatch never cancels and is never cancelled; a second one on the same ref waits.
 
 ## The behavior matrix
 
 `.github/behavior-matrix.json` declares each domain as a stage, the question it answers, its matrix job, and its legs. Each leg says what it proves. A stage with axes — Desktop and Mobile — declares its grid, and every cell is either proven by a leg or listed as a gap with its reason:
 
 - `gap`: nothing proves this cell yet.
-- `elsewhere`: another pipeline proves it, such as Mobile CI building the native client.
+- `elsewhere`: another pipeline proves it.
 - `n/a`: the cell does not exist, such as sign-in against the Demo.
 
 Every leg ends with `./.github/actions/record-verdict` under `if: always()`. The Behavior matrix job downloads those verdicts and runs `.github/scripts/behavior-matrix.mjs`. It writes the matrix to the run summary and fails when a leg failed or recorded nothing. A leg that never ran fails the run like a leg that ran and failed.
 
+A leg that cannot run on some events declares `skippable` with the reason. Only such a leg may record a skipped verdict, and the summary names it as skipped with that reason, never as passed. The Mobile store legs are the only ones today: GitHub withholds their signing secrets from Dependabot and fork pull requests, and a mobile release of one platform has nothing to build for the other.
+
 `CiBehaviorMatrix` keeps `ci.yml` and the matrix file in step:
 
 - Every stage is one matrix job named after it.
-- Every job other than Plan, Behavior matrix and Release is a stage.
+- Every job other than Plan, Behavior matrix, Release and Mobile release is a stage.
 - Every matrix `include` entry is a declared leg, and every leg is an `include` entry.
-- Every leg records its verdict last, even when it failed.
-- Behavior matrix waits for every stage, and Release waits for Behavior matrix.
+- Every leg records its verdict last, even when it failed, and records the job's status or a declared skip.
+- Behavior matrix waits for every stage. Release runs only on pushes and Mobile release only on dispatches, and both wait for exactly the same jobs.
 
 ### Adding a leg
 
@@ -110,26 +122,35 @@ One leg per real dependency, so a red leg names what broke. Each leg runs one sc
 
 ## Desktop
 
-| | Real Server | Demo | Native platform |
-|---|---|---|---|
-| Classic shell | Journeys on a real Server | Showcase on the Demo | Native Linux, macOS arm64, macOS x64, Windows |
-| Command center | gap | gap | gap |
+| | Real Server | Demo | Identity front door | Native platform |
+|---|---|---|---|---|
+| Classic shell | Journeys on a real Server | Showcase on the Demo | gap | Native Linux, macOS arm64, macOS x64, Windows |
+| Command center | gap | gap | gap | gap |
 
 - **Journeys** replay every Desktop QA flow of [QA coverage](../verification/qa-coverage.md) on an isolated real Server, one flow per `au-debug validate` run: `.github/scripts/run-journeys.sh desktop`.
 - **Showcase** drives the real client on its Demo through every documented screen; a screen the route cannot reach fails the leg. Desktop cannot report its own text yet, so no screen is compared with the design system.
-- **Native** legs run `AgentUp.Tests` on a real display: Linux from source, macOS and Windows from the runner Build published for them.
+- **Native** legs run `AgentUp.Tests` on a real display: Linux from source, macOS and Windows from a framework-dependent runner each publishes for its own runtime with `.github/scripts/publish-native-e2e-runner.sh`.
 
 ## Mobile
 
-| | Real Server | Demo | Native platform |
-|---|---|---|---|
-| Classic shell | Journeys on a real Server | Showcase on the Demo | elsewhere: Mobile CI |
-| Command center | gap | gap | elsewhere: Mobile CI |
-| Chat module | Sign-in on the installable web | n/a | Sign-in on Android, Sign-in on iOS |
+| | Real Server | Demo | Identity front door | Native platform |
+|---|---|---|---|---|
+| Classic shell | Journeys on a real Server | Showcase on the Demo | Browser SSO front door | Android store bundle, iOS store archive |
+| Command center | gap | gap | gap | gap |
+| Chat module | Sign-in on the installable web | n/a | n/a | Sign-in on Android, Sign-in on iOS |
 
 - **Journeys** replay every Mobile QA flow on the web export against an isolated real Server: `.github/scripts/run-journeys.sh mobile`.
-- **Showcase** drives the real client on its Demo through every documented screen; a screen the route cannot reach fails the leg. `.github/scripts/compare-product-screens.sh` then reports each screen's copy against the design system on the run summary. All 15 Mobile screens diverge today, so the comparison is a declared gap, not a gate, until the showcase is re-authored from the real screens.
+- **Showcase** drives the real client on its Demo through every documented screen; a screen the route cannot reach fails the leg. On CI it drives Playwright's pinned Chromium, which the journeys use too. `.github/scripts/compare-product-screens.sh` then reports each screen's copy against the design system on the run summary. All 15 Mobile screens diverge today, so the comparison is a declared gap, not a gate, until the showcase is re-authored from the real screens.
+- **Browser SSO front door** signs the web export in through `Examples/browser-sso` and checks that the client hides what its entitlement document forbids: `.github/scripts/run-browser-sso.sh`.
 - **Sign-in** is the end-to-end agent sign-in suite against a real Server, test agents and identity provider. Each leg publishes the Server and test agents itself while it provisions its emulator or toolchain.
+- **Store** legs build, sign and validate the full client as the AAB and IPA Mobile release ships. They prove the binaries build; no journey runs them on a device, which is a declared gap on each.
+
+## Docs
+
+| Leg | Proves |
+|---|---|
+| Site and API reference | The API reference matches the Server controllers, every page meets the page standard, and the site builds. |
+| Design-system catalog | One palette, catalog-only paint, the scenes both command centers mount, and committed bindings that match their source. |
 
 ## Installer
 
