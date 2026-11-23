@@ -22,7 +22,7 @@ This page lists the repository secrets and variables the Agent-Up CI workflow re
 
 <DocContract label="Location">Settings → Secrets and variables → Actions</DocContract>
 
-The Agent-Up CI workflow runs on every push. Signing and release steps degrade gracefully when their credentials are absent. Codecov uploads also skip when `CODECOV_TOKEN` is unavailable, which is how GitHub withholds repository secrets from Dependabot and fork pull requests. Patch coverage and the slice floor still run locally in the coverage job.
+The Agent-Up CI workflow runs on every push. Signing and release steps degrade gracefully when their credentials are absent. Codecov uploads also skip when `CODECOV_TOKEN` is unavailable, which is how GitHub withholds repository secrets from Dependabot and fork pull requests. Patch coverage and the slice floor still run in Source · patch and slice coverage.
 
 ## Code coverage
 
@@ -30,11 +30,11 @@ The Agent-Up CI workflow runs on every push. Signing and release steps degrade g
 |---|---|
 | `CODECOV_TOKEN` | Repository upload token from Codecov. Mapped onto the coverage jobs as `env.CODECOV_TOKEN` because GitHub Actions cannot read `secrets` in `if` conditions. Uploads skip when that env is empty, which is how GitHub withholds the secret from Dependabot and fork runs. |
 
-The .NET coverage job uploads each test project's Cobertura output separately. Each
+Source · patch and slice coverage uploads each test project's Cobertura output separately. Each
 upload has a test-project-specific Codecov flag, such as
 `agentup-server-tests`, so Codecov can filter the production-project coverage
-contributed by an individual test module. `AgentUp.Tests` combines its regular
-and headless E2E coverage under the `agentup-tests` flag.
+contributed by an individual test module. Native desktop · Linux uploads `AgentUp.Tests`
+regular and headless E2E coverage under the `agentup-tests` flag.
 
 ## Signing — macOS
 

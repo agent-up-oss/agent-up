@@ -12,6 +12,8 @@ A pull request that adds a user-facing Desktop or Mobile surface updates this ta
 
 The first suite runs from `au-debug validate --surface desktop` and `au-debug validate --surface mobile`. Each command writes `<out>/<flow-id>/report.json`, numbered step screenshots, and `server.log`. Fixtures register the repository-root `agent-up.json` workspace on an isolated real Server. They do not assume a developer's dirty tree or an enabled forge module.
 
+CI replays every flow of both suites in Journeys · Desktop and Journeys · Mobile, one flow per run, so a `covered` cell is proven on every pull request. See [CI](../repo/ci.md).
+
 | Surface | Journey | Desktop | Mobile |
 |---|---|---|---|
 | First run / connect | Enter a server URL, connect, reach a workspace | covered | covered |
@@ -76,7 +78,7 @@ Workspace lifecycle is not `n/a` on Mobile: the Apps dashboard exposes Start wor
 
 Agents, autonomous loop, and forge are no longer blocked. The isolated Server has no forge module and no host credential, so those flows cover the shipping empty states: agent availability and remedies, the unattended-loop checklist, and the Git hosting strip's `notInstalled` copy with `Run: agent-up capabilities bootstrap`. Starting `test-agent-scripted` covers a live session on a Development Server. The isolated Server puts that executable on PATH through a fixture shim. Opening a forge proposal, activating a loop through a satisfied checklist, and Demo remain gaps.
 
-Workspace start in this suite asserts the workspace leaves Stopped (Stop workspace is visible). Stop is disabled until Running or Degraded, and every application reaching `Running` is the Runtime capability E2E job; a cold start of this repository exceeds the validation wait. Console, diagnostics, and the Desktop Validation sidebar select Docs without starting processes. Mobile Validation opens Docs from the Apps list and reads the dock under the webview without waiting for every process to become Running. Database explorer opens that application the same way.
+Workspace start in this suite asserts the workspace leaves Stopped (Stop workspace is visible). Stop is disabled until Running or Degraded, and every application reaching `Running` is the Integration · Runtime capabilities leg; a cold start of this repository exceeds the validation wait. Console, diagnostics, and the Desktop Validation sidebar select Docs without starting processes. Mobile Validation opens Docs from the Apps list and reads the dock under the webview without waiting for every process to become Running. Database explorer opens that application the same way.
 
 ## Authoring
 
