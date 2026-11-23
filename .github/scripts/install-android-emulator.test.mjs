@@ -7,7 +7,7 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 const script = fileURLToPath(new URL('./install-android-emulator.sh', import.meta.url));
-const workflow = fileURLToPath(new URL('../workflows/mobile-agent-auth-ci.yml', import.meta.url));
+const workflow = fileURLToPath(new URL('../workflows/ci.yml', import.meta.url));
 const systemImage = 'system-images;android-35;google_apis;x86_64';
 
 function read(path) {
@@ -35,7 +35,7 @@ function writeSdkmanager(home, body) {
   return path;
 }
 
-test('the installer and the Android E2E workflow name the same system image', () => {
+test('the installer and the Android sign-in job name the same system image', () => {
   const installer = read(script);
   const yaml = read(workflow);
   assert.match(installer, new RegExp(systemImage.replaceAll(';', '\\;')));

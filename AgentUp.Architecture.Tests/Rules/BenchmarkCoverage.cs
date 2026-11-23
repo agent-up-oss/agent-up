@@ -100,8 +100,10 @@ public sealed class BenchmarkCoverage
         workflow.Load(reader);
         var rootNode = (YamlMappingNode)workflow.Documents[0].RootNode;
         var jobs = GetMapping(rootNode, "jobs");
-        var performanceRuns = GetStepRuns(GetMapping(jobs, "performance-gates"));
-        var watchdogRuns = GetStepRuns(GetMapping(jobs, "test-kind-watchdog"));
+        var performanceRuns = GetStepRuns(GetMapping(jobs, "source-performance"));
+        var watchdogRuns = GetStepRuns(GetMapping(jobs, "source-budgets"));
+        // Release waits only for the Behavior matrix job, which fails unless every leg passed.
+        var gateNeeds = GetSequenceValues(GetMapping(jobs, "behavior-matrix"), "needs");
         var releaseNeeds = GetSequenceValues(GetMapping(jobs, "release"), "needs");
         var missing = new[]
         {
@@ -109,8 +111,9 @@ public sealed class BenchmarkCoverage
             (HasUnconditionalCommand(performanceRuns, "./scripts/run-benchmark-gate.sh server"), "server performance command"),
             (HasUnconditionalCommand(performanceRuns, "npx tsx src/features/agents/benchmark/MobilePerformanceGate.ts"), "mobile performance command"),
             (HasUnconditionalCommand(watchdogRuns, "./.github/scripts/run-test-kind-watchdog.sh"), "test-kind watchdog command"),
-            (releaseNeeds.Contains("performance-gates", StringComparer.Ordinal), "release performance-gates dependency"),
-            (releaseNeeds.Contains("test-kind-watchdog", StringComparer.Ordinal), "release test-kind-watchdog dependency")
+            (gateNeeds.Contains("source-performance", StringComparer.Ordinal), "behavior-matrix source-performance dependency"),
+            (gateNeeds.Contains("source-budgets", StringComparer.Ordinal), "behavior-matrix source-budgets dependency"),
+            (releaseNeeds.Contains("behavior-matrix", StringComparer.Ordinal), "release behavior-matrix dependency")
         }.Where(requirement => !requirement.Item1).Select(requirement => requirement.Item2).ToArray();
 
         Assert.That(missing, Is.Empty,

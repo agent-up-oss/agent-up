@@ -15,9 +15,31 @@ set -euo pipefail
 #                     proposal, requested reviewers, a finding at its line, the fix going back to
 #                     the same reviewers, and a screenshot attached to the product review.
 # bubblewrap and Chromium come from Nix, as they do for the Server.
+#
+# With no argument all three run, which is what the agent-e2e verification check does. CI runs
+# one category per Integration leg so a red leg names the dependency that broke:
+#   ./.github/scripts/run-agent-e2e.sh AgentSandboxE2E
 
 root="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$root"
+
+categories=("$@")
+if [ "${#categories[@]}" -eq 0 ]; then
+  categories=(AgentSandboxE2E AgentMcpE2E TeamForgejoE2E)
+fi
+filter=""
+for category in "${categories[@]}"; do
+  case "$category" in
+    AgentSandboxE2E|AgentMcpE2E|TeamForgejoE2E) ;;
+    *) echo "Unknown agent E2E category: $category" >&2; exit 2 ;;
+  esac
+  filter="${filter:+$filter|}Category=$category"
+done
+trx="agent-e2e.trx"
+if [ "${#categories[@]}" -eq 1 ]; then
+  trx="${categories[0]}.trx"
+fi
+
 results="artifacts/test-results/agent-e2e"
 agents="$root/artifacts/agent-e2e/test-agents"
 mkdir -p "$results" "$agents"
@@ -34,6 +56,6 @@ export AGENTUP_AGENT_E2E_TEST_AGENTS="$agents/AgentUp.TestAgents"
 nix-shell -p bubblewrap chromium --run "export AGENTUP_AGENT_E2E_CHROMIUM=\"\$(command -v chromium)\"; \
   dotnet test AgentUp.Server.Tests/AgentUp.Server.Tests.csproj \
   --results-directory $results \
-  --logger 'trx;LogFileName=agent-e2e.trx' \
+  --logger 'trx;LogFileName=$trx' \
   --blame-hang-timeout 15m \
-  --filter 'Category=AgentSandboxE2E|Category=AgentMcpE2E|Category=TeamForgejoE2E'"
+  --filter '$filter'"
