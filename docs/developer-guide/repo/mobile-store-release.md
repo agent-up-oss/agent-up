@@ -55,8 +55,8 @@ pushes entirely, so CI would never start on this branch.
 ```text
 pull_request, push, or workflow_dispatch
   Mobile · Android store bundle (ubuntu)  ─┐
-  Mobile · iOS store archive (macos-26)    ├─ Behavior matrix ─ Mobile release · Google Play
-  every other leg ─────────────────────────┘                    Mobile release · App Store Connect
+  Mobile · iOS store archive (macos-26)    ├─ Behavior matrix ─ Mobile release (android) → Google Play
+  every other leg ─────────────────────────┘                    Mobile release (ios) → App Store Connect
 ```
 
 Android failure does not cancel iOS, and the reverse. A dispatch never cancels and is never cancelled: a second dispatch on the same ref waits, so a store upload is never cut off. A newer push on the same branch cancels an in-flight branch run, never a dispatch.

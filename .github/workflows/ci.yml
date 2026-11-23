@@ -122,8 +122,8 @@ jobs:
         env:
           MOBILE_PLATFORMS: ${{ inputs.mobile-platforms }}
         run: |
-          android='{"platform":"android","title":"Google Play","os":"ubuntu-latest"}'
-          ios='{"platform":"ios","title":"App Store Connect","os":"macos-26"}'
+          android='{"platform":"android"}'
+          ios='{"platform":"ios"}'
           case "$MOBILE_PLATFORMS" in
             android) legs="$android" ;;
             ios) legs="$ios" ;;
@@ -1349,9 +1349,11 @@ jobs:
   # dispatch that names a mobile channel, and Release only on a push to main, so one run never
   # does both. It uploads the binaries the Mobile store legs built, verified against their
   # checksums, rather than building again.
+  # A static name: GitHub does not evaluate the matrix of a skipped job, and appends the
+  # platform itself when the job runs, as "Mobile release (android)".
   mobile-release:
-    name: Mobile release · ${{ matrix.title }}
-    runs-on: ${{ matrix.os }}
+    name: Mobile release
+    runs-on: ${{ matrix.platform == 'ios' && 'macos-26' || 'ubuntu-latest' }}
     needs: [behavior-matrix, version]
     if: ${{ github.event_name == 'workflow_dispatch' && (inputs.mobile-channel == 'beta' || inputs.mobile-channel == 'prod') }}
     timeout-minutes: 60
