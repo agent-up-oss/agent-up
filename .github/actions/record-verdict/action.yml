@@ -1,8 +1,9 @@
 name: Record verdict
-description: >-
-  Records one behavior-matrix leg's outcome for the Behavior matrix job. Run it as the last step
-  of a leg with `if: always()` and `status: ${{ job.status }}`. A leg that never reaches this step
-  records nothing, which the matrix reads as "did not run" and fails.
+# Run it as the last step of a leg under an always() condition, passing the job's status. A leg
+# that never reaches this step records nothing, which the matrix reads as "did not run" and fails.
+# The description below must not contain expression syntax: GitHub evaluates it when it loads the
+# action, and there is no job context there.
+description: Records one behavior-matrix leg's outcome for the Behavior matrix job.
 
 inputs:
   stage:
@@ -12,7 +13,7 @@ inputs:
     description: Leg id from .github/behavior-matrix.json.
     required: true
   status:
-    description: The job's status so far (job.status).
+    description: The job's status so far.
     required: true
 
 runs:
