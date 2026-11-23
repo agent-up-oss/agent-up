@@ -45,6 +45,37 @@ public sealed class FakeBackendServiceTests
     }
 
     [Test]
+    public void Handle_permissionPolicyReadsBackWhatWasSaved_perWorkspace()
+    {
+        var backend = FakeServerTestComposition.Backend();
+
+        var saved = Run(backend, Put("/api/workspaces/bob/agent/policy", """{"rules":[{"id":"read-files","decision":"allow"}]}"""));
+        var bob = Json(backend, Get("/api/workspaces/bob/agent/policy"))["rules"]!.AsArray();
+        var lucy = Json(backend, Get("/api/workspaces/lucy/agent/policy"))["rules"]!.AsArray();
+        Run(backend, Put("/api/workspaces/bob/agent/policy", "not json"));
+        var unreadable = Json(backend, Get("/api/workspaces/bob/agent/policy"))["rules"]!.AsArray();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(saved.Status, Is.EqualTo(204));
+            Assert.That(bob.Select(rule => rule!["id"]!.GetValue<string>()), Is.EqualTo(new[] { "read-files" }));
+            Assert.That(lucy, Is.Empty);
+            Assert.That(unreadable, Is.Empty);
+        });
+    }
+
+    [Test]
+    public void Handle_resetForgetsSavedPermissionPolicies()
+    {
+        var backend = FakeServerTestComposition.Backend();
+        Run(backend, Put("/api/workspaces/bob/agent/policy", """{"rules":[{"id":"read-files"}]}"""));
+
+        backend.Reset();
+
+        Assert.That(Json(backend, Get("/api/workspaces/bob/agent/policy"))["rules"]!.AsArray(), Is.Empty);
+    }
+
+    [Test]
     public void Handle_startBeginsTheCheckingLifecycle()
     {
         var backend = FakeServerTestComposition.Backend();
