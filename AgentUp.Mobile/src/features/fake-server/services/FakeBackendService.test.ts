@@ -655,6 +655,8 @@ test('the demo starts with GitHub connected at github.com and refuses a token wi
   const forgejo = saved.modules.find((module: { moduleId: string }) => module.moduleId === 'forgejo');
   assert.equal(forgejo.connected, true);
   assert.equal(forgejo.endpointUrl, 'https://git.example.test');
+  const repositories = json(service, 'GET', '/api/task-source/repositories');
+  assert.ok(repositories.some((row: { moduleId: string }) => row.moduleId === 'forgejo'));
 });
 
 test('picking with no workspace takes the issue from the task source', () => {

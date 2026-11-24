@@ -286,6 +286,7 @@ public sealed class CommandCenterSceneTests
             Assert.That(binding.Text["repository"], Is.EqualTo("example/repository"));
             Assert.That(binding.Items["repos"].Single().Text["host"], Is.EqualTo("GitHub"));
             Assert.That(binding.State["forgeConnected"], Is.EqualTo("1"));
+            Assert.That(binding.State["forgeTab"], Is.EqualTo("forgejo"));
         });
     }
 

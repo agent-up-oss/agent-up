@@ -84,6 +84,42 @@ public sealed class NewUiSceneActionTests
     }
 
     [AvaloniaTest]
+    public async Task SettingsForgejoTab_namesTheCatalogId()
+    {
+        var scene = new NewUiScene();
+        ApplySettings(scene, "https://github.com");
+        var window = new Window { Width = 1440, Height = 900, Content = scene };
+        NewUiActionEventArgs? clicked = null;
+        scene.ActionInvoked += (_, args) => clicked = args;
+        window.Show();
+
+        await window.ClickControlAsync(scene.GetVisualDescendants().OfType<Button>().First(button => Words(button) == "Forgejo"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(clicked!.Name, Is.EqualTo("forge-tab"));
+            Assert.That(clicked.Id, Is.EqualTo("forgejo"));
+        });
+        window.Close();
+    }
+
+    [AvaloniaTest]
+    public void SettingsForgejoTab_isTheSelectedTab()
+    {
+        var scene = new NewUiScene();
+        ApplySettings(scene, "");
+        var window = new Window { Width = 1440, Height = 900, Content = scene };
+        window.Show();
+
+        var tabs = scene.GetVisualDescendants().OfType<Button>()
+            .Where(button => Words(button) is "GitHub" or "Forgejo")
+            .ToDictionary(Words, TabSelected);
+
+        Assert.That(tabs, Is.EqualTo(new Dictionary<string, bool> { ["GitHub"] = false, ["Forgejo"] = true }));
+        window.Close();
+    }
+
+    [AvaloniaTest]
     public async Task SaveOnSettings_sendsTheHostUrlWithTheToken()
     {
         var scene = new NewUiScene();
@@ -148,6 +184,10 @@ public sealed class NewUiSceneActionTests
         string.Join(" ", button.GetVisualDescendants().OfType<TextBlock>().Select(text => text.Text)).Trim();
 
     /// <summary>A scene button carries its class itself or on the face it paints.</summary>
+    private static bool TabSelected(Button button) =>
+        button.Classes.Contains("au-app-tab--selected")
+        || button.Content is Border { } face && face.Classes.Contains("au-app-tab--selected");
+
     private static Button ButtonWithClass(NewUiScene scene, string name) =>
         scene.GetVisualDescendants().OfType<Button>().First(button =>
             button.Classes.Contains(name) || button.Content is Border { } face && face.Classes.Contains(name));

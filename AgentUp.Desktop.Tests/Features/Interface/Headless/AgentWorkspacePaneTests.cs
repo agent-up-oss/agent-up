@@ -366,7 +366,7 @@ public sealed class AgentWorkspacePaneTests
     }
 
     [AvaloniaTest]
-    public async Task Tasks_opensTheDemoRepositoryAndSettingsStoresAForgejoToken()
+    public async Task Tasks_opensTheDemoRepositoryAndSettingsCanOpenForgejo()
     {
         var window = await LaunchDemoCommandCenterAsync();
         var center = ((MainViewModel)window.DataContext!).CommandCenter!;
@@ -390,16 +390,42 @@ public sealed class AgentWorkspacePaneTests
         await window.ClickControlAsync(VisibleButtonNamed(window, "Forget"));
         await WaitAsync(() => !source.IsConnected("github"));
         await window.ClickControlAsync(VisibleButtonNamed(window, "Forgejo"));
-        await HeadlessExtensions.FlushAsync();
-        UrlBox(window).Text = "https://git.example.test";
-        PasswordBox(window).Text = "forgejo-token";
-        await window.ClickControlAsync(VisibleButtonNamed(window, "Save"));
-        await HeadlessExtensions.FlushAsync();
+        await WaitAsync(() => TabSelected(window, "Forgejo"));
 
         Assert.Multiple(() =>
         {
             Assert.That(source.IsConnected("github"), Is.False);
+            Assert.That(TabSelected(window, "Forgejo"), Is.True);
             Assert.That(center.SceneId, Is.EqualTo("settings"));
+        });
+        window.Close();
+    }
+
+    [AvaloniaTest]
+    public async Task Settings_switchesToForgejoAndStoresThatToken()
+    {
+        var window = await LaunchDemoCommandCenterAsync();
+        var center = ((MainViewModel)window.DataContext!).CommandCenter!;
+        var source = center.TaskSource!;
+        await WaitAsync(() => source.IsConnected("github"));
+        center.ShowNav(2);
+        await HeadlessExtensions.FlushAsync();
+        await WaitAsync(() => source.IsConnected("github") && ButtonTexts(window).Contains("Forget"));
+        await window.ClickControlAsync(VisibleButtonNamed(window, "Forget"));
+        await WaitAsync(() => !source.IsConnected("github"));
+        await window.ClickControlAsync(VisibleButtonNamed(window, "Forgejo"));
+        await WaitAsync(() => TabSelected(window, "Forgejo"));
+        await HeadlessExtensions.FlushAsync();
+        UrlBox(window).Text = "https://git.example.test";
+        PasswordBox(window).Text = "forgejo-token";
+        await window.ClickControlAsync(VisibleButtonNamed(window, "Save"));
+        await WaitAsync(() => source.IsConnected("forgejo"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(source.IsConnected("github"), Is.False, source.Error);
+            Assert.That(source.IsConnected("forgejo"), Is.True, source.Error);
+            Assert.That(TabSelected(window, "Forgejo"), Is.True);
         });
         window.Close();
     }
@@ -506,8 +532,15 @@ public sealed class AgentWorkspacePaneTests
     private static Button ButtonNamed(Window window, string label)
         => window.GetVisualDescendants().OfType<Button>().Single(button => ButtonText(button) == label);
 
+    private static bool TabSelected(Window window, string label)
+    {
+        var button = VisibleButtonNamed(window, label);
+        return button.Classes.Contains("au-app-tab--selected")
+            || button.Content is Border { } face && face.Classes.Contains("au-app-tab--selected");
+    }
+
     private static Button VisibleButtonNamed(Window window, string label)
-        => window.GetVisualDescendants().OfType<Button>().First(button => button.IsVisible && ButtonText(button) == label);
+        => window.GetVisualDescendants().OfType<Button>().First(button => button.IsEffectivelyVisible && ButtonText(button) == label);
 
     private static Button ButtonContaining(Window window, string text)
         => window.GetVisualDescendants().OfType<Button>().First(button => ButtonText(button).Contains(text));

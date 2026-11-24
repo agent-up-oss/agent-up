@@ -1261,7 +1261,7 @@ public sealed class FakeBackendService
             if (method == "GET" && rest.StartsWith("/issues", StringComparison.Ordinal))
             {
                 var first = _state.Workspaces.OfType<JsonObject>().FirstOrDefault()?["id"]?.GetValue<string>();
-                return Json(_githubToken is not null && first is not null ? OpenIssues(first) : new JsonArray());
+                return Json(AnyForgeConnected && first is not null ? OpenIssues(first) : new JsonArray());
             }
 
             if (method == "GET" && rest.StartsWith("/pulls", StringComparison.Ordinal))
@@ -1293,13 +1293,24 @@ public sealed class FakeBackendService
     {
         var listed = new JsonArray();
         if (_githubToken is not null)
-            listed.Add(new JsonObject { ["moduleId"] = "github", ["owner"] = DemoOwner, ["name"] = DemoRepository });
+            listed.Add(DemoRepo("github"));
+        if (_forgejoToken is not null)
+            listed.Add(DemoRepo("forgejo"));
         return listed;
     }
 
+    private static JsonObject DemoRepo(string moduleId) => new()
+    {
+        ["moduleId"] = moduleId,
+        ["owner"] = DemoOwner,
+        ["name"] = DemoRepository,
+    };
+
+    private bool AnyForgeConnected => _githubToken is not null || _forgejoToken is not null;
+
     private JsonArray Pulls()
     {
-        if (_githubToken is null)
+        if (!AnyForgeConnected)
             return [];
         return new JsonArray(new JsonObject
         {

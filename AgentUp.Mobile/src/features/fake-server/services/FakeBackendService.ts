@@ -522,16 +522,19 @@ export class FakeBackendService {
     }
 
     if (method === 'GET' && rest.startsWith('/repositories')) {
-      return json(this.githubToken ? [{ moduleId: 'github', owner: 'example', name: 'repository' }] : []);
+      const listed = [];
+      if (this.githubToken) listed.push({ moduleId: 'github', owner: 'example', name: 'repository' });
+      if (this.forgejoToken) listed.push({ moduleId: 'forgejo', owner: 'example', name: 'repository' });
+      return json(listed);
     }
 
     if (method === 'GET' && rest.startsWith('/issues')) {
       const first = (this.state.workspaces[0] as { id?: string } | undefined)?.id;
-      return json(this.githubToken && first ? this.openIssues(first) : []);
+      return json(this.anyForgeConnected && first ? this.openIssues(first) : []);
     }
 
     if (method === 'GET' && rest.startsWith('/pulls')) {
-      return json(this.githubToken ? [{
+      return json(this.anyForgeConnected ? [{
         id: '42',
         number: 42,
         title: 'Product cards cut off long names',
@@ -565,6 +568,9 @@ export class FakeBackendService {
   private githubEndpoint: string | null = 'https://github.com';
   private forgejoToken: string | null = null;
   private forgejoEndpoint: string | null = null;
+  private get anyForgeConnected() {
+    return this.githubToken !== null || this.forgejoToken !== null;
+  }
 
   private decisions(): FakeProductDecision[] {
     return this.state.productDecisions ?? [];

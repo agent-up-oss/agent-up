@@ -140,6 +140,7 @@ export function createNewUiScene(React, native) {
     const childNodes = words ? [] : (node.k ?? []);
     const children = childNodes.map((child, index) => render(child, model, item, index, inner)).filter(child => child != null);
     const action = node.action ? (item?.action || node.action) : null;
+    const actionId = item?.id ?? node.id ?? null;
     if (node.t === 'input') {
       if (!TextInput) return h(View, { key, style: [box, { minHeight: 36 }] });
       const fieldValue = textValue ?? node.x ?? '';
@@ -168,7 +169,7 @@ export function createNewUiScene(React, native) {
         key,
         accessibilityRole: 'button',
         accessibilityLabel: node.label,
-        onPress: () => model.onAction(action, item?.id ?? null, drafts[action], { ...drafts }),
+        onPress: () => model.onAction(action, actionId, drafts[action], { ...drafts }),
         style: [box, measure(node.c), layoutStyle(node), { alignSelf: 'stretch' }, node.push ? { marginLeft: 'auto' } : null],
       }, body);
     }
@@ -190,7 +191,7 @@ export function createNewUiScene(React, native) {
         accessibilityLabel: spoken || undefined,
         accessibilityState: locked ? { disabled: true } : undefined,
         disabled: locked,
-        onPress: locked ? undefined : () => model.onAction(action, item?.id ?? null, drafts[action], { ...drafts }),
+        onPress: locked ? undefined : () => model.onAction(action, actionId, drafts[action], { ...drafts }),
         style: [{ alignItems: 'center', justifyContent: 'center' }, box, node.grow ? { flex: 1 } : null, node.push ? { marginLeft: 'auto' } : null, locked ? { opacity: 0.4 } : null],
       }, inner);
     }

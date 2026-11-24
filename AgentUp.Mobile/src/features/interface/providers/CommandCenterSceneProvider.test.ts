@@ -219,15 +219,25 @@ test('GitHub prefills github.com and Save reads the host URL from every field', 
 });
 
 test('the settings scene shows the host URL for the selected forge', () => {
-  const scene = commandCenterScene({
+  const github = commandCenterScene({
     surface: 'mobile', nav: 2, section: 'overview', agentOpen: false, serverLabel: 'Demo', openWorkspaceId: null,
     team: [], queue: [], working: [], offered: [], names: new Map(), flows: [],
     forgeTab: 'github',
     forgeEndpoint: 'https://github.com',
     validationsOpen: false, validationRunning: false, validationPassed: false, validationSummary: '',
   });
+  const forgejo = commandCenterScene({
+    surface: 'mobile', nav: 2, section: 'overview', agentOpen: false, serverLabel: 'Demo', openWorkspaceId: null,
+    team: [], queue: [], working: [], offered: [], names: new Map(), flows: [],
+    forgeTab: 'forgejo',
+    forgeEndpoint: '',
+    validationsOpen: false, validationRunning: false, validationPassed: false, validationSummary: '',
+  });
 
-  assert.equal(scene.text.forgeEndpoint, 'https://github.com');
+  assert.equal(github.state.forgeTab, 'github');
+  assert.equal(github.text.forgeEndpoint, 'https://github.com');
+  assert.equal(forgejo.state.forgeTab, 'forgejo');
+  assert.equal(forgejo.text.forgeEndpoint, '');
 });
 
 test('a capability whose software was not found offers no Enable and names what is missing', () => {

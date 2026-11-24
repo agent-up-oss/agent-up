@@ -90,11 +90,13 @@ public sealed class FakeBackendTaskSourceTests
 
         var source = Json(backend, Put("/api/task-source", """{"moduleId":"forgejo","endpointUrl":"https://git.example.test","token":"forgejo-token"}"""));
         var forgejo = source["modules"]!.AsArray().Single(module => module!["moduleId"]!.GetValue<string>() == "forgejo")!;
+        var repositories = Json(backend, Get("/api/task-source/repositories")).AsArray();
 
         Assert.Multiple(() =>
         {
             Assert.That(forgejo["connected"]!.GetValue<bool>(), Is.True);
             Assert.That(forgejo["endpointUrl"]!.GetValue<string>(), Is.EqualTo("https://git.example.test"));
+            Assert.That(repositories.Select(row => row!["moduleId"]!.GetValue<string>()), Does.Contain("forgejo"));
         });
     }
 

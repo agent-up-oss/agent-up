@@ -1106,9 +1106,10 @@ test('the New UI Avalonia sheet styles what the scene draws, the way the CSS doe
 
 test('a scene control answers only its own click, so a button inside a card does not fire the card', async () => {
   const scene = await readFile(new URL('./dist/dotnet/NewUiScene.g.cs', root), 'utf8');
-  assert.match(scene, /card\.Click \+= \(_, args\) =>\s*\{\s*if \(!ReferenceEquals\(args\.Source, card\)\) return;/);
-  assert.match(scene, /button\.Click \+= \(_, args\) =>\s*\{\s*if \(!ReferenceEquals\(args\.Source, button\)\) return;/);
-  assert.match(scene, /press\.Click \+= \(_, args\) =>\s*\{\s*if \(!ReferenceEquals\(args\.Source, press\)\) return;/);
+  assert.match(scene, /args\.Source is not Button inner \|\| ReferenceEquals\(inner, sender\)/);
+  assert.match(scene, /if \(!OwnClick\(card, args\)\) return;/);
+  assert.match(scene, /if \(!OwnClick\(button, args\)\) return;/);
+  assert.match(scene, /if \(!OwnClick\(press, args\)\) return;/);
 });
 
 test('Server and Logout close the desktop rail and sit above the phone tab bar', async () => {

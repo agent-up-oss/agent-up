@@ -11,6 +11,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Shapes;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
@@ -175,7 +176,7 @@ public sealed class NewUiScene : UserControl
                         };
                         press.Click += (_, args) =>
                         {
-                            if (!ReferenceEquals(args.Source, press)) return;
+                            if (!OwnClick(press, args)) return;
                             ActionInvoked?.Invoke(this, new NewUiActionEventArgs { Name = name, Id = id });
                         };
                         rows.Add(press);
@@ -267,7 +268,7 @@ public sealed class NewUiScene : UserControl
             // answers only its own click, or one press would run both actions.
             card.Click += (_, args) =>
             {
-                if (!ReferenceEquals(args.Source, card)) return;
+                if (!OwnClick(card, args)) return;
                 ActionInvoked?.Invoke(this, new NewUiActionEventArgs { Name = action, Id = cardId });
             };
             return card;
@@ -323,7 +324,7 @@ public sealed class NewUiScene : UserControl
             }
             button.Click += (_, args) =>
             {
-                if (!ReferenceEquals(args.Source, button)) return;
+                if (!OwnClick(button, args)) return;
                 ActionInvoked?.Invoke(this, new NewUiActionEventArgs
                 {
                     Name = name,
@@ -655,6 +656,14 @@ public sealed class NewUiScene : UserControl
     }
 
     private static readonly HashSet<string> InlineTags = new(StringComparer.Ordinal) { "button", "a", "span", "label", "strong", "em", "code" };
+
+    /// <summary>
+    /// Click bubbles from a nested button (Play on a flow card). A press on this button's own
+    /// label or face is still this button's click: Avalonia names the original source, which is
+    /// often the TextBlock, not the Button.
+    /// </summary>
+    private static bool OwnClick(object? sender, RoutedEventArgs args)
+        => args.Source is not Button inner || ReferenceEquals(inner, sender);
 
     private static bool HostsFace(IReadOnlyList<string> classes) =>
         classes.Any(name => IconFace(name) || name is "au-app-tab" or "au-subtab");
