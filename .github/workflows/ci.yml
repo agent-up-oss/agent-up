@@ -543,9 +543,11 @@ jobs:
             title: Native Linux (WebKitGTK)
             os: ubuntu-latest
             timeout: 60
+          # macos-15, not macos-latest: iOS store and sign-in need Xcode 26 on macos-latest,
+          # and GitHub cancelled this native leg when it shared that pool.
           - leg: native-macos-arm64
             title: Native macOS arm64 (WKWebView)
-            os: macos-latest
+            os: macos-15
             rid: osx-arm64
             timeout: 30
           - leg: native-macos-x64

@@ -42,3 +42,7 @@ test('the iOS store archive uses macos-latest, the same hosted pool as iOS sign-
   assert.match(ci, /matrix\.platform == 'ios' && 'macos-latest'/);
   assert.doesNotMatch(ci, /macos-26/);
 });
+
+test('Desktop native macOS arm64 uses macos-15 so it does not share the Xcode macos-latest pool with iOS', () => {
+  assert.match(ci, /leg: native-macos-arm64\n\s+title: Native macOS arm64 \(WKWebView\)\n\s+os: macos-15\n/);
+});
