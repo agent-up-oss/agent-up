@@ -188,8 +188,14 @@ async function ensureConnected(serverUrl, workspaceId, agentId, ready) {
       await connectTo(serverUrl, workspaceId);
     }
   }
-  await waitForPicker(picker, 60_000);
+  // The picker renders once getAgent answers. On a three-core macOS runner that has just
+  // reinstalled the app, the Server's first answer has arrived more than a minute after launch,
+  // and a recovery remount cancels whatever request was already in flight, so the wait after a
+  // recovery has to cover a cold answer plus a render.
+  await waitForPicker(picker, PICKER_AFTER_CONNECT_MS);
 }
+
+const PICKER_AFTER_CONNECT_MS = 120_000;
 
 async function waitForConnectStep(picker, timeoutMs, decide, pending) {
   const deadline = Date.now() + timeoutMs;

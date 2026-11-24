@@ -39,7 +39,7 @@ export function profilesFor(codexSchema) {
  * code was ever approved. A person on a warm phone does not wait that long, and the suite is not
  * there to find out what happens when they do.
  */
-export function serverEnvironment({ profiles, binDir, idpUrl, publicOrigin, dataDir, urls, challengeTimeoutSeconds = 90, completionTimeoutSeconds = 300 }) {
+export function serverEnvironment({ profiles, binDir, idpUrl, publicOrigin, dataDir, urls, browserExecutable, challengeTimeoutSeconds = 90, completionTimeoutSeconds = 300 }) {
   const environment = {
     ASPNETCORE_URLS: urls,
     // The subject under test is agent sign-in, not Server sign-in.
@@ -53,6 +53,12 @@ export function serverEnvironment({ profiles, binDir, idpUrl, publicOrigin, data
     AGENTUP_TEST_IDP_URL: idpUrl,
     AGENTUP_TEST_IDP_PUBLIC_ORIGIN: publicOrigin,
   };
+  // A Server with no browser configured downloads and unpacks Chrome for Testing into its data
+  // directory the moment it starts. Every case gets a fresh data directory, so that was four
+  // downloads per run, each landing while the simulator was installing and launching the app; on
+  // a three-core macOS runner the Server then answered getAgent a minute late and the picker wait
+  // ran out. Sign-in never drives the Server's browser, so it is pointed at the host's own.
+  if (browserExecutable) environment.Browser__ExecutablePath = browserExecutable;
 
   for (const profile of profiles) {
     const shim = `${binDir}/${profile.agent}`;
@@ -117,3 +123,20 @@ export function hostPortsToReverse(serverPort, idpPort) {
   }
   return ports;
 }
+
+/**
+ * The browser a stack's Server is pointed at instead of downloading its own.
+ *
+ * AGENTUP_E2E_BROWSER_EXECUTABLE wins; otherwise the Chrome a hosted runner image ships. With
+ * neither, the Server downloads Chromium as it would for anyone, which is slower and still correct.
+ */
+export function hostBrowser({ hostPlatform, exists, env = {} }) {
+  if (env.AGENTUP_E2E_BROWSER_EXECUTABLE) return env.AGENTUP_E2E_BROWSER_EXECUTABLE;
+  const candidates = HOST_BROWSERS[hostPlatform] ?? [];
+  return candidates.find(candidate => exists(candidate));
+}
+
+const HOST_BROWSERS = Object.freeze({
+  darwin: ['/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'],
+  linux: ['/usr/bin/google-chrome-stable', '/usr/bin/google-chrome', '/usr/bin/chromium', '/usr/bin/chromium-browser'],
+});
