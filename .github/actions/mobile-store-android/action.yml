@@ -66,6 +66,10 @@ runs:
         ruby-version: "3.3"
         bundler-cache: true
 
+    - name: Let Gradle ride out a transient repository error
+      shell: bash
+      run: ./.github/scripts/configure-gradle-network.sh
+
     - uses: android-actions/setup-android@v4
       with:
         packages: platform-tools

@@ -29,6 +29,10 @@ runs:
         distribution: temurin
         java-version: "17"
 
+    - name: Let Gradle ride out a transient repository error
+      shell: bash
+      run: ./.github/scripts/configure-gradle-network.sh
+
     - name: Describe what the app is built from
       id: app
       shell: bash
