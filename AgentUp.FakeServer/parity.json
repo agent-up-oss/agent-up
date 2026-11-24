@@ -10,7 +10,8 @@
       "evidence": "absent-evidence",
       "session": "absent-session",
       "owner": "absent",
-      "repository": "absent"
+      "repository": "absent",
+      "moduleId": "github"
     },
     "demo": {
       "workspace": "bob",
@@ -22,12 +23,17 @@
       "evidence": "ev-1",
       "session": "absent-session",
       "owner": "shop",
-      "repository": "store"
+      "repository": "store",
+      "moduleId": "github"
     }
   },
   "operations": [
     {
       "route": "DELETE /api/task-source",
+      "demo": true
+    },
+    {
+      "route": "DELETE /api/task-source/{moduleId}",
       "demo": true
     },
     {
@@ -445,36 +451,42 @@
         "status": 200,
         "body": "object",
         "keys": [
-          "canConnect",
-          "configured",
-          "connected",
-          "detail",
-          "moduleId",
-          "modules",
-          "owner",
-          "repository"
-        ]
-      }
-    },
-    {
-      "route": "GET /api/task-source/callback",
-      "demo": {
-        "absent": "Completes an OAuth or GitHub App sign-in with a real host; the Demo signs in to nothing."
-      },
-      "server": {
-        "status": 400,
-        "body": "object",
-        "keys": [
-          "errors",
-          "status",
-          "title",
-          "traceId",
-          "type"
+          "modules"
         ]
       }
     },
     {
       "route": "GET /api/task-source/issues",
+      "query": {
+        "moduleId": "moduleId",
+        "owner": "owner",
+        "repository": "repository"
+      },
+      "demo": {
+        "status": 200
+      },
+      "server": {
+        "status": 200,
+        "body": "array"
+      }
+    },
+    {
+      "route": "GET /api/task-source/pulls",
+      "query": {
+        "moduleId": "moduleId",
+        "owner": "owner",
+        "repository": "repository"
+      },
+      "demo": {
+        "status": 200
+      },
+      "server": {
+        "status": 200,
+        "body": "array"
+      }
+    },
+    {
+      "route": "GET /api/task-source/repositories",
       "demo": {
         "status": 200
       },
@@ -1207,10 +1219,6 @@
     },
     {
       "route": "POST /api/source-clones/{workspaceId}/refresh",
-      "demo": true
-    },
-    {
-      "route": "POST /api/task-source/login",
       "demo": true
     },
     {

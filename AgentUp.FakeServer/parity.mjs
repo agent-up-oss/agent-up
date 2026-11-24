@@ -18,6 +18,7 @@ export const DEFAULT_PARAMS = {
   evidenceId: 'evidence',
   owner: 'owner',
   repository: 'repository',
+  moduleId: 'moduleId',
 };
 
 /** Every operation the API reference documents, as "METHOD /template". */

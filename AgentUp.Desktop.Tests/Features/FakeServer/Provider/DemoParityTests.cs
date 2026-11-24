@@ -26,7 +26,8 @@ public sealed class DemoParityTests
         ["sessionId"] = "session",
         ["evidenceId"] = "evidence",
         ["owner"] = "owner",
-        ["repository"] = "repository"
+        ["repository"] = "repository",
+        ["moduleId"] = "moduleId"
     };
 
     [Test]
