@@ -7,7 +7,7 @@ public interface ITaskSourceApiProvider
 {
     Task<TaskSource?> ReadAsync(CancellationToken cancellationToken);
 
-    Task<TaskSource?> SaveAsync(string moduleId, string token, CancellationToken cancellationToken);
+    Task<TaskSource?> SaveAsync(string moduleId, string endpointUrl, string token, CancellationToken cancellationToken);
 
     Task<TaskSource?> ForgetAsync(string moduleId, CancellationToken cancellationToken);
 

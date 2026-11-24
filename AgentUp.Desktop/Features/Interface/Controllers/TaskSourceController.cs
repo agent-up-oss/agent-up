@@ -9,8 +9,12 @@ public sealed class TaskSourceController(TaskSourceService source)
     public Task<TaskSource?> ReadAsync(CancellationToken cancellationToken = default)
         => source.ReadAsync(cancellationToken);
 
-    public Task<TaskSource?> SaveAsync(string moduleId, string token, CancellationToken cancellationToken = default)
-        => source.SaveAsync(moduleId, token, cancellationToken);
+    public Task<TaskSource?> SaveAsync(
+        string moduleId,
+        string endpointUrl,
+        string token,
+        CancellationToken cancellationToken = default)
+        => source.SaveAsync(moduleId, endpointUrl, token, cancellationToken);
 
     public Task<TaskSource?> ForgetAsync(string moduleId, CancellationToken cancellationToken = default)
         => source.ForgetAsync(moduleId, cancellationToken);

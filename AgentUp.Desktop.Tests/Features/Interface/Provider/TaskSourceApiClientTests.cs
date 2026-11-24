@@ -11,7 +11,7 @@ public sealed class TaskSourceApiClientTests
     public async Task ReadAsync_readsWhereTheWorkComesFrom()
     {
         var handler = Returning("""
-            {"modules":[{"moduleId":"github","displayName":"GitHub","connected":true,"detail":"Reading repositories."}]}
+            {"modules":[{"moduleId":"github","displayName":"GitHub","connected":true,"detail":"Reading repositories.","endpointUrl":"https://github.com"}]}
             """);
 
         var source = await new TaskSourceApiClient(Client(handler)).ReadAsync(CancellationToken.None);
@@ -19,6 +19,7 @@ public sealed class TaskSourceApiClientTests
         Assert.Multiple(() =>
         {
             Assert.That(source!.Modules.Single().Connected, Is.True);
+            Assert.That(source.Modules.Single().EndpointUrl, Is.EqualTo("https://github.com"));
             Assert.That(handler.Requests.Single(), Is.EqualTo("GET api/task-source"));
         });
     }
@@ -28,12 +29,13 @@ public sealed class TaskSourceApiClientTests
     {
         var handler = Returning("""{"modules":[{"moduleId":"github","displayName":"GitHub","connected":true,"detail":"Reading."}]}""");
 
-        var source = await new TaskSourceApiClient(Client(handler)).SaveAsync("github", "secret-token", CancellationToken.None);
+        var source = await new TaskSourceApiClient(Client(handler)).SaveAsync("github", "https://github.com", "secret-token", CancellationToken.None);
 
         Assert.Multiple(() =>
         {
             Assert.That(handler.Requests.Single(), Is.EqualTo("PUT api/task-source"));
             Assert.That(handler.Bodies.Single(), Does.Contain("\"token\":\"secret-token\""));
+            Assert.That(handler.Bodies.Single(), Does.Contain("\"endpointUrl\":\"https://github.com\""));
             Assert.That(source!.Modules.Single().Detail, Does.Not.Contain("secret-token"));
         });
     }
@@ -45,7 +47,7 @@ public sealed class TaskSourceApiClientTests
             """{"title":"Task source","detail":"The token cannot read pull requests."}""",
             HttpStatusCode.Conflict)));
 
-        var error = await Assert.ThrowsAsync<HttpRequestException>(() => client.SaveAsync("github", "narrow", CancellationToken.None));
+        var error = await Assert.ThrowsAsync<HttpRequestException>(() => client.SaveAsync("github", "https://github.com", "narrow", CancellationToken.None));
 
         Assert.That(error!.Message, Does.Contain("pull requests"));
     }

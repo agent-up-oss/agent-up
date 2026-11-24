@@ -17,9 +17,9 @@ public sealed class TaskSourceApiClient(HttpClient http) : ITaskSourceApiProvide
         return await response.Content.ReadFromJsonAsync<TaskSource>(Options, cancellationToken);
     }
 
-    public async Task<TaskSource?> SaveAsync(string moduleId, string token, CancellationToken cancellationToken)
+    public async Task<TaskSource?> SaveAsync(string moduleId, string endpointUrl, string token, CancellationToken cancellationToken)
     {
-        using var response = await http.PutAsJsonAsync("api/task-source", new { moduleId, token }, cancellationToken);
+        using var response = await http.PutAsJsonAsync("api/task-source", new { moduleId, endpointUrl, token }, cancellationToken);
         if (response.StatusCode is HttpStatusCode.Conflict or HttpStatusCode.ServiceUnavailable)
             throw new HttpRequestException(await Problem(response, cancellationToken));
         response.EnsureSuccessStatusCode();

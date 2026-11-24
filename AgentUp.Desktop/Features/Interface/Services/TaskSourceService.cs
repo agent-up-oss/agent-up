@@ -12,8 +12,12 @@ public sealed class TaskSourceService(ITaskSourceApiProvider api)
     public Task<TaskSource?> ReadAsync(CancellationToken cancellationToken = default)
         => api.ReadAsync(cancellationToken);
 
-    public Task<TaskSource?> SaveAsync(string moduleId, string token, CancellationToken cancellationToken = default)
-        => api.SaveAsync(moduleId, token.Trim(), cancellationToken);
+    public Task<TaskSource?> SaveAsync(
+        string moduleId,
+        string endpointUrl,
+        string token,
+        CancellationToken cancellationToken = default)
+        => api.SaveAsync(moduleId, endpointUrl.Trim(), token.Trim(), cancellationToken);
 
     public Task<TaskSource?> ForgetAsync(string moduleId, CancellationToken cancellationToken = default)
         => api.ForgetAsync(moduleId, cancellationToken);

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { TeamStanding } from '../models/TeamStanding';
-import { commandCenterScene, commandCenterSceneId, commandCenterServerLabel, fleetHeadline, moduleRow, tasksTabFor } from './CommandCenterSceneProvider';
+import { commandCenterScene, commandCenterSceneId, commandCenterServerLabel, fleetHeadline, moduleRow, prefillEndpoint, tasksTabFor, tokenSave } from './CommandCenterSceneProvider';
 
 function standing(patch: Partial<TeamStanding> & Pick<TeamStanding, 'workspaceId' | 'displayName' | 'kind'>): TeamStanding {
   return {
@@ -206,6 +206,28 @@ test('a capability row names its state and the one change it offers; the scene w
   assert.deepEqual([ready.action, ready.parts], ['disable-module', ['ready']]);
   assert.deepEqual([blocked.parts, blocked.text?.why], [['blocked'], 'Install Nix first.']);
   assert.deepEqual([off.action, off.parts], ['enable-module', ['disabled']]);
+});
+
+test('GitHub prefills github.com and Save reads the host URL from every field', () => {
+  assert.equal(prefillEndpoint('github', null), 'https://github.com');
+  assert.equal(prefillEndpoint('forgejo', null), '');
+  assert.equal(prefillEndpoint('github', ' https://ghe.example.test '), 'https://ghe.example.test');
+  assert.deepEqual(tokenSave({ 'forge-endpoint': ' https://git.example.test ', 'save-token': ' secret ' }, 'ignored'), {
+    token: 'secret',
+    endpointUrl: 'https://git.example.test',
+  });
+});
+
+test('the settings scene shows the host URL for the selected forge', () => {
+  const scene = commandCenterScene({
+    surface: 'mobile', nav: 2, section: 'overview', agentOpen: false, serverLabel: 'Demo', openWorkspaceId: null,
+    team: [], queue: [], working: [], offered: [], names: new Map(), flows: [],
+    forgeTab: 'github',
+    forgeEndpoint: 'https://github.com',
+    validationsOpen: false, validationRunning: false, validationPassed: false, validationSummary: '',
+  });
+
+  assert.equal(scene.text.forgeEndpoint, 'https://github.com');
 });
 
 test('a capability whose software was not found offers no Enable and names what is missing', () => {

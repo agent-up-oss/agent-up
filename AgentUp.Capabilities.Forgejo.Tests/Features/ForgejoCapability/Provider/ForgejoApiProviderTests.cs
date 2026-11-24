@@ -648,6 +648,16 @@ public sealed class ForgejoApiProviderTests
             Is.EqualTo("https://git.example.test/api/v1/"));
 
     [Test]
+    public void ApiBaseFromEndpoint_mapsAnOriginToApiV1()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(ForgejoHostConfigurationProvider.ApiBaseFromEndpoint("https://git.example.test"), Is.EqualTo("https://git.example.test/api/v1/"));
+            Assert.That(ForgejoHostConfigurationProvider.ApiBaseFromEndpoint("https://git.example.test/api/v1"), Is.EqualTo("https://git.example.test/api/v1/"));
+        });
+    }
+
+    [Test]
     public async Task ReadAsync_treatsMissingMergeabilityAsUnknown()
     {
         const string pulls = """
@@ -730,9 +740,19 @@ public sealed class ForgejoApiProviderTests
             [{"name":"widgets","owner":{"login":"acme"}}]
             """));
 
-        var repositories = await new ForgejoForgeCapability(handler).ListRepositoriesAsync("token");
+        var repositories = await new ForgejoForgeCapability(handler).ListRepositoriesAsync("token", "https://git.example.test");
 
         Assert.That(repositories.Select(repository => $"{repository.Owner}/{repository.Name}"), Is.EqualTo(new[] { "acme/widgets" }));
+    }
+
+    [Test]
+    public async Task ListRepositoriesAsync_talksToTheEndpointUrlNotTheConfiguredHost()
+    {
+        var handler = Recorded(("GET /user/repos?limit=100", """[{"name":"widgets","owner":{"login":"acme"}}]"""));
+
+        await new ForgejoForgeCapability(handler).ListRepositoriesAsync("token", "https://git.company.test");
+
+        Assert.That(handler.Uris.Single(), Does.StartWith("https://git.company.test/api/v1/"));
     }
 
     [Test]
@@ -740,7 +760,7 @@ public sealed class ForgejoApiProviderTests
     {
         var handler = Recorded(("GET /user", HttpStatusCode.Unauthorized, ""));
 
-        var access = await new ForgejoForgeCapability(handler).ReadTokenAccessAsync("token");
+        var access = await new ForgejoForgeCapability(handler).ReadTokenAccessAsync("token", "https://git.example.test");
 
         Assert.Multiple(() =>
         {

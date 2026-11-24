@@ -83,6 +83,67 @@ public sealed class NewUiSceneActionTests
         window.Close();
     }
 
+    [AvaloniaTest]
+    public async Task SaveOnSettings_sendsTheHostUrlWithTheToken()
+    {
+        var scene = new NewUiScene();
+        ApplySettings(scene, "https://github.com");
+        var window = new Window { Width = 1440, Height = 900, Content = scene };
+        NewUiActionEventArgs? saved = null;
+        scene.ActionInvoked += (_, args) => saved = args;
+        window.Show();
+
+        PasswordBox(scene).Text = "secret-token";
+        var save = scene.GetVisualDescendants().OfType<Button>().First(button => Words(button) == "Save");
+        await window.ClickControlAsync(save);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(saved!.Name, Is.EqualTo("save-token"));
+            Assert.That(saved.Fields!["forge-endpoint"], Is.EqualTo("https://github.com"));
+            Assert.That(saved.Fields["save-token"], Is.EqualTo("secret-token"));
+        });
+        window.Close();
+    }
+
+    [AvaloniaTest]
+    public void SettingsFields_keepTheTokenWhenTheHostUrlRebinds()
+    {
+        var scene = new NewUiScene();
+        ApplySettings(scene, "https://github.com");
+        var window = new Window { Width = 1440, Height = 900, Content = scene };
+        window.Show();
+
+        PasswordBox(scene).Text = "secret-token";
+        ApplySettings(scene, "");
+        window.UpdateLayout();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(UrlBox(scene).Text, Is.Empty);
+            Assert.That(PasswordBox(scene).Text, Is.EqualTo("secret-token"));
+        });
+        window.Close();
+    }
+
+    private static void ApplySettings(NewUiScene scene, string endpoint) =>
+        scene.Apply(
+            "settings",
+            new Dictionary<string, string>
+            {
+                ["server"] = "Demo",
+                ["forgeEndpoint"] = endpoint,
+                ["forgeDetail"] = "Paste the host URL and a personal access token.",
+            },
+            new Dictionary<string, IReadOnlyList<NewUiSlotItem>>(),
+            new Dictionary<string, string> { ["forgeTab"] = endpoint.Length == 0 ? "forgejo" : "github" });
+
+    private static TextBox UrlBox(NewUiScene scene) =>
+        scene.GetVisualDescendants().OfType<TextBox>().Single(box => box.PlaceholderText == "https://git.example.com");
+
+    private static TextBox PasswordBox(NewUiScene scene) =>
+        scene.GetVisualDescendants().OfType<TextBox>().Single(box => box.PlaceholderText == "Personal access token");
+
     private static string Words(Button button) =>
         string.Join(" ", button.GetVisualDescendants().OfType<TextBlock>().Select(text => text.Text)).Trim();
 

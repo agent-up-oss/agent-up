@@ -27,8 +27,8 @@ public sealed class ForgeCapabilityDefaultsTests
     {
         IForgeCapability forge = new MinimalForge();
 
-        var access = await forge.ReadTokenAccessAsync("token");
-        var repositories = await forge.ListRepositoriesAsync("token");
+        var access = await forge.ReadTokenAccessAsync("token", "https://github.com");
+        var repositories = await forge.ListRepositoriesAsync("token", "https://github.com");
         var pulls = await forge.ListPullRequestsAsync(new ForgeRequest("token", "acme", "widgets", "main"));
 
         Assert.Multiple(() =>

@@ -60,6 +60,7 @@ export type CommandCenterSceneInput = {
   pulls?: { id: string; number: number; title: string; reviews: { kind: string; standing: string; login?: string | null; verdict?: string | null }[] }[];
   forgeTab?: string;
   forgeDetail?: string;
+  forgeEndpoint?: string;
   forgeConnected?: boolean;
   flows: CommandCenterFlowSlot[];
   modules?: CommandCenterModuleSlot[];
@@ -112,6 +113,7 @@ export function commandCenterScene(input: CommandCenterSceneInput): CommandCente
     'file-name': input.openFile ? input.openFile.slice(input.openFile.lastIndexOf('/') + 1) : '',
     repository: input.repository ?? '',
     forgeDetail: input.forgeDetail ?? '',
+    forgeEndpoint: input.forgeEndpoint ?? '',
   };
   const state: Record<string, string> = {
     selected: scene === 'mobile-tasks' ? '1' : scene === 'mobile-settings' ? '2' : '0',
@@ -243,6 +245,25 @@ function row(id: string, action: string, title: string, repo: string, agent: str
 /** The short status a capability whose software is missing shows on its button. */
 function capabilityButtonLabel(module: CommandCenterModuleSlot): string {
   return (module.missing ?? []).includes('nix') ? 'Needs Nix' : 'Not found';
+}
+
+export const githubDotCom = 'https://github.com';
+
+/** The host URL the forge field should show: the saved origin, or github.com when this tab is GitHub. */
+export function prefillEndpoint(moduleId: string, saved?: string | null): string {
+  if (saved && saved.trim()) return saved.trim();
+  return moduleId === 'github' ? githubDotCom : '';
+}
+
+/** Token and host URL the Save button should send. Save reads every field, not only save-token. */
+export function tokenSave(
+  fields?: Record<string, string>,
+  text?: string,
+): { token: string; endpointUrl: string } {
+  return {
+    token: (fields?.['save-token'] ?? text ?? '').trim(),
+    endpointUrl: (fields?.['forge-endpoint'] ?? '').trim(),
+  };
 }
 
 /** Which state a capability module is in; the scene words it and picks the button's tone. */

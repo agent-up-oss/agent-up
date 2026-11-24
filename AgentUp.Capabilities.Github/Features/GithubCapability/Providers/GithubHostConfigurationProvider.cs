@@ -30,6 +30,23 @@ public sealed class GithubHostConfigurationProvider
         return text.EndsWith('/') ? text : text + "/";
     }
 
+    /// <summary>
+    /// Maps a user-facing GitHub URL to the REST API base. github.com becomes api.github.com;
+    /// a GitHub Enterprise origin becomes <c>{origin}/api/v3/</c>. An API URL is kept as the API.
+    /// </summary>
+    public static string ApiBaseFromEndpoint(string endpoint)
+    {
+        var uri = new Uri(endpoint.Trim());
+        var host = uri.Host;
+        if (host.Equals("api.github.com", StringComparison.OrdinalIgnoreCase)
+            || uri.AbsolutePath.Contains("/api/v3", StringComparison.OrdinalIgnoreCase))
+            return ApiBase(uri.GetLeftPart(UriPartial.Path));
+        if (host.Equals("github.com", StringComparison.OrdinalIgnoreCase)
+            || host.Equals("www.github.com", StringComparison.OrdinalIgnoreCase))
+            return DefaultApiBaseUrl;
+        return ApiBase(uri.GetLeftPart(UriPartial.Authority) + "/api/v3");
+    }
+
     private static string Coalesce(string? value, string fallback)
         => string.IsNullOrWhiteSpace(value) ? fallback : value.Trim();
 }

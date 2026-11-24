@@ -84,6 +84,7 @@ public sealed record CommandCenterSceneInput(
     string? OpenRepository = null,
     string ForgeTab = "github",
     string ForgeDetail = "",
+    string ForgeEndpoint = "",
     bool ForgeConnected = false);
 
 /// <summary>One application of the open workspace, as its tab shows it.</summary>
@@ -133,6 +134,7 @@ public static class CommandCenterScene
         }).ToArray();
         binding.Text["repository"] = input.OpenRepository ?? "";
         binding.Text["forgeDetail"] = input.ForgeDetail;
+        binding.Text["forgeEndpoint"] = input.ForgeEndpoint;
         binding.State["forgeTab"] = input.ForgeTab;
         if (input.ForgeConnected)
             binding.State["forgeConnected"] = "1";
@@ -456,4 +458,33 @@ public static class CommandCenterScene
         (TeamStandingKind.Working, "Working", "Moving work forward", "aun-state-map__branch--working"),
         (TeamStandingKind.Idle, "Idle", "Ready for work", "aun-state-map__branch--idle"),
     ];
+
+    public const string GithubDotCom = "https://github.com";
+
+    /// <summary>
+    /// The host URL the forge field should show: the saved origin, or github.com when this tab is
+    /// GitHub and nothing is saved yet. Forgejo has no default.
+    /// </summary>
+    public static string PrefillEndpoint(string moduleId, string? saved)
+    {
+        if (!string.IsNullOrWhiteSpace(saved))
+            return saved.Trim();
+        return moduleId.Equals("github", StringComparison.OrdinalIgnoreCase) ? GithubDotCom : "";
+    }
+
+    /// <summary>
+    /// Token and host URL the Save button should send. The scene keeps one field per action, so
+    /// Save reads every field rather than only the one named save-token.
+    /// </summary>
+    public static (string Token, string EndpointUrl) TokenSave(
+        IReadOnlyDictionary<string, string>? fields,
+        string? text)
+    {
+        var token = Read(fields, "save-token") ?? text ?? "";
+        var endpoint = Read(fields, "forge-endpoint") ?? "";
+        return (token.Trim(), endpoint.Trim());
+    }
+
+    private static string? Read(IReadOnlyDictionary<string, string>? fields, string key)
+        => fields is not null && fields.TryGetValue(key, out var value) ? value : null;
 }

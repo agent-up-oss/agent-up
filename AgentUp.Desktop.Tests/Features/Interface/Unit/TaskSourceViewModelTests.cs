@@ -20,7 +20,9 @@ public sealed class TaskSourceViewModelTests
         {
             Assert.That(source.IsConnected("github"), Is.True);
             Assert.That(source.DetailFor("github"), Does.Contain("GitHub"));
+            Assert.That(source.EndpointFor("github"), Is.EqualTo("https://github.com"));
             Assert.That(source.IsConnected("forgejo"), Is.False);
+            Assert.That(source.EndpointFor("forgejo"), Is.EqualTo(""));
         });
     }
 
@@ -30,13 +32,14 @@ public sealed class TaskSourceViewModelTests
         var api = new FakeTaskSourceApi { State = Connected(false) };
         var source = ViewModel(api);
 
-        await source.SaveAsync("github", " secret-token ");
+        await source.SaveAsync("github", " https://github.com ", " secret-token ");
 
         Assert.Multiple(() =>
         {
-            Assert.That(api.Saved, Is.EqualTo(("github", "secret-token")));
+            Assert.That(api.Saved, Is.EqualTo(("github", "https://github.com", "secret-token")));
             Assert.That(source.DetailFor("github"), Does.Not.Contain("secret-token"));
             Assert.That(source.IsConnected("github"), Is.True);
+            Assert.That(source.EndpointFor("github"), Is.EqualTo("https://github.com"));
         });
     }
 
@@ -45,7 +48,7 @@ public sealed class TaskSourceViewModelTests
     {
         var source = ViewModel(new FakeTaskSourceApi { Failure = new HttpRequestException("The token cannot read pull requests.") });
 
-        await source.SaveAsync("github", "narrow");
+        await source.SaveAsync("github", "https://github.com", "narrow");
 
         Assert.Multiple(() =>
         {
@@ -86,7 +89,7 @@ public sealed class TaskSourceViewModelTests
 
     private static TaskSource Connected(bool github = true) => new(
     [
-        new TaskSourceModule("github", "GitHub", github, github ? "Reading repositories and pull requests from GitHub." : "Paste a token."),
+        new TaskSourceModule("github", "GitHub", github, github ? "Reading repositories and pull requests from GitHub." : "Paste a token.", github ? "https://github.com" : null),
         new TaskSourceModule("forgejo", "Forgejo", false, "Enable the Forgejo capability, then paste a personal access token."),
     ]);
 
@@ -101,18 +104,18 @@ public sealed class TaskSourceViewModelTests
 
         public Exception? Failure { get; init; }
 
-        public (string Module, string Token)? Saved { get; private set; }
+        public (string Module, string Endpoint, string Token)? Saved { get; private set; }
 
         public string? Forgotten { get; private set; }
 
         public Task<TaskSource?> ReadAsync(CancellationToken cancellationToken)
             => Failure is null ? Task.FromResult(State) : Task.FromException<TaskSource?>(Failure);
 
-        public Task<TaskSource?> SaveAsync(string moduleId, string token, CancellationToken cancellationToken)
+        public Task<TaskSource?> SaveAsync(string moduleId, string endpointUrl, string token, CancellationToken cancellationToken)
         {
             if (Failure is not null)
                 return Task.FromException<TaskSource?>(Failure);
-            Saved = (moduleId, token);
+            Saved = (moduleId, endpointUrl, token);
             State = Connected();
             return Task.FromResult<TaskSource?>(State);
         }

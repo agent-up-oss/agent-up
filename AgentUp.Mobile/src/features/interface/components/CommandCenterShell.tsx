@@ -42,7 +42,9 @@ import { chatSettingsFields, settingsWorkspaces } from '../providers/ChatSetting
 import {
   commandCenterScene,
   commandCenterServerLabel,
+  prefillEndpoint,
   tasksTabFor,
+  tokenSave,
   type TasksTab,
 } from '../providers/CommandCenterSceneProvider';
 
@@ -169,6 +171,10 @@ function CommandCenterBinder() {
     pulls: openRepo ? pulls : undefined,
     forgeTab,
     forgeDetail: source.source?.modules.find(module => module.moduleId === forgeTab)?.detail ?? '',
+    forgeEndpoint: prefillEndpoint(
+      forgeTab,
+      source.source?.modules.find(module => module.moduleId === forgeTab)?.endpointUrl,
+    ),
     forgeConnected: source.source?.modules.some(module => module.moduleId === forgeTab && module.connected) ?? false,
     // The application page carries the client's own dock, which replays a flow for real.
     flows: [],
@@ -227,7 +233,7 @@ function CommandCenterBinder() {
     content.overview = <WorkspaceDashboardScreen workspace={workspace} />;
   }
 
-  const onAction = (name: string, id: string | null, text?: string) => {
+  const onAction = (name: string, id: string | null, text?: string, fields?: Record<string, string>) => {
     if (name === 'nav-team') { setOpenAgent(null); setNav(0); return; }
     if (name === 'nav-tasks') { setOpenAgent(null); setNav(1); return; }
     if (name === 'nav-settings') { setOpenAgent(null); setNav(2); return; }
@@ -248,7 +254,11 @@ function CommandCenterBinder() {
     if (name === 'use-classic') { choose('classic'); return; }
     if (name === 'reload') { refresh(); return; }
     if (name === 'forge-tab' && id) { setForgeTab(id); return; }
-    if (name === 'save-token' && text?.trim()) { void source.save(forgeTab, text.trim()); return; }
+    if (name === 'save-token') {
+      const saved = tokenSave(fields, text);
+      if (saved.token) void source.save(forgeTab, saved.endpointUrl, saved.token);
+      return;
+    }
     if (name === 'forget-token') { void source.forget(forgeTab); return; }
     if (name === 'open-repo' && id) {
       const [moduleId, owner, name] = id.split('/');

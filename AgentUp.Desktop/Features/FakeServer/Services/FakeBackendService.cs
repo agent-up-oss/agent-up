@@ -1190,8 +1190,9 @@ public sealed class FakeBackendService
     /// <summary>
     /// The Demo's forge connections.
     ///
-    /// GitHub starts with a token already stored, so the Tasks page can list the example
-    /// repository without asking for one. A token that cannot read pull requests is refused.
+    /// GitHub starts with a token and https://github.com already stored, so the Tasks page can
+    /// list the example repository without asking for one. A token that cannot read pull requests
+    /// is refused, as is a save without a host URL.
     /// </summary>
     private FakeBackendResponseDto TaskSourceRoute(string method, string rest, string? body)
     {
@@ -1204,7 +1205,11 @@ public sealed class FakeBackendService
             {
                 var module = ReadJsonString(body, "moduleId")?.Trim() ?? "";
                 var token = ReadJsonString(body, "token")?.Trim() ?? "";
-                if (module is not ("github" or "forgejo") || token.Length == 0 || token == "denied")
+                var endpoint = ReadJsonString(body, "endpointUrl")?.Trim() ?? "";
+                if (module is not ("github" or "forgejo")
+                    || token.Length == 0
+                    || token == "denied"
+                    || !LooksLikeHostUrl(endpoint))
                 {
                     return new FakeBackendResponseDto(
                         409,
@@ -1213,16 +1218,24 @@ public sealed class FakeBackendService
                 }
 
                 if (module == "github")
+                {
                     _githubToken = token;
+                    _githubEndpoint = endpoint;
+                }
                 else
+                {
                     _forgejoToken = token;
+                    _forgejoEndpoint = endpoint;
+                }
                 return Json(DescribeSource());
             }
 
             if (method == "DELETE" && rest is "" or "/")
             {
                 _githubToken = null;
+                _githubEndpoint = null;
                 _forgejoToken = null;
+                _forgejoEndpoint = null;
                 return Json(DescribeSource());
             }
 
@@ -1230,9 +1243,15 @@ public sealed class FakeBackendService
             {
                 var module = Uri.UnescapeDataString(rest[1..]);
                 if (module == "github")
+                {
                     _githubToken = null;
+                    _githubEndpoint = null;
+                }
                 if (module == "forgejo")
+                {
                     _forgejoToken = null;
+                    _forgejoEndpoint = null;
+                }
                 return Json(DescribeSource());
             }
 
@@ -1254,17 +1273,20 @@ public sealed class FakeBackendService
 
     private JsonObject DescribeSource() => new()
     {
-        ["modules"] = new JsonArray(Module("github", "GitHub", _githubToken is not null), Module("forgejo", "Forgejo", _forgejoToken is not null)),
+        ["modules"] = new JsonArray(
+            Module("github", "GitHub", _githubToken is not null, _githubEndpoint),
+            Module("forgejo", "Forgejo", _forgejoToken is not null, _forgejoEndpoint)),
     };
 
-    private static JsonObject Module(string id, string name, bool connected) => new()
+    private static JsonObject Module(string id, string name, bool connected, string? endpoint) => new()
     {
         ["moduleId"] = id,
         ["displayName"] = name,
         ["connected"] = connected,
         ["detail"] = connected
-            ? $"Reading repositories and pull requests from {name}."
-            : "Paste a personal access token. It needs access to repositories and pull requests.",
+            ? $"Reading repositories and pull requests from {name} at {endpoint}."
+            : "Paste the host URL and a personal access token. It needs access to repositories and pull requests.",
+        ["endpointUrl"] = endpoint,
     };
 
     private JsonArray Repositories()
@@ -1296,7 +1318,14 @@ public sealed class FakeBackendService
     }
 
     private string? _githubToken = "demo";
+    private string? _githubEndpoint = "https://github.com";
     private string? _forgejoToken;
+    private string? _forgejoEndpoint;
+
+    private static bool LooksLikeHostUrl(string endpoint)
+        => Uri.TryCreate(endpoint, UriKind.Absolute, out var uri)
+           && uri.Scheme is "http" or "https"
+           && !string.IsNullOrWhiteSpace(uri.Host);
 
     /// <summary>
     /// The decision backlog the Train surface reads.

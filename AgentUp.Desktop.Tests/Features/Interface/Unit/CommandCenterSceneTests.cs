@@ -289,6 +289,47 @@ public sealed class CommandCenterSceneTests
         });
     }
 
+    [Test]
+    public void GitHubPrefillsGithubDotComAndForgejoHasNoDefaultHost()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(CommandCenterScene.PrefillEndpoint("github", null), Is.EqualTo("https://github.com"));
+            Assert.That(CommandCenterScene.PrefillEndpoint("forgejo", null), Is.EqualTo(""));
+            Assert.That(CommandCenterScene.PrefillEndpoint("github", " https://ghe.example.test "), Is.EqualTo("https://ghe.example.test"));
+        });
+    }
+
+    [Test]
+    public void SaveReadsTheHostUrlAndTokenFromEveryField()
+    {
+        var fields = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["forge-endpoint"] = " https://git.example.test ",
+            ["save-token"] = " secret ",
+        };
+
+        var saved = CommandCenterScene.TokenSave(fields, "ignored");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(saved.Token, Is.EqualTo("secret"));
+            Assert.That(saved.EndpointUrl, Is.EqualTo("https://git.example.test"));
+        });
+    }
+
+    [Test]
+    public void The_forge_field_shows_the_host_url()
+    {
+        var binding = CommandCenterScene.Bind(Input([], sceneId: "settings") with
+        {
+            ForgeTab = "github",
+            ForgeEndpoint = "https://github.com",
+        });
+
+        Assert.That(binding.Text["forgeEndpoint"], Is.EqualTo("https://github.com"));
+    }
+
     private static CommandCenterSceneInput Input(
         IReadOnlyList<TeamStanding> team,
         string sceneId = "team",

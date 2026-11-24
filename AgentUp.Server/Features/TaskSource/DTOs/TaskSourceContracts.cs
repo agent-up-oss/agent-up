@@ -6,11 +6,22 @@ namespace AgentUp.Server.Features.TaskSource.DTOs;
 /// </summary>
 public sealed record TaskSourceDto(IReadOnlyList<TaskSourceModuleDto> Modules);
 
-/// <summary>One repository host, and whether a personal access token is stored for it.</summary>
-public sealed record TaskSourceModuleDto(string ModuleId, string DisplayName, bool Connected, string Detail);
+/// <summary>
+/// One repository host, whether a personal access token is stored for it, and the origin that
+/// token talks to. The token itself is never here.
+/// </summary>
+public sealed record TaskSourceModuleDto(
+    string ModuleId,
+    string DisplayName,
+    bool Connected,
+    string Detail,
+    string? EndpointUrl);
 
-/// <summary>A personal access token for one host. It is checked, then stored, and never returned.</summary>
-public sealed record SaveTaskSourceTokenRequest(string ModuleId, string Token);
+/// <summary>
+/// A personal access token and the host URL it should use. Both are checked, then stored. The
+/// token is never returned.
+/// </summary>
+public sealed record SaveTaskSourceTokenRequest(string ModuleId, string EndpointUrl, string Token);
 
 /// <summary>A repository the stored token can see.</summary>
 public sealed record TaskSourceRepositoryDto(string ModuleId, string Owner, string Name);

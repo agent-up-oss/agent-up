@@ -22,6 +22,7 @@ public sealed class FakeBackendTaskSourceTests
         Assert.Multiple(() =>
         {
             Assert.That(modules.Single(module => module!["moduleId"]!.GetValue<string>() == "github")!["connected"]!.GetValue<bool>(), Is.True);
+            Assert.That(modules.Single(module => module!["moduleId"]!.GetValue<string>() == "github")!["endpointUrl"]!.GetValue<string>(), Is.EqualTo("https://github.com"));
             Assert.That(modules.Single(module => module!["moduleId"]!.GetValue<string>() == "forgejo")!["connected"]!.GetValue<bool>(), Is.False);
         });
     }
@@ -46,7 +47,17 @@ public sealed class FakeBackendTaskSourceTests
     {
         var backend = FakeServerTestComposition.Backend();
 
-        var refused = Run(backend, Put("/api/task-source", """{"moduleId":"forgejo","token":"denied"}"""));
+        var refused = Run(backend, Put("/api/task-source", """{"moduleId":"forgejo","endpointUrl":"https://git.example.test","token":"denied"}"""));
+
+        Assert.That(refused.Status, Is.EqualTo(409));
+    }
+
+    [Test]
+    public void SavingATokenWithoutAHostUrlIsRefused()
+    {
+        var backend = FakeServerTestComposition.Backend();
+
+        var refused = Run(backend, Put("/api/task-source", """{"moduleId":"forgejo","token":"forgejo-token"}"""));
 
         Assert.That(refused.Status, Is.EqualTo(409));
     }
@@ -56,11 +67,14 @@ public sealed class FakeBackendTaskSourceTests
     {
         var backend = FakeServerTestComposition.Backend();
 
-        var source = Json(backend, Put("/api/task-source", """{"moduleId":"forgejo","token":"forgejo-token"}"""));
+        var source = Json(backend, Put("/api/task-source", """{"moduleId":"forgejo","endpointUrl":"https://git.example.test","token":"forgejo-token"}"""));
+        var forgejo = source["modules"]!.AsArray().Single(module => module!["moduleId"]!.GetValue<string>() == "forgejo")!;
 
-        Assert.That(
-            source["modules"]!.AsArray().Single(module => module!["moduleId"]!.GetValue<string>() == "forgejo")!["connected"]!.GetValue<bool>(),
-            Is.True);
+        Assert.Multiple(() =>
+        {
+            Assert.That(forgejo["connected"]!.GetValue<bool>(), Is.True);
+            Assert.That(forgejo["endpointUrl"]!.GetValue<string>(), Is.EqualTo("https://git.example.test"));
+        });
     }
 
     [Test]

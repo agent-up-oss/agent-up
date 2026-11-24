@@ -178,6 +178,7 @@ public partial class CommandCenterView : UserControl
             _openOwner is null ? null : $"{_openOwner}/{_openName}",
             _forgeTab,
             center.TaskSource?.DetailFor(_forgeTab) ?? "",
+            center.TaskSource?.EndpointFor(_forgeTab) ?? CommandCenterScene.PrefillEndpoint(_forgeTab, null),
             center.TaskSource?.IsConnected(_forgeTab) == true));
         binding.State["chatSettings"] = "1";
         var stamp = Stamp(center.SceneId, binding);
@@ -423,7 +424,7 @@ public partial class CommandCenterView : UserControl
                 Apply();
                 break;
             case "save-token":
-                _ = SaveTokenAsync(center, action.Text);
+                _ = SaveTokenAsync(center, action);
                 break;
             case "forget-token":
                 _ = ForgetTokenAsync(center);
@@ -600,11 +601,12 @@ public partial class CommandCenterView : UserControl
         Apply();
     }
 
-    private async Task SaveTokenAsync(CommandCenterViewModel center, string? token)
+    private async Task SaveTokenAsync(CommandCenterViewModel center, NewUiActionEventArgs action)
     {
-        if (center.TaskSource is not { } source || string.IsNullOrWhiteSpace(token))
+        var (token, endpoint) = CommandCenterScene.TokenSave(action.Fields, action.Text);
+        if (center.TaskSource is not { } source || token.Length == 0)
             return;
-        await source.SaveAsync(_forgeTab, token);
+        await source.SaveAsync(_forgeTab, endpoint, token);
         _repositories = source.Repositories;
         Apply();
     }

@@ -9,7 +9,7 @@ export type TaskSourceState = {
   loading: boolean;
   error: string | null;
   refresh: () => void;
-  save: (moduleId: string, token: string) => Promise<void>;
+  save: (moduleId: string, endpointUrl: string, token: string) => Promise<void>;
   forget: (moduleId: string) => Promise<void>;
 };
 
@@ -43,10 +43,10 @@ export function useTaskSource(): TaskSourceState {
     return () => { current = false; };
   }, [server, nonce]);
 
-  const save = useCallback(async (moduleId: string, token: string) => {
+  const save = useCallback(async (moduleId: string, endpointUrl: string, token: string) => {
     if (!server) return;
     try {
-      setSource(await saveTaskSourceToken(server, moduleId, token));
+      setSource(await saveTaskSourceToken(server, moduleId, endpointUrl, token));
       setRepositories(await readRepositories(server));
       setError(null);
     } catch (cause) {

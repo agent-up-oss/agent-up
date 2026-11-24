@@ -10,17 +10,18 @@ export async function readTaskSource(
   return await requestServerJson<TaskSource>(server, '/api/task-source', undefined, undefined, request);
 }
 
-/** Stores a personal access token for one host. The Server checks it and does not return it. */
+/** Stores a personal access token and host URL for one host. The Server checks them and does not return the token. */
 export async function saveTaskSourceToken(
   server: ServerSession,
   moduleId: string,
+  endpointUrl: string,
   token: string,
   request: typeof fetch = fetch,
 ): Promise<TaskSource | null> {
   return await requestServerJson<TaskSource>(
     server,
     '/api/task-source',
-    { ...jsonBody({ moduleId, token }), method: 'PUT' },
+    { ...jsonBody({ moduleId, endpointUrl, token }), method: 'PUT' },
     undefined,
     request,
   );

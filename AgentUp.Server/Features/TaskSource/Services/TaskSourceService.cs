@@ -2,6 +2,7 @@ using AgentUp.Sdk.Forge;
 using AgentUp.Server.Features.Capabilities.Interfaces;
 using AgentUp.Server.Features.TaskSource.DTOs;
 using AgentUp.Server.Features.TaskSource.Interfaces;
+using AgentUp.Server.Features.TaskSource.Models;
 using Microsoft.AspNetCore.Http;
 
 namespace AgentUp.Server.Features.TaskSource.Services;
@@ -12,7 +13,8 @@ namespace AgentUp.Server.Features.TaskSource.Services;
 /// One token per host, kept apart from the per-workspace forge credentials. A token is stored
 /// only after the host confirms it can list repositories and read pull requests, because the
 /// Tasks page lists those repositories and infers dev and PM review from the pull requests.
-/// The token itself is never returned.
+/// The token itself is never returned. The host URL is stored with it so the Server knows which
+/// GitHub or Forgejo instance to call.
 /// </summary>
 public sealed class TaskSourceService(
     ITaskSourceCredentialStore credentials,
@@ -30,7 +32,7 @@ public sealed class TaskSourceService(
     }
 
     /// <summary>
-    /// Stores a token for one host, or refuses it. A refused token is not stored.
+    /// Stores a token and host URL for one host, or refuses them. A refused token is not stored.
     /// </summary>
     public async Task<TaskSourceOutcome> SaveAsync(SaveTaskSourceTokenRequest request, CancellationToken cancellationToken)
     {
@@ -41,6 +43,14 @@ public sealed class TaskSourceService(
         var token = request.Token.Trim();
         if (token.Length == 0)
             return Refuse(StatusCodes.Status409Conflict, "Paste a personal access token.");
+        if (!TaskSourceEndpoint.TryNormalize(request.EndpointUrl, out var endpoint))
+        {
+            return Refuse(
+                StatusCodes.Status409Conflict,
+                string.IsNullOrWhiteSpace(request.EndpointUrl)
+                    ? "Paste the host URL, such as https://github.com or your Forgejo origin."
+                    : "The host URL must be an http or https address.");
+        }
 
         var forge = FindForge(host.Value.Id);
         if (forge is null)
@@ -49,7 +59,7 @@ public sealed class TaskSourceService(
         ForgeTokenAccess access;
         try
         {
-            access = await forge.ReadTokenAccessAsync(token, cancellationToken);
+            access = await forge.ReadTokenAccessAsync(token, endpoint, cancellationToken);
         }
         catch (Exception failure) when (failure is HttpRequestException or TaskCanceledException)
         {
@@ -59,7 +69,7 @@ public sealed class TaskSourceService(
         if (!access.CanListRepositories || !access.CanReadPullRequests)
             return Refuse(StatusCodes.Status409Conflict, access.Detail ?? "The token needs access to repositories and pull requests.");
 
-        credentials.Write(host.Value.Id, token);
+        credentials.Write(host.Value.Id, new TaskSourceCredential(token, endpoint));
         return new TaskSourceOutcome(StatusCodes.Status200OK, Describe());
     }
 
@@ -87,14 +97,14 @@ public sealed class TaskSourceService(
         foreach (var host in Hosts)
         {
             var forge = FindForge(host.Id);
-            var token = credentials.Read(host.Id);
-            if (forge is null || string.IsNullOrWhiteSpace(token))
+            var stored = credentials.Read(host.Id);
+            if (forge is null || stored is null || string.IsNullOrWhiteSpace(stored.EndpointUrl))
                 continue;
 
             IReadOnlyList<ForgeRepository> repositories;
             try
             {
-                repositories = await forge.ListRepositoriesAsync(token, cancellationToken);
+                repositories = await forge.ListRepositoriesAsync(stored.Token, stored.EndpointUrl, cancellationToken);
             }
             catch (Exception failure) when (failure is HttpRequestException or TaskCanceledException)
             {
@@ -120,7 +130,7 @@ public sealed class TaskSourceService(
         try
         {
             return await ready.Value.Forge.ListIssuesAsync(
-                new ForgeRequest(ready.Value.Token, owner, repository, string.Empty),
+                new ForgeRequest(ready.Value.Token, owner, repository, string.Empty, ready.Value.EndpointUrl),
                 cancellationToken);
         }
         catch (Exception failure) when (failure is HttpRequestException or TaskCanceledException)
@@ -143,7 +153,7 @@ public sealed class TaskSourceService(
         try
         {
             pulls = await ready.Value.Forge.ListPullRequestsAsync(
-                new ForgeRequest(ready.Value.Token, owner, repository, string.Empty),
+                new ForgeRequest(ready.Value.Token, owner, repository, string.Empty, ready.Value.EndpointUrl),
                 cancellationToken);
         }
         catch (Exception failure) when (failure is HttpRequestException or TaskCanceledException)
@@ -164,30 +174,42 @@ public sealed class TaskSourceService(
 
     private TaskSourceModuleDto Module((string Id, string Name) host, bool enabled)
     {
-        var stored = !string.IsNullOrWhiteSpace(credentials.Read(host.Id));
-        var connected = stored && enabled;
-        return new TaskSourceModuleDto(host.Id, host.Name, connected, Detail(host.Name, connected, enabled, stored));
+        var stored = credentials.Read(host.Id);
+        var token = stored is not null && !string.IsNullOrWhiteSpace(stored.Token);
+        var endpoint = stored is not null && !string.IsNullOrWhiteSpace(stored.EndpointUrl) ? stored.EndpointUrl : null;
+        var connected = token && endpoint is not null && enabled;
+        return new TaskSourceModuleDto(
+            host.Id,
+            host.Name,
+            connected,
+            Detail(host.Name, connected, enabled, token, endpoint),
+            endpoint);
     }
 
-    private static string Detail(string name, bool connected, bool enabled, bool stored)
+    private static string Detail(string name, bool connected, bool enabled, bool stored, string? endpoint)
     {
         if (!enabled && !stored)
-            return $"Enable the {name} capability, then paste a personal access token.";
+            return $"Enable the {name} capability, then paste the host URL and a personal access token.";
         if (!enabled)
             return $"Enable the {name} capability to use the saved token.";
         if (connected)
-            return $"Reading repositories and pull requests from {name}.";
-        return "Paste a personal access token. It needs access to repositories and pull requests, so Agent-Up can list every repository and read which reviews each pull request still needs.";
+            return $"Reading repositories and pull requests from {name} at {endpoint}.";
+        return "Paste the host URL and a personal access token. It needs access to repositories and pull requests, so Agent-Up can list every repository and read which reviews each pull request still needs.";
     }
 
-    private (IForgeCapability Forge, string Token)? Ready(string moduleId, string owner, string repository)
+    private (IForgeCapability Forge, string Token, string EndpointUrl)? Ready(string moduleId, string owner, string repository)
     {
         var host = FindHost(moduleId);
         if (host is null || string.IsNullOrWhiteSpace(owner) || string.IsNullOrWhiteSpace(repository))
             return null;
         var forge = FindForge(host.Value.Id);
-        var token = credentials.Read(host.Value.Id);
-        return forge is null || string.IsNullOrWhiteSpace(token) ? null : (forge, token);
+        var stored = credentials.Read(host.Value.Id);
+        return forge is null
+            || stored is null
+            || string.IsNullOrWhiteSpace(stored.Token)
+            || string.IsNullOrWhiteSpace(stored.EndpointUrl)
+            ? null
+            : (forge, stored.Token, stored.EndpointUrl);
     }
 
     private IForgeCapability? FindForge(string moduleId) =>

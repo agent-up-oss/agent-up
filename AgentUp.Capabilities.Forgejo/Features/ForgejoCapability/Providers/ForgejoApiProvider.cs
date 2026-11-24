@@ -17,7 +17,7 @@ public sealed class ForgejoApiProvider(HttpMessageHandler? handler = null, strin
 
     public async Task<ForgeHostSnapshot> ReadAsync(ForgeRequest request, CancellationToken cancellationToken)
     {
-        using var client = CreateClient(request.Token);
+        using var client = CreateClient(request.Token, request.EndpointUrl);
         var account = await ReadAccountAsync(client, cancellationToken);
         var pulls = await client.GetFromJsonAsync<JsonElement>(
             $"repos/{request.Owner}/{request.Repository}/pulls?head={request.Owner}:{request.Branch}&state=open",
@@ -46,7 +46,7 @@ public sealed class ForgejoApiProvider(HttpMessageHandler? handler = null, strin
         ForgeRequest request,
         CancellationToken cancellationToken)
     {
-        using var client = CreateClient(request.Token);
+        using var client = CreateClient(request.Token, request.EndpointUrl);
         var login = await ReadLoginAsync(client, cancellationToken);
         if (string.IsNullOrWhiteSpace(login))
             return [];
@@ -62,7 +62,7 @@ public sealed class ForgejoApiProvider(HttpMessageHandler? handler = null, strin
         ForgeRequest request,
         CancellationToken cancellationToken)
     {
-        using var client = CreateClient(request.Token);
+        using var client = CreateClient(request.Token, request.EndpointUrl);
         var issues = await client.GetFromJsonAsync<JsonElement>(
             $"repos/{request.Owner}/{request.Repository}/issues?state=open&type=issues&sort=recentupdate&limit=100",
             Json,
@@ -106,7 +106,7 @@ public sealed class ForgejoApiProvider(HttpMessageHandler? handler = null, strin
         ForgeOpenProposalCommand command,
         CancellationToken cancellationToken)
     {
-        using var client = CreateClient(request.Token);
+        using var client = CreateClient(request.Token, request.EndpointUrl);
         using var response = await client.PostAsJsonAsync(
             $"repos/{request.Owner}/{request.Repository}/pulls",
             new { title = command.Title, body = command.Body, head = command.HeadRef, @base = command.BaseRef },
@@ -124,7 +124,7 @@ public sealed class ForgejoApiProvider(HttpMessageHandler? handler = null, strin
         if (IsProtected(command.Ref))
             throw new ForgeProtectedRefException(command.Ref);
 
-        using var client = CreateClient(request.Token);
+        using var client = CreateClient(request.Token, request.EndpointUrl);
         var name = TrimHeads(command.Ref);
         using var patch = await client.PatchAsJsonAsync(
             $"repos/{request.Owner}/{request.Repository}/git/refs/heads/{name}",
@@ -143,7 +143,7 @@ public sealed class ForgejoApiProvider(HttpMessageHandler? handler = null, strin
         ForgeCommentCommand command,
         CancellationToken cancellationToken)
     {
-        using var client = CreateClient(request.Token);
+        using var client = CreateClient(request.Token, request.EndpointUrl);
         using var response = await client.PostAsJsonAsync(
             $"repos/{request.Owner}/{request.Repository}/issues/{command.ProposalNumber}/comments",
             new { body = command.Body },
@@ -156,7 +156,7 @@ public sealed class ForgejoApiProvider(HttpMessageHandler? handler = null, strin
         ForgeSubmitReviewCommand command,
         CancellationToken cancellationToken)
     {
-        using var client = CreateClient(request.Token);
+        using var client = CreateClient(request.Token, request.EndpointUrl);
         // A finding sits on a line of the new side of the change, which Forgejo calls new_position.
         var comments = (command.Comments ?? [])
             .Select(comment => new { path = comment.Path, body = comment.Body, new_position = comment.Line })
@@ -180,7 +180,7 @@ public sealed class ForgejoApiProvider(HttpMessageHandler? handler = null, strin
 
     public async Task AssignIssueAsync(ForgeRequest request, int issueNumber, string login, CancellationToken cancellationToken)
     {
-        using var client = CreateClient(request.Token);
+        using var client = CreateClient(request.Token, request.EndpointUrl);
         using var response = await client.PatchAsJsonAsync(
             $"repos/{request.Owner}/{request.Repository}/issues/{issueNumber}",
             new { assignees = new[] { login } },
@@ -190,7 +190,7 @@ public sealed class ForgejoApiProvider(HttpMessageHandler? handler = null, strin
 
     public async Task RequestReviewAsync(ForgeRequest request, string proposalNumber, string login, CancellationToken cancellationToken)
     {
-        using var client = CreateClient(request.Token);
+        using var client = CreateClient(request.Token, request.EndpointUrl);
         using var response = await client.PostAsJsonAsync(
             $"repos/{request.Owner}/{request.Repository}/pulls/{proposalNumber}/requested_reviewers",
             new { reviewers = new[] { login } },
@@ -206,7 +206,7 @@ public sealed class ForgejoApiProvider(HttpMessageHandler? handler = null, strin
         byte[] content,
         CancellationToken cancellationToken)
     {
-        using var client = CreateClient(request.Token);
+        using var client = CreateClient(request.Token, request.EndpointUrl);
         // An asset on the issue itself lists under its first post, which is the author's. The file
         // belongs to whoever shared it, so it goes on a comment of theirs that shows it.
         using var comment = await client.PostAsJsonAsync(
@@ -449,9 +449,12 @@ public sealed class ForgejoApiProvider(HttpMessageHandler? handler = null, strin
     private static string TrimHeads(string @ref)
         => @ref.StartsWith("refs/heads/", StringComparison.Ordinal) ? @ref["refs/heads/".Length..] : @ref;
 
-    public async Task<IReadOnlyList<ForgeRepository>> ListRepositoriesAsync(string token, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<ForgeRepository>> ListRepositoriesAsync(
+        string token,
+        string endpointUrl,
+        CancellationToken cancellationToken)
     {
-        using var client = CreateClient(token);
+        using var client = CreateClient(token, endpointUrl);
         var repos = await client.GetFromJsonAsync<JsonElement>("user/repos?limit=100", Json, cancellationToken);
         return Repositories(repos);
     }
@@ -460,7 +463,7 @@ public sealed class ForgejoApiProvider(HttpMessageHandler? handler = null, strin
         ForgeRequest request,
         CancellationToken cancellationToken)
     {
-        using var client = CreateClient(request.Token);
+        using var client = CreateClient(request.Token, request.EndpointUrl);
         var pulls = await client.GetFromJsonAsync<JsonElement>(
             $"repos/{request.Owner}/{request.Repository}/pulls?state=open&limit=20",
             Json,
@@ -500,9 +503,12 @@ public sealed class ForgejoApiProvider(HttpMessageHandler? handler = null, strin
         return listed;
     }
 
-    public async Task<ForgeTokenAccess> ReadTokenAccessAsync(string token, CancellationToken cancellationToken)
+    public async Task<ForgeTokenAccess> ReadTokenAccessAsync(
+        string token,
+        string endpointUrl,
+        CancellationToken cancellationToken)
     {
-        using var client = CreateClient(token);
+        using var client = CreateClient(token, endpointUrl);
         using var user = await client.GetAsync("user", cancellationToken);
         if (user.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
             return new ForgeTokenAccess(false, false, "The token was refused.");
@@ -579,13 +585,18 @@ public sealed class ForgejoApiProvider(HttpMessageHandler? handler = null, strin
             .ToArray();
     }
 
-    private HttpClient CreateClient(string token)
+    private HttpClient CreateClient(string token, string? endpointUrl = null)
     {
         var client = handler is null ? new HttpClient() : new HttpClient(handler, disposeHandler: false);
-        client.BaseAddress = new Uri(_apiBaseUrl);
+        client.BaseAddress = new Uri(ApiBaseFor(endpointUrl));
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         client.DefaultRequestHeaders.UserAgent.ParseAdd("agent-up");
         client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
         return client;
     }
+
+    private string ApiBaseFor(string? endpointUrl) =>
+        string.IsNullOrWhiteSpace(endpointUrl)
+            ? _apiBaseUrl
+            : ForgejoHostConfigurationProvider.ApiBaseFromEndpoint(endpointUrl);
 }

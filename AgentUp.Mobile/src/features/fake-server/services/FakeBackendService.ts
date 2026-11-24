@@ -466,8 +466,9 @@ export class FakeBackendService {
   }
 
   /**
-   * The Demo's forge connections. GitHub starts with a token already stored, so the Tasks page
-   * can list the example repository. A token that cannot read pull requests is refused.
+   * The Demo's forge connections. GitHub starts with a token and https://github.com already
+   * stored, so the Tasks page can list the example repository. A token that cannot read pull
+   * requests is refused, as is a save without a host URL.
    */
   private taskSource(method: string, path: string, body: string | undefined): FakeBackendResponse {
     const rest = path.slice('/api/task-source'.length);
@@ -475,31 +476,48 @@ export class FakeBackendService {
     if (method === 'GET' && (rest === '' || rest === '/')) return json(this.describeSource());
 
     if (method === 'PUT') {
-      const asked = body ? (JSON.parse(body) as { moduleId?: string; token?: string }) : {};
+      const asked = body ? (JSON.parse(body) as { moduleId?: string; token?: string; endpointUrl?: string }) : {};
       const moduleId = asked.moduleId?.trim() ?? '';
       const token = asked.token?.trim() ?? '';
-      if ((moduleId !== 'github' && moduleId !== 'forgejo') || token.length === 0 || token === 'denied') {
+      const endpointUrl = asked.endpointUrl?.trim() ?? '';
+      if ((moduleId !== 'github' && moduleId !== 'forgejo')
+        || token.length === 0
+        || token === 'denied'
+        || !looksLikeHostUrl(endpointUrl)) {
         return {
           status: 409,
           contentType: 'application/json',
           body: JSON.stringify({ title: 'Task source', detail: 'The token needs access to repositories and pull requests.' }),
         };
       }
-      if (moduleId === 'github') this.githubToken = token;
-      else this.forgejoToken = token;
+      if (moduleId === 'github') {
+        this.githubToken = token;
+        this.githubEndpoint = endpointUrl.replace(/\/+$/, '');
+      } else {
+        this.forgejoToken = token;
+        this.forgejoEndpoint = endpointUrl.replace(/\/+$/, '');
+      }
       return json(this.describeSource());
     }
 
     if (method === 'DELETE' && (rest === '' || rest === '/')) {
       this.githubToken = null;
+      this.githubEndpoint = null;
       this.forgejoToken = null;
+      this.forgejoEndpoint = null;
       return json(this.describeSource());
     }
 
     if (method === 'DELETE' && rest.length > 1) {
       const moduleId = decodeURIComponent(rest.slice(1));
-      if (moduleId === 'github') this.githubToken = null;
-      if (moduleId === 'forgejo') this.forgejoToken = null;
+      if (moduleId === 'github') {
+        this.githubToken = null;
+        this.githubEndpoint = null;
+      }
+      if (moduleId === 'forgejo') {
+        this.forgejoToken = null;
+        this.forgejoEndpoint = null;
+      }
       return json(this.describeSource());
     }
 
@@ -526,19 +544,27 @@ export class FakeBackendService {
   }
 
   private describeSource() {
-    const module = (id: string, name: string, connected: boolean) => ({
+    const module = (id: string, name: string, connected: boolean, endpoint: string | null) => ({
       moduleId: id,
       displayName: name,
       connected,
       detail: connected
-        ? `Reading repositories and pull requests from ${name}.`
-        : 'Paste a personal access token. It needs access to repositories and pull requests.',
+        ? `Reading repositories and pull requests from ${name} at ${endpoint}.`
+        : 'Paste the host URL and a personal access token. It needs access to repositories and pull requests.',
+      endpointUrl: endpoint,
     });
-    return { modules: [module('github', 'GitHub', this.githubToken !== null), module('forgejo', 'Forgejo', this.forgejoToken !== null)] };
+    return {
+      modules: [
+        module('github', 'GitHub', this.githubToken !== null, this.githubEndpoint),
+        module('forgejo', 'Forgejo', this.forgejoToken !== null, this.forgejoEndpoint),
+      ],
+    };
   }
 
   private githubToken: string | null = 'demo';
+  private githubEndpoint: string | null = 'https://github.com';
   private forgejoToken: string | null = null;
+  private forgejoEndpoint: string | null = null;
 
   private decisions(): FakeProductDecision[] {
     return this.state.productDecisions ?? [];
@@ -1458,6 +1484,15 @@ function notFound(): FakeBackendResponse {
     contentType: 'application/json',
     body: JSON.stringify({ title: 'Not Found', detail: 'The fake Server has no resource at that path.' }),
   };
+}
+
+function looksLikeHostUrl(endpoint: string): boolean {
+  try {
+    const uri = new URL(endpoint);
+    return (uri.protocol === 'http:' || uri.protocol === 'https:') && uri.hostname.length > 0;
+  } catch {
+    return false;
+  }
 }
 
 type ValidationFlowRecord = {

@@ -1,4 +1,5 @@
 using AgentUp.Server.Features.TaskSource.Interfaces;
+using AgentUp.Server.Features.TaskSource.Models;
 
 namespace AgentUp.Server.Tests.Support;
 
@@ -12,11 +13,12 @@ internal sealed class EmptyTaskSourceTeam : ITaskSourceTeam
 /// <summary>The task source's tokens, held in memory.</summary>
 internal sealed class MemoryTaskSourceCredentialStore : ITaskSourceCredentialStore
 {
-    private readonly Dictionary<string, string> _tokens = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, TaskSourceCredential> _credentials = new(StringComparer.OrdinalIgnoreCase);
 
-    public string? Read(string moduleId) => _tokens.TryGetValue(moduleId, out var token) ? token : null;
+    public TaskSourceCredential? Read(string moduleId)
+        => _credentials.TryGetValue(moduleId, out var credential) ? credential : null;
 
-    public void Write(string moduleId, string token) => _tokens[moduleId] = token;
+    public void Write(string moduleId, TaskSourceCredential credential) => _credentials[moduleId] = credential;
 
-    public void Delete(string moduleId) => _tokens.Remove(moduleId);
+    public void Delete(string moduleId) => _credentials.Remove(moduleId);
 }

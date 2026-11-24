@@ -403,6 +403,18 @@ public sealed class GithubApiProviderTests
     }
 
     [Test]
+    public void ApiBaseFromEndpoint_mapsGithubDotComToThePublicApiAndEnterpriseToApiV3()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(GithubHostConfigurationProvider.ApiBaseFromEndpoint("https://github.com"), Is.EqualTo("https://api.github.com/"));
+            Assert.That(GithubHostConfigurationProvider.ApiBaseFromEndpoint("https://www.github.com"), Is.EqualTo("https://api.github.com/"));
+            Assert.That(GithubHostConfigurationProvider.ApiBaseFromEndpoint("https://ghe.example.test"), Is.EqualTo("https://ghe.example.test/api/v3/"));
+            Assert.That(GithubHostConfigurationProvider.ApiBaseFromEndpoint("https://ghe.example.test/api/v3"), Is.EqualTo("https://ghe.example.test/api/v3/"));
+        });
+    }
+
+    [Test]
     public void HostConfiguration_Read_returnsTheConfiguredEndpoints()
     {
         var previousApi = Environment.GetEnvironmentVariable("AGENTUP_GITHUB_API_URL");
@@ -537,9 +549,21 @@ public sealed class GithubApiProviderTests
             [{"name":"widgets","owner":{"login":"acme"}},{"name":"store","owner":{"login":"harbor"}}]
             """));
 
-        var repositories = await new GithubForgeCapability(handler).ListRepositoriesAsync("token");
+        var repositories = await new GithubForgeCapability(handler).ListRepositoriesAsync("token", "https://github.com");
 
         Assert.That(repositories.Select(repository => $"{repository.Owner}/{repository.Name}"), Is.EqualTo(new[] { "acme/widgets", "harbor/store" }));
+    }
+
+    [Test]
+    public async Task ListRepositoriesAsync_talksToTheEndpointUrlNotTheConfiguredHost()
+    {
+        var handler = Recorded(("GET /api/v3/user/repos?per_page=100&sort=updated&affiliation=owner,collaborator,organization_member", """
+            [{"name":"widgets","owner":{"login":"acme"}}]
+            """));
+
+        await new GithubForgeCapability(handler).ListRepositoriesAsync("token", "https://ghe.example.test");
+
+        Assert.That(handler.Uris.Single(), Does.StartWith("https://ghe.example.test/api/v3/"));
     }
 
     [Test]
@@ -569,7 +593,7 @@ public sealed class GithubApiProviderTests
         var handler = Recorded(("GET /user", """{"login":"dana"}"""));
         handler.Scope = "read:user";
 
-        var access = await new GithubForgeCapability(handler).ReadTokenAccessAsync("token");
+        var access = await new GithubForgeCapability(handler).ReadTokenAccessAsync("token", "https://github.com");
 
         Assert.Multiple(() =>
         {
@@ -586,7 +610,7 @@ public sealed class GithubApiProviderTests
             ("GET /user/repos?per_page=1&affiliation=owner,collaborator,organization_member", """[{"name":"widgets","owner":{"login":"acme"}}]"""),
             ("GET /repos/acme/widgets/pulls?state=open&per_page=1", "[]"));
 
-        var access = await new GithubForgeCapability(handler).ReadTokenAccessAsync("token");
+        var access = await new GithubForgeCapability(handler).ReadTokenAccessAsync("token", "https://github.com");
 
         Assert.Multiple(() =>
         {

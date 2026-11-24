@@ -1,13 +1,15 @@
 using System.Reactive;
 using AgentUp.Desktop.Features.Interface.Controllers;
 using AgentUp.Desktop.Features.Interface.Models;
+using AgentUp.Desktop.Features.Interface.Services;
 using ReactiveUI;
 
 namespace AgentUp.Desktop.Features.Interface.ViewModels;
 
 /// <summary>
-/// The GitHub and Forgejo connections. A personal access token is sent to the Server and is not
-/// kept on this view: the Server checks that it can list repositories and read pull requests.
+/// The GitHub and Forgejo connections. A host URL and personal access token are sent to the
+/// Server and the token is not kept on this view: the Server checks that it can list repositories
+/// and read pull requests.
 /// </summary>
 public sealed class TaskSourceViewModel : ReactiveObject
 {
@@ -37,11 +39,22 @@ public sealed class TaskSourceViewModel : ReactiveObject
         if (_error is { Length: > 0 })
             return _error;
         return Modules.FirstOrDefault(module => module.ModuleId.Equals(moduleId, StringComparison.OrdinalIgnoreCase))?.Detail
-            ?? "Paste a personal access token. It needs access to repositories and pull requests.";
+            ?? "Paste the host URL and a personal access token. It needs access to repositories and pull requests.";
     }
 
     public bool IsConnected(string moduleId) =>
         Modules.Any(module => module.ModuleId.Equals(moduleId, StringComparison.OrdinalIgnoreCase) && module.Connected);
+
+    /// <summary>
+    /// The host URL the field should show: the saved origin, or github.com when this tab is GitHub
+    /// and nothing is saved yet.
+    /// </summary>
+    public string EndpointFor(string moduleId)
+    {
+        var saved = Modules.FirstOrDefault(module => module.ModuleId.Equals(moduleId, StringComparison.OrdinalIgnoreCase))
+            ?.EndpointUrl;
+        return CommandCenterScene.PrefillEndpoint(moduleId, saved);
+    }
 
     public async Task LoadAsync(CancellationToken cancellationToken = default)
     {
@@ -58,11 +71,15 @@ public sealed class TaskSourceViewModel : ReactiveObject
         }
     }
 
-    public async Task SaveAsync(string moduleId, string token, CancellationToken cancellationToken = default)
+    public async Task SaveAsync(
+        string moduleId,
+        string endpointUrl,
+        string token,
+        CancellationToken cancellationToken = default)
     {
         try
         {
-            _state = await _source.SaveAsync(moduleId, token, cancellationToken);
+            _state = await _source.SaveAsync(moduleId, endpointUrl, token, cancellationToken);
             _error = null;
             Raise();
             await LoadRepositoriesAsync(cancellationToken);

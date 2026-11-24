@@ -128,7 +128,8 @@ public sealed class TaskQueueApiClientTests
             ["api/task-source/issues?moduleId=github&owner=example&repository=repository"] = """[{"id":"I-57","number":57,"title":"Cart badge","url":"u"}]""",
         });
 
-        var issues = await new TaskQueueApiClient(new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000/") })
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000/") };
+        var issues = await new TaskQueueApiClient(http)
             .ListRepositoryIssuesAsync("github", "example", "repository", CancellationToken.None);
 
         Assert.That(issues.Single().Number, Is.EqualTo(57));

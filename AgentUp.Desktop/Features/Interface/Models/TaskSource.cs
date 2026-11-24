@@ -1,7 +1,15 @@
 namespace AgentUp.Desktop.Features.Interface.Models;
 
-/// <summary>One repository host, and whether a personal access token is stored for it.</summary>
-public sealed record TaskSourceModule(string ModuleId, string DisplayName, bool Connected, string Detail);
+/// <summary>
+/// One repository host, whether a personal access token is stored for it, and the origin that
+/// token talks to. The token itself is never here.
+/// </summary>
+public sealed record TaskSourceModule(
+    string ModuleId,
+    string DisplayName,
+    bool Connected,
+    string Detail,
+    string? EndpointUrl = null);
 
 /// <summary>The forge connections. The token is never in this document.</summary>
 public sealed record TaskSource(IReadOnlyList<TaskSourceModule> Modules);

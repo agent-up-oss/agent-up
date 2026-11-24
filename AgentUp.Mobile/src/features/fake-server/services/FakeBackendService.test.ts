@@ -632,6 +632,31 @@ test('picking an issue puts it at the back of the queue and stops offering it', 
   assert.deepEqual(offered.map((issue: { number: number }) => issue.number), [58, 61]);
 });
 
+test('the demo starts with GitHub connected at github.com and refuses a token without a host URL', () => {
+  const service = backend();
+  const source = json(service, 'GET', '/api/task-source');
+  const github = source.modules.find((module: { moduleId: string }) => module.moduleId === 'github');
+  assert.equal(github.connected, true);
+  assert.equal(github.endpointUrl, 'https://github.com');
+
+  const refused = service.handle({
+    method: 'PUT',
+    path: '/api/task-source',
+    query: '',
+    body: JSON.stringify({ moduleId: 'forgejo', token: 'forgejo-token' }),
+  });
+  assert.equal(refused.status, 409);
+
+  const saved = json(service, 'PUT', '/api/task-source', JSON.stringify({
+    moduleId: 'forgejo',
+    endpointUrl: 'https://git.example.test',
+    token: 'forgejo-token',
+  }));
+  const forgejo = saved.modules.find((module: { moduleId: string }) => module.moduleId === 'forgejo');
+  assert.equal(forgejo.connected, true);
+  assert.equal(forgejo.endpointUrl, 'https://git.example.test');
+});
+
 test('picking with no workspace takes the issue from the task source', () => {
   const service = backend();
   json(service, 'POST', '/api/tasks', JSON.stringify({ issueId: 'I-57' }));

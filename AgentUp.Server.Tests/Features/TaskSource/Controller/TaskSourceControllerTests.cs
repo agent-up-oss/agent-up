@@ -15,7 +15,7 @@ public sealed class TaskSourceControllerTests
     {
         var controller = Controller();
 
-        var saved = await controller.SaveAsync(new SaveTaskSourceTokenRequest("github", "token"), CancellationToken.None);
+        var saved = await controller.SaveAsync(new SaveTaskSourceTokenRequest("github", "https://github.com", "token"), CancellationToken.None);
         var cleared = controller.Clear("github");
 
         Assert.Multiple(() =>

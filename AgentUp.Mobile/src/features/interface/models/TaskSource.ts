@@ -1,9 +1,10 @@
-/** One repository host, and whether a personal access token is stored for it. */
+/** One repository host, whether a personal access token is stored for it, and the origin that token talks to. */
 export type TaskSourceModule = {
   moduleId: string;
   displayName: string;
   connected: boolean;
   detail: string;
+  endpointUrl?: string | null;
 };
 
 /** The forge connections. The token is never in this document. */

@@ -1,3 +1,4 @@
+using AgentUp.Server.Features.TaskSource.Models;
 using AgentUp.Server.Features.TaskSource.Providers;
 
 namespace AgentUp.Server.Tests.Features.TaskSource.Provider;
@@ -6,22 +7,75 @@ namespace AgentUp.Server.Tests.Features.TaskSource.Provider;
 public sealed class TaskSourceStoreTests
 {
     [Test]
-    public void TheTokenIsKeptPerHostAndCanBeTakenBack()
+    public void TheTokenAndHostAreKeptPerModuleAndCanBeTakenBack()
     {
         var root = Root();
         try
         {
             var store = new JsonTaskSourceCredentialStore(root);
-            store.Write("github", "token-a");
-            store.Write("forgejo", "token-b");
+            store.Write("github", new TaskSourceCredential("token-a", "https://github.com"));
+            store.Write("forgejo", new TaskSourceCredential("token-b", "https://git.example.test"));
 
-            Assert.That(store.Read("github"), Is.EqualTo("token-a"));
-            Assert.That(store.Read("forgejo"), Is.EqualTo("token-b"));
+            Assert.Multiple(() =>
+            {
+                Assert.That(store.Read("github")?.Token, Is.EqualTo("token-a"));
+                Assert.That(store.Read("github")?.EndpointUrl, Is.EqualTo("https://github.com"));
+                Assert.That(store.Read("forgejo")?.Token, Is.EqualTo("token-b"));
+            });
 
             store.Delete("github");
 
-            Assert.That(store.Read("github"), Is.Null);
-            Assert.That(store.Read("forgejo"), Is.EqualTo("token-b"), "forgetting one host keeps the other");
+            Assert.Multiple(() =>
+            {
+                Assert.That(store.Read("github"), Is.Null);
+                Assert.That(store.Read("forgejo")?.Token, Is.EqualTo("token-b"), "forgetting one host keeps the other");
+            });
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Test]
+    public void ALegacyTokenOnlyFileReadsTheTokenAndHasNoHostUntilItIsSavedAgain()
+    {
+        var root = Root();
+        try
+        {
+            File.WriteAllText(Path.Join(root, "task-source-credentials.json"), """{"github":"legacy-token"}""");
+
+            var stored = new JsonTaskSourceCredentialStore(root).Read("github");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(stored?.Token, Is.EqualTo("legacy-token"));
+                Assert.That(stored?.EndpointUrl, Is.EqualTo(""));
+            });
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Test]
+    public void AnObjectWithoutATokenIsSkippedRatherThanStoredAsEmpty()
+    {
+        var root = Root();
+        try
+        {
+            File.WriteAllText(
+                Path.Join(root, "task-source-credentials.json"),
+                """{"github":{"token":"kept","endpointUrl":"https://github.com"},"empty":{}}""");
+
+            var store = new JsonTaskSourceCredentialStore(root);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(store.Read("github")?.Token, Is.EqualTo("kept"));
+                Assert.That(store.Read("empty"), Is.Null);
+            });
         }
         finally
         {

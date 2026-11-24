@@ -6,6 +6,7 @@ using AgentUp.Server.Features.Capabilities.Interfaces;
 using AgentUp.Server.Features.TaskSource.Controllers;
 using AgentUp.Server.Features.TaskSource.DTOs;
 using AgentUp.Server.Features.TaskSource.Interfaces;
+using AgentUp.Server.Features.TaskSource.Models;
 using AgentUp.Server.Features.TaskSource.Providers;
 using AgentUp.Server.Features.TaskSource.Services;
 using AgentUp.Server.Tests.Support;
@@ -40,14 +41,32 @@ public sealed class TaskSourceHttpTests
     {
         await using var host = await HostAsync();
 
-        var response = await host.Client.PutAsJsonAsync("/api/task-source", new SaveTaskSourceTokenRequest("github", "secret-token"), Json);
+        var response = await host.Client.PutAsJsonAsync("/api/task-source", new SaveTaskSourceTokenRequest("github", "https://github.com", "secret-token"), Json);
         var body = await response.Content.ReadAsStringAsync();
 
         Assert.Multiple(() =>
         {
             Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
             Assert.That(body, Does.Not.Contain("secret-token"));
-            Assert.That(host.Credentials.Read("github"), Is.EqualTo("secret-token"));
+            Assert.That(host.Credentials.Read("github")?.Token, Is.EqualTo("secret-token"));
+            Assert.That(host.Credentials.Read("github")?.EndpointUrl, Is.EqualTo("https://github.com"));
+            Assert.That(body, Does.Contain("\"endpointUrl\":\"https://github.com\""));
+        });
+    }
+
+    [Test]
+    public async Task Put_refusesATokenWithoutAHostUrl()
+    {
+        await using var host = await HostAsync();
+
+        var response = await host.Client.PutAsJsonAsync("/api/task-source", new SaveTaskSourceTokenRequest("github", " ", "secret-token"), Json);
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Conflict));
+            Assert.That(body, Does.Contain("host URL"));
+            Assert.That(host.Credentials.Read("github"), Is.Null);
         });
     }
 
@@ -56,7 +75,7 @@ public sealed class TaskSourceHttpTests
     {
         await using var host = await HostAsync(new ForgeTokenAccess(true, false, "The token cannot read pull requests."));
 
-        var response = await host.Client.PutAsJsonAsync("/api/task-source", new SaveTaskSourceTokenRequest("github", "narrow"), Json);
+        var response = await host.Client.PutAsJsonAsync("/api/task-source", new SaveTaskSourceTokenRequest("github", "https://github.com", "narrow"), Json);
         var body = await response.Content.ReadAsStringAsync();
 
         Assert.Multiple(() =>
@@ -71,8 +90,8 @@ public sealed class TaskSourceHttpTests
     public async Task Delete_forgetsOneHost()
     {
         await using var host = await HostAsync();
-        host.Credentials.Write("github", "github-token");
-        host.Credentials.Write("forgejo", "forgejo-token");
+        host.Credentials.Write("github", new TaskSourceCredential("github-token", "https://github.com"));
+        host.Credentials.Write("forgejo", new TaskSourceCredential("forgejo-token", "https://git.example.test"));
 
         var response = await host.Client.DeleteAsync("/api/task-source/github");
 
@@ -80,7 +99,7 @@ public sealed class TaskSourceHttpTests
         {
             Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
             Assert.That(host.Credentials.Read("github"), Is.Null);
-            Assert.That(host.Credentials.Read("forgejo"), Is.EqualTo("forgejo-token"));
+            Assert.That(host.Credentials.Read("forgejo")?.Token, Is.EqualTo("forgejo-token"));
         });
     }
 
@@ -88,7 +107,7 @@ public sealed class TaskSourceHttpTests
     public async Task Get_repositoriesAndIssuesAndPullsUseTheStoredToken()
     {
         await using var host = await HostAsync();
-        host.Credentials.Write("github", "token");
+        host.Credentials.Write("github", new TaskSourceCredential("token", "https://github.com"));
 
         var repositories = await host.Client.GetFromJsonAsync<TaskSourceRepositoryDto[]>("/api/task-source/repositories", Json);
         var issues = await host.Client.GetFromJsonAsync<JsonElement>(

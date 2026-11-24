@@ -53,6 +53,10 @@ internal sealed class StubForgeCapability : IForgeCapability
 
     public string? LastReadToken { get; private set; }
 
+    public string? LastToken { get; private set; }
+
+    public string? LastEndpointUrl { get; private set; }
+
     public Task<ForgeHostSnapshot> ReadAsync(ForgeRequest request, CancellationToken cancellationToken = default)
     {
         LastReadToken = request.Token;
@@ -72,21 +76,43 @@ internal sealed class StubForgeCapability : IForgeCapability
             ? Task.FromException<IReadOnlyList<ForgeIssue>>(ListAssignedFailure)
             : Task.FromResult(Assigned);
 
-    public Task<ForgeTokenAccess> ReadTokenAccessAsync(string token, CancellationToken cancellationToken = default)
-        => Task.FromResult(TokenAccess);
+    public Task<ForgeTokenAccess> ReadTokenAccessAsync(
+        string token,
+        string endpointUrl,
+        CancellationToken cancellationToken = default)
+    {
+        LastToken = token;
+        LastEndpointUrl = endpointUrl;
+        return Task.FromResult(TokenAccess);
+    }
 
-    public Task<IReadOnlyList<ForgeRepository>> ListRepositoriesAsync(string token, CancellationToken cancellationToken = default)
-        => Task.FromResult(Repositories);
+    public Task<IReadOnlyList<ForgeRepository>> ListRepositoriesAsync(
+        string token,
+        string endpointUrl,
+        CancellationToken cancellationToken = default)
+    {
+        LastToken = token;
+        LastEndpointUrl = endpointUrl;
+        return Task.FromResult(Repositories);
+    }
 
     public Task<IReadOnlyList<ForgePullRequest>> ListPullRequestsAsync(ForgeRequest request, CancellationToken cancellationToken = default)
-        => Task.FromResult(PullRequests);
+    {
+        LastToken = request.Token;
+        LastEndpointUrl = request.EndpointUrl;
+        return Task.FromResult(PullRequests);
+    }
 
     public Task<IReadOnlyList<ForgeIssue>> ListIssuesAsync(
         ForgeRequest request,
         CancellationToken cancellationToken = default)
-        => ListIssuesFailure is not null
+    {
+        LastToken = request.Token;
+        LastEndpointUrl = request.EndpointUrl;
+        return ListIssuesFailure is not null
             ? Task.FromException<IReadOnlyList<ForgeIssue>>(ListIssuesFailure)
             : Task.FromResult(Issues);
+    }
 
     public Task<ForgeProposal> OpenProposalAsync(
         ForgeRequest request,

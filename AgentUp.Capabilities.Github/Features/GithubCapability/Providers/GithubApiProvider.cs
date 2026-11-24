@@ -17,7 +17,7 @@ public sealed class GithubApiProvider(HttpMessageHandler? handler = null, string
 
     public async Task<ForgeHostSnapshot> ReadAsync(ForgeRequest request, CancellationToken cancellationToken)
     {
-        using var client = CreateClient(request.Token);
+        using var client = CreateClient(request.Token, request.EndpointUrl);
         var account = await ReadAccountAsync(client, cancellationToken);
         var pulls = await client.GetFromJsonAsync<JsonElement>(
             $"repos/{request.Owner}/{request.Repository}/pulls?head={request.Owner}:{request.Branch}&state=open",
@@ -124,7 +124,7 @@ public sealed class GithubApiProvider(HttpMessageHandler? handler = null, string
         ForgeRequest request,
         CancellationToken cancellationToken)
     {
-        using var client = CreateClient(request.Token);
+        using var client = CreateClient(request.Token, request.EndpointUrl);
         var issues = await client.GetFromJsonAsync<JsonElement>(
             "issues?filter=assigned&state=open&per_page=100",
             Json,
@@ -136,7 +136,7 @@ public sealed class GithubApiProvider(HttpMessageHandler? handler = null, string
         ForgeRequest request,
         CancellationToken cancellationToken)
     {
-        using var client = CreateClient(request.Token);
+        using var client = CreateClient(request.Token, request.EndpointUrl);
         var issues = await client.GetFromJsonAsync<JsonElement>(
             $"repos/{request.Owner}/{request.Repository}/issues?state=open&sort=updated&direction=desc&per_page=100",
             Json,
@@ -169,7 +169,7 @@ public sealed class GithubApiProvider(HttpMessageHandler? handler = null, string
         ForgeOpenProposalCommand command,
         CancellationToken cancellationToken)
     {
-        using var client = CreateClient(request.Token);
+        using var client = CreateClient(request.Token, request.EndpointUrl);
         using var response = await client.PostAsJsonAsync(
             $"repos/{request.Owner}/{request.Repository}/pulls",
             new { title = command.Title, body = command.Body, head = command.HeadRef, @base = command.BaseRef },
@@ -187,7 +187,7 @@ public sealed class GithubApiProvider(HttpMessageHandler? handler = null, string
         if (IsProtected(command.Ref))
             throw new ForgeProtectedRefException(command.Ref);
 
-        using var client = CreateClient(request.Token);
+        using var client = CreateClient(request.Token, request.EndpointUrl);
         using var response = await client.PatchAsJsonAsync(
             $"repos/{request.Owner}/{request.Repository}/git/refs/heads/{TrimHeads(command.Ref)}",
             new { sha = command.Sha, force = false },
@@ -200,7 +200,7 @@ public sealed class GithubApiProvider(HttpMessageHandler? handler = null, string
         ForgeCommentCommand command,
         CancellationToken cancellationToken)
     {
-        using var client = CreateClient(request.Token);
+        using var client = CreateClient(request.Token, request.EndpointUrl);
         using var response = await client.PostAsJsonAsync(
             $"repos/{request.Owner}/{request.Repository}/issues/{command.ProposalNumber}/comments",
             new { body = command.Body },
@@ -213,7 +213,7 @@ public sealed class GithubApiProvider(HttpMessageHandler? handler = null, string
         ForgeSubmitReviewCommand command,
         CancellationToken cancellationToken)
     {
-        using var client = CreateClient(request.Token);
+        using var client = CreateClient(request.Token, request.EndpointUrl);
         // A finding sits on a line of the new side of the change.
         var comments = (command.Comments ?? [])
             .Select(comment => new { path = comment.Path, line = comment.Line, side = "RIGHT", body = comment.Body })
@@ -232,7 +232,7 @@ public sealed class GithubApiProvider(HttpMessageHandler? handler = null, string
 
     public async Task AssignIssueAsync(ForgeRequest request, int issueNumber, string login, CancellationToken cancellationToken)
     {
-        using var client = CreateClient(request.Token);
+        using var client = CreateClient(request.Token, request.EndpointUrl);
         using var response = await client.PostAsJsonAsync(
             $"repos/{request.Owner}/{request.Repository}/issues/{issueNumber}/assignees",
             new { assignees = new[] { login } },
@@ -242,7 +242,7 @@ public sealed class GithubApiProvider(HttpMessageHandler? handler = null, string
 
     public async Task RequestReviewAsync(ForgeRequest request, string proposalNumber, string login, CancellationToken cancellationToken)
     {
-        using var client = CreateClient(request.Token);
+        using var client = CreateClient(request.Token, request.EndpointUrl);
         using var response = await client.PostAsJsonAsync(
             $"repos/{request.Owner}/{request.Repository}/pulls/{proposalNumber}/requested_reviewers",
             new { reviewers = new[] { login } },
@@ -322,9 +322,12 @@ public sealed class GithubApiProvider(HttpMessageHandler? handler = null, string
     private static string TrimHeads(string @ref)
         => @ref.StartsWith("refs/heads/", StringComparison.Ordinal) ? @ref["refs/heads/".Length..] : @ref;
 
-    public async Task<IReadOnlyList<ForgeRepository>> ListRepositoriesAsync(string token, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<ForgeRepository>> ListRepositoriesAsync(
+        string token,
+        string endpointUrl,
+        CancellationToken cancellationToken)
     {
-        using var client = CreateClient(token);
+        using var client = CreateClient(token, endpointUrl);
         var repos = await client.GetFromJsonAsync<JsonElement>(
             "user/repos?per_page=100&sort=updated&affiliation=owner,collaborator,organization_member",
             Json,
@@ -336,7 +339,7 @@ public sealed class GithubApiProvider(HttpMessageHandler? handler = null, string
         ForgeRequest request,
         CancellationToken cancellationToken)
     {
-        using var client = CreateClient(request.Token);
+        using var client = CreateClient(request.Token, request.EndpointUrl);
         var pulls = await client.GetFromJsonAsync<JsonElement>(
             $"repos/{request.Owner}/{request.Repository}/pulls?state=open&sort=updated&direction=desc&per_page=20",
             Json,
@@ -370,9 +373,12 @@ public sealed class GithubApiProvider(HttpMessageHandler? handler = null, string
         return listed;
     }
 
-    public async Task<ForgeTokenAccess> ReadTokenAccessAsync(string token, CancellationToken cancellationToken)
+    public async Task<ForgeTokenAccess> ReadTokenAccessAsync(
+        string token,
+        string endpointUrl,
+        CancellationToken cancellationToken)
     {
-        using var client = CreateClient(token);
+        using var client = CreateClient(token, endpointUrl);
         using var user = await client.GetAsync("user", cancellationToken);
         if (user.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
             return new ForgeTokenAccess(false, false, "The token was refused.");
@@ -439,13 +445,18 @@ public sealed class GithubApiProvider(HttpMessageHandler? handler = null, string
             .ToArray();
     }
 
-    private HttpClient CreateClient(string token)
+    private HttpClient CreateClient(string token, string? endpointUrl = null)
     {
         var client = handler is null ? new HttpClient() : new HttpClient(handler, disposeHandler: false);
-        client.BaseAddress = new Uri(_apiBaseUrl);
+        client.BaseAddress = new Uri(ApiBaseFor(endpointUrl));
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         client.DefaultRequestHeaders.UserAgent.ParseAdd("agent-up");
         client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
         return client;
     }
+
+    private string ApiBaseFor(string? endpointUrl) =>
+        string.IsNullOrWhiteSpace(endpointUrl)
+            ? _apiBaseUrl
+            : GithubHostConfigurationProvider.ApiBaseFromEndpoint(endpointUrl);
 }

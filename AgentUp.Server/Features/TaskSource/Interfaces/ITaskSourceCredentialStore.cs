@@ -1,7 +1,9 @@
+using AgentUp.Server.Features.TaskSource.Models;
+
 namespace AgentUp.Server.Features.TaskSource.Interfaces;
 
 /// <summary>
-/// The token the Server holds for the task source.
+/// The token and host URL the Server holds for the task source.
 ///
 /// It is kept apart from the per-workspace forge credentials on purpose: this one belongs to the
 /// Server, and filing it under a workspace id would mean inventing a workspace that does not
@@ -9,9 +11,9 @@ namespace AgentUp.Server.Features.TaskSource.Interfaces;
 /// </summary>
 public interface ITaskSourceCredentialStore
 {
-    string? Read(string moduleId);
+    TaskSourceCredential? Read(string moduleId);
 
-    void Write(string moduleId, string token);
+    void Write(string moduleId, TaskSourceCredential credential);
 
     void Delete(string moduleId);
 }

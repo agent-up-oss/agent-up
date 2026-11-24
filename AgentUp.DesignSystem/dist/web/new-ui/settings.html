@@ -107,8 +107,11 @@
             <button class="au-app-tab au-app-tab--selected" type="button" data-au-action="forge-tab" data-au-id="github" data-au-selection="forgeTab:github:au-app-tab--selected">GitHub</button>
             <button class="au-app-tab" type="button" data-au-action="forge-tab" data-au-id="forgejo" data-au-selection="forgeTab:forgejo:au-app-tab--selected">Forgejo</button>
           </div>
-          <p class="aun-faint">Paste a personal access token. It needs access to repositories and pull requests, so Agent-Up can list every repository and read which reviews each pull request still needs.</p>
+          <p class="aun-faint">Paste the host URL and a personal access token. GitHub.com is https://github.com. A Forgejo instance is the origin you sign in at. The token needs access to repositories and pull requests, so Agent-Up can list every repository and read which reviews each pull request still needs.</p>
           <div class="aun-settings__list">
+            <div class="aun-settings__row">
+              <input class="aun-input" type="url" placeholder="https://git.example.com" data-au-action="forge-endpoint" />
+            </div>
             <div class="aun-settings__row">
               <input class="aun-input" type="password" placeholder="Personal access token" data-au-action="save-token" />
               <button class="aun-btn aun-btn--primary" type="button" data-au-action="save-token">Save</button>
