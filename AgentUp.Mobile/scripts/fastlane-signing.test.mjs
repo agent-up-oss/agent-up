@@ -37,19 +37,19 @@ test('the Android gradle project is AgentUp.Mobile/android', () => {
 
 test('Play upload uses the same Android package Expo bakes into the AAB', () => {
   const appfile = readFileSync(join(repoRoot, 'fastlane/Appfile'), 'utf8');
-  const mobileCi = readFileSync(join(repoRoot, '.github/workflows/mobile-ci.yaml'), 'utf8');
+  const mobileRelease = readFileSync(join(repoRoot, '.github/workflows/ci.yml'), 'utf8');
   assert.match(appfile, new RegExp(`ANDROID_PACKAGE_NAME", "${androidPackageName}"`));
-  assert.match(mobileCi, new RegExp(`ANDROID_PACKAGE_NAME: ${androidPackageName}`));
+  assert.match(mobileRelease, new RegExp(`ANDROID_PACKAGE_NAME: ${androidPackageName}`));
   assert.match(readFileSync(fastfilePath, 'utf8'), new RegExp(`ANDROID_PACKAGE = "${androidPackageName}"`));
 });
 
 test('Match and iOS CI use the same bundle id Expo bakes into the IPA', () => {
   const appfile = readFileSync(join(repoRoot, 'fastlane/Appfile'), 'utf8');
   const matchfile = readFileSync(join(repoRoot, 'fastlane/Matchfile'), 'utf8');
-  const mobileCi = readFileSync(join(repoRoot, '.github/workflows/mobile-ci.yaml'), 'utf8');
+  const storeBuild = readFileSync(join(repoRoot, '.github/actions/mobile-store-ios/action.yml'), 'utf8');
   const certs = readFileSync(join(repoRoot, '.github/workflows/mobile-ios-certs.yaml'), 'utf8');
   assert.match(appfile, new RegExp(`IOS_BUNDLE_ID", "${iosBundleId}"`));
   assert.match(matchfile, new RegExp(`"${iosBundleId}"`));
-  assert.match(mobileCi, new RegExp(`IOS_BUNDLE_ID: ${iosBundleId}`));
+  assert.match(storeBuild, new RegExp(`IOS_BUNDLE_ID=${iosBundleId}`));
   assert.match(certs, new RegExp(`IOS_BUNDLE_ID: ${iosBundleId}`));
 });

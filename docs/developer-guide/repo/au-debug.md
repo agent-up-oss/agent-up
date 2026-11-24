@@ -150,9 +150,9 @@ Desktop click points live in `DesktopScreenGeometry` and were read off a real 14
 session, so a Desktop layout change moves those numbers and nothing else. Mobile addresses
 controls by the accessible label the client gives them, so it needs no coordinates.
 
-CI runs this in the **Product screens** job and uploads `artifacts/product-screens` as a
-build artifact. It gates nothing; it is evidence to look at. A capture miss still uploads
-whatever was taken and does not fail the workflow.
+CI runs this in **Desktop · Showcase on the Demo** and **Mobile · Showcase on the Demo**, one client per leg, and uploads
+`artifacts/product-screens`. A screen the route cannot reach fails the leg. The comparison is
+reported on the run summary and does not gate yet; see [CI](./ci.md).
 
 One caveat for repeat local runs: the Demo storefront keeps its cart and orders in the
 Desktop WebView's own storage, so a second run on the same machine starts from the first

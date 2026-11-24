@@ -633,6 +633,40 @@
           "AgentUp.Mobile.E2E.App",
           "vendor"
         ]
+      },
+      "ci-workflow": {
+        "requires": ["node"],
+        "command": "node .github/scripts/check-shell-portability.mjs && node --test .github/scripts/*.test.mjs .github/scripts/*.test.js && node .github/scripts/behavior-matrix.mjs check && node .github/scripts/backend-parity.mjs check",
+        "tier": "fast",
+        "inputs": [
+          ".github",
+          "AgentUp.FakeServer/parity.json",
+          "AgentUp.FakeServer/parity.mjs",
+          "docs/api-reference/openapi.json"
+        ]
+      },
+      "docs": {
+        "requires": ["npm"],
+        "command": "npm test",
+        "workingDirectory": "docs",
+        "tier": "fast",
+        "inputs": [
+          "docs",
+          "AgentUp.DesignSystem"
+        ]
+      },
+      "backend-parity": {
+        "requires": ["dotnet", "node", "git"],
+        "command": "./.github/scripts/run-backend-parity.sh server",
+        "tier": "slow",
+        "platforms": ["linux", "macos"],
+        "inputs": [
+          "AgentUp.Server",
+          "AgentUp.FakeServer",
+          "docs/api-reference/openapi.json",
+          ".github/scripts/backend-parity.mjs",
+          ".github/scripts/run-backend-parity.sh"
+        ]
       }
     },
     "paths": [
@@ -999,6 +1033,7 @@
           "agent-e2e",
           "loop-scripted",
           "loop-soak",
+          "backend-parity",
           "patch-coverage"
         ]
       },
@@ -1036,7 +1071,9 @@
         "match": "AgentUp.FakeServer/**",
         "checks": [
           "desktop",
-          "mobile"
+          "mobile",
+          "backend-parity",
+          "ci-workflow"
         ]
       },
       {
@@ -1345,7 +1382,7 @@
       },
       {
         "match": ".github/**",
-        "checks": []
+        "checks": ["ci-workflow"]
       },
       {
         "match": "Examples/full-stack-react/**",
@@ -1367,7 +1404,11 @@
       },
       {
         "match": "docs/**",
-        "checks": []
+        "checks": ["docs"]
+      },
+      {
+        "match": "docs/api-reference/**",
+        "checks": ["backend-parity", "ci-workflow"]
       },
       {
         "match": "**/*.md",

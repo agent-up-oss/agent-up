@@ -5,7 +5,7 @@ import test from 'node:test';
 import { createIdpControl, loginIdFrom } from '../harness/idpControl.mjs';
 import { hasTransport, isTerminalSignInError, isUsableChallenge, waitForChallenge } from '../harness/signInFlows.mjs';
 import { shimScript } from '../harness/shims.mjs';
-import { AGENT_PROFILES, hostOriginFor, hostPortsToReverse, profilesFor, serverEnvironment } from '../harness/stackConfig.mjs';
+import { AGENT_PROFILES, hostBrowser, hostOriginFor, hostPortsToReverse, profilesFor, serverEnvironment } from '../harness/stackConfig.mjs';
 import { freePort, isFree, portWindow, removeWorkspaceTree } from '../harness/stack.mjs';
 import { waitFor } from '../harness/wait.mjs';
 
@@ -60,6 +60,40 @@ test('each stack writes Server state into its own data directory', () => {
   });
 
   assert.equal(environment.Storage__DataDirectory, '/tmp/data');
+});
+
+test("each stack's Server uses the host browser instead of downloading one", () => {
+  const base = {
+    profiles: profilesFor('device'),
+    binDir: '/tmp/bin',
+    idpUrl: 'http://localhost:9000',
+    publicOrigin: 'http://localhost:9000',
+    dataDir: '/tmp/data',
+    urls: 'http://0.0.0.0:9100',
+  };
+
+  assert.equal(serverEnvironment({ ...base, browserExecutable: '/usr/bin/chromium' }).Browser__ExecutablePath, '/usr/bin/chromium');
+  assert.equal('Browser__ExecutablePath' in serverEnvironment(base), false);
+});
+
+test('the host browser is the override, then the Chrome the runner image ships, then none', () => {
+  const macChrome = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+  const only = path => candidate => candidate === path;
+
+  assert.equal(hostBrowser({ hostPlatform: 'darwin', exists: only(macChrome) }), macChrome);
+  assert.equal(hostBrowser({ hostPlatform: 'linux', exists: only('/usr/bin/chromium') }), '/usr/bin/chromium');
+  assert.equal(hostBrowser({ hostPlatform: 'darwin', exists: () => false }), undefined);
+  assert.equal(hostBrowser({ hostPlatform: 'win32', exists: () => true }), undefined);
+  assert.equal(
+    hostBrowser({ hostPlatform: 'darwin', exists: only(macChrome), env: { AGENTUP_E2E_BROWSER_EXECUTABLE: '/opt/chrome' } }),
+    '/opt/chrome');
+});
+
+test('native sign-in gives the picker two minutes after a connect or recovery', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const source = await readFile(new URL('../detox/signIn.test.js', import.meta.url), 'utf8');
+  assert.match(source, /await waitForPicker\(picker, PICKER_AFTER_CONNECT_MS\)/);
+  assert.match(source, /const PICKER_AFTER_CONNECT_MS = 120_000;/);
 });
 
 // The mirror of what the agents do: a link is minted for the person, and neither the agent nor

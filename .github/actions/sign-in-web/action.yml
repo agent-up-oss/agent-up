@@ -1,0 +1,72 @@
+name: Sign in on the installable web build
+description: Every agent sign-in transport against a real Server, the test agents and the identity provider, in the PWA.
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-dotnet@v6
+      with:
+        dotnet-version: "10.0.x"
+
+    - uses: actions/setup-node@v7
+      with:
+        node-version: 22
+        cache: npm
+        # What these jobs install, which is the harness app and the modules it mounts - not
+        # the full client, which they never build.
+        cache-dependency-path: |
+          AgentUp.Mobile.E2E.App/package-lock.json
+          AgentUp.Mobile.E2E/package-lock.json
+          AgentUp.Chat/package-lock.json
+          AgentUp.AgentAuth/package-lock.json
+          AgentUp.ServerClient/package-lock.json
+          AgentUp.WebAudit/package-lock.json
+
+    - name: Publish the Server and test agents
+      shell: bash
+      run: ./.github/scripts/build-mobile-e2e-stack.sh
+
+    # The Server confines agents with bubblewrap on Linux; macOS runs them unconfined.
+
+    - name: Install bubblewrap
+      shell: bash
+      run: ./.github/scripts/install-bubblewrap.sh
+
+    - name: Install mobile dependencies
+      shell: bash
+      run: ./.github/scripts/install-mobile-deps.sh AgentUp.Mobile.E2E.App
+
+    - name: Export the installable web build
+      shell: bash
+      working-directory: AgentUp.Mobile.E2E.App
+      run: npx expo export --platform web --output-dir dist
+
+    # The browser is a fixed ~140MB download that changes only when Playwright does.
+
+    - name: Restore the browser
+      uses: actions/cache@v6
+      with:
+        path: ~/.cache/ms-playwright
+        key: playwright-${{ runner.os }}-${{ hashFiles('AgentUp.Mobile.E2E/package.json') }}
+
+    - name: Install Playwright
+      shell: bash
+      working-directory: AgentUp.Mobile.E2E
+      run: |
+        npm install --no-audit --no-fund
+        npx playwright install --with-deps chromium
+
+    - name: Run sign-in end-to-end
+      shell: bash
+      working-directory: AgentUp.Mobile.E2E
+      env:
+        AGENTUP_E2E_WEB_EXPORT: ../AgentUp.Mobile.E2E.App/dist
+      run: npm run test:pwa
+
+    - uses: actions/upload-artifact@v7
+      if: ${{ failure() }}
+      with:
+        name: sign-in-web-artifacts
+        path: AgentUp.Mobile.E2E/artifacts
+        if-no-files-found: ignore
+        retention-days: 7

@@ -5,40 +5,30 @@ title: Mobile store release
 # Mobile store release
 
 <DocWhat>
-Mobile store binaries ship from Mobile CI, not from `ci.yml`. This page is the Android and iOS smoke-build and store-submit contract.
+Mobile store binaries are built by `ci.yml` on every run and shipped by its Mobile release job. This page is the Android and iOS store-build and store-submit contract.
 </DocWhat>
 
-A path-filtered `push` smoke-builds and signs Android and iOS, except Dependabot
-pushes, which skip those jobs because GitHub withholds Actions secrets from
-`dependabot[bot]`. It does not upload to Play or App Store Connect and does not
-create `android-v*` / `ios-v*` GitHub releases. Dispatch the same workflow on the
-branch that already has a product `vX.Y.Z` tag to publish.
+Two Mobile legs build the full client for the stores on every pull request and push:
 
-After validation, each platform job uploads the signed AAB or IPA plus checksum
-to GitHub Actions artifacts (`mobile-android`, `mobile-ios`) with 1-day
-retention, including on smoke, before any Play or App Store Connect submit.
+- **Mobile · Android store bundle** prebuilds, builds, signs and validates the Play upload AAB.
+- **Mobile · iOS store archive** prebuilds, builds, signs through Match and validates the App Store IPA.
 
-The workflow runs Mobile typechecking, provider and script tests, and a web
-export in a dedicated Ubuntu job before either native build. That job then
-runs `Examples/browser-sso` Playwright against the export; pin
-`@playwright/test` to 1.61.1 so Chromium installs on `ubuntu-latest` (26.04).
-SDK 58 custom `src/app/+html.tsx` must render `bodyNodes` from
-`useServerDocumentContext()` so the static HTML hydrates. Dependency
-installation runs the design-system generator with `--check` so stale committed
-outputs fail instead of being rewritten. It does not call
-semantic-release or use `.releaserc.json`. Android compiles on Ubuntu. iOS
-compiles on `macos-26` with Xcode 26.4 because CocoaPods and `xcodebuild` cannot
-run on Linux, and Expo SDK 58 requires the iOS 27 SDK that Xcode 16 does not ship.
+Each uploads the binary, its checksum and a `release.json` manifest to GitHub Actions artifacts (`mobile-android`, `mobile-ios`) with 1-day retention.
+
+A store leg records a declared skip, not a pass, where GitHub withholds its signing secrets: Dependabot and pull requests from forks. The Behavior matrix lists it as skipped with that reason. Any other run that lacks the secrets fails.
+
+Mobile release uploads exactly the binaries those legs built. It sits beside Release, needs the same two jobs (Behavior matrix and Plan), and runs only on a `workflow_dispatch` that names a mobile channel. Release runs only on a push to `main`, so one run never does both.
+
+Mobile typechecking, provider and script tests run in Source · TypeScript suites. The web export and `Examples/browser-sso` Playwright run in Mobile · Browser SSO front door; pin `@playwright/test` to 1.61.1 so Chromium installs on `ubuntu-latest` (26.04). SDK 58 custom `src/app/+html.tsx` must render `bodyNodes` from `useServerDocumentContext()` so the static HTML hydrates. Dependency installation runs the design-system generator with `--check` so stale committed outputs fail instead of being rewritten. It does not call semantic-release or use `.releaserc.json`. Android compiles on Ubuntu, with Gradle's repository retry window widened by `.github/scripts/configure-gradle-network.sh` because the Gradle Plugin Portal intermittently fails to serve the React Native plugin's `foojay-resolver-convention` on hosted runners. iOS compiles on `macos-26` with Xcode 26.4 because CocoaPods and `xcodebuild` cannot run on Linux, and Expo SDK 58 requires the iOS 27 SDK that Xcode 16 does not ship.
 
 ## Inputs
 
+Dispatch `ci.yml` with:
+
 | Input | Values | Effect |
 |---|---|---|
-| `channel` | `beta` or `prod` | Play internal vs production; TestFlight vs App Store Connect upload |
-| `platforms` | `both`, `android`, or `ios` | Which store jobs run |
-
-These inputs apply only to `workflow_dispatch`. A path-filtered `push` builds
-both platforms when the actor is not Dependabot, and never publishes.
+| `mobile-channel` | `none`, `beta` or `prod` | `none` runs the matrix and ships nothing. `beta` is Play internal and TestFlight; `prod` is Play production and App Store Connect |
+| `mobile-platforms` | `both`, `android`, or `ios` | Which Mobile release legs run. The store leg of a platform the dispatch does not ship records a declared skip |
 
 `prod` iOS uploads the IPA to App Store Connect with metadata and screenshots
 skipped and does **not** submit for App Review. A human submits review from App
@@ -46,46 +36,30 @@ Store Connect until listing metadata exists.
 
 ## Versioning
 
-The `version` job is the gate for every later job.
+- On a dispatch that names a mobile channel, the store legs take the marketing version from the newest git tag reachable from `HEAD` that matches `vX.Y.Z`. Tags named `android-v*` and `ios-v*` are ignored, so this pipeline cannot version from its own GitHub releases. The legs fail if the branch has no product tag; ship a normal release first.
+- On every other run, the marketing version is `0.0.0`, so the store build needs no product tag.
+- Play `versionCode` and iOS `CFBundleVersion` are `GITHUB_RUN_NUMBER` of `ci.yml`. Its counter is far above the one the separate Mobile CI workflow used, so build numbers keep increasing.
 
-- On `workflow_dispatch`, marketing version is the newest git tag reachable from
-  `HEAD` that matches `vX.Y.Z`. Tags named `android-v*` and `ios-v*` are ignored
-  so this pipeline cannot version from its own GitHub releases. The job fails if
-  this branch has no product tag; ship a normal `ci.yml` release first.
-- On `push`, marketing version is `0.0.0` so the smoke does not need a product
-  tag.
-- Play `versionCode` and iOS `CFBundleVersion` are `GITHUB_RUN_NUMBER`.
+Mobile release reads the version, build number and source tag from the `release.json` the store leg wrote, and checks the binary against its checksum before any upload.
 
-Each successful **dispatched** platform job creates or updates a GitHub release
+Each successful Mobile release leg creates or updates a GitHub release
 whose tag is `android-v<version>` or `ios-v<version>`, with the AAB or IPA
 attached. Re-running the same marketing version replaces those assets; the stores
 still accept the binary because the build number changed.
 
-`ci.yml` listens to every branch push and ignores `android-v*` and `ios-v*` tag
-pushes. A `tags-ignore` filter without a `branches` filter would skip branch
-pushes entirely, so desktop CI would never start on this branch.
+`ci.yml` ignores `android-v*` and `ios-v*` tag pushes. A `tags-ignore` filter without a `branches` filter would skip branch
+pushes entirely, so CI would never start on this branch.
 
 ## Job graph
 
 ```text
-push (path-filtered) or workflow_dispatch
-  version (ubuntu)
-    tests (ubuntu)
-      android (ubuntu)
-      ios (macos-26)
+pull_request, push, or workflow_dispatch
+  Mobile · Android store bundle (ubuntu)  ─┐
+  Mobile · iOS store archive (macos-26)    ├─ Behavior matrix ─ Mobile release (android) → Google Play
+  every other leg ─────────────────────────┘                    Mobile release (ios) → App Store Connect
 ```
 
-Push runs when `AgentUp.Mobile`, `AgentUp.Chat`, `AgentUp.AgentAuth`,
-`AgentUp.ServerClient`, `AgentUp.DesignSystem`, `AgentUp.WebAudit`, this
-workflow, the iOS certs workflow, the mobile helper scripts, Fastlane,
-`Gemfile`, `Gemfile.lock`, or `.ruby-version` change. Changing only `ci.yml`
-does not start Mobile CI.
-
-The Android and iOS jobs both require the shared Mobile test job to pass. They
-skip when `github.actor` is `dependabot[bot]`. Android failure does not cancel
-iOS, and the reverse. A second dispatch on the same ref waits; it does not
-cancel an in-flight store upload. A newer push on the same ref
-cancels an in-flight smoke, not a dispatch.
+Android failure does not cancel iOS, and the reverse. A dispatch never cancels and is never cancelled: a second dispatch on the same ref waits, so a store upload is never cut off. A newer push on the same branch cancels an in-flight branch run, never a dispatch.
 
 ## Signing
 
@@ -138,5 +112,5 @@ These cannot be automated in the workflow:
 4. Create the Play Console app with package `net.themassiveone.agentup.android`,
    enable Play App Signing, register the upload keystore, and grant the Play
    Developer API to the service account.
-5. Dispatch Mobile CI with `channel: beta` after a product `vX.Y.Z` tag exists
+5. Dispatch Agent-Up CI with `mobile-channel: beta` after a product `vX.Y.Z` tag exists
    on the branch.

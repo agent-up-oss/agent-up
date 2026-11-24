@@ -46,6 +46,18 @@ export function locatorFor(page, target) {
   }
 }
 
+/**
+ * The first match of free text that is actually on screen.
+ *
+ * Expo Router keeps the screen a person navigated away from mounted, only hidden, so the first
+ * match in document order is often the previous page's copy. Waiting for that one to become
+ * visible never ends, so an expectation about the page in front of the person filters to visible
+ * matches before it picks one.
+ */
+export function visibleTextLocator(page, text) {
+  return page.getByText(text, { exact: false }).filter({ visible: true }).first();
+}
+
 function hasText(value) {
   return typeof value === 'string' && value.trim().length > 0;
 }

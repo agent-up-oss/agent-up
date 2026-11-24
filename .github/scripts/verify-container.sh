@@ -6,7 +6,11 @@ REPOSITORY="$2"
 
 IMAGE_BASE="docker.io/themassiveone/${REPOSITORY}"
 
-if [ -z "${DOCKERHUB_USERNAME:-}" ] || [ -z "${DOCKERHUB_TOKEN:-}" ]; then
+# Release runs this as semantic-release's verifyConditions, where missing credentials must stop the
+# release before anything is tagged. CI's Build · Server container job only builds and checks the
+# image, pushes nothing, and sets AGENTUP_CONTAINER_VERIFY_ONLY=1 so it runs without them.
+if [ "${AGENTUP_CONTAINER_VERIFY_ONLY:-}" != "1" ] \
+  && { [ -z "${DOCKERHUB_USERNAME:-}" ] || [ -z "${DOCKERHUB_TOKEN:-}" ]; }; then
   echo "DOCKERHUB_USERNAME and DOCKERHUB_TOKEN are required to publish ${IMAGE_BASE}." >&2
   exit 1
 fi

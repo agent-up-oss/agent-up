@@ -1,0 +1,5 @@
+# actionlint's built-in runner list trails GitHub's; macos-15-intel and macos-26 are GitHub-hosted images.
+self-hosted-runner:
+  labels:
+    - macos-15-intel
+    - macos-26

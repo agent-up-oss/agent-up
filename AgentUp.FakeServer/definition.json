@@ -389,6 +389,7 @@
         }
       },
       "log": {
+        "hasMore": false,
         "commits": [
           {
             "id": "a1b2c3d4e5f6",
@@ -493,6 +494,7 @@
         }
       },
       "log": {
+        "hasMore": false,
         "commits": [
           {
             "id": "a1b2c3d4e5f6",
@@ -597,6 +599,7 @@
         }
       },
       "log": {
+        "hasMore": false,
         "commits": [
           {
             "id": "a1b2c3d4e5f6",

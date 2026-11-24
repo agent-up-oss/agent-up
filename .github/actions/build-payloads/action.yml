@@ -1,0 +1,96 @@
+name: Build release payloads
+description: Publishes the self-contained payloads, the packaging and smoke tools and the SBOM, split per Installer leg.
+
+inputs:
+  version:
+    description: The planned release version.
+    required: true
+  sentry-dsn-desktop:
+    description: Optional Desktop DSN baked into the publish.
+    required: false
+    default: ""
+  sentry-dsn-cli:
+    description: Optional CLI DSN baked into the publish.
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Generate SBOM
+      shell: bash
+      run: |
+        dotnet tool install --global CycloneDX
+        dotnet CycloneDX agent-up.sln --json --out artifacts/sbom --set-version "${{ inputs.version }}"
+        mv artifacts/sbom/bom.json artifacts/sbom/agent-up-sbom.cdx.json
+
+    - name: Publish .NET CI artifacts
+      shell: bash
+      env:
+        SENTRY_DSN_DESKTOP: ${{ inputs.sentry-dsn-desktop }}
+        SENTRY_DSN_CLI: ${{ inputs.sentry-dsn-cli }}
+      run: ./.github/scripts/publish-dotnet-ci-artifacts.sh "${{ inputs.version }}" "artifacts/dotnet-ci"
+
+    # Each Installer leg takes the packaging tools and payloads of its own runtime only, and
+    # deletes the artifact it used.
+    - name: Prepare per-consumer .NET CI artifacts
+      shell: bash
+      run: |
+        rm -rf artifacts/ci-transfer
+        for entry in \
+          ubuntu-linux-x64:linux-x64 \
+          nixos-linux-x64:linux-x64 \
+          macos-osx-arm64:osx-arm64 \
+          macos-osx-x64:osx-x64 \
+          windows-win-x64:win-x64
+        do
+          platform_rid="${entry%%:*}"
+          rid="${entry##*:}"
+          target="artifacts/ci-transfer/$platform_rid/dotnet-ci"
+          mkdir -p "$target/tools/$rid" "$target/payloads"
+          cp -a "artifacts/dotnet-ci/tools/$rid/packaging" "$target/tools/$rid/"
+          cp -a "artifacts/dotnet-ci/tools/$rid/package-smoke" "$target/tools/$rid/"
+          cp -a "artifacts/dotnet-ci/payloads/$rid" "$target/payloads/"
+        done
+
+    - uses: actions/upload-artifact@v7
+      with:
+        name: dotnet-ci-ubuntu-linux-x64
+        path: artifacts/ci-transfer/ubuntu-linux-x64/dotnet-ci
+        if-no-files-found: error
+        retention-days: 1
+
+    - uses: actions/upload-artifact@v7
+      with:
+        name: dotnet-ci-nixos-linux-x64
+        path: artifacts/ci-transfer/nixos-linux-x64/dotnet-ci
+        if-no-files-found: error
+        retention-days: 1
+
+    - uses: actions/upload-artifact@v7
+      with:
+        name: dotnet-ci-macos-osx-arm64
+        path: artifacts/ci-transfer/macos-osx-arm64/dotnet-ci
+        if-no-files-found: error
+        retention-days: 1
+
+    - uses: actions/upload-artifact@v7
+      with:
+        name: dotnet-ci-macos-osx-x64
+        path: artifacts/ci-transfer/macos-osx-x64/dotnet-ci
+        if-no-files-found: error
+        retention-days: 1
+
+    - uses: actions/upload-artifact@v7
+      with:
+        name: dotnet-ci-windows-win-x64
+        path: artifacts/ci-transfer/windows-win-x64/dotnet-ci
+        if-no-files-found: error
+        retention-days: 1
+
+    - uses: actions/upload-artifact@v7
+      with:
+        name: sbom
+        path: artifacts/sbom/agent-up-sbom.cdx.json
+        if-no-files-found: error
+        retention-days: 1

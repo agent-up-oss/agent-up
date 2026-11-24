@@ -1,5 +1,6 @@
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
+import { existsSync } from 'node:fs';
 import { mkdtemp, mkdir, rm } from 'node:fs/promises';
 import { createConnection } from 'node:net';
 import { tmpdir } from 'node:os';
@@ -8,7 +9,7 @@ import { dirname, join } from 'node:path';
 import { createIdpControl } from './idpControl.mjs';
 import { supervise } from './supervise.mjs';
 import { writeShims } from './shims.mjs';
-import { hostOriginFor, hostPortsToReverse, profilesFor, serverEnvironment } from './stackConfig.mjs';
+import { hostBrowser, hostOriginFor, hostPortsToReverse, profilesFor, serverEnvironment } from './stackConfig.mjs';
 
 
 /**
@@ -57,6 +58,7 @@ export async function startStack({ platform, codexSchema, serverDll, testAgentEx
           dataDir,
           // Bound on every interface so adb reverse from the emulator can reach host loopback.
           urls: `http://0.0.0.0:${serverPort}`,
+          browserExecutable: hostBrowser({ hostPlatform: process.platform, exists: existsSync, env: process.env }),
         }),
       },
       stdio: ['ignore', 'pipe', 'pipe'],

@@ -46,6 +46,18 @@ public sealed class MobileScreenScriptProviderTests
     }
 
     [Test]
+    public void Locate_prefersAMatchOnScreenOverOneOnAHiddenEarlierPage()
+    {
+        var script = MobileScreenScriptProvider.Locate("Select apps/storefront/PromoBanner2.tsx");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(script, Does.Contain("innermost.find(shown)"));
+            Assert.That(script, Does.Contain("rect.width > 0 && rect.height > 0"));
+        });
+    }
+
+    [Test]
     public void FocusField_matchesPlaceholderOrAccessibleLabel()
     {
         var script = MobileScreenScriptProvider.FocusField(MobileScreenSurface.ConnectFieldLabel);

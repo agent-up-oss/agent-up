@@ -18,6 +18,8 @@ public sealed class FakeBackendService
     private readonly List<Action<string>> _workspaceListeners = [];
     private readonly Dictionary<string, JsonArray> _appTemplates = new(StringComparer.Ordinal);
     private readonly Dictionary<string, List<string>> _steering = new(StringComparer.Ordinal);
+    /// <summary>Permission policy rules saved in this session, per workspace.</summary>
+    private readonly Dictionary<string, JsonArray> _permissionPolicies = new(StringComparer.Ordinal);
     /// <summary>Files edited by hand in this session, per workspace.</summary>
     private readonly Dictionary<string, Dictionary<string, string>> _fileEdits = new(StringComparer.Ordinal);
     private int _lifecycleGeneration;
@@ -56,6 +58,7 @@ public sealed class FakeBackendService
         {
             _state = _template.Clone();
             _fileEdits.Clear();
+            _permissionPolicies.Clear();
             _agentEvents.Clear();
             _agentSequence = 0;
             _autonomyEnabled = false;
@@ -249,7 +252,11 @@ public sealed class FakeBackendService
             return ScheduleAgent(workspaceId, request.Body);
         if (method == "PUT" && rest == "agent/binding")
             return BindAgent(workspaceId, request.Body);
-        if (method is "PUT" && rest is "agent/host-connection" or "agent/policy" or "agent/role" or "agent/queue-order")
+        if (method == "GET" && rest == "agent/policy")
+            return PermissionPolicy(workspaceId);
+        if (method == "PUT" && rest == "agent/policy")
+            return SetPermissionPolicy(workspaceId, request.Body);
+        if (method is "PUT" && rest is "agent/host-connection" or "agent/role" or "agent/queue-order")
             return new FakeBackendResponseDto(204, "application/json");
         if (method == "POST" && rest == "agent/messages")
             return SendAgentMessage(workspaceId, request.Body);
@@ -542,6 +549,33 @@ public sealed class FakeBackendService
             var loop = _state.Agents?[workspaceId]?["session"]?["loop"];
             return loop is null ? NotFound() : Json(loop.DeepClone());
         }
+    }
+
+    private FakeBackendResponseDto PermissionPolicy(string workspaceId)
+    {
+        lock (_gate)
+        {
+            var rules = _permissionPolicies.TryGetValue(workspaceId, out var saved) ? saved.DeepClone() : new JsonArray();
+            return Json(new JsonObject { ["rules"] = rules });
+        }
+    }
+
+    /// <summary>Keeps the rules a client saves, so reading the policy back shows them, as on a Server.</summary>
+    private FakeBackendResponseDto SetPermissionPolicy(string workspaceId, string? body)
+    {
+        JsonArray rules;
+        try
+        {
+            rules = (string.IsNullOrWhiteSpace(body) ? null : JsonNode.Parse(body)?["rules"] as JsonArray)?.DeepClone().AsArray() ?? [];
+        }
+        catch (JsonException)
+        {
+            rules = [];
+        }
+
+        lock (_gate)
+            _permissionPolicies[workspaceId] = rules;
+        return new FakeBackendResponseDto(204, "application/json");
     }
 
     private FakeBackendResponseDto SetLoopActivation(string workspaceId, string? body)

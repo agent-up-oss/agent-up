@@ -1,0 +1,447 @@
+{
+  "$comment": "What CI proves, domain by domain. Every job in .github/workflows/ci.yml except Plan, Behavior matrix and Release is one stage here - a matrix job named after its domain - and each of its matrix entries is a leg that records a verdict. The Behavior matrix job renders this file with those verdicts and fails when a leg failed or never ran. Gaps are cells of the behavior matrix that nothing proves yet; they are listed so they show up on every run instead of being forgotten. AgentUp.Architecture.Tests keeps this file and ci.yml in step. Definition: docs/developer-guide/repo/ci.md.",
+  "stages": [
+    {
+      "id": "build",
+      "title": "Build",
+      "question": "Can every artifact the desktop release ships be produced from this commit?",
+      "matrixJob": "build",
+      "legs": [
+        {
+          "id": "payloads",
+          "title": "Release payloads",
+          "proves": "Self-contained Server, Desktop, CLI, Tray and installer payloads plus the packaging and smoke tools for every runtime, and the SBOM."
+        },
+        {
+          "id": "container",
+          "title": "Server container",
+          "proves": "The Server image builds and carries Nix, git and the agent CLIs it promises, as a non-root user."
+        },
+        {
+          "id": "helm-chart",
+          "title": "Helm chart",
+          "proves": "The chart lints and packages."
+        },
+        {
+          "id": "au-check",
+          "title": "au-check binaries",
+          "proves": "au-check publishes for every runtime and plans exactly what agent-up verify plans."
+        },
+        {
+          "id": "jetbrains-plugin",
+          "title": "JetBrains plugin",
+          "proves": "The plugin tests pass and it builds, when Plugins/ changed."
+        }
+      ]
+    },
+    {
+      "id": "source",
+      "title": "Source",
+      "question": "Does the code hold its own contracts?",
+      "gatesOnly": "release",
+      "matrixJob": "source",
+      "legs": [
+        {
+          "id": "dotnet",
+          "title": ".NET suites and coverage",
+          "proves": "Every .NET test project except the cross-product AgentUp.Tests, once, with coverage; then patch coverage and per-slice coverage judged from the reports those suites wrote."
+        },
+        {
+          "id": "typescript",
+          "title": "TypeScript suites",
+          "proves": "Mobile (full typecheck and tests), Chat, ServerClient, AgentAuth, WebAudit, the end-to-end harness, and this workflow's own scripts."
+        },
+        {
+          "id": "budgets",
+          "title": "Test-tier budgets",
+          "proves": "Unit, Provider and E2E tiers stay inside their wall-clock budgets."
+        },
+        {
+          "id": "performance",
+          "title": "Performance gates",
+          "proves": "Hot paths stay inside their stored baselines."
+        }
+      ]
+    },
+    {
+      "id": "backend",
+      "title": "Backend",
+      "question": "Does the Server keep its client contract, and behave against every real thing it depends on?",
+      "matrixJob": "backend",
+      "legs": [
+        {
+          "id": "contract-server",
+          "title": "Contract · Server",
+          "proves": "A published Server process answers every read in the API reference, and the API reference is the Server's route table."
+        },
+        {
+          "id": "contract-demo-desktop",
+          "title": "Contract · Demo (Desktop)",
+          "proves": "Desktop's in-process Demo answers every operation the parity manifest marks demo, and nothing it marks server-only."
+        },
+        {
+          "id": "contract-demo-mobile",
+          "title": "Contract · Demo (Mobile)",
+          "proves": "Mobile's in-process Demo answers every operation the parity manifest marks demo, and nothing it marks server-only."
+        },
+        {
+          "id": "forgejo",
+          "title": "Forgejo host",
+          "dependency": "Forgejo 11 container",
+          "proves": "The forgejo module and the Forge slice against a digest-pinned Forgejo."
+        },
+        {
+          "id": "team-forgejo",
+          "title": "Agent team on Forgejo",
+          "dependency": "Forgejo 11 container, bubblewrap, Chromium",
+          "proves": "An author, a dev reviewer and a PM reviewer take an issue through Forgejo to two approvals."
+        },
+        {
+          "id": "agent-sandbox",
+          "title": "Agent sandbox",
+          "dependency": "bubblewrap",
+          "proves": "The kernel refuses what a member's grant refuses, and no agent sees Server data or secrets."
+        },
+        {
+          "id": "agent-mcp",
+          "title": "Agent over MCP",
+          "dependency": "bubblewrap, Chromium",
+          "proves": "A sandboxed agent starts an app and drives it in the real browser through the MCP servers it is offered."
+        },
+        {
+          "id": "cpu-inference",
+          "title": "Loop on CPU inference",
+          "dependency": "Qwen2.5 1.5B GGUF on llama.cpp",
+          "proves": "The loop kernel's hard invariants and its outcome baseline against a model that really infers."
+        },
+        {
+          "id": "opencode",
+          "title": "OpenCode on CPU inference",
+          "dependency": "opencode-ai, test-model-server, bubblewrap",
+          "proves": "Real OpenCode through the capability and through a published Server over REST, with token, MCP and steering."
+        },
+        {
+          "id": "runtime-capabilities",
+          "title": "Runtime capabilities",
+          "dependency": "Nix, Docker, Postgres",
+          "proves": "dotnet and docker capabilities host Postgres and the .NET API beside Docs, Example Web and Sample Desktop."
+        },
+        {
+          "id": "loop-soak",
+          "title": "Loop soak",
+          "dependency": "none",
+          "proves": "Hundreds of scripted tasks stay inside memory, handle, thread and transcript bounds."
+        }
+      ]
+    },
+    {
+      "id": "desktop",
+      "title": "Desktop",
+      "question": "Does Desktop, in each shell, behave against every backend and on every native display?",
+      "matrixJob": "desktop",
+      "axes": {
+        "rows": [
+          "Classic shell",
+          "Command center"
+        ],
+        "columns": [
+          "Real Server",
+          "Demo",
+          "Identity front door",
+          "Native platform"
+        ]
+      },
+      "legs": [
+        {
+          "id": "journeys",
+          "title": "Journeys on a real Server",
+          "row": "Classic shell",
+          "column": "Real Server",
+          "proves": "Every Desktop-surface QA flow replays on an isolated Server."
+        },
+        {
+          "id": "showcase",
+          "title": "Showcase on the Demo",
+          "row": "Classic shell",
+          "column": "Demo",
+          "proves": "Every documented Desktop screen is reached and captured in a used state on the Demo."
+        },
+        {
+          "id": "native-linux",
+          "title": "Native Linux (WebKitGTK)",
+          "row": "Classic shell",
+          "column": "Native platform",
+          "proves": "WebKitGTK WebView, uploads, OAuth popups, streamed desktop applications and the installer dashboard on a real display."
+        },
+        {
+          "id": "native-macos-arm64",
+          "title": "Native macOS arm64 (WKWebView)",
+          "row": "Classic shell",
+          "column": "Native platform",
+          "proves": "The published E2E suite on Avalonia Native and WKWebView."
+        },
+        {
+          "id": "native-macos-x64",
+          "title": "Native macOS x64 (WKWebView)",
+          "row": "Classic shell",
+          "column": "Native platform",
+          "proves": "The published E2E suite on Avalonia Native and WKWebView."
+        },
+        {
+          "id": "native-windows",
+          "title": "Native Windows (WebView2)",
+          "row": "Classic shell",
+          "column": "Native platform",
+          "proves": "The published E2E suite on WebView2."
+        }
+      ],
+      "gaps": [
+        {
+          "row": "Command center",
+          "column": "Real Server",
+          "kind": "gap",
+          "reason": "No command-center QA flows exist; the shell is proven by headless and scene tests only."
+        },
+        {
+          "row": "Command center",
+          "column": "Demo",
+          "kind": "gap",
+          "reason": "au-debug screens captures the classic screens only; none of the 9 command-center screens."
+        },
+        {
+          "row": "Command center",
+          "column": "Native platform",
+          "kind": "gap",
+          "reason": "The native-display suite drives the classic shell only."
+        },
+        {
+          "leg": "showcase",
+          "kind": "gap",
+          "reason": "Desktop cannot report its own text, so no Desktop screen is compared with the design system at all."
+        },
+        {
+          "row": "Classic shell",
+          "column": "Identity front door",
+          "kind": "gap",
+          "reason": "Desktop reads a browserSso connection in unit tests only; nothing signs Desktop in through the example front door."
+        },
+        {
+          "row": "Command center",
+          "column": "Identity front door",
+          "kind": "gap",
+          "reason": "No command-center flow signs in through an identity front door."
+        }
+      ]
+    },
+    {
+      "id": "mobile",
+      "title": "Mobile",
+      "question": "Does Mobile and its chat module, in each shell, behave against every backend and on every native platform, and do its store binaries build?",
+      "matrixJob": "mobile",
+      "axes": {
+        "rows": [
+          "Classic shell",
+          "Command center",
+          "Chat module"
+        ],
+        "columns": [
+          "Real Server",
+          "Demo",
+          "Identity front door",
+          "Native platform"
+        ]
+      },
+      "legs": [
+        {
+          "id": "journeys",
+          "title": "Journeys on a real Server",
+          "row": "Classic shell",
+          "column": "Real Server",
+          "proves": "Every Mobile-surface QA flow replays on the web export against an isolated Server."
+        },
+        {
+          "id": "showcase",
+          "title": "Showcase on the Demo",
+          "row": "Classic shell",
+          "column": "Demo",
+          "proves": "Every documented Mobile screen is reached and captured in a used state on the Demo, and compared with the copy the design system documents for it."
+        },
+        {
+          "id": "browser-sso",
+          "title": "Browser SSO front door",
+          "row": "Classic shell",
+          "column": "Identity front door",
+          "proves": "The installable web client signs in through Examples/browser-sso, which advertises browserSso and a restricted entitlement document, and hides what that document forbids; the example's own HTTP tests first."
+        },
+        {
+          "id": "sign-in-web",
+          "title": "Sign-in on the installable web",
+          "row": "Chat module",
+          "column": "Real Server",
+          "proves": "Every sign-in transport against a real Server, test agents and identity provider, in the PWA."
+        },
+        {
+          "id": "sign-in-android",
+          "title": "Sign-in on Android",
+          "row": "Chat module",
+          "column": "Native platform",
+          "proves": "The same sign-ins on a real Android emulator."
+        },
+        {
+          "id": "sign-in-ios",
+          "title": "Sign-in on iOS",
+          "row": "Chat module",
+          "column": "Native platform",
+          "proves": "The same sign-ins on a real iOS simulator."
+        },
+        {
+          "id": "store-android",
+          "title": "Android store bundle",
+          "row": "Classic shell",
+          "column": "Native platform",
+          "proves": "The full client prebuilds, builds, signs with the Play upload key and validates as an AAB; Mobile release ships that file.",
+          "skippable": "GitHub withholds the signing secrets from Dependabot and fork pull requests, and a mobile release that ships iOS only has no Android binary to build."
+        },
+        {
+          "id": "store-ios",
+          "title": "iOS store archive",
+          "row": "Classic shell",
+          "column": "Native platform",
+          "proves": "The full client prebuilds, builds, signs through Match and validates as an App Store IPA; Mobile release ships that file.",
+          "skippable": "GitHub withholds the signing secrets from Dependabot and fork pull requests, and a mobile release that ships Android only has no iOS binary to build."
+        }
+      ],
+      "gaps": [
+        {
+          "row": "Command center",
+          "column": "Real Server",
+          "kind": "gap",
+          "reason": "No command-center QA flows exist; the shell is proven by provider and scene tests only."
+        },
+        {
+          "row": "Command center",
+          "column": "Demo",
+          "kind": "gap",
+          "reason": "au-debug screens captures the classic screens only; none of the 9 command-center screens."
+        },
+        {
+          "row": "Command center",
+          "column": "Native platform",
+          "kind": "gap",
+          "reason": "The store binaries carry the command center, but no journey runs it on a device."
+        },
+        {
+          "row": "Chat module",
+          "column": "Demo",
+          "kind": "n/a",
+          "reason": "Sign-in is Server-owned; the Demo has no identity provider to sign in against."
+        },
+        {
+          "leg": "showcase",
+          "kind": "gap",
+          "reason": "15 of 15 Mobile screens diverge from the copy the design-system showcase documents (au-debug screens compare). The comparison is reported on every run but does not gate until the showcase is re-authored from the real screens."
+        },
+        {
+          "row": "Command center",
+          "column": "Identity front door",
+          "kind": "gap",
+          "reason": "No command-center flow signs in through an identity front door."
+        },
+        {
+          "row": "Chat module",
+          "column": "Identity front door",
+          "kind": "n/a",
+          "reason": "The chat module signs agents in; signing in to the Server belongs to the shell."
+        },
+        {
+          "leg": "store-android",
+          "kind": "gap",
+          "reason": "Builds, signs and validates the binary; no journey runs it on a device."
+        },
+        {
+          "leg": "store-ios",
+          "kind": "gap",
+          "reason": "Builds, signs and validates the binary; no journey runs it on a device."
+        }
+      ]
+    },
+    {
+      "id": "docs",
+      "title": "Docs",
+      "question": "Does the docs site build from this commit, and is the design system it publishes still the only visual source?",
+      "matrixJob": "docs",
+      "legs": [
+        {
+          "id": "site",
+          "title": "Site and API reference",
+          "proves": "The API reference matches the Server controllers, the showcase follows its layout, and the site builds."
+        },
+        {
+          "id": "design-system",
+          "title": "Design-system catalog",
+          "proves": "One palette, catalog-only paint, the scenes both command centers mount, and committed React Native and Avalonia bindings that match their source."
+        }
+      ]
+    },
+    {
+      "id": "installer",
+      "title": "Installer",
+      "question": "Does each native package install, run and uninstall where it ships?",
+      "matrixJob": "installer",
+      "legs": [
+        {
+          "id": "ubuntu",
+          "title": "Ubuntu .deb",
+          "proves": "Package contract, packaged Server and CLI, guided installer flow, then a real dpkg install, systemd service, CLI and uninstall."
+        },
+        {
+          "id": "nixos",
+          "title": "NixOS flake",
+          "proves": "Flake shape, nix build, the built Server and CLI on PATH."
+        },
+        {
+          "id": "macos-arm64",
+          "title": "macOS arm64 .pkg",
+          "proves": "Package contract, packaged Server and CLI, guided installer flow, installer app startup and elevation."
+        },
+        {
+          "id": "macos-x64",
+          "title": "macOS x64 .pkg",
+          "proves": "Package contract, packaged Server and CLI, guided installer flow, installer app startup and elevation."
+        },
+        {
+          "id": "windows",
+          "title": "Windows installer",
+          "proves": "Package contract, guided installer flow, then a real install, Windows service, CLI and uninstall."
+        }
+      ],
+      "gaps": [
+        {
+          "leg": "nixos",
+          "reason": "The NixOS module is never booted: services.agent-up is checked by text, not by a NixOS VM test.",
+          "kind": "gap"
+        },
+        {
+          "leg": "macos-arm64",
+          "reason": "The installed launchd service is skipped: the .pkg installs only the installer app, which has no noninteractive install mode.",
+          "kind": "gap"
+        },
+        {
+          "leg": "macos-x64",
+          "reason": "The installed launchd service is skipped: the .pkg installs only the installer app, which has no noninteractive install mode.",
+          "kind": "gap"
+        },
+        {
+          "leg": "windows",
+          "reason": "The packaged Server is not started from the package contents before install.",
+          "kind": "gap"
+        },
+        {
+          "leg": "all",
+          "reason": "The guided installer flow runs with fake platform adapters (AGENTUP_INSTALLER_FAKE=1); the dashboard's own install path is proven only through installed-service smoke on Ubuntu and Windows.",
+          "kind": "gap"
+        }
+      ]
+    }
+  ]
+}

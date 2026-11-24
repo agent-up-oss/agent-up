@@ -155,7 +155,7 @@ first-party module plus the Server Forge slice against it. It is `slow` and
 `ciOnly`, requires Docker, and stays out of those same suites. Missing Docker
 fails the run. CI runs it with `./.github/scripts/run-forgejo-e2e.sh`.
 
-Mobile `npm test` discovers `src/features/**/*.test.ts` recursively, so a new feature's tests run without editing the script. `MobileFeatureTestCoverage` fails a `src/features/<slice>` that has production TypeScript outside `components/` with no tests, and a `providers/` folder whose production files have no sibling tests. React context controllers and Expo hooks stay thin and delegate to those providers. Component rendering is not gated: do not add `react-native-testing-library` for product screens. WebAudit `npm test` runs in the Mobile CI jobs on every pull request, not only the release publish step.
+Mobile `npm test` discovers `src/features/**/*.test.ts` recursively, so a new feature's tests run without editing the script. `MobileFeatureTestCoverage` fails a `src/features/<slice>` that has production TypeScript outside `components/` with no tests, and a `providers/` folder whose production files have no sibling tests. React context controllers and Expo hooks stay thin and delegate to those providers. Component rendering is not gated: do not add `react-native-testing-library` for product screens. WebAudit `npm test` runs in Source · TypeScript suites on every pull request, not only the release publish step.
 
 ## Rules assert properties, not membership
 

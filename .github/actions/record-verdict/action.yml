@@ -1,0 +1,42 @@
+name: Record verdict
+# Run it as the last step of a leg under an always() condition, passing the job's status. A leg
+# that never reaches this step records nothing, which the matrix reads as "did not run" and fails.
+# The description below must not contain expression syntax: GitHub evaluates it when it loads the
+# action, and there is no job context there.
+description: Records one behavior-matrix leg's outcome for the Behavior matrix job.
+
+inputs:
+  stage:
+    description: Stage id from .github/behavior-matrix.json.
+    required: true
+  leg:
+    description: Leg id from .github/behavior-matrix.json.
+    required: true
+  status:
+    description: The job's status so far.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Write verdict
+      shell: bash
+      env:
+        VERDICT_STAGE: ${{ inputs.stage }}
+        VERDICT_LEG: ${{ inputs.leg }}
+        VERDICT_STATUS: ${{ inputs.status }}
+        VERDICT_RUNNER: ${{ runner.os }}-${{ runner.arch }}
+      run: |
+        mkdir -p "$RUNNER_TEMP/verdict"
+        printf '{"stage":"%s","leg":"%s","status":"%s","runner":"%s","attempt":"%s"}\n' \
+          "$VERDICT_STAGE" "$VERDICT_LEG" "$VERDICT_STATUS" "$VERDICT_RUNNER" "$GITHUB_RUN_ATTEMPT" \
+          > "$RUNNER_TEMP/verdict/$VERDICT_STAGE--$VERDICT_LEG.json"
+        cat "$RUNNER_TEMP/verdict/$VERDICT_STAGE--$VERDICT_LEG.json"
+
+    - uses: actions/upload-artifact@v7
+      with:
+        name: verdict-${{ inputs.stage }}--${{ inputs.leg }}
+        path: ${{ runner.temp }}/verdict/${{ inputs.stage }}--${{ inputs.leg }}.json
+        if-no-files-found: error
+        retention-days: 7
+        overwrite: true

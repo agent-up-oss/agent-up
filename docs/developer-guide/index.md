@@ -28,7 +28,7 @@ Those endpoints accept loopback connections anonymously, because on loopback the
 - The [API Reference](/api-reference/) is its own versioned docs space. Current is Next; previous release snapshots stay on the site.
 - [Repo](/developer-guide/repo/architecture) covers architecture rules, packaging, CI, `au-debug`, design-system consumption, and telemetry.
 - [Testing](/developer-guide/repo/testing) sets out how tests are written: builders, shared domain data, and setup that stays in the test.
-- [Mobile store release](/developer-guide/repo/mobile-store-release) documents Mobile CI smoke builds and the dispatched Android and iOS store pipeline.
+- [Mobile store release](/developer-guide/repo/mobile-store-release) documents the Mobile store legs and the dispatched Mobile release.
 - Slice Generals use the same labels as User Docs: [Workspaces](/developer-guide/workspaces), [Applications](/developer-guide/applications), [Git](/developer-guide/git), [Commits](/developer-guide/commits), [Agents](/developer-guide/agents), [Browser](/developer-guide/browser), [Diagnostics](/developer-guide/diagnostics), [Verification](/developer-guide/verification), [Configuration](/developer-guide/configuration).
 
 The [Commit merge queue assessment](/developer-guide/commits/merge-queue-assessment) and [Desktop application hosting assessment](/developer-guide/applications/hosting-assessment) are design notes, not the current contract.

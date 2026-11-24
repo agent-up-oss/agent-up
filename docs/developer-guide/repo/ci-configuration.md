@@ -22,19 +22,19 @@ This page lists the repository secrets and variables the Agent-Up CI workflow re
 
 <DocContract label="Location">Settings → Secrets and variables → Actions</DocContract>
 
-The Agent-Up CI workflow runs on every push. Signing and release steps degrade gracefully when their credentials are absent. Codecov uploads also skip when `CODECOV_TOKEN` is unavailable, which is how GitHub withholds repository secrets from Dependabot and fork pull requests. Patch coverage and the slice floor still run locally in the coverage job.
+The Agent-Up CI workflow runs on every push. Signing and release steps degrade gracefully when their credentials are absent. Codecov uploads also skip when `CODECOV_TOKEN` is unavailable, which is how GitHub withholds repository secrets from Dependabot and fork pull requests. Patch coverage and the slice floor still run in Source · .NET suites and coverage.
 
 ## Code coverage
 
 | Secret | Value |
 |---|---|
-| `CODECOV_TOKEN` | Repository upload token from Codecov. Mapped onto the coverage jobs as `env.CODECOV_TOKEN` because GitHub Actions cannot read `secrets` in `if` conditions. Uploads skip when that env is empty, which is how GitHub withholds the secret from Dependabot and fork runs. |
+| `CODECOV_TOKEN` | Repository upload token from Codecov. Passed to the `source-coverage` action as `codecov-token`, and mapped onto Desktop as `env.CODECOV_TOKEN`, because GitHub Actions cannot read `secrets` in `if` conditions. Uploads skip when that value is empty, which is how GitHub withholds the secret from Dependabot and fork runs. |
 
-The .NET coverage job uploads each test project's Cobertura output separately. Each
+Source · .NET suites and coverage uploads each test project's Cobertura output separately. Each
 upload has a test-project-specific Codecov flag, such as
 `agentup-server-tests`, so Codecov can filter the production-project coverage
-contributed by an individual test module. `AgentUp.Tests` combines its regular
-and headless E2E coverage under the `agentup-tests` flag.
+contributed by an individual test module. Desktop · Native Linux uploads `AgentUp.Tests`
+regular and headless E2E coverage under the `agentup-tests` flag.
 
 ## Signing — macOS
 
@@ -123,15 +123,15 @@ LocalInstaller NuGet publishing is optional. Add `NUGET_API_KEY` to publish `Loc
 
 ## Mobile store release
 
-Native mobile binaries are built by `.github/workflows/mobile-ci.yaml`. Path-filtered
-pushes run the shared Mobile test job before they smoke-build and sign. After
-validation, the signed AAB and IPA are uploaded to GitHub Actions artifacts with
-1-day retention, before any store submit. Store upload and `android-v*` /
-`ios-v*` GitHub releases run only on `workflow_dispatch`. The desktop `ci.yml`
-signing and release steps skip when credentials are absent. Android and iOS jobs
-skip when `github.actor` is `dependabot[bot]`, because GitHub withholds Actions
-secrets from that actor. `workflow_dispatch` still requires those secrets and
-fails if they are missing. Play upload secrets are required only on dispatch.
+The Mobile · Android store bundle and Mobile · iOS store archive legs of `ci.yml`
+build and sign the native binaries on every run, and upload the signed AAB and IPA
+to GitHub Actions artifacts with 1-day retention. Store upload and `android-v*` /
+`ios-v*` GitHub releases run only in Mobile release, on a `workflow_dispatch`
+that names a mobile channel. The desktop signing and release steps skip when
+credentials are absent. The store legs record a declared skip for Dependabot and
+for pull requests from forks, because GitHub withholds Actions secrets from both;
+any other run without the signing secrets fails. Play upload secrets are required
+only by Mobile release.
 The same Apple Match secret names as other MassiveCreationLab iOS apps can be
 copied onto this repository. Full flow: [Mobile store release](./mobile-store-release.md).
 

@@ -1,0 +1,177 @@
+name: Build the Android store bundle
+# Mobile · Android store bundle. The steps the native store pipeline ran before it was folded into
+# ci.yml, up to and including the artifact; Mobile release uploads that artifact to Google Play.
+description: Builds, signs and validates the Play upload AAB of the full Mobile client and uploads it with its checksum and release manifest.
+
+inputs:
+  version:
+    description: Marketing version for the binary.
+    required: true
+  version-code:
+    description: Play versionCode for the binary.
+    required: true
+  source-tag:
+    description: Product tag the version came from, or ci on an ordinary run.
+    required: true
+  keystore-base64:
+    description: Play upload keystore, base64.
+    required: true
+  keystore-pass:
+    description: Upload keystore password.
+    required: true
+  keyalias-name:
+    description: Upload key alias.
+    required: true
+  keyalias-pass:
+    description: Upload key password.
+    required: true
+  sentry-dsn:
+    description: Optional Mobile Sentry DSN baked into the build.
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Describe the build
+      id: build
+      shell: bash
+      run: |
+        name="Agent-Up-${{ inputs.version }}-${{ inputs.version-code }}"
+        echo "artifact_name=$name" >> "$GITHUB_OUTPUT"
+        {
+          echo "AGENTUP_MOBILE_VERSION=${{ inputs.version }}"
+          echo "AGENTUP_MOBILE_VERSION_CODE=${{ inputs.version-code }}"
+          echo "EXPO_NO_TELEMETRY=1"
+          echo "GRADLE_OPTS=-Dorg.gradle.jvmargs=-Xmx4g -Dfile.encoding=UTF-8"
+        } >> "$GITHUB_ENV"
+
+    - uses: actions/setup-node@v7
+      with:
+        node-version: 22
+        cache: npm
+        cache-dependency-path: |
+          AgentUp.Mobile/package-lock.json
+          AgentUp.Chat/package-lock.json
+          AgentUp.AgentAuth/package-lock.json
+          AgentUp.ServerClient/package-lock.json
+
+    - uses: actions/setup-java@v6
+      with:
+        distribution: temurin
+        java-version: "17"
+
+    - uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: "3.3"
+        bundler-cache: true
+
+    - name: Let Gradle ride out a transient repository error
+      shell: bash
+      run: ./.github/scripts/configure-gradle-network.sh
+
+    - uses: android-actions/setup-android@v4
+      with:
+        packages: platform-tools
+
+    - name: Require Android signing secrets
+      shell: bash
+      env:
+        ANDROID_KEYSTORE_BASE64: ${{ inputs.keystore-base64 }}
+        ANDROID_KEYSTORE_PASS: ${{ inputs.keystore-pass }}
+        ANDROID_KEYALIAS_NAME: ${{ inputs.keyalias-name }}
+        ANDROID_KEYALIAS_PASS: ${{ inputs.keyalias-pass }}
+      run: bash .github/scripts/require-env.sh ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASS ANDROID_KEYALIAS_NAME ANDROID_KEYALIAS_PASS
+
+    - name: Install Android SDK packages
+      shell: bash
+      run: |
+        sdkmanager --install \
+          "platforms;android-35" \
+          "platforms;android-36" \
+          "build-tools;35.0.0" \
+          "build-tools;36.0.0" \
+          "cmake;3.22.1"
+
+    - name: Install JavaScript dependencies
+      shell: bash
+      run: ./.github/scripts/install-mobile-deps.sh
+
+    - name: Decode Android upload keystore
+      shell: bash
+      env:
+        ANDROID_KEYSTORE_BASE64: ${{ inputs.keystore-base64 }}
+      run: |
+        printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/android-upload.keystore"
+        test -s "$RUNNER_TEMP/android-upload.keystore"
+
+    - name: Prebuild Android
+      shell: bash
+      working-directory: AgentUp.Mobile
+      env:
+        EXPO_PUBLIC_SENTRY_DSN: ${{ inputs.sentry-dsn }}
+        EXPO_PUBLIC_SENTRY_RELEASE: ${{ inputs.version }}
+      run: npx expo prebuild --platform android --clean --non-interactive
+
+    - name: Install generated NDK and write SDK path
+      shell: bash
+      working-directory: AgentUp.Mobile
+      run: bash ../.github/scripts/install-android-ndk.sh android
+
+    - name: Build signed AAB
+      shell: bash
+      env:
+        ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/android-upload.keystore
+        ANDROID_KEYSTORE_PASS: ${{ inputs.keystore-pass }}
+        ANDROID_KEYALIAS_NAME: ${{ inputs.keyalias-name }}
+        ANDROID_KEYALIAS_PASS: ${{ inputs.keyalias-pass }}
+      run: bundle exec fastlane android build
+
+    - name: Prepare Android artifact
+      shell: bash
+      working-directory: AgentUp.Mobile
+      run: |
+        mapfile -t aabs < <(find android/app/build/outputs/bundle -name '*.aab' -type f)
+        if [ "${#aabs[@]}" -ne 1 ]; then
+          echo "Expected exactly one AAB, found ${#aabs[@]}" >&2
+          find android/app/build/outputs/bundle -type f -print >&2 || true
+          exit 1
+        fi
+        bash ../.github/scripts/prepare-mobile-artifact.sh \
+          "${aabs[0]}" \
+          "../artifacts/mobile/${{ steps.build.outputs.artifact_name }}.aab"
+
+    - name: Download bundletool
+      shell: bash
+      env:
+        BUNDLETOOL_VERSION: "1.18.1"
+      run: |
+        curl -fsSL \
+          "https://github.com/google/bundletool/releases/download/${BUNDLETOOL_VERSION}/bundletool-all-${BUNDLETOOL_VERSION}.jar" \
+          -o "$RUNNER_TEMP/bundletool.jar"
+        test -s "$RUNNER_TEMP/bundletool.jar"
+
+    - name: Validate Android artifact
+      shell: bash
+      run: |
+        bash .github/scripts/verify-mobile-artifact.sh \
+          "artifacts/mobile/${{ steps.build.outputs.artifact_name }}.aab" \
+          aab \
+          "$RUNNER_TEMP/bundletool.jar"
+
+    - name: Write the release manifest
+      shell: bash
+      run: |
+        node .github/scripts/mobile-release-manifest.mjs write artifacts/mobile/release.json \
+          android "${{ inputs.version }}" "${{ inputs.version-code }}" "${{ inputs.source-tag }}" \
+          "${{ steps.build.outputs.artifact_name }}.aab"
+
+    - uses: actions/upload-artifact@v7
+      with:
+        name: mobile-android
+        path: |
+          artifacts/mobile/${{ steps.build.outputs.artifact_name }}.aab
+          artifacts/mobile/${{ steps.build.outputs.artifact_name }}.aab.sha256
+          artifacts/mobile/release.json
+        if-no-files-found: error
+        retention-days: 1
