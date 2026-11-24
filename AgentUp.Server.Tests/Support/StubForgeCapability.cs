@@ -35,11 +35,17 @@ internal sealed class StubForgeCapability : IForgeCapability
 
     public IReadOnlyList<ForgePullRequest> PullRequests { get; init; } = [];
 
-    public Exception? ReadFailure { get; init; }
+    public Exception? ReadFailure { get; set; }
 
     public Exception? ListAssignedFailure { get; init; }
 
     public Exception? ListIssuesFailure { get; init; }
+
+    public Exception? TokenAccessFailure { get; init; }
+
+    public Exception? ListRepositoriesFailure { get; init; }
+
+    public Exception? ListPullRequestsFailure { get; init; }
 
     public Exception? UpdateRefFailure { get; init; }
 
@@ -83,7 +89,9 @@ internal sealed class StubForgeCapability : IForgeCapability
     {
         LastToken = token;
         LastEndpointUrl = endpointUrl;
-        return Task.FromResult(TokenAccess);
+        return TokenAccessFailure is not null
+            ? Task.FromException<ForgeTokenAccess>(TokenAccessFailure)
+            : Task.FromResult(TokenAccess);
     }
 
     public Task<IReadOnlyList<ForgeRepository>> ListRepositoriesAsync(
@@ -93,14 +101,18 @@ internal sealed class StubForgeCapability : IForgeCapability
     {
         LastToken = token;
         LastEndpointUrl = endpointUrl;
-        return Task.FromResult(Repositories);
+        return ListRepositoriesFailure is not null
+            ? Task.FromException<IReadOnlyList<ForgeRepository>>(ListRepositoriesFailure)
+            : Task.FromResult(Repositories);
     }
 
     public Task<IReadOnlyList<ForgePullRequest>> ListPullRequestsAsync(ForgeRequest request, CancellationToken cancellationToken = default)
     {
         LastToken = request.Token;
         LastEndpointUrl = request.EndpointUrl;
-        return Task.FromResult(PullRequests);
+        return ListPullRequestsFailure is not null
+            ? Task.FromException<IReadOnlyList<ForgePullRequest>>(ListPullRequestsFailure)
+            : Task.FromResult(PullRequests);
     }
 
     public Task<IReadOnlyList<ForgeIssue>> ListIssuesAsync(

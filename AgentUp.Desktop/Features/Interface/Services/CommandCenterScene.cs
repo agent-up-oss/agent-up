@@ -485,6 +485,37 @@ public static class CommandCenterScene
         return (token.Trim(), endpoint.Trim());
     }
 
+    /// <summary>
+    /// The Tasks page names a repository as <c>module/owner/name</c>. Anything else is not a
+    /// repository the page can open.
+    /// </summary>
+    public static (string ModuleId, string Owner, string Name)? ParseRepositoryKey(string? id)
+    {
+        var parts = id?.Split('/', 3);
+        return parts is { Length: 3 } && parts.All(part => part.Length > 0)
+            ? (parts[0], parts[1], parts[2])
+            : null;
+    }
+
+    /// <summary>
+    /// One row per review of the given kind, worded for the Dev review or PM review board.
+    /// </summary>
+    public static IReadOnlyList<CommandCenterTaskSlot> ReviewRows(
+        IReadOnlyList<TaskSourcePull> pulls,
+        string kind,
+        string repo)
+        => pulls.SelectMany(pull => pull.Reviews.Where(review => review.Kind == kind).Select(review => new CommandCenterTaskSlot(
+            $"{pull.Id}:{kind}",
+            $"#{pull.Number} · {pull.Title}",
+            repo,
+            review.Standing switch
+            {
+                "reviewed" => $"{review.Verdict} by {review.Login}",
+                "reviewing" => review.Login ?? "",
+                _ => "Waiting for a reviewer",
+            },
+            review.Standing))).ToArray();
+
     private static string? Read(IReadOnlyDictionary<string, string>? fields, string key)
         => fields is not null && fields.TryGetValue(key, out var value) ? value : null;
 }

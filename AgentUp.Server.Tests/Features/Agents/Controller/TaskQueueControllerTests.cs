@@ -22,7 +22,7 @@ public sealed class TaskQueueControllerTests
     {
         var (controller, _, workspaceId) = await ArrangeAsync(Issue("7", 3));
 
-        var queued = await controller.EnqueueAsync(new EnqueueTaskRequest(workspaceId, "7"));
+        var queued = await controller.EnqueueAsync(ServerDomain.EnqueueTask().FromWorkspace(workspaceId).Issue("7").Build());
 
         Assert.Multiple(() =>
         {
@@ -38,7 +38,7 @@ public sealed class TaskQueueControllerTests
     public async Task List_namesTheCommitEachProposalRevisionIs()
     {
         var (controller, tasks, workspaceId) = await ArrangeAsync(Issue("7", 3));
-        await controller.EnqueueAsync(new EnqueueTaskRequest(workspaceId, "7"));
+        await controller.EnqueueAsync(ServerDomain.EnqueueTask().FromWorkspace(workspaceId).Issue("7").Build());
         tasks.TryClaim(workspaceId, "acme", "widgets", "7");
         tasks.Begin(workspaceId, "acme", "widgets", "7", "main");
         tasks.Propose(workspaceId, "acme", "widgets", "7", "9", "https://example.test/pulls/9", "agent-up/issue-3", "main", "abc123");
@@ -53,7 +53,7 @@ public sealed class TaskQueueControllerTests
     public async Task List_namesWhoHoldsEachReviewAndWhichKindsTheRevisionStillNeeds()
     {
         var (controller, tasks, workspaceId) = await ArrangeAsync(TeamMemberKind.DevReviewer, Issue("7", 3));
-        await controller.EnqueueAsync(new EnqueueTaskRequest(workspaceId, "7"));
+        await controller.EnqueueAsync(ServerDomain.EnqueueTask().FromWorkspace(workspaceId).Issue("7").Build());
         tasks.TryClaim("bob", "acme", "widgets", "7");
         tasks.Begin("bob", "acme", "widgets", "7", "main");
         tasks.Propose("bob", "acme", "widgets", "7", "9", "https://example.test/pulls/9", "agent-up/issue-3", "main", "abc123");
@@ -77,7 +77,7 @@ public sealed class TaskQueueControllerTests
     {
         var (controller, _, workspaceId) = await ArrangeAsync(Issue("7", 3));
 
-        Assert.That(await controller.EnqueueAsync(new EnqueueTaskRequest(workspaceId, "nope")), Is.Null);
+        Assert.That(await controller.EnqueueAsync(ServerDomain.EnqueueTask().FromWorkspace(workspaceId).Issue("nope").Build()), Is.Null);
     }
 
     [Test]
@@ -85,7 +85,7 @@ public sealed class TaskQueueControllerTests
     {
         var (controller, _, _) = await ArrangeAsync(Issue("7", 3));
 
-        Assert.That(await controller.EnqueueAsync(new EnqueueTaskRequest("missing", "7")), Is.Null);
+        Assert.That(await controller.EnqueueAsync(ServerDomain.EnqueueTask().FromWorkspace("missing").Issue("7").Build()), Is.Null);
     }
 
     [Test]
@@ -93,7 +93,7 @@ public sealed class TaskQueueControllerTests
     {
         var (controller, _, workspaceId) = await ArrangeAsync(Issue("7", 3));
 
-        var queued = await controller.EnqueueAsync(new EnqueueTaskRequest(workspaceId, "7", workspaceId));
+        var queued = await controller.EnqueueAsync(ServerDomain.EnqueueTask().FromWorkspace(workspaceId).Issue("7").Targeting(workspaceId).Build());
 
         Assert.That(queued!.TargetWorkspaceId, Is.EqualTo(workspaceId));
     }
@@ -102,7 +102,7 @@ public sealed class TaskQueueControllerTests
     public async Task Remove_leavesATaskAWorkspaceIsCarrying()
     {
         var (controller, tasks, workspaceId) = await ArrangeAsync(Issue("7", 3));
-        await controller.EnqueueAsync(new EnqueueTaskRequest(workspaceId, "7"));
+        await controller.EnqueueAsync(ServerDomain.EnqueueTask().FromWorkspace(workspaceId).Issue("7").Build());
         tasks.TryClaim(workspaceId, "acme", "widgets", "7");
 
         Assert.Multiple(() =>
@@ -116,7 +116,7 @@ public sealed class TaskQueueControllerTests
     public async Task Release_freesAHeldTaskForSomebodyElse()
     {
         var (controller, tasks, workspaceId) = await ArrangeAsync(Issue("7", 3));
-        await controller.EnqueueAsync(new EnqueueTaskRequest(workspaceId, "7"));
+        await controller.EnqueueAsync(ServerDomain.EnqueueTask().FromWorkspace(workspaceId).Issue("7").Build());
         tasks.TryClaim(workspaceId, "acme", "widgets", "7");
 
         var released = controller.Release("acme", "widgets", "7");

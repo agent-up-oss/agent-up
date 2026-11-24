@@ -46,6 +46,14 @@ public sealed class PullRequestReviewInferenceTests
     }
 
     [Test]
+    public void AnUnknownKindSortsAfterDevAndPmReview()
+    {
+        var reviews = PullRequestReviewInference.For(Pull([], []), Team, ["other", "pmReviewer", "devReviewer"]);
+
+        Assert.That(reviews.Select(review => review.Kind), Is.EqualTo(new[] { "devReviewer", "pmReviewer", "other" }));
+    }
+
+    [Test]
     public void APullWithNobodyTheTeamKnowsOwesEveryReviewerKindTheTeamHas()
     {
         var reviews = PullRequestReviewInference.For(Pull([], []), Team, ["pmReviewer", "devReviewer"]);

@@ -310,11 +310,49 @@ public sealed class CommandCenterSceneTests
         };
 
         var saved = CommandCenterScene.TokenSave(fields, "ignored");
+        var fromText = CommandCenterScene.TokenSave(null, " pasted ");
 
         Assert.Multiple(() =>
         {
             Assert.That(saved.Token, Is.EqualTo("secret"));
             Assert.That(saved.EndpointUrl, Is.EqualTo("https://git.example.test"));
+            Assert.That(fromText.Token, Is.EqualTo("pasted"));
+            Assert.That(fromText.EndpointUrl, Is.EqualTo(""));
+        });
+    }
+
+    [Test]
+    public void ParseRepositoryKey_readsModuleOwnerAndName()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(CommandCenterScene.ParseRepositoryKey("github/example/repository"), Is.EqualTo(("github", "example", "repository")));
+            Assert.That(CommandCenterScene.ParseRepositoryKey("github/example"), Is.Null);
+            Assert.That(CommandCenterScene.ParseRepositoryKey(""), Is.Null);
+        });
+    }
+
+    [Test]
+    public void ReviewRows_wordTheStandingTheBoardShows()
+    {
+        var pulls = new[]
+        {
+            new TaskSourcePull("42", 42, "Product cards", "u",
+            [
+                new TaskSourceReview("devReviewer", "reviewing", "hector", null),
+                new TaskSourceReview("pmReviewer", "reviewed", "lucy", "Approved"),
+                new TaskSourceReview("devReviewer", "waiting", null, null),
+            ]),
+        };
+
+        var reviewing = CommandCenterScene.ReviewRows(pulls, "devReviewer", "example/repository");
+        var reviewed = CommandCenterScene.ReviewRows(pulls, "pmReviewer", "example/repository");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(reviewing.Select(row => row.Agent), Is.EqualTo(new[] { "hector", "Waiting for a reviewer" }));
+            Assert.That(reviewed.Single().Agent, Is.EqualTo("Approved by lucy"));
+            Assert.That(reviewed.Single().Action, Is.EqualTo("reviewed"));
         });
     }
 

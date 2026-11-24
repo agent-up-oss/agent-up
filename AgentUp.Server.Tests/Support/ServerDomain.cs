@@ -75,6 +75,9 @@ internal static class ServerDomain
     /// <summary>The canonical enqueue request, the controller-boundary form of that commit.</summary>
     public static EnqueueRequestBuilder Enqueue() => new();
 
+    /// <summary>The canonical pick of an issue onto the task queue.</summary>
+    public static EnqueueTaskRequestBuilder EnqueueTask() => new();
+
     /// <summary>The canonical audit record.</summary>
     public static AuditRecordRequestBuilder AuditRecord() => new();
 

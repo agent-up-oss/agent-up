@@ -48,6 +48,23 @@ public sealed class TaskQueueApiClientTests
     }
 
     [Test]
+    public async Task EnqueueAsync_postsTheHostAndRepositoryWhenPickingFromTheTaskSource()
+    {
+        var handler = Returning("{}");
+
+        await new TaskQueueApiClient(Client(handler)).EnqueueAsync(
+            null, "I-57", null, CancellationToken.None, "github", "example", "repository");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(handler.Requests.Single(), Is.EqualTo("POST api/tasks"));
+            Assert.That(handler.Bodies.Single(), Does.Contain("\"moduleId\":\"github\""));
+            Assert.That(handler.Bodies.Single(), Does.Contain("\"owner\":\"example\""));
+            Assert.That(handler.Bodies.Single(), Does.Contain("\"repository\":\"repository\""));
+        });
+    }
+
+    [Test]
     public async Task EnqueueAsync_postsTheWorkspaceTheIssueAndTheTarget()
     {
         var handler = Returning("{}");
@@ -118,6 +135,21 @@ public sealed class TaskQueueApiClientTests
         Assert.That(
             async () => await client.RemoveAsync(Task("I-44"), CancellationToken.None),
             Throws.InstanceOf<HttpRequestException>());
+    }
+
+    [Test]
+    public async Task ListRepositoryIssuesAsync_readsAMissingListAsEmpty()
+    {
+        var handler = new RoutedHandler(new Dictionary<string, string>
+        {
+            ["api/task-source/issues?moduleId=github&owner=example&repository=repository"] = "null",
+        });
+
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000/") };
+        var issues = await new TaskQueueApiClient(http)
+            .ListRepositoryIssuesAsync("github", "example", "repository", CancellationToken.None);
+
+        Assert.That(issues, Is.Empty);
     }
 
     [Test]

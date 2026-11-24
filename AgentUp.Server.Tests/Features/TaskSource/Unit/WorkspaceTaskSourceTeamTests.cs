@@ -23,6 +23,22 @@ public sealed class WorkspaceTaskSourceTeamTests
     }
 
     [Test]
+    public async Task AReviewerWhoseHostAccountCannotBeReadStillOwesThatKindOfReview()
+    {
+        var team = await TaskTeamComposition.ComposeAsync(null);
+        team.Forge.ReadFailure = new HttpRequestException("offline");
+        var source = new WorkspaceTaskSourceTeam(team.Host, team.Workspaces, team.Settings);
+
+        var members = await source.ForAsync("acme", "widgets", CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(members.Kinds, Is.EqualTo(new[] { "devReviewer" }));
+            Assert.That(members.KindByLogin, Is.Empty);
+        });
+    }
+
+    [Test]
     public async Task ADifferentRepositoryHasNoReviewersFromThisTeam()
     {
         var team = await TaskTeamComposition.ComposeAsync(null);

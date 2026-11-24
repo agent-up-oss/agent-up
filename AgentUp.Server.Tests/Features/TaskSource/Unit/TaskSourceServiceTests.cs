@@ -163,6 +163,107 @@ public sealed class TaskSourceServiceTests
     }
 
     [Test]
+    public async Task AnUnknownHostIsRefused()
+    {
+        var saved = await Service().SaveAsync(Save("gitlab", "token"), CancellationToken.None);
+
+        Assert.That(saved.StatusCode, Is.EqualTo(409));
+        Assert.That(saved.Body!.ToString(), Does.Contain("GitHub or Forgejo"));
+    }
+
+    [Test]
+    public async Task ATokenIsRefusedUntilTheHostCapabilityIsEnabled()
+    {
+        var credentials = new MemoryTaskSourceCredentialStore();
+        var service = new TaskSourceService(credentials, new FakeEnabledCapabilityPackages(), new EmptyTaskSourceTeam());
+
+        var saved = await service.SaveAsync(Save("github", "token"), CancellationToken.None);
+
+        Assert.That(saved.StatusCode, Is.EqualTo(409));
+        Assert.That(saved.Body!.ToString(), Does.Contain("Enable the GitHub"));
+        Assert.That(credentials.Read("github"), Is.Null);
+    }
+
+    [Test]
+    public async Task AHostThatCannotBeReachedIsReportedAsUnavailable()
+    {
+        var forge = new StubForgeCapability { TokenAccessFailure = new HttpRequestException("offline") };
+        var saved = await Service(forge).SaveAsync(Save("github", "token"), CancellationToken.None);
+
+        Assert.That(saved.StatusCode, Is.EqualTo(503));
+        Assert.That(saved.Body!.ToString(), Does.Contain("Could not reach GitHub"));
+    }
+
+    [Test]
+    public async Task ForgettingEveryHostClearsBothTokens()
+    {
+        var credentials = new MemoryTaskSourceCredentialStore();
+        var service = Service(credentials: credentials);
+        await service.SaveAsync(Save("github", "github-token"), CancellationToken.None);
+
+        service.Clear(null);
+
+        Assert.That(credentials.Read("github"), Is.Null);
+        Assert.That(service.Describe().Modules.Select(module => module.Connected), Is.All.False);
+    }
+
+    [Test]
+    public async Task ASavedTokenWithTheCapabilityDisabledSaysToEnableIt()
+    {
+        var credentials = new MemoryTaskSourceCredentialStore();
+        credentials.Write("github", new TaskSourceCredential("token", "https://github.com"));
+        var service = new TaskSourceService(credentials, new FakeEnabledCapabilityPackages(), new EmptyTaskSourceTeam());
+
+        var github = service.Describe().Modules.Single(module => module.ModuleId == "github");
+
+        Assert.That(github.Connected, Is.False);
+        Assert.That(github.Detail, Does.Contain("Enable the GitHub capability to use the saved token"));
+    }
+
+    [Test]
+    public async Task AHostThatCannotBeReachedListsNoRepositories()
+    {
+        var forge = new StubForgeCapability
+        {
+            Repositories = [new ForgeRepository("acme", "widgets")],
+            ListRepositoriesFailure = new HttpRequestException("offline"),
+        };
+        var service = Service(forge);
+        await service.SaveAsync(Save("github", "token"), CancellationToken.None);
+
+        Assert.That(await service.ListRepositoriesAsync(CancellationToken.None), Is.Empty);
+    }
+
+    [Test]
+    public async Task IssuesAndPullsAreEmptyWhenTheHostOrRepositoryIsMissing()
+    {
+        var service = Service();
+        await service.SaveAsync(Save("github", "token"), CancellationToken.None);
+        var unknown = await service.ListIssuesAsync("gitlab", "acme", "widgets", CancellationToken.None);
+        var noOwner = await service.ListIssuesAsync("github", "", "widgets", CancellationToken.None);
+        var noRepo = await service.ListPullsAsync("github", "acme", "", CancellationToken.None);
+
+        Assert.That(unknown, Is.Empty);
+        Assert.That(noOwner, Is.Empty);
+        Assert.That(noRepo, Is.Empty);
+    }
+
+    [Test]
+    public async Task AHostThatCannotBeReachedListsNoIssuesOrPulls()
+    {
+        var forge = new StubForgeCapability
+        {
+            ListIssuesFailure = new HttpRequestException("offline"),
+            ListPullRequestsFailure = new TaskCanceledException(),
+        };
+        var service = Service(forge);
+        await service.SaveAsync(Save("github", "token"), CancellationToken.None);
+
+        Assert.That(await service.ListIssuesAsync("github", "acme", "widgets", CancellationToken.None), Is.Empty);
+        Assert.That(await service.ListPullsAsync("github", "acme", "widgets", CancellationToken.None), Is.Empty);
+    }
+
+    [Test]
     public async Task IssuesAndPullsAreReadFromTheNamedRepositoryAtTheSavedHost()
     {
         var forge = new StubForgeCapability

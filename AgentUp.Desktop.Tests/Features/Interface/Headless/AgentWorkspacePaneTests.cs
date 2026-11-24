@@ -1,7 +1,19 @@
 using System.Reactive.Linq;
 using Avalonia.LogicalTree;
+using AgentUp.Desktop.Composition;
+using AgentUp.Desktop.Features.Authentication.Controllers;
+using AgentUp.Desktop.Features.Authentication.Providers;
+using AgentUp.Desktop.Features.Authentication.Services;
+using AgentUp.Desktop.Features.Authentication.ViewModels;
+using AgentUp.Desktop.Features.FakeServer.Models;
+using AgentUp.Desktop.Features.FakeServer.Providers;
+using AgentUp.Desktop.Features.Interface.Controllers;
+using AgentUp.Desktop.Features.Interface.Providers;
+using AgentUp.Desktop.Features.Interface.Services;
+using AgentUp.Desktop.Features.Interface.ViewModels;
 using AgentUp.Desktop.Features.Ports.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
+using AgentUp.Desktop.Features.Workspaces.Views;
 using AgentUp.Desktop.Shared.Providers;
 using AgentUp.Desktop.Tests.Support;
 using Avalonia;
@@ -354,6 +366,45 @@ public sealed class AgentWorkspacePaneTests
     }
 
     [AvaloniaTest]
+    public async Task Tasks_opensTheDemoRepositoryAndSettingsStoresAForgejoToken()
+    {
+        var window = await LaunchDemoCommandCenterAsync();
+        var center = ((MainViewModel)window.DataContext!).CommandCenter!;
+        var source = center.TaskSource!;
+        await WaitAsync(() => source.IsConnected("github"));
+        Assert.That(source.IsConnected("github"), Is.True, source.Error);
+        center.ShowNav(1);
+        await HeadlessExtensions.FlushAsync();
+        await WaitAsync(() => ButtonTexts(window).Any(text => text.Contains("example/repository")));
+        await window.ClickControlAsync(ButtonContaining(window, "example/repository"));
+        await WaitAsync(() => ButtonTexts(window).Contains("Back"));
+        await window.ClickControlAsync(VisibleButtonNamed(window, "Dev review"));
+        await window.ClickControlAsync(VisibleButtonNamed(window, "PM review"));
+        var queue = window.GetVisualDescendants().OfType<Button>().FirstOrDefault(button => button.IsVisible && ButtonText(button) == "Queue");
+        if (queue is not null)
+            await window.ClickControlAsync(queue);
+        await window.ClickControlAsync(VisibleButtonNamed(window, "Back"));
+        center.ShowNav(2);
+        await HeadlessExtensions.FlushAsync();
+        await WaitAsync(() => source.IsConnected("github") && ButtonTexts(window).Contains("Forget"));
+        await window.ClickControlAsync(VisibleButtonNamed(window, "Forget"));
+        await WaitAsync(() => !source.IsConnected("github"));
+        await window.ClickControlAsync(VisibleButtonNamed(window, "Forgejo"));
+        await HeadlessExtensions.FlushAsync();
+        UrlBox(window).Text = "https://git.example.test";
+        PasswordBox(window).Text = "forgejo-token";
+        await window.ClickControlAsync(VisibleButtonNamed(window, "Save"));
+        await HeadlessExtensions.FlushAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(source.IsConnected("github"), Is.False);
+            Assert.That(center.SceneId, Is.EqualTo("settings"));
+        });
+        window.Close();
+    }
+
+    [AvaloniaTest]
     public async Task Settings_switches_back_to_the_classic_shell()
     {
         var driver = await LaunchOnTheCommandCenterAsync();
@@ -397,6 +448,34 @@ public sealed class AgentWorkspacePaneTests
         return driver;
     }
 
+    private static async Task<MainWindow> LaunchDemoCommandCenterAsync()
+    {
+        var backend = FakeServerTestComposition.Backend();
+        var http = ServerSessionProvider.CreateClient(
+            new Uri("http://127.0.0.1:5000"),
+            new FakeServerMessageHandler(backend, new HttpClientHandler()));
+        var connections = FakeServerTestComposition.Connections(new InMemoryServerConnectionStore(), http, backend);
+        connections.Activate("fake");
+        var login = new LoginViewModel(new AuthenticationController(
+            new AuthenticationService(new AuthenticationApiClient(http)),
+            connections));
+        login.ShowPicker();
+        login.ServerUrl = FakeServerIdentity.Url;
+        await login.ConnectCommand.Execute().FirstAsync();
+        var commandCenter = new CommandCenterViewModel(
+            new InterfaceController(new MemoryInterfacePreferenceStore()),
+            tasks: new TaskQueueViewModel(new TaskQueueController(new TaskQueueService(new TaskQueueApiClient(http)))),
+            taskSource: new TaskSourceViewModel(new TaskSourceController(new TaskSourceService(new TaskSourceApiClient(http)))));
+        var viewModel = MainViewModelFactory.Create(http, login, commandCenter: commandCenter);
+        var window = new MainWindow(http, FakeServerTestComposition.Controller(backend)) { DataContext = viewModel };
+        window.WebViewFactory = () => throw new InvalidOperationException("WebView not available in headless tests");
+        window.Show();
+        await viewModel.InitializeAsync();
+        commandCenter.ToggleCommand.Execute().Subscribe();
+        await HeadlessExtensions.FlushAsync();
+        return window;
+    }
+
     private static async Task OpenAgentAsync(AppDriver driver)
     {
         var standing = TeamStandingComposition.Standing(workspaceId: DesktopDomain.WorkspaceId);
@@ -426,6 +505,21 @@ public sealed class AgentWorkspacePaneTests
 
     private static Button ButtonNamed(Window window, string label)
         => window.GetVisualDescendants().OfType<Button>().Single(button => ButtonText(button) == label);
+
+    private static Button VisibleButtonNamed(Window window, string label)
+        => window.GetVisualDescendants().OfType<Button>().First(button => button.IsVisible && ButtonText(button) == label);
+
+    private static Button ButtonContaining(Window window, string text)
+        => window.GetVisualDescendants().OfType<Button>().First(button => ButtonText(button).Contains(text));
+
+    private static IReadOnlyList<string> ButtonTexts(Window window)
+        => window.GetVisualDescendants().OfType<Button>().Select(ButtonText).ToArray();
+
+    private static TextBox UrlBox(Window window)
+        => window.GetVisualDescendants().OfType<TextBox>().Single(box => box.PlaceholderText == "https://git.example.com");
+
+    private static TextBox PasswordBox(Window window)
+        => window.GetVisualDescendants().OfType<TextBox>().Single(box => box.PlaceholderText == "Personal access token");
 
     private static Button ButtonOn(Control root, string label)
         => root.GetVisualDescendants().OfType<Button>().Single(button => ButtonText(button) == label);

@@ -63,6 +63,27 @@ public sealed class FakeBackendTaskSourceTests
     }
 
     [Test]
+    public void SavingAGitHubTokenKeepsThatHostConnected()
+    {
+        var backend = FakeServerTestComposition.Backend();
+        Json(backend, Delete("/api/task-source/github"));
+
+        var source = Json(backend, Put("/api/task-source", """{"moduleId":"github","endpointUrl":"https://github.com","token":"github-token"}"""));
+        var github = source["modules"]!.AsArray().Single(module => module!["moduleId"]!.GetValue<string>() == "github")!;
+
+        Assert.That(github["connected"]!.GetValue<bool>(), Is.True);
+    }
+
+    [Test]
+    public void PullsAreEmptyOnceGitHubIsForgotten()
+    {
+        var backend = FakeServerTestComposition.Backend();
+        Json(backend, Delete("/api/task-source/github"));
+
+        Assert.That(Json(backend, Get("/api/task-source/pulls")).AsArray(), Is.Empty);
+    }
+
+    [Test]
     public void SavingATokenConnectsThatHost()
     {
         var backend = FakeServerTestComposition.Backend();
@@ -96,6 +117,60 @@ public sealed class FakeBackendTaskSourceTests
         Json(backend, Delete("/api/task-source"));
 
         Assert.That(Run(backend, Post("/api/tasks", """{"issueId":"I-57"}""")).Status, Is.EqualTo(404));
+    }
+
+    [Test]
+    public void SavingATokenOnAnUnknownHostIsRefused()
+    {
+        var backend = FakeServerTestComposition.Backend();
+
+        var refused = Run(backend, Put("/api/task-source", """{"moduleId":"gitlab","endpointUrl":"https://gitlab.com","token":"token"}"""));
+
+        Assert.That(refused.Status, Is.EqualTo(409));
+    }
+
+    [Test]
+    public void SavingAnEmptyTokenIsRefused()
+    {
+        var backend = FakeServerTestComposition.Backend();
+
+        var refused = Run(backend, Put("/api/task-source", """{"moduleId":"forgejo","endpointUrl":"https://git.example.test","token":" "}"""));
+
+        Assert.That(refused.Status, Is.EqualTo(409));
+    }
+
+    [Test]
+    public void ANonHttpHostUrlIsRefused()
+    {
+        var backend = FakeServerTestComposition.Backend();
+
+        var refused = Run(backend, Put("/api/task-source", """{"moduleId":"forgejo","endpointUrl":"git.example.test","token":"token"}"""));
+
+        Assert.That(refused.Status, Is.EqualTo(409));
+    }
+
+    [Test]
+    public void ForgettingForgejoLeavesGitHubConnected()
+    {
+        var backend = FakeServerTestComposition.Backend();
+        Json(backend, Put("/api/task-source", """{"moduleId":"forgejo","endpointUrl":"https://git.example.test","token":"forgejo-token"}"""));
+
+        Json(backend, Delete("/api/task-source/forgejo"));
+        var source = Json(backend, Get("/api/task-source"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(source["modules"]!.AsArray().Single(module => module!["moduleId"]!.GetValue<string>() == "github")!["connected"]!.GetValue<bool>(), Is.True);
+            Assert.That(source["modules"]!.AsArray().Single(module => module!["moduleId"]!.GetValue<string>() == "forgejo")!["connected"]!.GetValue<bool>(), Is.False);
+        });
+    }
+
+    [Test]
+    public void AnUnknownTaskSourceRouteIsNotFound()
+    {
+        var backend = FakeServerTestComposition.Backend();
+
+        Assert.That(Run(backend, Get("/api/task-source/unknown")).Status, Is.EqualTo(404));
     }
 
     [Test]

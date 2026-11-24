@@ -67,6 +67,81 @@ public sealed class TaskSourceApiClientTests
     }
 
     [Test]
+    public async Task ListRepositoriesAsync_readsTheRepositoriesTheTokenCanSee()
+    {
+        var handler = Returning("""[{"moduleId":"github","owner":"example","name":"repository"}]""");
+
+        var repositories = await new TaskSourceApiClient(Client(handler)).ListRepositoriesAsync(CancellationToken.None);
+
+        Assert.That(repositories.Single().Name, Is.EqualTo("repository"));
+        Assert.That(handler.Requests.Single(), Is.EqualTo("GET api/task-source/repositories"));
+    }
+
+    [Test]
+    public async Task ListRepositoriesAsync_readsAMissingListAsEmpty()
+    {
+        var repositories = await new TaskSourceApiClient(Client(Returning("null"))).ListRepositoriesAsync(CancellationToken.None);
+
+        Assert.That(repositories, Is.Empty);
+    }
+
+    [Test]
+    public async Task ListPullsAsync_readsAMissingListAsEmpty()
+    {
+        var pulls = await new TaskSourceApiClient(Client(Returning("null")))
+            .ListPullsAsync("github", "example", "repository", CancellationToken.None);
+
+        Assert.That(pulls, Is.Empty);
+    }
+
+    [Test]
+    public async Task ListPullsAsync_asksForTheNamedRepository()
+    {
+        var handler = Returning("""[{"id":"42","number":42,"title":"Product cards","url":"u","reviews":[]}]""");
+
+        var pulls = await new TaskSourceApiClient(Client(handler))
+            .ListPullsAsync("github", "example", "repository", CancellationToken.None);
+
+        Assert.That(pulls.Single().Number, Is.EqualTo(42));
+        Assert.That(handler.Requests.Single(), Does.Contain("api/task-source/pulls").And.Contain("moduleId=github"));
+    }
+
+    [Test]
+    public async Task SaveAsync_surfacesAHostThatCannotBeReached()
+    {
+        var client = new TaskSourceApiClient(Client(Returning(
+            """{"title":"Task source","detail":"Could not reach GitHub to check the token."}""",
+            HttpStatusCode.ServiceUnavailable)));
+
+        var error = await Assert.ThrowsAsync<HttpRequestException>(() =>
+            client.SaveAsync("github", "https://github.com", "token", CancellationToken.None));
+
+        Assert.That(error!.Message, Does.Contain("Could not reach GitHub"));
+    }
+
+    [Test]
+    public async Task SaveAsync_namesTheStatusWhenTheRefusalJsonHasNoDetail()
+    {
+        var client = new TaskSourceApiClient(Client(Returning("""{"title":"Task source"}""", HttpStatusCode.Conflict)));
+
+        var error = await Assert.ThrowsAsync<HttpRequestException>(() =>
+            client.SaveAsync("github", "https://github.com", "token", CancellationToken.None));
+
+        Assert.That(error!.Message, Does.Contain("409"));
+    }
+
+    [Test]
+    public async Task SaveAsync_namesTheStatusWhenTheRefusalHasNoDetail()
+    {
+        var client = new TaskSourceApiClient(Client(Returning("not-json", HttpStatusCode.Conflict)));
+
+        var error = await Assert.ThrowsAsync<HttpRequestException>(() =>
+            client.SaveAsync("github", "https://github.com", "token", CancellationToken.None));
+
+        Assert.That(error!.Message, Does.Contain("409"));
+    }
+
+    [Test]
     public void AServerThatRefusesAReadIsReportedRatherThanSwallowed()
     {
         var client = new TaskSourceApiClient(Client(Returning("", HttpStatusCode.Forbidden)));

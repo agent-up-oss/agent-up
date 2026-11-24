@@ -619,6 +619,98 @@ public sealed class GithubApiProviderTests
         });
     }
 
+    [Test]
+    public async Task ReadTokenAccessAsync_refusesATokenTheHostWillNotAccept()
+    {
+        var handler = Recorded();
+        handler.Statuses["GET /user"] = HttpStatusCode.Unauthorized;
+
+        var access = await new GithubForgeCapability(handler).ReadTokenAccessAsync("token", "https://github.com");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(access.CanListRepositories, Is.False);
+            Assert.That(access.CanReadPullRequests, Is.False);
+            Assert.That(access.Detail, Does.Contain("refused"));
+        });
+    }
+
+    [Test]
+    public async Task ReadTokenAccessAsync_refusesATokenThatCannotListRepositories()
+    {
+        var handler = Recorded(("GET /user", """{"login":"dana"}"""));
+        handler.Statuses["GET /user/repos?per_page=1&affiliation=owner,collaborator,organization_member"] = HttpStatusCode.Forbidden;
+
+        var access = await new GithubForgeCapability(handler).ReadTokenAccessAsync("token", "https://github.com");
+
+        Assert.That(access.CanListRepositories, Is.False);
+        Assert.That(access.Detail, Does.Contain("list repositories"));
+    }
+
+    [Test]
+    public async Task ReadTokenAccessAsync_acceptsATokenWithNoRepositoriesYet()
+    {
+        var handler = Recorded(
+            ("GET /user", """{"login":"dana"}"""),
+            ("GET /user/repos?per_page=1&affiliation=owner,collaborator,organization_member", "[]"));
+
+        var access = await new GithubForgeCapability(handler).ReadTokenAccessAsync("token", "https://github.com");
+
+        Assert.That(access.CanListRepositories, Is.True);
+        Assert.That(access.CanReadPullRequests, Is.True);
+    }
+
+    [Test]
+    public async Task ReadTokenAccessAsync_refusesATokenThatCannotReadPullRequests()
+    {
+        var handler = Recorded(
+            ("GET /user", """{"login":"dana"}"""),
+            ("GET /user/repos?per_page=1&affiliation=owner,collaborator,organization_member", """[{"name":"widgets","owner":{"login":"acme"}}]"""));
+        handler.Statuses["GET /repos/acme/widgets/pulls?state=open&per_page=1"] = HttpStatusCode.Forbidden;
+
+        var access = await new GithubForgeCapability(handler).ReadTokenAccessAsync("token", "https://github.com");
+
+        Assert.That(access.CanReadPullRequests, Is.False);
+        Assert.That(access.Detail, Does.Contain("pull requests"));
+    }
+
+    [Test]
+    public async Task ListPullRequestsAsync_returnsEmptyWhenThePayloadIsNotAnArray()
+    {
+        var pulls = await new GithubForgeCapability(Recorded(
+                ("GET /repos/acme/widgets/pulls?state=open&sort=updated&direction=desc&per_page=20", "{}")))
+            .ListPullRequestsAsync(Request());
+
+        Assert.That(pulls, Is.Empty);
+    }
+
+    [Test]
+    public async Task ListPullRequestsAsync_keepsAPullWhenItsReviewsCannotBeRead()
+    {
+        var handler = Recorded(
+            ("GET /repos/acme/widgets/pulls?state=open&sort=updated&direction=desc&per_page=20", """
+                [{"id":9,"number":42,"title":"Product cards","html_url":"https://github.com/acme/widgets/pull/42"}]
+                """));
+        handler.Statuses["GET /repos/acme/widgets/pulls/42/reviews?per_page=100"] = HttpStatusCode.InternalServerError;
+
+        var pulls = await new GithubForgeCapability(handler).ListPullRequestsAsync(Request());
+
+        Assert.That(pulls.Single().Title, Is.EqualTo("Product cards"));
+        Assert.That(pulls.Single().Reviews, Is.Empty);
+    }
+
+    [Test]
+    public async Task ListRepositoriesAsync_returnsEmptyWhenThePayloadIsNotAnArray()
+    {
+        var repositories = await new GithubForgeCapability(Recorded(
+                ("GET /user/repos?per_page=100&sort=updated&affiliation=owner,collaborator,organization_member", "{}")))
+            .ListRepositoriesAsync("token", "https://github.com");
+
+        Assert.That(repositories, Is.Empty);
+    }
+
+    private static RecordedHandler Recorded() => Recorded(Array.Empty<(string Key, string Body)>());
+
     private static ForgeRequest Request() => new("token", "acme", "widgets", "topic");
 
     private static RecordedHandler Recorded(params (string Key, string Body)[] responses)
@@ -631,6 +723,8 @@ public sealed class GithubApiProviderTests
         public List<string> Bodies { get; } = [];
         public string? Scope { get; set; }
 
+        public Dictionary<string, HttpStatusCode> Statuses { get; } = new(StringComparer.Ordinal);
+
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             if (request.Content is not null)
@@ -642,12 +736,13 @@ public sealed class GithubApiProviderTests
             Requests.Add(key);
             if (request.RequestUri is not null)
                 Uris.Add(request.RequestUri.ToString());
-            if (!responses.TryGetValue(key, out var body))
-                return new HttpResponseMessage(HttpStatusCode.NotFound);
-
-            var message = new HttpResponseMessage(HttpStatusCode.OK)
+            var status = Statuses.TryGetValue(key, out var named)
+                ? named
+                : responses.ContainsKey(key) ? HttpStatusCode.OK : HttpStatusCode.NotFound;
+            responses.TryGetValue(key, out var body);
+            var message = new HttpResponseMessage(status)
             {
-                Content = new StringContent(body, Encoding.UTF8, "application/json"),
+                Content = new StringContent(body ?? "", Encoding.UTF8, "application/json"),
             };
             if (Scope is not null)
                 message.Headers.TryAddWithoutValidation("X-OAuth-Scopes", Scope);

@@ -27,6 +27,14 @@ public sealed class OperationPermissionMapTests
         => Assert.That(OperationPermissionMap.For("AgentsHttp", "GetAutonomy"), Is.EqualTo(OperationPermissions.AgentRead));
 
     [Test]
+    public void For_RequiresServerReadToListTaskSourceRepositoriesAndPulls()
+        => Assert.That(OperationPermissionMap.For("TaskSourceHttp", "Pulls"), Is.EqualTo(OperationPermissions.ServerRead));
+
+    [Test]
+    public void For_RequiresAgentPromptToSaveOrForgetATaskSourceToken()
+        => Assert.That(OperationPermissionMap.For("TaskSourceHttp", "Set"), Is.EqualTo(OperationPermissions.AgentPrompt));
+
+    [Test]
     public void EntitlementsStayAuthenticatedWithoutAPermission()
     {
         Assert.Multiple(() =>

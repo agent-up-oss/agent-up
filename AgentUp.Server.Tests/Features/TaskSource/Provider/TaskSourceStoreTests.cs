@@ -84,6 +84,86 @@ public sealed class TaskSourceStoreTests
     }
 
     [Test]
+    public void AnObjectWithoutAHostUrlKeepsTheTokenAndAnEmptyEndpoint()
+    {
+        var root = Root();
+        try
+        {
+            File.WriteAllText(
+                Path.Join(root, "task-source-credentials.json"),
+                """{"github":{"token":"kept"}}""");
+
+            var stored = new JsonTaskSourceCredentialStore(root).Read("github");
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(stored?.Token, Is.EqualTo("kept"));
+                Assert.That(stored?.EndpointUrl, Is.EqualTo(""));
+            });
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Test]
+    public void AMissingFileReadsAsNoToken()
+    {
+        var root = Root();
+        try
+        {
+            Assert.That(new JsonTaskSourceCredentialStore(root).Read("github"), Is.Null);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Test]
+    public void ANonObjectValueIsSkippedRatherThanStoredAsEmpty()
+    {
+        var root = Root();
+        try
+        {
+            File.WriteAllText(
+                Path.Join(root, "task-source-credentials.json"),
+                """{"github":["not","an","object"],"empty":"","forgejo":{"token":"kept","endpointUrl":"https://git.example.test"}}""");
+
+            var store = new JsonTaskSourceCredentialStore(root);
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(store.Read("github"), Is.Null);
+                Assert.That(store.Read("empty"), Is.Null);
+                Assert.That(store.Read("forgejo")?.Token, Is.EqualTo("kept"));
+            });
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Test]
+    public void DeletingAHostThatWasNeverSavedLeavesTheFileAlone()
+    {
+        var root = Root();
+        try
+        {
+            var store = new JsonTaskSourceCredentialStore(root);
+            store.Delete("github");
+
+            Assert.That(File.Exists(Path.Join(root, "task-source-credentials.json")), Is.False);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Test]
     public void AHalfWrittenTokenFileReadsAsNoTokenRatherThanStoppingTheServer()
     {
         var root = Root();

@@ -62,7 +62,7 @@ public sealed class TaskQueueHttpTests
 
         var response = await host.Client.PostAsJsonAsync(
             "/api/tasks",
-            new EnqueueTaskRequest(host.WorkspaceId, "I-57"),
+            ServerDomain.EnqueueTask().FromWorkspace(host.WorkspaceId).Issue("I-57").Build(),
             Json);
         var queued = await response.Content.ReadFromJsonAsync<QueuedTaskDto>(Json);
 
@@ -81,7 +81,7 @@ public sealed class TaskQueueHttpTests
 
         var response = await host.Client.PostAsJsonAsync(
             "/api/tasks",
-            new EnqueueTaskRequest(host.WorkspaceId, "nope"),
+            ServerDomain.EnqueueTask().FromWorkspace(host.WorkspaceId).Issue("nope").Build(),
             Json);
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.NotFound));
@@ -91,7 +91,7 @@ public sealed class TaskQueueHttpTests
     public async Task DeleteTask_takesAFreeTaskBackOutOfTheQueue()
     {
         await using var host = await HostAsync(Issue("I-57", 57));
-        await host.Client.PostAsJsonAsync("/api/tasks", new EnqueueTaskRequest(host.WorkspaceId, "I-57"), Json);
+        await host.Client.PostAsJsonAsync("/api/tasks", ServerDomain.EnqueueTask().FromWorkspace(host.WorkspaceId).Issue("I-57").Build(), Json);
 
         var response = await host.Client.DeleteAsync("/api/tasks/acme/widgets/I-57");
 
@@ -106,7 +106,7 @@ public sealed class TaskQueueHttpTests
     public async Task DeleteTask_refusesATaskAWorkspaceIsCarrying()
     {
         await using var host = await HostAsync(Issue("I-57", 57));
-        await host.Client.PostAsJsonAsync("/api/tasks", new EnqueueTaskRequest(host.WorkspaceId, "I-57"), Json);
+        await host.Client.PostAsJsonAsync("/api/tasks", ServerDomain.EnqueueTask().FromWorkspace(host.WorkspaceId).Issue("I-57").Build(), Json);
         host.Queue.TryClaim(host.WorkspaceId, "acme", "widgets", "I-57");
 
         var response = await host.Client.DeleteAsync("/api/tasks/acme/widgets/I-57");
@@ -118,8 +118,8 @@ public sealed class TaskQueueHttpTests
     public async Task PutPosition_andPutTarget_arrangeTheQueue()
     {
         await using var host = await HostAsync(Issue("I-57", 57), Issue("I-58", 58));
-        await host.Client.PostAsJsonAsync("/api/tasks", new EnqueueTaskRequest(host.WorkspaceId, "I-57"), Json);
-        await host.Client.PostAsJsonAsync("/api/tasks", new EnqueueTaskRequest(host.WorkspaceId, "I-58"), Json);
+        await host.Client.PostAsJsonAsync("/api/tasks", ServerDomain.EnqueueTask().FromWorkspace(host.WorkspaceId).Issue("I-57").Build(), Json);
+        await host.Client.PostAsJsonAsync("/api/tasks", ServerDomain.EnqueueTask().FromWorkspace(host.WorkspaceId).Issue("I-58").Build(), Json);
 
         var moved = await host.Client.PutAsJsonAsync("/api/tasks/acme/widgets/I-58/position", new MoveTaskRequest(0), Json);
         var targeted = await host.Client.PutAsJsonAsync(
@@ -140,7 +140,7 @@ public sealed class TaskQueueHttpTests
     public async Task PostRelease_handsAHeldTaskBack()
     {
         await using var host = await HostAsync(Issue("I-57", 57));
-        await host.Client.PostAsJsonAsync("/api/tasks", new EnqueueTaskRequest(host.WorkspaceId, "I-57"), Json);
+        await host.Client.PostAsJsonAsync("/api/tasks", ServerDomain.EnqueueTask().FromWorkspace(host.WorkspaceId).Issue("I-57").Build(), Json);
         host.Queue.TryClaim(host.WorkspaceId, "acme", "widgets", "I-57");
 
         var response = await host.Client.PostAsync("/api/tasks/acme/widgets/I-57/release", null);

@@ -104,6 +104,18 @@ public sealed class TaskSourceHttpTests
     }
 
     [Test]
+    public async Task Delete_forgetsEveryHost()
+    {
+        await using var host = await HostAsync();
+        host.Credentials.Write("github", new TaskSourceCredential("github-token", "https://github.com"));
+
+        var response = await host.Client.DeleteAsync("/api/task-source");
+
+        Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+        Assert.That(host.Credentials.Read("github"), Is.Null);
+    }
+
+    [Test]
     public async Task Get_repositoriesAndIssuesAndPullsUseTheStoredToken()
     {
         await using var host = await HostAsync();
