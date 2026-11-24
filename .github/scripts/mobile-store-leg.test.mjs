@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 
 import { decideStoreLeg } from './mobile-store-leg.mjs';
+
+const ci = readFileSync(fileURLToPath(new URL('../workflows/ci.yml', import.meta.url)), 'utf8');
 
 const push = { event: 'push', actor: 'someone', repository: 'org/repo', headRepository: '', channel: '', platforms: '', platform: 'ios' };
 
@@ -30,4 +34,11 @@ test('a dispatch with no mobile channel is an ordinary run that still signs', ()
 
 test('an unknown platform is a workflow error, not a skip', () => {
   assert.throws(() => decideStoreLeg({ ...push, platform: 'web' }), /Unknown store platform/);
+});
+
+test('the iOS store archive uses macos-latest, the same hosted pool as iOS sign-in', () => {
+  assert.match(ci, /leg: sign-in-ios\n\s+title: Sign-in on iOS\n\s+os: macos-latest/);
+  assert.match(ci, /leg: store-ios\n\s+title: iOS store archive\n\s+os: macos-latest/);
+  assert.match(ci, /matrix\.platform == 'ios' && 'macos-latest'/);
+  assert.doesNotMatch(ci, /macos-26/);
 });

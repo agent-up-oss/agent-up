@@ -798,7 +798,7 @@ jobs:
             timeout: 120
           - leg: store-ios
             title: iOS store archive
-            os: macos-26
+            os: macos-latest
             platform: ios
             timeout: 150
     steps:
@@ -1353,7 +1353,7 @@ jobs:
   # platform itself when the job runs, as "Mobile release (android)".
   mobile-release:
     name: Mobile release
-    runs-on: ${{ matrix.platform == 'ios' && 'macos-26' || 'ubuntu-latest' }}
+    runs-on: ${{ matrix.platform == 'ios' && 'macos-latest' || 'ubuntu-latest' }}
     needs: [behavior-matrix, version]
     if: ${{ github.event_name == 'workflow_dispatch' && (inputs.mobile-channel == 'beta' || inputs.mobile-channel == 'prod') }}
     timeout-minutes: 60

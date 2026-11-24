@@ -1,8 +1,9 @@
 name: Build the iOS store archive
 # Mobile · iOS store archive. The steps the native store pipeline ran before it was folded into
 # ci.yml, up to and including the artifact; Mobile release uploads that artifact to App Store
-# Connect. Runs on macos-26 with Xcode 26.4: CocoaPods and xcodebuild cannot run on Linux, and
-# Expo SDK 58 needs the iOS 27 SDK.
+# Connect. Runs on macos-latest with Xcode 26.4: CocoaPods and xcodebuild cannot run on Linux,
+# Expo SDK 58 needs the iOS 27 SDK, and the macos-26 label sits in a thinner hosted pool that
+# GitHub cancels after about fifteen minutes with no runner.
 description: Builds, signs and validates the App Store IPA of the full Mobile client and uploads it with its checksum and release manifest.
 
 inputs:
