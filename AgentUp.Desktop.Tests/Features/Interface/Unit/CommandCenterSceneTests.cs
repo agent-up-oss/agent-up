@@ -309,6 +309,14 @@ public sealed class CommandCenterSceneTests
         });
     }
 
+    [Test]
+    public void Member_settings_show_Ollama_fields_for_the_in_process_PM_agent()
+    {
+        var binding = CommandCenterScene.Bind(Input([], "agent-settings") with { BoundAgent = "ollama" });
+
+        Assert.That(binding.State["ollamaSettings"], Is.EqualTo("1"));
+    }
+
     // The board opens one queue; a review row carries its standing as the action the scene groups by.
     [Test]
     public void The_tasks_board_opens_one_queue_and_lists_each_kind_of_review()

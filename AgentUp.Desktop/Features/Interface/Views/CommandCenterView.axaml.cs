@@ -422,10 +422,6 @@ public partial class CommandCenterView : UserControl
             case "open-workspace":
                 Open(center, action.Id);
                 break;
-            case "auth-member":
-                _board.ShowAuthTab(action.Id);
-                Apply();
-                break;
             case "forge-tab":
                 _board.ShowForgeTab(action.Id);
                 Apply();

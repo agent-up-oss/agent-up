@@ -861,6 +861,27 @@ public sealed class FakeBackendServiceTests
     }
 
     [Test]
+    public void Handle_memberKindDefaultsToAuthorAndStoresAReviewer()
+    {
+        var backend = FakeServerTestComposition.Backend();
+
+        var before = Json(backend, Get("/api/workspaces/bob/agent/member"));
+        var saved = Json(backend, Put("/api/workspaces/bob/agent/member", """{"kind":"DevReviewer"}"""));
+        var refused = Run(backend, Put("/api/workspaces/bob/agent/member", """{"kind":"Guest"}"""));
+        var missing = Run(backend, Put("/api/workspaces/missing/agent/member", """{"kind":"Author"}"""));
+        var unknown = Run(backend, Get("/api/workspaces/missing/agent/member"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(before["kind"]!.GetValue<string>(), Is.EqualTo("Author"));
+            Assert.That(saved["kind"]!.GetValue<string>(), Is.EqualTo("DevReviewer"));
+            Assert.That(refused.Status, Is.EqualTo(409));
+            Assert.That(missing.Status, Is.EqualTo(404));
+            Assert.That(unknown.Status, Is.EqualTo(404));
+        });
+    }
+
+    [Test]
     public void Handle_autonomyLoopRoutesReturnNotFoundForUnknownWorkspaces()
     {
         var backend = FakeServerTestComposition.Backend();

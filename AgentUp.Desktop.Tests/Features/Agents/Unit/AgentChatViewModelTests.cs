@@ -469,6 +469,62 @@ public sealed class AgentChatViewModelTests
     }
 
     [Test]
+    public async Task ToggleAutonomyCommand_enablesTheLoopThenCancelsIt()
+    {
+        var fake = new ChatApiFake
+        {
+            Session = DesktopDomain.Session().Ready().BoundTo("Codex").Build(),
+        };
+        var view = CreateView(fake);
+        await view.LoadAsync("ws-1");
+
+        await view.ToggleAutonomyCommand.Execute().FirstAsync();
+        Assert.Multiple(() =>
+        {
+            Assert.That(fake.LastEnabled, Is.True);
+            Assert.That(fake.LastActive, Is.True);
+            Assert.That(view.CanCancelLoop, Is.True);
+        });
+
+        await view.ToggleAutonomyCommand.Execute().FirstAsync();
+        Assert.Multiple(() =>
+        {
+            Assert.That(fake.LastActive, Is.False);
+            Assert.That(view.LoopTerminal, Is.EqualTo("Cancelled"));
+        });
+        await view.LoadAsync(null);
+    }
+
+    [Test]
+    public async Task SetMemberKindCommand_storesTheKindTheServerReturns()
+    {
+        var fake = new ChatApiFake();
+        var view = CreateView(fake);
+        await view.LoadAsync("ws-1");
+
+        await view.SetMemberKindCommand.Execute("PmReviewer").FirstAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(fake.LastMemberKind, Is.EqualTo("PmReviewer"));
+            Assert.That(view.MemberKind, Is.EqualTo("PmReviewer"));
+        });
+        await view.LoadAsync(null);
+    }
+
+    [Test]
+    public async Task LoadAsync_defaultsMemberKindWhenTheMemberReadFails()
+    {
+        var fake = new ChatApiFake { MemberFailure = new HttpRequestException("offline") };
+        var view = CreateView(fake);
+
+        await view.LoadAsync("ws-1");
+
+        Assert.That(view.MemberKind, Is.EqualTo("Author"));
+        await view.LoadAsync(null);
+    }
+
+    [Test]
     public async Task EnableAutonomyCommand_persistsServerEnablement()
     {
         var fake = new ChatApiFake();
@@ -1184,6 +1240,22 @@ internal sealed class ChatApiFake : IAgentApiProvider
             };
         }
         return Task.CompletedTask;
+    }
+
+    public TeamMemberDto? Member { get; set; }
+    public string? LastMemberKind { get; private set; }
+    public Exception? MemberFailure { get; set; }
+
+    public Task<TeamMemberDto?> GetMemberAsync(string workspaceId, CancellationToken cancellationToken)
+        => MemberFailure is null
+            ? Task.FromResult(Member)
+            : Task.FromException<TeamMemberDto?>(MemberFailure);
+
+    public Task<TeamMemberDto?> PutMemberAsync(string workspaceId, string kind, CancellationToken cancellationToken)
+    {
+        LastMemberKind = kind;
+        Member = new TeamMemberDto(kind);
+        return Task.FromResult<TeamMemberDto?>(Member);
     }
 
     public async Task<AgentLoopStatusDto?> GetLoopAsync(string workspaceId, CancellationToken cancellationToken)

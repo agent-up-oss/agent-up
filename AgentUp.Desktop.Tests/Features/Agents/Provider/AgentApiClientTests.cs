@@ -158,6 +158,26 @@ public sealed class AgentApiClientTests
     }
 
     [Test]
+    public async Task MemberRoutes_getAndPutTheWorkspaceKind()
+    {
+        const string body = "{\"kind\":\"DevReviewer\"}";
+        using var handler = new AgentHandler(HttpStatusCode.OK, body, mediaType: "application/json");
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
+        var client = new AgentApiClient(http);
+
+        var loaded = await client.GetMemberAsync("ws 1", CancellationToken.None);
+        Assert.That(handler.Uri!.PathAndQuery, Is.EqualTo("/api/workspaces/ws%201/agent/member"));
+        var saved = await client.PutMemberAsync("ws 1", "PmReviewer", CancellationToken.None);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(handler.Uri!.PathAndQuery, Is.EqualTo("/api/workspaces/ws%201/agent/member"));
+            Assert.That(loaded!.Kind, Is.EqualTo("DevReviewer"));
+            Assert.That(saved!.Kind, Is.EqualTo("DevReviewer"));
+        });
+    }
+
+    [Test]
     public async Task ResumeAsync_postsTheEscapedWorkspaceSessionRoute()
     {
         const string body = "{\"workspaceId\":\"ws\",\"agent\":\"Claude\",\"state\":\"ready\",\"sessionId\":\"session/1\",\"error\":null,\"agents\":[],\"authMethods\":[],\"sessions\":[]}";

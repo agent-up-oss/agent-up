@@ -73,6 +73,53 @@ public sealed class AgentWorkspacePaneTests
     }
 
     [AvaloniaTest]
+    public async Task The_Settings_tab_opens_that_members_settings()
+    {
+        var driver = await LaunchOnTheCommandCenterAsync();
+        await OpenAgentAsync(driver);
+
+        await ClickControlIntoViewAsync(driver.Window, AppTabNamed(driver.Window, "Settings"));
+        await HeadlessExtensions.FlushAsync();
+        await ClickControlIntoViewAsync(driver.Window, AppTabNamed(driver.Window, "Dev reviewer"));
+        await HeadlessExtensions.FlushAsync();
+        await ClickControlIntoViewAsync(driver.Window, RowButton(driver.Window, "Autonomous"));
+        await HeadlessExtensions.FlushAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(ViewModel(driver).CommandCenter!.SceneId, Is.EqualTo("agent-settings"));
+            Assert.That(TabSelected(driver.Window, "Settings"), Is.True);
+        });
+    }
+
+    [AvaloniaTest]
+    public async Task Member_settings_save_the_bound_agents_endpoint()
+    {
+        var window = await LaunchDemoCommandCenterAsync();
+        var main = (MainViewModel)window.DataContext!;
+        await main.Modules!.EnableAsync("opencode");
+        await main.Modules.SaveSettingsAsync("opencode", new Dictionary<string, string>
+        {
+            ["endpoint"] = "http://127.0.0.1:11434",
+            ["model"] = "llama",
+        });
+        await main.Agent.LoadAsync("bob");
+        await main.Agent.SelectAgentCommand.Execute("opencode").FirstAsync();
+        await OpenMemberSettingsAsync(main.CommandCenter!);
+        await WaitAsync(() => window.GetVisualDescendants().OfType<TextBox>()
+            .Any(box => box.PlaceholderText == "http://localhost:11434"));
+        window.GetVisualDescendants().OfType<TextBox>().First(box => box.PlaceholderText == "http://localhost:11434")
+            .Text = "http://127.0.0.1:11434";
+        window.GetVisualDescendants().OfType<TextBox>().First(box => box.PlaceholderText == "Model")
+            .Text = "llama";
+        await ClickControlIntoViewAsync(window, AgentSettingsSave(window));
+        await HeadlessExtensions.FlushAsync();
+
+        Assert.That(main.Agent.BoundAgent, Is.EqualTo("opencode"));
+        window.Close();
+    }
+
+    [AvaloniaTest]
     public async Task The_Files_tab_hosts_the_workspace_files_and_an_open_file_is_its_own_page()
     {
         var driver = await LaunchOnTheCommandCenterAsync();
@@ -552,9 +599,26 @@ public sealed class AgentWorkspacePaneTests
 
     private static bool TabSelected(Window window, string label)
     {
-        var button = VisibleButtonNamed(window, label);
+        var button = AppTabNamed(window, label);
         return button.Classes.Contains("au-app-tab--selected")
             || button.Content is Border { } face && face.Classes.Contains("au-app-tab--selected");
+    }
+
+    private static Button AppTabNamed(Window window, string label)
+        => window.GetVisualDescendants().OfType<Button>().First(button =>
+            ButtonText(button) == label
+            && (HasClass(button, "au-app-tab") || HasClass(button, "au-app-tab--selected")));
+
+    private static bool HasClass(Button button, string name)
+        => button.Classes.Contains(name)
+            || button.Content is Border { } face && face.Classes.Contains(name);
+
+    private static Button RowButton(Window window, string title)
+    {
+        var name = window.GetVisualDescendants().OfType<TextBlock>().First(block => block.Text == title);
+        return name.GetVisualAncestors().OfType<Control>()
+            .First(parent => parent.Classes.Contains("aun-settings__row"))
+            .GetVisualDescendants().OfType<Button>().First();
     }
 
     private static Button VisibleButtonNamed(Window window, string label)
@@ -576,6 +640,15 @@ public sealed class AgentWorkspacePaneTests
         => PasswordBox(window).GetVisualAncestors().OfType<Control>()
             .SelectMany(parent => parent.GetVisualDescendants().OfType<Button>())
             .First(button => button.IsEffectivelyVisible && ButtonText(button) == "Save");
+
+    private static Button AgentSettingsSave(Window window)
+    {
+        var field = window.GetVisualDescendants().OfType<TextBox>()
+            .First(box => box.PlaceholderText is "Token (optional)" or "http://localhost:11434");
+        return field.GetVisualAncestors().OfType<Control>()
+            .SelectMany(parent => parent.GetVisualDescendants().OfType<Button>())
+            .First(button => ButtonText(button) == "Save");
+    }
 
     private static Button ButtonOn(Control root, string label)
         => root.GetVisualDescendants().OfType<Button>().Single(button => ButtonText(button) == label);

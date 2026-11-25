@@ -244,6 +244,17 @@ public sealed class GithubApiProviderTests
     }
 
     [Test]
+    public async Task ListIssuesAsync_takesTheFirstAssigneesLoginWhenAssigneeIsMissing()
+    {
+        var handler = Recorded(
+            ("GET /repos/acme/widgets/issues?state=open&sort=updated&direction=desc&per_page=100", AssigneesOnlyIssues));
+
+        var issues = await new GithubForgeCapability(handler).ListIssuesAsync(Request());
+
+        Assert.That(issues.Single().AssigneeLogin, Is.EqualTo("mia"));
+    }
+
+    [Test]
     public async Task ListIssuesAsync_readsTheWorkspacesOwnRepositoryRatherThanWhatIsAssigned()
     {
         var handler = Recorded(
@@ -797,6 +808,10 @@ public sealed class GithubApiProviderTests
 
     private const string Assigned = """
         [{"id":7,"number":3,"title":"Assigned","body":"do it","created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-02T00:00:00Z","html_url":"https://github.com/acme/widgets/issues/3"}]
+        """;
+
+    private const string AssigneesOnlyIssues = """
+        [{"id":7,"number":3,"title":"Assigned","body":"do it","created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-02T00:00:00Z","html_url":"https://github.com/acme/widgets/issues/3","assignees":[{},{"login":"mia"}]}]
         """;
 
     // The repository issues route serves pull requests alongside issues; only the second entry

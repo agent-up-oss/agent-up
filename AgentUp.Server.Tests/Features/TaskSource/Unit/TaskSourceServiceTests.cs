@@ -240,6 +240,31 @@ public sealed class TaskSourceServiceTests
     }
 
     [Test]
+    public void AnEmptySavedTokenWithTheCapabilityDisabledAsksToEnableThenPaste()
+    {
+        var credentials = new MemoryTaskSourceCredentialStore();
+        credentials.Write("bob", new TaskSourceCredential("", "https://github.com", "github"));
+        var service = new TaskSourceService(credentials, new FakeEnabledCapabilityPackages(), new EmptyTaskSourceTeam(), People());
+
+        var bob = service.Describe().Identities.Single(identity => identity.WorkspaceId == "bob");
+
+        Assert.That(bob.Detail, Does.Contain("Enable the GitHub capability, then paste"));
+    }
+
+    [Test]
+    public async Task ALegacyHostKeyedTokenStillListsRepositories()
+    {
+        var forge = new StubForgeCapability { Repositories = [new ForgeRepository("acme", "widgets")] };
+        var credentials = new MemoryTaskSourceCredentialStore();
+        credentials.Write("github", new TaskSourceCredential("token", "https://github.com", ""));
+        var service = Service(forge, credentials);
+
+        var repositories = await service.ListRepositoriesAsync(CancellationToken.None);
+
+        Assert.That(repositories.Single().Name, Is.EqualTo("widgets"));
+    }
+
+    [Test]
     public async Task ASavedTokenWithTheCapabilityDisabledSaysToEnableIt()
     {
         var credentials = new MemoryTaskSourceCredentialStore();
