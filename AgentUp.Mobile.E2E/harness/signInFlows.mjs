@@ -106,6 +106,13 @@ export async function waitForAgentState(serverUrl, workspaceId, expected, option
         const session = await readSession(serverUrl, workspaceId);
         seen = session.state;
         last = session;
+        if (
+          expected !== 'authentication_required'
+          && session.state === 'authentication_required'
+          && isTerminalSignInError(session.error)
+        ) {
+          throw new NeverGoingToHappen(`The agent sign-in failed: ${session.error}`);
+        }
         return session.state === expected ? session : false;
       },
       options,

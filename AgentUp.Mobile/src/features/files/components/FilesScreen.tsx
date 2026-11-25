@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
 import { useServers } from '@/features/servers/controllers/ServersContext';
 import { isUnauthorized } from '@/features/servers/providers/ServerRequestProvider';
@@ -137,13 +137,18 @@ export function FilesScreen({ workspaceId }: { workspaceId: string }) {
           {loading && rows.length === 0
             ? <ActivityIndicator style={styles.spinner} color={agentUpTheme.colors.accentSoft} />
             : (
-              <FlatList
-                testID="files-tree"
-                data={rows}
-                keyExtractor={row => (row.kind === 'notice' ? row.key : row.entry.path)}
-                renderItem={renderRow}
-                ListEmptyComponent={!loading && !error ? <Text style={auText('filesNotice')}>This workspace folder is empty.</Text> : undefined}
-              />
+              // Every unfolded row stays in the document. The Server lists directories first, so a
+              // top-level file sits after every AgentUp.* folder; a windowed list would leave it
+              // unmounted on a phone viewport until the person scrolled, and a Visible wait cannot.
+              <ScrollView testID="files-tree" style={styles.tree}>
+                {rows.length === 0 && !error
+                  ? <Text style={auText('filesNotice')}>This workspace folder is empty.</Text>
+                  : rows.map(row => (
+                    <View key={row.kind === 'notice' ? row.key : row.entry.path}>
+                      {renderRow({ item: row })}
+                    </View>
+                  ))}
+              </ScrollView>
             )}
         </View>
       </View>
@@ -160,5 +165,6 @@ const styles = StyleSheet.create({
   reload: { alignItems: 'center', justifyContent: 'center' },
   error: { ...auText('fieldLabel'), color: agentUpTheme.colors.textDanger, textTransform: 'none' },
   list: { flex: 1, minHeight: 0 },
+  tree: { flex: 1 },
   spinner: { marginTop: 24 },
 });

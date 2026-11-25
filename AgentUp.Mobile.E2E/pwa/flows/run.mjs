@@ -8,6 +8,7 @@ import { parseArgs } from './args.mjs';
 import { startValidationHost, varsFor } from './host.mjs';
 import { interpolate } from './interpolate.mjs';
 import { locatorFor, visibleTextLocator } from './locate.mjs';
+import { waitForVisible } from './visible.mjs';
 import {
   emptyReport,
   finishReport,
@@ -133,7 +134,9 @@ async function perform(page, host, step) {
     return;
   }
   if (action === 'click') {
-    await locatorFor(page, step.target).click();
+    const locator = locatorFor(page, step.target);
+    await locator.scrollIntoViewIfNeeded({ timeout: 180_000 });
+    await locator.click({ timeout: 180_000 });
     return;
   }
   if (action === 'press') {
@@ -170,7 +173,7 @@ async function assertExpectations(page, expectations, description) {
         }, { timeoutMs: 180_000 });
         continue;
       }
-      await visibleTextLocator(page, expectation.value).waitFor({ state: 'visible', timeout: 180_000 });
+      await waitForVisible(visibleTextLocator(page, expectation.value));
       continue;
     }
     if (kind === 'Visible') {
@@ -178,7 +181,8 @@ async function assertExpectations(page, expectations, description) {
         ? locatorFor(page, expectation.target)
         : visibleTextLocator(page, expectation.value);
       const shouldBeVisible = String(expectation.value ?? 'true').toLowerCase() !== 'false';
-      await locator.waitFor({ state: shouldBeVisible ? 'visible' : 'hidden', timeout: 180_000 });
+      if (shouldBeVisible) await waitForVisible(locator);
+      else await locator.waitFor({ state: 'hidden', timeout: 180_000 });
       continue;
     }
     if (kind === 'Running')

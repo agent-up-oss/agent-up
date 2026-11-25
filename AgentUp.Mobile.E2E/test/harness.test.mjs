@@ -3,7 +3,7 @@ import { createServer } from 'node:net';
 import test from 'node:test';
 
 import { createIdpControl, loginIdFrom } from '../harness/idpControl.mjs';
-import { hasTransport, isTerminalSignInError, isUsableChallenge, waitForChallenge } from '../harness/signInFlows.mjs';
+import { hasTransport, isTerminalSignInError, isUsableChallenge, waitForAgentState, waitForChallenge } from '../harness/signInFlows.mjs';
 import { shimScript } from '../harness/shims.mjs';
 import { AGENT_PROFILES, hostBrowser, hostOriginFor, hostPortsToReverse, profilesFor, serverEnvironment } from '../harness/stackConfig.mjs';
 import { freePort, isFree, portWindow, removeWorkspaceTree } from '../harness/stack.mjs';
@@ -175,6 +175,46 @@ test('native pasted-code sign-in restores the connect URL when it returns from t
   );
 
   assert.match(returnToApp, /url: connectLaunchUrl\(stack\.serverOriginForClient, stack\.workspace\.id\)/);
+  assert.match(returnToApp, /pastedCode\(flow, stack\.control, carriedCode\)/);
+  assert.match(returnToApp, /waitUntilFieldHolds\('agent-signin-code-input', code\)/);
+});
+
+test('native pasted-code reads the field through getAttributes, not Detox text or enabled matchers', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const source = await readFile(new URL('../detox/signIn.test.js', import.meta.url), 'utf8');
+  const helper = source.slice(
+    source.indexOf('async function waitUntilFieldHolds('),
+    source.indexOf('async function pastedCode('),
+  );
+  assert.match(helper, /getAttributes\(\)/);
+  assert.equal(helper.includes('by.enabled()'), false);
+  assert.equal(helper.includes('toHaveText('), false);
+});
+
+test('native fill types the whole value in one shot so IME cannot reorder chunks', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const source = await readFile(new URL('../detox/signIn.test.js', import.meta.url), 'utf8');
+  const fill = source.slice(source.indexOf('async function fill('), source.indexOf('async function waitUntilFieldHolds('));
+  assert.match(fill, /await field\.typeText\(value\)/);
+  assert.equal(fill.includes('chunk'), false);
+});
+
+test('native pasted-code visits the provider before Open so the code exists before the browser takes the foreground', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const source = await readFile(new URL('../detox/signIn.test.js', import.meta.url), 'utf8');
+  const authenticate = source.slice(
+    source.indexOf("await tap(`agent-auth-method-${methodId}`, 60_000)"),
+    source.indexOf('if (carriedCode)'),
+  );
+  assert.match(authenticate, /const pasteFirst = scenario\.flow === 'paste'/);
+  assert.ok(
+    authenticate.indexOf('pasteFirst') < authenticate.indexOf("await tap('agent-signin-open'"),
+    'paste must approve before Open so the host fetch is not racing the system browser',
+  );
+  assert.ok(
+    authenticate.indexOf("await tap('agent-signin-open'") < authenticate.indexOf('if (!pasteFirst)'),
+    'device and poll must tap Open before approve so the button stays mounted',
+  );
 });
 
 test('native sign-in waits for the method button after the Server reports authentication_required', async () => {
@@ -255,7 +295,36 @@ test('ACP auth-required on the session is not a failed sign-in', () => {
     false,
   );
   assert.equal(isTerminalSignInError('The agent CLI did not print a sign-in link within 30 seconds.'), true);
+  assert.equal(
+    isTerminalSignInError('Subscription login failed with exit code 1. Open the printed link and finish signing in with your subscription.'),
+    true,
+  );
   assert.equal(isTerminalSignInError(null), false);
+});
+
+test('waiting for ready aborts when subscription login has already failed', async () => {
+  const original = globalThis.fetch;
+  let fetches = 0;
+  globalThis.fetch = async () => {
+    fetches += 1;
+    return {
+      ok: true,
+      json: async () => ({
+        state: 'authentication_required',
+        error: 'Subscription login failed with exit code 1. Open the printed link and finish signing in with your subscription.',
+        loginChallenge: { url: 'http://localhost/oauth/authorize', canSubmitCode: true },
+      }),
+    };
+  };
+  try {
+    await assert.rejects(
+      () => waitForAgentState('http://localhost:9', 'workspace', 'ready', { timeoutMs: 5_000, intervalMs: 10 }),
+      /Subscription login failed with exit code 1/,
+    );
+    assert.equal(fetches, 1);
+  } finally {
+    globalThis.fetch = original;
+  }
 });
 
 test('a failed sign-in is reported instead of waiting out the challenge deadline', async () => {

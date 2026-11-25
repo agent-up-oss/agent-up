@@ -7,6 +7,7 @@ import test from 'node:test';
 import { parseArgs } from '../pwa/flows/args.mjs';
 import { interpolate } from '../pwa/flows/interpolate.mjs';
 import { locatorPlan, visibleTextLocator } from '../pwa/flows/locate.mjs';
+import { waitForVisible } from '../pwa/flows/visible.mjs';
 import { emptyReport, finishReport, relativeScreenshot, screenshotName, summaryReport, writeJson } from '../pwa/flows/report.mjs';
 import { scriptedAgentEnvironment } from '../pwa/flows/host.mjs';
 
@@ -51,6 +52,43 @@ test('locatorPlan prefers role, then label, then text, and rejects coordinates',
   );
   assert.throws(() => locatorPlan({ selector: '#x' }), /reject Selector, X, and Y/);
   assert.throws(() => locatorPlan({ x: 10, y: 20 }), /reject Selector, X, and Y/);
+});
+
+test('the Mobile runner scrolls Visible matches into view instead of waiting off-screen', async () => {
+  const source = await readFile(new URL('../pwa/flows/run.mjs', import.meta.url), 'utf8');
+  assert.match(source, /import \{ waitForVisible \} from '\.\/visible\.mjs'/);
+  assert.match(source, /await waitForVisible\(locator\)/);
+  assert.match(source, /await locator\.scrollIntoViewIfNeeded\(\{ timeout: 180_000 \}\)/);
+});
+
+test('Visible waits attach, scroll the match into view, then wait until it is on screen', async () => {
+  const calls = [];
+  const locator = {
+    async waitFor(options) { calls.push(['waitFor', options]); },
+    async scrollIntoViewIfNeeded(options) { calls.push(['scrollIntoViewIfNeeded', options]); },
+  };
+
+  await waitForVisible(locator, { timeout: 12_000 });
+
+  assert.deepEqual(calls, [
+    ['waitFor', { state: 'attached', timeout: 12_000 }],
+    ['scrollIntoViewIfNeeded', { timeout: 12_000 }],
+    ['waitFor', { state: 'visible', timeout: 12_000 }],
+  ]);
+});
+
+test('Visible waits keep scrolling after the first match detaches', async () => {
+  let attempts = 0;
+  const locator = {
+    async waitFor() {},
+    async scrollIntoViewIfNeeded() {
+      attempts += 1;
+      if (attempts === 1) throw new Error('Element is not attached to the DOM');
+    },
+  };
+
+  await waitForVisible(locator, { timeout: 2_000 });
+  assert.equal(attempts, 2);
 });
 
 test('free-text expectations wait on a visible match, not on a hidden earlier screen', () => {
