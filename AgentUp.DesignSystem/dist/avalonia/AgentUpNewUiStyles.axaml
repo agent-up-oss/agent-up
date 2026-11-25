@@ -2971,10 +2971,16 @@
     <Setter Property="Padding" Value="20,8,20,8"/>
   </Style>
   <Style Selector="Border.au-sheet-content">
-    <Setter Property="Padding" Value="20,4,20,4"/>
+    <Setter Property="Padding" Value="20,8,20,8"/>
   </Style>
   <Style Selector="TextBlock.au-sheet-content">
-    <Setter Property="Padding" Value="20,4,20,4"/>
+    <Setter Property="Padding" Value="20,8,20,8"/>
+  </Style>
+  <Style Selector="Border.au-sheet-heading">
+    <Setter Property="MinWidth" Value="0"/>
+  </Style>
+  <Style Selector="TextBlock.au-sheet-heading">
+    <Setter Property="MinWidth" Value="0"/>
   </Style>
   <Style Selector="TextBlock.au-sheet-title">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
@@ -3017,50 +3023,108 @@
     <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeLg}"/>
     <Setter Property="TextElement.FontWeight" Value="{DynamicResource AgentUpWeightRegular}"/>
   </Style>
-  <Style Selector="TextBlock.au-sheet-meta">
+  <Style Selector="TextBlock.au-sheet-status">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
-    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeSm}"/>
-    <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightRegular}"/>
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiMd}"/>
+    <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightUi}"/>
   </Style>
-  <Style Selector="Border.au-sheet-meta">
+  <Style Selector="Border.au-sheet-status">
     <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
-    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeSm}"/>
-    <Setter Property="TextElement.FontWeight" Value="{DynamicResource AgentUpWeightRegular}"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiMd}"/>
+    <Setter Property="TextElement.FontWeight" Value="{DynamicResource AgentUpWeightUi}"/>
   </Style>
-  <Style Selector="TextBlock.au-sheet-body">
+  <Style Selector="TextBlock.au-sheet-status--failed">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextDangerBrush}"/>
+  </Style>
+  <Style Selector="Border.au-sheet-status--failed">
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextDangerBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-sheet-status--running">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorAccentSoftBrush}"/>
+  </Style>
+  <Style Selector="Border.au-sheet-status--running">
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorAccentSoftBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-sheet-prose">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
     <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeMd}"/>
     <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightRegular}"/>
   </Style>
-  <Style Selector="Border.au-sheet-body">
+  <Style Selector="Border.au-sheet-prose">
     <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
     <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeMd}"/>
     <Setter Property="TextElement.FontWeight" Value="{DynamicResource AgentUpWeightRegular}"/>
   </Style>
-  <Style Selector="TextBlock.au-sheet-label">
-    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
-    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeSm}"/>
-    <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightSemibold}"/>
+  <Style Selector="Border.au-sheet-section-header">
+    <Setter Property="Padding" Value="4,0,4,0"/>
   </Style>
-  <Style Selector="Border.au-sheet-label">
+  <Style Selector="TextBlock.au-sheet-section-header">
+    <Setter Property="Padding" Value="4,0,4,0"/>
+  </Style>
+  <Style Selector="Border.au-sheet-section-title">
+    <Setter Property="MinWidth" Value="0"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiMd}"/>
+    <Setter Property="TextElement.FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
+  </Style>
+  <Style Selector="TextBlock.au-sheet-section-title">
+    <Setter Property="MinWidth" Value="0"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiMd}"/>
+    <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
+  </Style>
+  <Style Selector="TextBlock.au-sheet-section-action">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiMd}"/>
+    <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
+  </Style>
+  <Style Selector="Border.au-sheet-section-action">
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiMd}"/>
+    <Setter Property="TextElement.FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
+  </Style>
+  <Style Selector="Border.au-sheet-facts">
+    <Setter Property="Padding" Value="4,0,4,0"/>
+  </Style>
+  <Style Selector="TextBlock.au-sheet-facts">
+    <Setter Property="Padding" Value="4,0,4,0"/>
+  </Style>
+  <Style Selector="Border.au-sheet-fact-label">
+    <Setter Property="Width" Value="88"/>
     <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
     <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeSm}"/>
-    <Setter Property="TextElement.FontWeight" Value="{DynamicResource AgentUpWeightSemibold}"/>
+    <Setter Property="TextElement.FontWeight" Value="{DynamicResource AgentUpWeightRegular}"/>
   </Style>
-  <Style Selector="Border.au-sheet-code">
+  <Style Selector="TextBlock.au-sheet-fact-label">
+    <Setter Property="Width" Value="88"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeSm}"/>
+    <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightRegular}"/>
+  </Style>
+  <Style Selector="TextBlock.au-sheet-fact-value">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeSm}"/>
+    <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightRegular}"/>
+  </Style>
+  <Style Selector="Border.au-sheet-fact-value">
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeSm}"/>
+    <Setter Property="TextElement.FontWeight" Value="{DynamicResource AgentUpWeightRegular}"/>
+  </Style>
+  <Style Selector="Border.au-sheet-block">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
     <Setter Property="CornerRadius" Value="{DynamicResource AgentUpCornerRadiusLg}"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-sheet-block">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
+  </Style>
+  <Style Selector="Border.au-sheet-code">
     <Setter Property="Padding" Value="16,12,16,12"/>
   </Style>
   <Style Selector="TextBlock.au-sheet-code">
-    <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
     <Setter Property="Padding" Value="16,12,16,12"/>
-  </Style>
-  <Style Selector="Border.au-sheet-code--failed">
-    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceDangerBrush}"/>
-  </Style>
-  <Style Selector="TextBlock.au-sheet-code--failed">
-    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceDangerBrush}"/>
   </Style>
   <Style Selector="Border.au-sheet-code-text">
     <Setter Property="Margin" Value="0,0,0,0"/>
@@ -3072,12 +3136,6 @@
     <Setter Property="FontFamily" Value="{DynamicResource AgentUpFontMono}"/>
     <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeXs}"/>
     <Setter Property="Margin" Value="0,0,0,0"/>
-  </Style>
-  <Style Selector="TextBlock.au-sheet-code-text--failed">
-    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextDangerBrush}"/>
-  </Style>
-  <Style Selector="Border.au-sheet-code-text--failed">
-    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextDangerBrush}"/>
   </Style>
   <Style Selector="Border.au-screen">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorCanvasBrush}"/>

@@ -298,7 +298,7 @@
         {
           "id": "sheet",
           "title": "Bottom sheet",
-          "note": "Mobile only. One transcript item - a tool call, an edit, a thought - opens here instead of unfolding in place, so the transcript keeps its place. It reads like a page, not a debug panel: a large title saying what the row did, a quiet line of facts, then prose, labelled arguments, a diff or output. No raw JSON. It opens at half height; drag up for full height, drag down or tap the scrim to close. Keep the close button: the gesture is never the only way out. Sections that group items still unfold in place.",
+          "note": "Mobile only. One transcript item - a tool call, an edit, a thought - opens here instead of unfolding in place, so the transcript keeps its place. The header is one unit: what the row did as a sentence, and its status under it. The content sits on the sheet with no borders of its own: details are plain label and value lines, and each section is a quiet heading with its action above one soft borderless block - output with Copy, a diff under its file and counts. Output wraps rather than scrolling sideways. Red marks failure on the status line only. No raw JSON. It opens at half height; drag up for full height, drag down or tap the scrim to close. Sections that group items still unfold in place.",
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
@@ -315,18 +315,24 @@
             "au-sheet-header",
             "au-sheet-close",
             "au-sheet-close-glyph",
+            "au-sheet-heading",
             "au-sheet-title",
+            "au-sheet-status",
+            "au-sheet-status--failed",
             "au-sheet-content",
-            "au-sheet-meta",
-            "au-sheet-argument",
-            "au-sheet-label",
-            "au-sheet-body",
+            "au-sheet-facts",
+            "au-sheet-fact",
+            "au-sheet-fact-label",
+            "au-sheet-fact-value",
+            "au-sheet-section",
+            "au-sheet-section-header",
+            "au-sheet-section-title",
+            "au-sheet-section-action",
+            "au-sheet-block",
             "au-sheet-code",
-            "au-sheet-code--failed",
-            "au-sheet-code-text",
-            "au-sheet-code-text--failed"
+            "au-sheet-code-text"
           ],
-          "html": "<div class=\"au-sheet\">\n        <div class=\"au-sheet-grabber-row\"><span class=\"au-sheet-grabber\"></span></div>\n        <div class=\"au-sheet-header\">\n          <button class=\"au-sheet-close\" type=\"button\" aria-label=\"Close\"><span class=\"au-sheet-close-glyph\">✕</span></button>\n          <span class=\"au-sheet-title\">Run npm test</span>\n        </div>\n        <div class=\"au-sheet-content\">\n          <span class=\"au-sheet-meta\">Failed after 4s</span>\n          <div class=\"au-sheet-argument\">\n            <span class=\"au-sheet-label\">Description</span>\n            <span class=\"au-sheet-body\">Run the storefront tests</span>\n          </div>\n          <span class=\"au-sheet-label\">Output</span>\n          <div class=\"au-sheet-code au-sheet-code--failed\"><pre class=\"au-sheet-code-text au-sheet-code-text--failed\">FAIL  src/storefront/Featured.test.tsx\n  ✕ shows the weekly special first\n\nTests: 1 failed, 11 passed</pre></div>\n        </div>\n      </div>"
+          "html": "<div class=\"au-sheet\">\n        <div class=\"au-sheet-grabber-row\"><span class=\"au-sheet-grabber\"></span></div>\n        <div class=\"au-sheet-header\">\n          <button class=\"au-sheet-close\" type=\"button\" aria-label=\"Close\"><span class=\"au-sheet-close-glyph\">✕</span></button>\n          <div class=\"au-sheet-heading\">\n            <span class=\"au-sheet-title\">Run npm test</span>\n            <span class=\"au-sheet-status au-sheet-status--failed\">✕ Failed · 4s</span>\n          </div>\n        </div>\n        <div class=\"au-sheet-content\">\n          <div class=\"au-sheet-facts\">\n            <div class=\"au-sheet-fact\"><span class=\"au-sheet-fact-label\">Description</span><span class=\"au-sheet-fact-value\">Run the storefront tests</span></div>\n            <div class=\"au-sheet-fact\"><span class=\"au-sheet-fact-label\">Timeout</span><span class=\"au-sheet-fact-value\">120</span></div>\n          </div>\n          <div class=\"au-sheet-section\">\n            <div class=\"au-sheet-section-header\">\n              <span class=\"au-sheet-section-title\">Output</span>\n              <span class=\"au-sheet-section-action\">Copy</span>\n            </div>\n            <div class=\"au-sheet-block\"><div class=\"au-sheet-code\"><pre class=\"au-sheet-code-text\">FAIL  src/storefront/Featured.test.tsx\n  ✕ shows the weekly special first\n\nTests: 1 failed, 11 passed</pre></div></div>\n          </div>\n        </div>\n      </div>"
         },
         {
           "id": "chat-reply",

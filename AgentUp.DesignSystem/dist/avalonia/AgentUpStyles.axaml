@@ -2412,10 +2412,16 @@
     <Setter Property="Padding" Value="20,8"/>
   </Style>
   <Style Selector="Border.au-sheet-content">
-    <Setter Property="Padding" Value="20,4"/>
+    <Setter Property="Padding" Value="20,8"/>
   </Style>
   <Style Selector="TextBlock.au-sheet-content">
-    <Setter Property="Padding" Value="20,4"/>
+    <Setter Property="Padding" Value="20,8"/>
+  </Style>
+  <Style Selector="Border.au-sheet-heading">
+    <Setter Property="MinWidth" Value="0"/>
+  </Style>
+  <Style Selector="TextBlock.au-sheet-heading">
+    <Setter Property="MinWidth" Value="0"/>
   </Style>
   <Style Selector="TextBlock.au-sheet-title">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
@@ -2447,35 +2453,76 @@
     <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeLg}"/>
     <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightRegular}"/>
   </Style>
-  <Style Selector="TextBlock.au-sheet-meta">
+  <Style Selector="TextBlock.au-sheet-status">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
-    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeSm}"/>
-    <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightRegular}"/>
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiMd}"/>
+    <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightUi}"/>
   </Style>
-  <Style Selector="TextBlock.au-sheet-body">
+  <Style Selector="TextBlock.au-sheet-status--failed">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextDangerBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-sheet-status--running">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorAccentSoftBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-sheet-prose">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
     <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeMd}"/>
     <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightRegular}"/>
   </Style>
-  <Style Selector="TextBlock.au-sheet-label">
+  <Style Selector="Border.au-sheet-section-header">
+    <Setter Property="Padding" Value="4,0"/>
+  </Style>
+  <Style Selector="TextBlock.au-sheet-section-header">
+    <Setter Property="Padding" Value="4,0"/>
+  </Style>
+  <Style Selector="Border.au-sheet-section-title">
+    <Setter Property="MinWidth" Value="0"/>
+  </Style>
+  <Style Selector="TextBlock.au-sheet-section-title">
+    <Setter Property="MinWidth" Value="0"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiMd}"/>
+    <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
+  </Style>
+  <Style Selector="TextBlock.au-sheet-section-action">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiMd}"/>
+    <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
+  </Style>
+  <Style Selector="Border.au-sheet-facts">
+    <Setter Property="Padding" Value="4,0"/>
+  </Style>
+  <Style Selector="TextBlock.au-sheet-facts">
+    <Setter Property="Padding" Value="4,0"/>
+  </Style>
+  <Style Selector="Border.au-sheet-fact-label">
+    <Setter Property="Width" Value="88"/>
+  </Style>
+  <Style Selector="TextBlock.au-sheet-fact-label">
+    <Setter Property="Width" Value="88"/>
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
     <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeSm}"/>
-    <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightSemibold}"/>
+    <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightRegular}"/>
+  </Style>
+  <Style Selector="TextBlock.au-sheet-fact-value">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeSm}"/>
+    <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightRegular}"/>
+  </Style>
+  <Style Selector="Border.au-sheet-block">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
+    <Setter Property="CornerRadius" Value="{DynamicResource AgentUpCornerRadiusLg}"/>
+    <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-sheet-block">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
   </Style>
   <Style Selector="Border.au-sheet-code">
     <Setter Property="Padding" Value="16,12"/>
-    <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
-    <Setter Property="CornerRadius" Value="{DynamicResource AgentUpCornerRadiusLg}"/>
   </Style>
   <Style Selector="TextBlock.au-sheet-code">
     <Setter Property="Padding" Value="16,12"/>
-    <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
-  </Style>
-  <Style Selector="Border.au-sheet-code--failed">
-    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceDangerBrush}"/>
-  </Style>
-  <Style Selector="TextBlock.au-sheet-code--failed">
-    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceDangerBrush}"/>
   </Style>
   <Style Selector="Border.au-sheet-code-text">
     <Setter Property="Margin" Value="0"/>
@@ -2485,9 +2532,6 @@
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
     <Setter Property="FontFamily" Value="{DynamicResource AgentUpFontMono}"/>
     <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeXs}"/>
-  </Style>
-  <Style Selector="TextBlock.au-sheet-code-text--failed">
-    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextDangerBrush}"/>
   </Style>
   <Style Selector="Border.au-tab-sep">
     <Setter Property="Width" Value="1"/>

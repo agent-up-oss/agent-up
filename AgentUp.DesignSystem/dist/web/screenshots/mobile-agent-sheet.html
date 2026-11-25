@@ -33,19 +33,26 @@
         <div class="au-sheet-grabber-row"><span class="au-sheet-grabber"></span></div>
         <div class="au-sheet-header">
           <button class="au-sheet-close" type="button" aria-label="Close"><span class="au-sheet-close-glyph">✕</span></button>
-          <span class="au-sheet-title">Run npm test</span>
+          <div class="au-sheet-heading">
+            <span class="au-sheet-title">Run npm test</span>
+            <span class="au-sheet-status au-sheet-status--failed">✕ Failed · 4s</span>
+          </div>
         </div>
         <div class="au-sheet-content">
-          <span class="au-sheet-meta">Failed after 4s</span>
-          <div class="au-sheet-argument">
-            <span class="au-sheet-label">Description</span>
-            <span class="au-sheet-body">Run the storefront tests</span>
+          <div class="au-sheet-facts">
+            <div class="au-sheet-fact"><span class="au-sheet-fact-label">Description</span><span class="au-sheet-fact-value">Run the storefront tests</span></div>
+            <div class="au-sheet-fact"><span class="au-sheet-fact-label">Timeout</span><span class="au-sheet-fact-value">120</span></div>
           </div>
-          <span class="au-sheet-label">Output</span>
-          <div class="au-sheet-code au-sheet-code--failed"><pre class="au-sheet-code-text au-sheet-code-text--failed">FAIL  src/storefront/Featured.test.tsx
+          <div class="au-sheet-section">
+            <div class="au-sheet-section-header">
+              <span class="au-sheet-section-title">Output</span>
+              <span class="au-sheet-section-action">Copy</span>
+            </div>
+            <div class="au-sheet-block"><div class="au-sheet-code"><pre class="au-sheet-code-text">FAIL  src/storefront/Featured.test.tsx
   ✕ shows the weekly special first
 
-Tests: 1 failed, 11 passed</pre></div>
+Tests: 1 failed, 11 passed</pre></div></div>
+          </div>
         </div>
       </div></div>
     </div>

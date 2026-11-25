@@ -1263,10 +1263,10 @@ const agentUpTheme = Object.freeze({
     }),
     sheetContent: Object.freeze({
       paddingHorizontal: 20,
-      paddingVertical: 4,
+      paddingVertical: 8,
     }),
-    sheetArgument: Object.freeze({
-
+    sheetHeading: Object.freeze({
+      minWidth: 0,
     }),
     sheetTitle: Object.freeze({
       color: "#f5fbf7",
@@ -1287,36 +1287,71 @@ const agentUpTheme = Object.freeze({
       fontSize: 20,
       fontWeight: '400',
     }),
-    sheetMeta: Object.freeze({
+    sheetStatus: Object.freeze({
       color: "#8a9a92",
-      fontSize: 14,
-      fontWeight: '400',
+      fontSize: 13,
+      fontWeight: '500',
     }),
-    sheetBody: Object.freeze({
+    sheetStatusFailed: Object.freeze({
+      color: "#e48989",
+    }),
+    sheetStatusRunning: Object.freeze({
+      color: "#2bf27a",
+    }),
+    sheetProse: Object.freeze({
       color: "#c2d2ca",
       fontSize: 16,
       fontWeight: '400',
     }),
-    sheetLabel: Object.freeze({
+    sheetSection: Object.freeze({
+
+    }),
+    sheetSectionHeader: Object.freeze({
+      paddingHorizontal: 4,
+      paddingVertical: 0,
+    }),
+    sheetSectionTitle: Object.freeze({
+      minWidth: 0,
+      color: "#8a9a92",
+      fontSize: 13,
+      fontWeight: '600',
+    }),
+    sheetSectionAction: Object.freeze({
+      color: "#c2d2ca",
+      fontSize: 13,
+      fontWeight: '600',
+    }),
+    sheetFacts: Object.freeze({
+      paddingHorizontal: 4,
+      paddingVertical: 0,
+    }),
+    sheetFact: Object.freeze({
+
+    }),
+    sheetFactLabel: Object.freeze({
+      width: 88,
       color: "#8a9a92",
       fontSize: 14,
-      fontWeight: '600',
+      fontWeight: '400',
+    }),
+    sheetFactValue: Object.freeze({
+      color: "#f5fbf7",
+      fontSize: 14,
+      fontWeight: '400',
+    }),
+    sheetBlock: Object.freeze({
+      backgroundColor: "#ffffff0f",
+      borderWidth: 0,
+      borderColor: "#00000000",
+      borderRadius: 12,
     }),
     sheetCode: Object.freeze({
       paddingHorizontal: 16,
       paddingVertical: 12,
-      backgroundColor: "#ffffff0f",
-      borderRadius: 12,
-    }),
-    sheetCodeFailed: Object.freeze({
-      backgroundColor: "#261a1c",
     }),
     sheetCodeText: Object.freeze({
       color: "#c2d2ca",
       fontSize: 12,
-    }),
-    sheetCodeTextFailed: Object.freeze({
-      color: "#e48989",
     }),
     tabSep: Object.freeze({
       width: 1,

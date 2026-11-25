@@ -102,24 +102,31 @@
         </div>
       </div>
     </article>
-    <article data-au-component="sheet" data-au-title="Bottom sheet" data-au-note="Mobile only. One transcript item - a tool call, an edit, a thought - opens here instead of unfolding in place, so the transcript keeps its place. It reads like a page, not a debug panel: a large title saying what the row did, a quiet line of facts, then prose, labelled arguments, a diff or output. No raw JSON. It opens at half height; drag up for full height, drag down or tap the scrim to close. Keep the close button: the gesture is never the only way out. Sections that group items still unfold in place." data-au-avalonia="Border" data-au-class="au-sheet">
+    <article data-au-component="sheet" data-au-title="Bottom sheet" data-au-note="Mobile only. One transcript item - a tool call, an edit, a thought - opens here instead of unfolding in place, so the transcript keeps its place. The header is one unit: what the row did as a sentence, and its status under it. The content sits on the sheet with no borders of its own: details are plain label and value lines, and each section is a quiet heading with its action above one soft borderless block - output with Copy, a diff under its file and counts. Output wraps rather than scrolling sideways. Red marks failure on the status line only. No raw JSON. It opens at half height; drag up for full height, drag down or tap the scrim to close. Sections that group items still unfold in place." data-au-avalonia="Border" data-au-class="au-sheet">
       <div class="au-sheet">
         <div class="au-sheet-grabber-row"><span class="au-sheet-grabber"></span></div>
         <div class="au-sheet-header">
           <button class="au-sheet-close" type="button" aria-label="Close"><span class="au-sheet-close-glyph">✕</span></button>
-          <span class="au-sheet-title">Run npm test</span>
+          <div class="au-sheet-heading">
+            <span class="au-sheet-title">Run npm test</span>
+            <span class="au-sheet-status au-sheet-status--failed">✕ Failed · 4s</span>
+          </div>
         </div>
         <div class="au-sheet-content">
-          <span class="au-sheet-meta">Failed after 4s</span>
-          <div class="au-sheet-argument">
-            <span class="au-sheet-label">Description</span>
-            <span class="au-sheet-body">Run the storefront tests</span>
+          <div class="au-sheet-facts">
+            <div class="au-sheet-fact"><span class="au-sheet-fact-label">Description</span><span class="au-sheet-fact-value">Run the storefront tests</span></div>
+            <div class="au-sheet-fact"><span class="au-sheet-fact-label">Timeout</span><span class="au-sheet-fact-value">120</span></div>
           </div>
-          <span class="au-sheet-label">Output</span>
-          <div class="au-sheet-code au-sheet-code--failed"><pre class="au-sheet-code-text au-sheet-code-text--failed">FAIL  src/storefront/Featured.test.tsx
+          <div class="au-sheet-section">
+            <div class="au-sheet-section-header">
+              <span class="au-sheet-section-title">Output</span>
+              <span class="au-sheet-section-action">Copy</span>
+            </div>
+            <div class="au-sheet-block"><div class="au-sheet-code"><pre class="au-sheet-code-text">FAIL  src/storefront/Featured.test.tsx
   ✕ shows the weekly special first
 
-Tests: 1 failed, 11 passed</pre></div>
+Tests: 1 failed, 11 passed</pre></div></div>
+          </div>
         </div>
       </div>
     </article>

@@ -1479,13 +1479,13 @@ export const newUiTheme = Object.freeze({
       paddingLeft: 20,
     }),
     sheetContent: Object.freeze({
-      paddingTop: 4,
+      paddingTop: 8,
       paddingRight: 20,
-      paddingBottom: 4,
+      paddingBottom: 8,
       paddingLeft: 20,
     }),
-    sheetArgument: Object.freeze({
-
+    sheetHeading: Object.freeze({
+      minWidth: 0,
     }),
     sheetTitle: Object.freeze({
       color: "#f5fbf7",
@@ -1506,31 +1506,73 @@ export const newUiTheme = Object.freeze({
       fontSize: 20,
       fontWeight: '400',
     }),
-    sheetMeta: Object.freeze({
+    sheetStatus: Object.freeze({
       color: "#8a9a92",
-      fontSize: 14,
-      fontWeight: '400',
+      fontSize: 13,
+      fontWeight: '500',
     }),
-    sheetBody: Object.freeze({
+    sheetStatusFailed: Object.freeze({
+      color: "#e48989",
+    }),
+    sheetStatusRunning: Object.freeze({
+      color: "#2bf27a",
+    }),
+    sheetProse: Object.freeze({
       color: "#c2d2ca",
       fontSize: 16,
       fontWeight: '400',
     }),
-    sheetLabel: Object.freeze({
+    sheetSection: Object.freeze({
+
+    }),
+    sheetSectionHeader: Object.freeze({
+      paddingTop: 0,
+      paddingRight: 4,
+      paddingBottom: 0,
+      paddingLeft: 4,
+    }),
+    sheetSectionTitle: Object.freeze({
+      minWidth: 0,
+      color: "#8a9a92",
+      fontSize: 13,
+      fontWeight: '600',
+    }),
+    sheetSectionAction: Object.freeze({
+      color: "#c2d2ca",
+      fontSize: 13,
+      fontWeight: '600',
+    }),
+    sheetFacts: Object.freeze({
+      paddingTop: 0,
+      paddingRight: 4,
+      paddingBottom: 0,
+      paddingLeft: 4,
+    }),
+    sheetFact: Object.freeze({
+
+    }),
+    sheetFactLabel: Object.freeze({
+      width: 88,
       color: "#8a9a92",
       fontSize: 14,
-      fontWeight: '600',
+      fontWeight: '400',
+    }),
+    sheetFactValue: Object.freeze({
+      color: "#f5fbf7",
+      fontSize: 14,
+      fontWeight: '400',
+    }),
+    sheetBlock: Object.freeze({
+      backgroundColor: "#ffffff0f",
+      borderWidth: 0,
+      borderColor: "#00000000",
+      borderRadius: 12,
     }),
     sheetCode: Object.freeze({
       paddingTop: 12,
       paddingRight: 16,
       paddingBottom: 12,
       paddingLeft: 16,
-      backgroundColor: "#ffffff0f",
-      borderRadius: 12,
-    }),
-    sheetCodeFailed: Object.freeze({
-      backgroundColor: "#261a1c",
     }),
     sheetCodeText: Object.freeze({
       marginTop: 0,
@@ -1539,9 +1581,6 @@ export const newUiTheme = Object.freeze({
       marginLeft: 0,
       color: "#c2d2ca",
       fontSize: 12,
-    }),
-    sheetCodeTextFailed: Object.freeze({
-      color: "#e48989",
     }),
     screen: Object.freeze({
       minHeight: "100%",
