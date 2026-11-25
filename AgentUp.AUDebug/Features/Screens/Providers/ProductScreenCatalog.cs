@@ -42,9 +42,8 @@ public sealed class ProductScreenCatalog : IProductScreenCatalog
     private const string SecondPromoBannerPath = "apps/storefront/PromoBanner2.tsx";
     private const string ProductGridPath = "apps/storefront/ProductGrid.tsx";
     private const string OrdersPath = "apps/api/orders.ts";
-    private const string FirstWorkSection = "Worked for";
-    private const string FirstWorkFold = "1 search, 1 thought";
-    private const string FirstSearch = "Search, featured";
+    private const string FailedWorkSection = "1 failed";
+    private const string FailedTestRun = "Run, npm test";
 
     public IReadOnlyList<string> Surfaces => [ProductSurface.Desktop, ProductSurface.Mobile];
 
@@ -210,13 +209,14 @@ public sealed class ProductScreenCatalog : IProductScreenCatalog
             ScreenStepDto.Tap("Open Codex", 2500),
             ScreenStepDto.Settle(1200)
         ]),
-        // Opens the first finished work section and its fold, then the search in it: only the
-        // lowest level opens a sheet, so the section and fold unfold in place first.
+        // Opens the work section holding the failed test run, then that run: only the lowest
+        // level opens a sheet, so the section unfolds in place first. Where the steering prompt
+        // lands moves the other sections' contents from run to run; the failed run never folds
+        // and its section is the only one that says "1 failed".
         MobileScreen("agent-sheet", "Mobile agent item sheet",
         [
-            ScreenStepDto.Tap(FirstWorkSection, 800),
-            ScreenStepDto.Tap(FirstWorkFold, 800),
-            ScreenStepDto.Tap(FirstSearch, 1500)
+            ScreenStepDto.Tap(FailedWorkSection, 800),
+            ScreenStepDto.Tap(FailedTestRun, 1500)
         ]),
         MobileScreen("application", "Mobile application space",
         [
