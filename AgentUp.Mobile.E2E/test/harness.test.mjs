@@ -176,7 +176,19 @@ test('native pasted-code sign-in restores the connect URL when it returns from t
 
   assert.match(returnToApp, /url: connectLaunchUrl\(stack\.serverOriginForClient, stack\.workspace\.id\)/);
   assert.match(returnToApp, /pastedCode\(flow, stack\.control, carriedCode\)/);
-  assert.match(returnToApp, /by\.id\('agent-signin-submit-code'\)\.and\(by\.enabled\(\)\)/);
+  assert.match(returnToApp, /waitUntilFieldHolds\('agent-signin-code-input', code\)/);
+});
+
+test('native pasted-code reads the field through getAttributes, not Detox text or enabled matchers', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const source = await readFile(new URL('../detox/signIn.test.js', import.meta.url), 'utf8');
+  const helper = source.slice(
+    source.indexOf('async function waitUntilFieldHolds('),
+    source.indexOf('async function pastedCode('),
+  );
+  assert.match(helper, /getAttributes\(\)/);
+  assert.equal(helper.includes('by.enabled()'), false);
+  assert.equal(helper.includes('toHaveText('), false);
 });
 
 test('native fill types long codes in chunks so Android IME does not truncate a PKCE secret', async () => {

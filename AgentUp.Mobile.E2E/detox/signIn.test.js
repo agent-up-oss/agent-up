@@ -155,12 +155,12 @@ describe('agent sign-in', () => {
         await waitFor(element(by.id('agent-signin-code-input'))).toBeVisible().withTimeout(30_000);
         const code = await pastedCode(flow, stack.control, carriedCode);
         await fill('agent-signin-code-input', code);
+        // Detox 20.42 has no by.enabled matcher, and toHaveText only matches TextView.
+        // EditText/UITextField expose the typed value through getAttributes.
+        await waitUntilFieldHolds('agent-signin-code-input', code);
         if (device.getPlatform() === 'ios') {
           await element(by.id('agent-signin-code-input')).tapReturnKey();
         }
-        await waitFor(element(by.id('agent-signin-submit-code').and(by.enabled())))
-          .toBeVisible()
-          .withTimeout(15_000);
         await tap('agent-signin-submit-code', 60_000);
       }
 
@@ -321,6 +321,26 @@ async function fill(testId, value) {
   for (let index = 0; index < value.length; index += chunk) {
     await field.typeText(value.slice(index, index + chunk));
   }
+}
+
+async function waitUntilFieldHolds(testId, expected, timeoutMs = 15_000) {
+  const deadline = Date.now() + timeoutMs;
+  let last = '';
+  while (Date.now() < deadline) {
+    try {
+      const attrs = await element(by.id(testId)).getAttributes();
+      last = typeof attrs.text === 'string' && attrs.text.length > 0
+        ? attrs.text
+        : typeof attrs.value === 'string' ? attrs.value : '';
+      if (last === expected) return;
+    } catch {
+      last = '';
+    }
+    await appears(testId, 400);
+  }
+  throw new Error(
+    `Timed out waiting for ${testId} to hold ${JSON.stringify(expected)}; last saw ${JSON.stringify(last)}`,
+  );
 }
 
 async function pastedCode(flow, control, fallback) {
