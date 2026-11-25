@@ -180,8 +180,9 @@ Desktop is the reference rendering:
   the selected tint plus a 2px accent rule. Code is preformatted so leading
   spaces and tabs stay visible. Do not dump a file into one text
   node, and do not paint syntax with accent green.
-- A Mobile bottom sheet is `.au-sheet`: the overlay surface with a 28px top
-  radius and no hairline, `.au-sheet-grabber`, a round `.au-sheet-close`, a
+- A Mobile bottom sheet is `.au-sheet`: canvas black with a 28px top radius
+  and one strong white hairline along its edge, never a tinted grey. Inside it
+  everything is a neutral white layer: `.au-sheet-grabber`, a round `.au-sheet-close`, a
   `.au-sheet-title`, a quiet `.au-sheet-meta` facts line, then
   `.au-sheet-content` holding `.au-sheet-label` / `.au-sheet-body` pairs and
   `.au-sheet-code` blocks. It is a reading surface, never a debug panel: no

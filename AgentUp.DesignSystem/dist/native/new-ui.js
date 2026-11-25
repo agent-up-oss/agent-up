@@ -1453,9 +1453,11 @@ export const newUiTheme = Object.freeze({
     }),
     sheet: Object.freeze({
       color: "#f5fbf7",
-      backgroundColor: "#202428",
-      borderWidth: 0,
-      borderColor: "#00000000",
+      backgroundColor: "#0a0b0c",
+      borderWidth: 1,
+      borderColor: "#ffffff29",
+      borderBottomWidth: 0,
+      borderBottomColor: "#00000000",
       borderRadius: 28,
     }),
     sheetGrabber: Object.freeze({
@@ -1494,9 +1496,9 @@ export const newUiTheme = Object.freeze({
       width: 44,
       height: 44,
       color: "#f5fbf7",
-      backgroundColor: "#202224",
-      borderWidth: 1,
-      borderColor: "#ffffff14",
+      backgroundColor: "#ffffff1a",
+      borderWidth: 0,
+      borderColor: "#00000000",
       borderRadius: 999,
     }),
     sheetCloseGlyph: Object.freeze({
@@ -1524,7 +1526,7 @@ export const newUiTheme = Object.freeze({
       paddingRight: 16,
       paddingBottom: 12,
       paddingLeft: 16,
-      backgroundColor: "#191c1f",
+      backgroundColor: "#ffffff0f",
       borderRadius: 12,
     }),
     sheetCodeFailed: Object.freeze({

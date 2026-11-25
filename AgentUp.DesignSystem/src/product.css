@@ -974,16 +974,18 @@
 
 /* Bottom sheet (Mobile). One transcript item opened to read: a large rounded sheet over a scrim,
  * a title you can read at arm's length, and the content as prose and code rather than a debug
- * panel. Half height first, dragged up to full, dragged down to close. No hairline: the overlay
- * surface and the scrim already say it is in front. The close button means the gesture is never
- * the only way out. */
+ * panel. Half height first, dragged up to full, dragged down to close. The sheet is the canvas
+ * black, not a tinted grey: a single white hairline along its top edge is what lifts it off the
+ * dimmed screen, and everything inside it is a neutral white layer. The close button means the
+ * gesture is never the only way out. */
 .au-sheet {
   display: flex;
   flex-direction: column;
   overflow: hidden;
   color: var(--au-color-text-primary);
-  background: var(--au-color-surface-overlay);
-  border: 0;
+  background: var(--au-color-canvas);
+  border: 1px solid var(--au-color-border-strong);
+  border-bottom: 0;
   border-radius: 1.75rem 1.75rem 0 0;
   box-shadow: var(--au-shadow-overlay);
 }
@@ -1027,11 +1029,11 @@
   width: 2.75rem;
   height: 2.75rem;
   color: var(--au-color-text-primary);
-  background: var(--au-color-surface-hover);
-  border: 1px solid var(--au-color-border-subtle);
+  background: var(--au-color-state-active);
+  border: 0;
   border-radius: var(--au-radius-pill);
 }
-.au-sheet-close:hover { background: var(--au-color-state-hover); }
+.au-sheet-close:hover { background: var(--au-color-border-strong); }
 .au-sheet-close-glyph {
   color: var(--au-color-text-primary);
   font-size: var(--au-font-size-lg);
@@ -1054,7 +1056,7 @@
 }
 .au-sheet-code {
   padding: var(--au-space-3) var(--au-space-4);
-  background: var(--au-color-surface-raised);
+  background: var(--au-color-state-hover);
   border-radius: var(--au-radius-lg);
 }
 .au-sheet-code--failed { background: var(--au-color-surface-danger); }
