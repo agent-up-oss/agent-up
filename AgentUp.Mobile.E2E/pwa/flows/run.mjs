@@ -135,8 +135,8 @@ async function perform(page, host, step) {
   }
   if (action === 'click') {
     const locator = locatorFor(page, step.target);
-    await locator.scrollIntoViewIfNeeded();
-    await locator.click();
+    await locator.scrollIntoViewIfNeeded({ timeout: 180_000 });
+    await locator.click({ timeout: 180_000 });
     return;
   }
   if (action === 'press') {
