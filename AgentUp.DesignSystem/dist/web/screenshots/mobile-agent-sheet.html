@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=390, height=844, initial-scale=1" />
+  <title>Mobile agent item sheet</title>
+  <link rel="stylesheet" href="../screenshots.css" />
+</head>
+<body class="au-theme">
+<div class="au-theme au-screen" style="width:390px;height:844px">
+      <div class="au-mobile-bar">
+        <span class="au-title-tool au-chrome-icon">‹</span>
+        <strong>Workspace agent</strong>
+      </div>
+      <div class="au-screen-mobile-body"><div class="au-agent-header">
+        <div>
+          <h1 class="au-page-title">Workspace agent</h1>
+          <p class="au-muted">Codex · Idle</p>
+          <p class="au-muted">Workspace sessions</p>
+        </div>
+        <button class="au-button au-button--danger au-button--compact" type="button">Stop agent</button>
+      </div><div class="au-chat-transcript">
+        <div class="au-chat-user">What is running in this workspace?</div>
+        <div class="au-chat-reply"><span class="au-chat-reply-agent">Codex</span><p class="au-md-paragraph">I added apps/storefront/PromoBanner.tsx so the storefront can show the weekly harbor special. It is uncommitted in the working tree.</p></div>
+        <div class="au-chat-user">Add a promo banner to the storefront.</div>
+        <div class="au-chat-reply"><span class="au-chat-reply-agent">Codex</span><p class="au-md-paragraph">I added apps/storefront/PromoBanner2.tsx so the storefront can show the weekly harbor special. It is uncommitted in the working tree.</p></div>
+      </div><div class="au-agent-prompt">
+        <input class="au-input" placeholder="Ask the agent..." />
+        <button class="au-button" type="button">Send</button>
+      </div></div>
+      
+      <div class="au-scrim au-screen-overlay"><div class="au-sheet">
+        <div class="au-sheet-grabber-row"><span class="au-sheet-grabber"></span></div>
+        <div class="au-sheet-header">
+          <button class="au-sheet-close" type="button" aria-label="Close"><span class="au-sheet-close-glyph">✕</span></button>
+          <span class="au-sheet-title">Run npm test</span>
+        </div>
+        <div class="au-sheet-content">
+          <span class="au-sheet-meta">Failed after 4s</span>
+          <div class="au-sheet-argument">
+            <span class="au-sheet-label">Description</span>
+            <span class="au-sheet-body">Run the storefront tests</span>
+          </div>
+          <span class="au-sheet-label">Output</span>
+          <div class="au-sheet-code au-sheet-code--failed"><pre class="au-sheet-code-text au-sheet-code-text--failed">FAIL  src/storefront/Featured.test.tsx
+  ✕ shows the weekly special first
+
+Tests: 1 failed, 11 passed</pre></div>
+        </div>
+      </div></div>
+    </div>
+</body>
+</html>

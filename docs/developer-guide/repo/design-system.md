@@ -180,6 +180,13 @@ Desktop is the reference rendering:
   the selected tint plus a 2px accent rule. Code is preformatted so leading
   spaces and tabs stay visible. Do not dump a file into one text
   node, and do not paint syntax with accent green.
+- A Mobile bottom sheet is `.au-sheet`: the overlay surface with a 28px top
+  radius and no hairline, `.au-sheet-grabber`, a round `.au-sheet-close`, a
+  `.au-sheet-title`, a quiet `.au-sheet-meta` facts line, then
+  `.au-sheet-content` holding `.au-sheet-label` / `.au-sheet-body` pairs and
+  `.au-sheet-code` blocks. It is a reading surface, never a debug panel: no
+  raw JSON and no bordered cards inside it. The assembled `mobile-agent-sheet`
+  scene shows it over the agent chat.
 - Radius scales with the object: `xs`/`sm` for controls, `md` for rows, buttons
   and inputs, `lg` for panels and cards, `xl` for panes and dialogs. An 8px
   corner reads rounded on a chip and square on a 900px pane.

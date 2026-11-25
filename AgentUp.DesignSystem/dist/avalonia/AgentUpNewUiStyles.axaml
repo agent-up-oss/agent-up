@@ -2958,11 +2958,23 @@
     <Setter Property="Height" Value="5"/>
     <Setter Property="Background" Value="{DynamicResource AgentUpColorBorderStrongBrush}"/>
   </Style>
+  <Style Selector="Border.au-sheet-grabber-row">
+    <Setter Property="Padding" Value="0,8,0,8"/>
+  </Style>
+  <Style Selector="TextBlock.au-sheet-grabber-row">
+    <Setter Property="Padding" Value="0,8,0,8"/>
+  </Style>
   <Style Selector="Border.au-sheet-header">
     <Setter Property="Padding" Value="20,8,20,8"/>
   </Style>
   <Style Selector="TextBlock.au-sheet-header">
     <Setter Property="Padding" Value="20,8,20,8"/>
+  </Style>
+  <Style Selector="Border.au-sheet-content">
+    <Setter Property="Padding" Value="20,4,20,4"/>
+  </Style>
+  <Style Selector="TextBlock.au-sheet-content">
+    <Setter Property="Padding" Value="20,4,20,4"/>
   </Style>
   <Style Selector="TextBlock.au-sheet-title">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
@@ -3050,14 +3062,16 @@
   <Style Selector="TextBlock.au-sheet-code--failed">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceDangerBrush}"/>
   </Style>
+  <Style Selector="Border.au-sheet-code-text">
+    <Setter Property="Margin" Value="0,0,0,0"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeXs}"/>
+  </Style>
   <Style Selector="TextBlock.au-sheet-code-text">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
     <Setter Property="FontFamily" Value="{DynamicResource AgentUpFontMono}"/>
     <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeXs}"/>
-  </Style>
-  <Style Selector="Border.au-sheet-code-text">
-    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
-    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeXs}"/>
+    <Setter Property="Margin" Value="0,0,0,0"/>
   </Style>
   <Style Selector="TextBlock.au-sheet-code-text--failed">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextDangerBrush}"/>

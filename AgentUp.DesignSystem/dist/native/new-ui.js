@@ -1464,11 +1464,26 @@ export const newUiTheme = Object.freeze({
       backgroundColor: "#ffffff29",
       borderRadius: 999,
     }),
+    sheetGrabberRow: Object.freeze({
+      paddingTop: 8,
+      paddingRight: 0,
+      paddingBottom: 8,
+      paddingLeft: 0,
+    }),
     sheetHeader: Object.freeze({
       paddingTop: 8,
       paddingRight: 20,
       paddingBottom: 8,
       paddingLeft: 20,
+    }),
+    sheetContent: Object.freeze({
+      paddingTop: 4,
+      paddingRight: 20,
+      paddingBottom: 4,
+      paddingLeft: 20,
+    }),
+    sheetArgument: Object.freeze({
+
     }),
     sheetTitle: Object.freeze({
       color: "#f5fbf7",
@@ -1516,6 +1531,10 @@ export const newUiTheme = Object.freeze({
       backgroundColor: "#261a1c",
     }),
     sheetCodeText: Object.freeze({
+      marginTop: 0,
+      marginRight: 0,
+      marginBottom: 0,
+      marginLeft: 0,
       color: "#c2d2ca",
       fontSize: 12,
     }),
@@ -1596,6 +1615,9 @@ export const newUiTheme = Object.freeze({
     screenAside: Object.freeze({
       minWidth: 0,
       minHeight: 0,
+    }),
+    screenOverlay__sheet: Object.freeze({
+
     }),
     screenOverlay__overlayPanel: Object.freeze({
 

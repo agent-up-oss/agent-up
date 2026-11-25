@@ -1251,9 +1251,20 @@ const agentUpTheme = Object.freeze({
       backgroundColor: "#ffffff29",
       borderRadius: 999,
     }),
+    sheetGrabberRow: Object.freeze({
+      paddingHorizontal: 0,
+      paddingVertical: 8,
+    }),
     sheetHeader: Object.freeze({
       paddingHorizontal: 20,
       paddingVertical: 8,
+    }),
+    sheetContent: Object.freeze({
+      paddingHorizontal: 20,
+      paddingVertical: 4,
+    }),
+    sheetArgument: Object.freeze({
+
     }),
     sheetTitle: Object.freeze({
       color: "#f5fbf7",

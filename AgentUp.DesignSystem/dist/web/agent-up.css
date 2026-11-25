@@ -1445,6 +1445,9 @@
  * surface and the scrim already say it is in front. The close button means the gesture is never
  * the only way out. */
 .au-sheet {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   color: var(--au-color-text-primary);
   background: var(--au-color-surface-overlay);
   border: 0;
@@ -1457,8 +1460,27 @@
   background: var(--au-color-border-strong);
   border-radius: var(--au-radius-pill);
 }
+.au-sheet-grabber-row {
+  display: flex;
+  justify-content: center;
+  padding: var(--au-space-2) 0;
+}
 .au-sheet-header {
+  display: flex;
+  align-items: center;
+  gap: var(--au-space-3);
   padding: var(--au-space-2) var(--au-space-5);
+}
+.au-sheet-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--au-space-4);
+  padding: var(--au-space-1) var(--au-space-5);
+}
+.au-sheet-argument {
+  display: flex;
+  flex-direction: column;
+  gap: var(--au-space-1);
 }
 .au-sheet-title {
   color: var(--au-color-text-primary);
@@ -1466,6 +1488,9 @@
   font-weight: var(--au-weight-semibold);
 }
 .au-sheet-close {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
   width: 2.75rem;
   height: 2.75rem;
   color: var(--au-color-text-primary);
@@ -1501,6 +1526,8 @@
 }
 .au-sheet-code--failed { background: var(--au-color-surface-danger); }
 .au-sheet-code-text {
+  margin: 0;
+  white-space: pre;
   color: var(--au-color-text-secondary);
   font-family: var(--au-font-mono);
   font-size: var(--au-font-size-xs);
@@ -1628,6 +1655,16 @@
   padding: 0;
 }
 .au-screen-overlay:has(.au-file-viewer--mobile) { padding: 1.25rem; }
+.au-screen-overlay:has(.au-sheet) {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 0;
+}
+.au-screen-overlay .au-sheet {
+  width: 100%;
+  height: 58%;
+}
 .au-screen-overlay .au-overlay-panel,
 .au-screen-overlay .au-file-viewer {
   width: min(100%, 64rem);
