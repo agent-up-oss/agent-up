@@ -274,19 +274,10 @@ public sealed class CommandCenterSceneTests
             CanActivateLoop: false,
             CanCancelLoop: false,
             CanStartBound: false));
-        var binding = CommandCenterScene.Bind(Input([], "agent-settings") with
-        {
-            ChatSettings = fields,
-            MemberKind = "DevReviewer",
-            BoundAgent = "opencode",
-            AgentEndpoint = "http://localhost:11434",
-            AgentModel = "llama",
-        });
-        var rows = binding.Items["chatFields"];
+        var rows = CommandCenterScene.Bind(Input([]) with { ChatSettings = fields }).Items["chatFields"];
 
         Assert.Multiple(() =>
         {
-            Assert.That(binding.State["selected"], Is.EqualTo("4"));
             Assert.That(rows.Select(item => item.Id), Is.EqualTo(new[] { "autonomy", "codex", "cursor", "claude" }));
             Assert.That(rows.Single(item => item.Id == "autonomy").Action, Is.EqualTo("toggle-autonomy"));
             Assert.That(rows.Single(item => item.Id == "autonomy").Text["detail"], Is.EqualTo("Off"));
@@ -294,6 +285,23 @@ public sealed class CommandCenterSceneTests
             Assert.That(rows.Single(item => item.Id == "cursor").Action, Is.EqualTo("enable-agent"));
             Assert.That(rows.Single(item => item.Id == "claude").Parts, Does.Contain("locked"));
             Assert.That(rows.Any(item => item.Id == "forgeCapabilityEnabled"), Is.False);
+        });
+    }
+
+    [Test]
+    public void Member_settings_mark_kind_and_OpenCode_fields()
+    {
+        var binding = CommandCenterScene.Bind(Input([], "agent-settings") with
+        {
+            MemberKind = "DevReviewer",
+            BoundAgent = "opencode",
+            AgentEndpoint = "http://localhost:11434",
+            AgentModel = "llama",
+        });
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(binding.State["selected"], Is.EqualTo("4"));
             Assert.That(binding.State["memberKind"], Is.EqualTo("DevReviewer"));
             Assert.That(binding.State["opencodeSettings"], Is.EqualTo("1"));
             Assert.That(binding.Text["agentEndpoint"], Is.EqualTo("http://localhost:11434"));

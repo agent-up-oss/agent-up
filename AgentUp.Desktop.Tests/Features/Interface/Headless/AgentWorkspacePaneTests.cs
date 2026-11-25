@@ -384,19 +384,18 @@ public sealed class AgentWorkspacePaneTests
         if (queue is not null)
             await window.ClickControlAsync(queue);
         await window.ClickControlAsync(VisibleButtonNamed(window, "Back"));
-        center.ShowNav(2);
-        await HeadlessExtensions.FlushAsync();
+        await OpenMemberSettingsAsync(center);
         await WaitAsync(() => source.IsConnected("bob", "github") && ButtonTexts(window).Contains("Forget"));
-        await window.ClickControlAsync(VisibleButtonNamed(window, "Forget"));
+        await ClickNamedAsync(window, "Forget");
         await WaitAsync(() => !source.IsConnected("bob", "github"));
-        await window.ClickControlAsync(VisibleButtonNamed(window, "Forgejo"));
+        await ClickNamedAsync(window, "Forgejo");
         await WaitAsync(() => TabSelected(window, "Forgejo"));
 
         Assert.Multiple(() =>
         {
             Assert.That(source.IsConnected("bob", "github"), Is.False);
             Assert.That(TabSelected(window, "Forgejo"), Is.True);
-            Assert.That(center.SceneId, Is.EqualTo("settings"));
+            Assert.That(center.SceneId, Is.EqualTo("agent-settings"));
         });
         window.Close();
     }
@@ -408,17 +407,16 @@ public sealed class AgentWorkspacePaneTests
         var center = ((MainViewModel)window.DataContext!).CommandCenter!;
         var source = center.TaskSource!;
         await WaitAsync(() => source.IsConnected("bob", "github"));
-        center.ShowNav(2);
-        await HeadlessExtensions.FlushAsync();
+        await OpenMemberSettingsAsync(center);
         await WaitAsync(() => source.IsConnected("bob", "github") && ButtonTexts(window).Contains("Forget"));
-        await window.ClickControlAsync(VisibleButtonNamed(window, "Forget"));
+        await ClickNamedAsync(window, "Forget");
         await WaitAsync(() => !source.IsConnected("bob", "github"));
-        await window.ClickControlAsync(VisibleButtonNamed(window, "Forgejo"));
+        await ClickNamedAsync(window, "Forgejo");
         await WaitAsync(() => TabSelected(window, "Forgejo"));
         await HeadlessExtensions.FlushAsync();
         UrlBox(window).Text = "https://git.example.test";
         PasswordBox(window).Text = "forgejo-token";
-        await window.ClickControlAsync(VisibleButtonNamed(window, "Save"));
+        await ClickControlIntoViewAsync(window, ForgeSave(window));
         await WaitAsync(() => source.IsConnected("bob", "forgejo"));
 
         Assert.Multiple(() =>
@@ -495,6 +493,8 @@ public sealed class AgentWorkspacePaneTests
         var viewModel = MainViewModelFactory.Create(http, login, commandCenter: commandCenter);
         var window = new MainWindow(http, FakeServerTestComposition.Controller(backend)) { DataContext = viewModel };
         window.WebViewFactory = () => throw new InvalidOperationException("WebView not available in headless tests");
+        window.Width = 1440;
+        window.Height = 900;
         window.Show();
         await viewModel.InitializeAsync();
         commandCenter.ToggleCommand.Execute().Subscribe();
@@ -507,6 +507,24 @@ public sealed class AgentWorkspacePaneTests
         var standing = TeamStandingComposition.Standing(workspaceId: DesktopDomain.WorkspaceId);
         ViewModel(driver).CommandCenter!.OpenAgentCommand.Execute(standing).Subscribe();
         await HeadlessExtensions.FlushAsync();
+    }
+
+    private static async Task OpenMemberSettingsAsync(CommandCenterViewModel center, string workspaceId = "bob")
+    {
+        center.OpenAgentCommand.Execute(TeamStandingComposition.Standing(workspaceId: workspaceId, displayName: "Bob")).Subscribe();
+        center.ShowSection("settings");
+        await HeadlessExtensions.FlushAsync();
+        await WaitAsync(() => center.SceneId == "agent-settings");
+    }
+
+    private static async Task ClickNamedAsync(Window window, string label)
+        => await ClickControlIntoViewAsync(window, VisibleButtonNamed(window, label));
+
+    private static async Task ClickControlIntoViewAsync(Window window, Control control)
+    {
+        control.BringIntoView();
+        await HeadlessExtensions.FlushAsync();
+        await window.ClickControlAsync(control);
     }
 
     private static MainViewModel ViewModel(AppDriver driver) => (MainViewModel)driver.Window.DataContext!;
@@ -553,6 +571,11 @@ public sealed class AgentWorkspacePaneTests
 
     private static TextBox PasswordBox(Window window)
         => window.GetVisualDescendants().OfType<TextBox>().Single(box => box.PlaceholderText == "Personal access token");
+
+    private static Button ForgeSave(Window window)
+        => PasswordBox(window).GetVisualAncestors().OfType<Control>()
+            .SelectMany(parent => parent.GetVisualDescendants().OfType<Button>())
+            .First(button => button.IsEffectivelyVisible && ButtonText(button) == "Save");
 
     private static Button ButtonOn(Control root, string label)
         => root.GetVisualDescendants().OfType<Button>().Single(button => ButtonText(button) == label);

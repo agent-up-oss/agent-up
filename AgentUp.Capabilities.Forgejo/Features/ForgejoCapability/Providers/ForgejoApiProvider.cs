@@ -97,13 +97,9 @@ public sealed class ForgejoApiProvider(HttpMessageHandler? handler = null, strin
     {
         if (!issue.TryGetProperty("assignees", out var assignees) || assignees.ValueKind != JsonValueKind.Array)
             return null;
-        foreach (var user in assignees.EnumerateArray())
-        {
-            if (user.TryGetProperty("login", out var name) && name.GetString() is { Length: > 0 } listed)
-                return listed;
-        }
-
-        return null;
+        return assignees.EnumerateArray()
+            .Select(user => user.TryGetProperty("login", out var name) ? name.GetString() : null)
+            .FirstOrDefault(login => login is { Length: > 0 });
     }
 
     private static bool HasAssignee(JsonElement issue, string login)
