@@ -59,7 +59,7 @@ function ToolSheetBody({ item, arguments: rows }: { item: TranscriptItem; argume
 const styles = StyleSheet.create({
   meta: { ...auText('sheetMeta'), lineHeight: 20 },
   section: { gap: 8 },
-  argument: { gap: 2 },
+  argument: { ...auBox('sheetArgument'), gap: 4 },
   label: auText('sheetLabel'),
   value: { ...auText('sheetBody'), lineHeight: 24 },
   // A diff runs edge to edge: its gutter is the margin.

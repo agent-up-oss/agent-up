@@ -8,7 +8,7 @@ import { detentHeight, draggedHeight, settleSheet, sheetDetents, sheetTakesDrag,
 const nativeDriver = Platform.OS !== 'web';
 const closeMs = 200;
 /** The sheet's side margin; content that runs edge to edge takes it back. */
-export const sheetGutter = 20;
+export const sheetGutter = auBox('sheetContent').paddingHorizontal as number;
 
 /**
  * A sheet that rises from the bottom over a scrim to show one thing in full. It opens at half
@@ -119,12 +119,12 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     overflow: 'hidden',
   },
-  grabberArea: { alignItems: 'center', paddingTop: 10, paddingBottom: 6 },
+  grabberArea: { ...auBox('sheetGrabberRow'), alignItems: 'center' },
   grabber: auBox('sheetGrabber'),
-  header: { ...auBox('sheetHeader'), flexDirection: 'row', alignItems: 'center', gap: 14, paddingBottom: 12 },
+  header: { ...auBox('sheetHeader'), flexDirection: 'row', alignItems: 'center', gap: 12 },
   close: { ...auBox('sheetClose'), alignItems: 'center', justifyContent: 'center' },
   closeGlyph: auText('sheetCloseGlyph'),
   title: { ...auText('sheetTitle'), flex: 1 },
   content: { flex: 1 },
-  contentInner: { paddingHorizontal: sheetGutter, paddingTop: 4, gap: 16 },
+  contentInner: { ...auBox('sheetContent'), gap: 16 },
 });
