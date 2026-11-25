@@ -21,27 +21,21 @@ export function presentToolItem(item: TranscriptItem): ToolCallView {
 
 /**
  * One quiet row per tool call: status glyph, readable name, source, the argument that matters,
- * what an edit changed and how long the call took. Tapping it opens an edit's diff, or the input
- * and a formatted output that stays bounded.
+ * what an edit changed and how long the call took. The call being worked on shows its detail in
+ * place while it runs; tapping any call opens its detail in a sheet.
  */
-export function ToolCallRow({ item, active = false }: { item: TranscriptItem; active?: boolean }) {
-  // The call being worked on is drawn open; once the reader taps it, their choice stands.
-  const [chosen, setChosen] = useState<boolean | null>(null);
-  const open = chosen ?? active;
-  const setOpen = (next: (current: boolean) => boolean) => setChosen(next(open));
-  const [all, setAll] = useState(false);
-  const [wholeDiff, setWholeDiff] = useState(false);
+export function ToolCallRow({ item, active = false, onOpen }: { item: TranscriptItem; active?: boolean; onOpen: (item: TranscriptItem) => void }) {
   const view = presentToolItem(item);
   const glyph = view.state === 'done' ? '✓' : view.state === 'failed' ? '✕' : '◐';
   const failed = view.state === 'failed';
   const diff = view.diff;
-  const diffLines = diff ? (wholeDiff ? diff.lines : diff.lines.slice(0, diffPreviewLines)) : [];
   return <View style={styles.wrap}>
     <Pressable
       testID={`agent-tool-${item.toolCallId ?? item.id}`}
       accessibilityRole="button"
+      accessibilityHint="Opens the details"
       accessibilityLabel={[view.title, view.source, view.summary, diff ? `+${diff.added} −${diff.removed}` : undefined, view.duration, view.state].filter(Boolean).join(', ')}
-      onPress={() => setOpen(current => !current)}
+      onPress={() => onOpen(item)}
       style={styles.row}>
       <Text style={[styles.glyph, view.state === 'running' && styles.glyphRunning, failed && styles.glyphFailed]}>{glyph}</Text>
       <Text style={styles.title}>{view.title}</Text>
@@ -51,31 +45,41 @@ export function ToolCallRow({ item, active = false }: { item: TranscriptItem; ac
       {diff && diff.removed > 0 ? <Text style={styles.removed}>−{diff.removed}</Text> : null}
       {view.duration ? <Text style={styles.duration}>{view.duration}</Text> : null}
     </Pressable>
-    <Reveal open={open}><View style={styles.detail}>
-      {diff ? <>
-        {diff.path ? <Text style={styles.label}>{diff.path}</Text> : null}
-        <ScrollView horizontal style={styles.diff} contentContainerStyle={styles.diffContent} testID={`agent-tool-diff-${item.toolCallId ?? item.id}`}>
-          <View style={styles.diffLines}>{diffLines.map((line, index) => <DiffRow key={index} line={line} language={languageForPath(diff.path)} />)}</View>
-        </ScrollView>
-        {!wholeDiff && diff.lines.length > diffPreviewLines
-          ? <Pressable accessibilityRole="button" onPress={() => setWholeDiff(true)}><Text style={styles.more}>{`Show all ${diff.lines.length} lines`}</Text></Pressable>
-          : null}
-      </> : null}
-      {!diff && view.input ? <>
-        <Text style={styles.label}>Input</Text>
-        <View style={styles.output}><Text style={styles.outputText} selectable>{view.input}</Text></View>
-      </> : null}
-      {!diff && view.output ? <>
-        <Text style={styles.label}>Output</Text>
-        <ScrollView style={[styles.output, failed && styles.outputFailed]} nestedScrollEnabled>
-          <Text style={[styles.outputText, failed && styles.outputTextFailed]} selectable>{all ? view.fullOutput : view.output}</Text>
-        </ScrollView>
-        {!all && view.hiddenLines > 0
-          ? <Pressable accessibilityRole="button" onPress={() => setAll(true)}><Text style={styles.more}>{view.hiddenLines === 1 ? 'Show 1 more line' : `Show ${view.hiddenLines} more lines`}</Text></Pressable>
-          : null}
-      </> : null}
-    </View></Reveal>
+    <Reveal open={active}><View style={styles.detail}><ToolCallDetail item={item} /></View></Reveal>
   </View>;
+}
+
+/** What a running tool call has done so far, shown in place under its row: an edit's diff, or its input and a bounded output. */
+function ToolCallDetail({ item }: { item: TranscriptItem }) {
+  const [all, setAll] = useState(false);
+  const [wholeDiff, setWholeDiff] = useState(false);
+  const view = presentToolItem(item);
+  const failed = view.state === 'failed';
+  const diff = view.diff;
+  const diffLines = diff ? (wholeDiff ? diff.lines : diff.lines.slice(0, diffPreviewLines)) : [];
+  const outputText = <Text style={[styles.outputText, failed && styles.outputTextFailed]} selectable>{all ? view.fullOutput : view.output}</Text>;
+  return <>
+    {diff ? <>
+      {diff.path ? <Text style={styles.label}>{diff.path}</Text> : null}
+      <ScrollView horizontal style={styles.diff} contentContainerStyle={styles.diffContent} testID={`agent-tool-diff-${item.toolCallId ?? item.id}`}>
+        <View style={styles.diffLines}>{diffLines.map((line, index) => <DiffRow key={index} line={line} language={languageForPath(diff.path)} />)}</View>
+      </ScrollView>
+      {!wholeDiff && diff.lines.length > diffPreviewLines
+        ? <Pressable accessibilityRole="button" onPress={() => setWholeDiff(true)}><Text style={styles.more}>{`Show all ${diff.lines.length} lines`}</Text></Pressable>
+        : null}
+    </> : null}
+    {!diff && view.input ? <>
+      <Text style={styles.label}>Input</Text>
+      <View style={styles.output}><Text style={styles.outputText} selectable>{view.input}</Text></View>
+    </> : null}
+    {!diff && view.output ? <>
+      <Text style={styles.label}>Output</Text>
+      <ScrollView style={[styles.output, failed && styles.outputFailed]} nestedScrollEnabled>{outputText}</ScrollView>
+      {!all && view.hiddenLines > 0
+        ? <Pressable accessibilityRole="button" onPress={() => setAll(true)}><Text style={styles.more}>{view.hiddenLines === 1 ? 'Show 1 more line' : `Show ${view.hiddenLines} more lines`}</Text></Pressable>
+        : null}
+    </> : null}
+  </>;
 }
 
 /** Consecutive finished edits, reads, searches and thoughts as one count line that opens to them. */
@@ -92,7 +96,7 @@ export function WorkFoldRow({ entry, renderItem }: { entry: Extract<WorkEntry, {
   </View>;
 }
 
-function DiffRow({ line, language }: { line: DiffLine; language: string }) {
+export function DiffRow({ line, language }: { line: DiffLine; language: string }) {
   const tokens = line.kind === 'hunk' ? [{ kind: 'plain' as const, text: line.text }] : tokenizeLine(line.text, language);
   const box = line.kind === 'added' ? auBox('fileViewerLine', 'fileViewerLineAdded') : line.kind === 'deleted' ? auBox('fileViewerLine', 'fileViewerLineDeleted') : line.kind === 'hunk' ? auBox('fileViewerLine', 'fileViewerLineHunk') : auBox('fileViewerLine');
   const prefix = line.kind === 'added' ? auText('fileViewerPrefix', 'fileViewerPrefixAdded') : line.kind === 'deleted' ? auText('fileViewerPrefix', 'fileViewerPrefixDeleted') : auText('fileViewerPrefix');

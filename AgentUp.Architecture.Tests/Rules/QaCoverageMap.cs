@@ -25,6 +25,7 @@ public sealed class QaCoverageMap
         "Git history",
         "Commits",
         "Agents",
+        "Agent transcript sheet",
         "Autonomous loop / checklist",
         "Autonomous loop / activate",
         "Forge review / hosting",

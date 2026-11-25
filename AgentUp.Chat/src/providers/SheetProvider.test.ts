@@ -1,0 +1,88 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import type { TranscriptItem } from '../models/AgentSession';
+import { draggedHeight, opensInSheet, presentSheet, settleSheet, sheetDetents, sheetTakesDrag, sheetTopGap } from './SheetProvider';
+
+const detents = { half: 400, full: 760 };
+
+test('a sheet opens to half the window and fills it below the status bar', () => {
+  const sized = sheetDetents(800, 28);
+  assert.deepEqual(sized, { half: 400, full: 800 - 28 - sheetTopGap });
+});
+
+test('half never exceeds full on a short window', () => {
+  const sized = sheetDetents(100, 60);
+  assert.ok(sized.half <= sized.full);
+});
+
+test('at half height any vertical drag moves the sheet', () => {
+  assert.equal(sheetTakesDrag({ detent: 'half', scrollTop: 0, dx: 0, dy: -20 }), true);
+  assert.equal(sheetTakesDrag({ detent: 'half', scrollTop: 0, dx: 0, dy: 20 }), true);
+});
+
+test('at full height the content scrolls until it is back at its top', () => {
+  assert.equal(sheetTakesDrag({ detent: 'full', scrollTop: 0, dx: 0, dy: -20 }), false);
+  assert.equal(sheetTakesDrag({ detent: 'full', scrollTop: 120, dx: 0, dy: 20 }), false);
+  assert.equal(sheetTakesDrag({ detent: 'full', scrollTop: 0, dx: 0, dy: 20 }), true);
+});
+
+test('a sideways move or a tap stays with the content', () => {
+  assert.equal(sheetTakesDrag({ detent: 'half', scrollTop: 0, dx: 40, dy: 12 }), false);
+  assert.equal(sheetTakesDrag({ detent: 'half', scrollTop: 0, dx: 0, dy: 3 }), false);
+});
+
+test('the sheet follows the finger and resists past full height', () => {
+  assert.equal(draggedHeight(400, -100, detents), 500);
+  assert.equal(draggedHeight(400, 500, detents), 0);
+  assert.equal(draggedHeight(760, -100, detents), 780);
+});
+
+test('a slow release settles at the nearest rest', () => {
+  assert.equal(settleSheet({ height: 650, velocity: 0, from: 'half', detents }), 'full');
+  assert.equal(settleSheet({ height: 420, velocity: 0, from: 'full', detents }), 'half');
+  assert.equal(settleSheet({ height: 150, velocity: 0, from: 'half', detents }), 'closed');
+});
+
+test('a flick goes one detent in its direction', () => {
+  assert.equal(settleSheet({ height: 380, velocity: 1.5, from: 'half', detents }), 'closed');
+  assert.equal(settleSheet({ height: 700, velocity: 1.5, from: 'full', detents }), 'half');
+  assert.equal(settleSheet({ height: 420, velocity: -1.5, from: 'half', detents }), 'full');
+});
+
+test('a flick down from full that already passed half closes', () => {
+  assert.equal(settleSheet({ height: 300, velocity: 1.5, from: 'full', detents }), 'closed');
+});
+
+test('only tool calls and thoughts open into a sheet', () => {
+  assert.deepEqual((['tool', 'thought', 'plan', 'agent', 'user'] as const).map(role => opensInSheet({ role })), [true, true, false, false, false]);
+});
+
+test('a thought is titled by how long it took', () => {
+  const thought: TranscriptItem = { id: 't', role: 'thought', text: 'hm', startedAt: '2026-01-01T00:00:00Z', endedAt: '2026-01-01T00:00:03Z' };
+  assert.equal(presentSheet(thought, true).title, 'Thinking');
+  assert.deepEqual(presentSheet(thought, false), { title: 'Thought for 3s', arguments: [] });
+});
+
+test('an edit is titled with its file and keeps the whole path and its change in the facts line', () => {
+  const edit: TranscriptItem = {
+    id: 'e', role: 'tool', text: '', toolKind: 'edit', status: 'completed', title: 'edit',
+    rawInput: JSON.stringify({ filePath: 'src/api/products.ts', oldString: 'a', newString: 'b' }),
+    diffPath: 'src/api/products.ts', diffOldText: 'a', diffNewText: 'b',
+    startedAt: '2026-01-01T00:00:00Z', endedAt: '2026-01-01T00:00:02Z',
+  };
+  assert.deepEqual(presentSheet(edit, false), { title: 'Edit products.ts', meta: 'src/api/products.ts · +1 −1 · Took 2s', arguments: [] });
+});
+
+test('a command reads as a sentence and its other arguments as labelled values, not JSON', () => {
+  const run: TranscriptItem = { id: 'r', role: 'tool', text: '', toolKind: 'execute', status: 'failed', title: 'bash', rawInput: JSON.stringify({ command: 'npm test', description: 'Run the tests', timeout: 120 }) };
+  assert.deepEqual(presentSheet(run, false), {
+    title: 'Run npm test',
+    meta: 'Failed',
+    arguments: [{ label: 'Description', value: 'Run the tests' }, { label: 'Timeout', value: '120' }],
+  });
+});
+
+test('an MCP tool names its source and leaves out the argument the title already says', () => {
+  const tool: TranscriptItem = { id: 'm', role: 'tool', text: '', status: 'pending', title: 'github-api_searchIssues', rawInput: JSON.stringify({ query: 'is:open', perPage: 5 }) };
+  assert.deepEqual(presentSheet(tool, false), { title: 'Search issues is:open', meta: 'Github api · Running', arguments: [{ label: 'Per page', value: '5' }] });
+});
