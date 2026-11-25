@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Agent · Settings — Agent-Up new UI</title>
+  <link rel="stylesheet" href="../new-ui.css" />
+  <style>
+    html, body { margin: 0; padding: 0; background: var(--au-color-canvas); }
+    .aun-frame { width: 1440px; min-height: 900px; overflow: hidden; display: flex; }
+    .aun-frame > * { flex: 1 1 auto; min-width: 0; }
+  </style>
+</head>
+<body>
+<div class="aun-frame">
+<div class="au-screen">
+      <div class="au-chrome">
+        <span class="au-cluster">
+          <span class="au-title-tool au-chrome-icon"><svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"></path></svg></span>
+          <span class="au-title-tool au-chrome-icon" data-au-action="refresh"><svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.6-6.4"></path><path d="M21 4v6h-6"></path></svg></span>
+          <span class="au-badge au-badge--healthy"><span class="au-status-dot au-status-dot--healthy"></span>SERVER ONLINE</span>
+        </span>
+        <span class="au-logo-lockup"><span class="au-chrome-mark"></span><strong class="au-chrome-title">Agent-Up</strong></span>
+        <span class="au-cluster">
+          <span class="au-chrome-button au-chrome-icon" data-au-action="window-minimize">−</span>
+          <span class="au-chrome-button au-chrome-icon" data-au-action="window-restore">□</span>
+          <span class="au-chrome-button au-chrome-close au-chrome-icon" data-au-action="window-close">×</span>
+        </span>
+      </div>
+      <div class="au-screen-body">
+        <aside class="au-rail au-screen-rail" aria-label="Sidebar">
+        <div class="aun-rail__nav">
+        <div class="aun-nav-row">
+          <button type="button" class="aun-nav" data-au-action="nav-team" data-au-selection="nav:0:aun-nav--current">Team</button>
+          <button type="button" class="au-workspace-add" data-au-action="add-workspace" aria-label="Add workspace">+</button>
+        </div>
+        <div class="aun-nav-subs">
+          <div data-au-demo="workspaces" data-au-repeat="workspace" data-au-action="open-workspace"><div class="au-workspace au-workspace--selected">
+        <button class="au-lifecycle-button" type="button">■</button>
+        <span class="au-status-dot au-status-dot--healthy"></span>
+        <span>
+          <strong class="au-workspace-name">Bob</strong>
+          <small class="au-workspace-branch">feat/45-deliver</small>
+        </span>
+        <button class="au-workspace-delete" type="button">×</button>
+      </div>
+<div class="au-workspace">
+        <button class="au-lifecycle-button" type="button">■</button>
+        <span class="au-status-dot au-status-dot--idle"></span>
+        <span>
+          <strong class="au-workspace-name">Frank</strong>
+        </span>
+        <button class="au-workspace-delete" type="button">×</button>
+      </div>
+<div class="au-workspace">
+        <button class="au-lifecycle-button" type="button">■</button>
+        <span class="au-status-dot au-status-dot--danger"></span>
+        <span>
+          <strong class="au-workspace-name">Hector</strong>
+          <small class="au-workspace-branch">feat/44-restock</small>
+        </span>
+        <button class="au-workspace-delete" type="button">×</button>
+      </div>
+<div class="au-workspace">
+        <button class="au-lifecycle-button" type="button">■</button>
+        <span class="au-status-dot au-status-dot--warning"></span>
+        <span>
+          <strong class="au-workspace-name">Lucy</strong>
+          <small class="au-workspace-branch">feat/44-restock</small>
+        </span>
+        <button class="au-workspace-delete" type="button">×</button>
+      </div>
+<div class="au-workspace">
+        <button class="au-lifecycle-button" type="button">■</button>
+        <span class="au-status-dot au-status-dot--idle"></span>
+        <span>
+          <strong class="au-workspace-name">Mia</strong>
+        </span>
+        <button class="au-workspace-delete" type="button">×</button>
+      </div></div>
+        </div>
+        <button type="button" class="aun-nav" data-au-action="nav-tasks" data-au-selection="nav:1:aun-nav--current">Tasks</button>
+        <button type="button" class="aun-nav" data-au-action="nav-settings" data-au-selection="nav:2:aun-nav--current">Settings</button>
+        </div>
+        <div class="aun-session">
+        <span class="aun-session__id"><span class="au-field-label">Server</span><span class="aun-session__name">Demo</span></span>
+        <button class="au-session-logout aun-session__logout" type="button" data-au-action="logout" aria-label="Log out of this server">Logout</button>
+      </div>
+      </aside>
+        <main class="au-screen-main">
+          <div class="au-screen-tabs"><div class="au-cluster">
+        <button class="au-app-tab" type="button" data-au-action="tab-overview" data-au-selection="selected:0:au-app-tab--selected">Overview</button>
+        <button class="au-app-tab" type="button" data-au-action="tab-chat" data-au-selection="selected:1:au-app-tab--selected">Chat</button>
+        <button class="au-app-tab" type="button" data-au-action="tab-git" data-au-selection="selected:2:au-app-tab--selected">Git</button>
+        <button class="au-app-tab" type="button" data-au-action="tab-files" data-au-selection="selected:3:au-app-tab--selected">Files</button>
+        <button class="au-app-tab au-app-tab--selected" type="button" data-au-action="tab-settings" data-au-selection="selected:4:au-app-tab--selected">Settings</button>
+        <span class="au-tab-sep"></span>
+        <span class="au-cluster" data-au-slot="applications" data-au-repeat="application-tab">
+          <button class="au-app-tab" type="button"><span class="au-status-dot au-status-dot--healthy"></span> Storefront</button>
+          <button class="au-app-tab" type="button"><span class="au-status-dot au-status-dot--healthy"></span> Orders API</button>
+          <button class="au-app-tab" type="button"><span class="au-status-dot au-status-dot--healthy"></span> Inventory</button>
+        </span>
+      </div></div>
+          
+          
+          <div class="au-screen-pane"><div class="aun-settings">
+        <div class="aun-group">
+          <p class="au-field-label">Type</p>
+          <div class="au-cluster">
+            <button class="au-app-tab au-app-tab--selected" type="button" data-au-action="member-kind" data-au-id="Author" data-au-selection="memberKind:Author:au-app-tab--selected">Author</button>
+            <button class="au-app-tab" type="button" data-au-action="member-kind" data-au-id="DevReviewer" data-au-selection="memberKind:DevReviewer:au-app-tab--selected">Dev reviewer</button>
+            <button class="au-app-tab" type="button" data-au-action="member-kind" data-au-id="PmReviewer" data-au-selection="memberKind:PmReviewer:au-app-tab--selected">PM reviewer</button>
+          </div>
+        </div>
+        <div class="aun-group">
+          <p class="au-field-label">Agent</p>
+          <div class="aun-settings__list" data-au-slot="chatFields" data-au-repeat="settings-field">
+            <div class="aun-settings__row">
+              <span class="aun-settings__id"><span class="aun-settings__name">Autonomous</span><span class="aun-settings__state">Off</span></span>
+              <button class="aun-btn" type="button">Enable</button>
+            </div>
+          </div>
+        </div>
+        <div class="aun-group">
+          <p class="au-field-label">Forge</p>
+          <div class="au-cluster">
+            <button class="au-app-tab au-app-tab--selected" type="button" data-au-action="forge-tab" data-au-id="github" data-au-selection="forgeTab:github:au-app-tab--selected">GitHub</button>
+            <button class="au-app-tab" type="button" data-au-action="forge-tab" data-au-id="forgejo" data-au-selection="forgeTab:forgejo:au-app-tab--selected">Forgejo</button>
+          </div>
+          <p class="aun-faint">Paste the host URL and a personal access token for this team member. GitHub.com is https://github.com. A Forgejo instance is the origin you sign in at. The token needs access to repositories and pull requests, so Agent-Up can list every repository this member can see.</p>
+          <div class="aun-settings__list">
+            <div class="aun-settings__row">
+              <input class="aun-input" type="url" placeholder="https://git.example.com" data-au-action="forge-endpoint" />
+            </div>
+            <div class="aun-settings__row">
+              <input class="aun-input" type="password" placeholder="Personal access token" data-au-action="save-token" />
+              <button class="aun-btn aun-btn--primary" type="button" data-au-action="save-token">Save</button>
+            </div>
+          </div>
+        </div>
+      </div></div>
+        </main>
+        
+      </div>
+    </div>
+</div>
+</body>
+</html>

@@ -144,7 +144,7 @@ public sealed class CommandCenterSceneTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(binding.State["selected"], Is.EqualTo("4"));
+            Assert.That(binding.State["selected"], Is.EqualTo("5"));
             Assert.That(binding.State["app"], Is.EqualTo("Orders API"));
         });
     }
@@ -254,7 +254,7 @@ public sealed class CommandCenterSceneTests
     }
 
     [Test]
-    public void Chat_settings_are_one_field_per_property_and_a_locked_control_cannot_run()
+    public void Member_settings_are_the_autonomous_toggle_and_the_agents()
     {
         var fields = CommandCenterScene.ChatFields(new CommandCenterChatSettings(
             [
@@ -268,27 +268,36 @@ public sealed class CommandCenterSceneTests
                 new AgentDescriptorDtoBuilder().Named("cursor", "Cursor").PackageDisabled().Build(),
                 new AgentDescriptorDtoBuilder().Named("claude", "Claude").ExecutableMissing().Build(),
             ],
-            BoundAgent: null,
+            BoundAgent: "codex",
             LoopDetail: null,
             CanEnableAutonomy: true,
             CanActivateLoop: false,
             CanCancelLoop: false,
             CanStartBound: false));
-        var rows = CommandCenterScene.Bind(Input([]) with { ChatSettings = fields }).Items["chatFields"];
-        var agents = rows.Single(item => item.Id == "agentAvailable").Items["fields"];
+        var binding = CommandCenterScene.Bind(Input([], "agent-settings") with
+        {
+            ChatSettings = fields,
+            MemberKind = "DevReviewer",
+            BoundAgent = "opencode",
+            AgentEndpoint = "http://localhost:11434",
+            AgentModel = "llama",
+        });
+        var rows = binding.Items["chatFields"];
 
         Assert.Multiple(() =>
         {
-            Assert.That(rows.Single(item => item.Id == "forgeCapabilityEnabled").Parts, Does.Contain("locked"));
-            Assert.That(rows.Single(item => item.Id == "forgeCapabilityEnabled").Action, Is.Null);
-            Assert.That(rows.Single(item => item.Id == "autonomyEnabled").Action, Is.EqualTo("enable-autonomy"));
-            Assert.That(rows.Single(item => item.Id == "autonomyEnabled").Parts, Does.Not.Contain("locked"));
-            Assert.That(rows.Single(item => item.Id == "autonomyEnabled").Text["detail"], Is.EqualTo("Enable autonomy for this Server"));
-            Assert.That(rows.Single(item => item.Id == "autonomyEnabled").Items["fields"].Single(item => item.Id == "loop").Parts, Does.Contain("locked"));
-            Assert.That(agents.Single(item => item.Id == "codex").Action, Is.EqualTo("select-agent"));
-            Assert.That(agents.Single(item => item.Id == "cursor").Action, Is.EqualTo("enable-agent"));
-            Assert.That(agents.Single(item => item.Id == "claude").Parts, Does.Contain("locked"));
-            Assert.That(rows.Single(item => item.Id == "boundAgent").Parts, Does.Contain("locked"));
+            Assert.That(binding.State["selected"], Is.EqualTo("4"));
+            Assert.That(rows.Select(item => item.Id), Is.EqualTo(new[] { "autonomy", "codex", "cursor", "claude" }));
+            Assert.That(rows.Single(item => item.Id == "autonomy").Action, Is.EqualTo("toggle-autonomy"));
+            Assert.That(rows.Single(item => item.Id == "autonomy").Text["detail"], Is.EqualTo("Off"));
+            Assert.That(rows.Single(item => item.Id == "codex").Text["detail"], Is.EqualTo("Bound"));
+            Assert.That(rows.Single(item => item.Id == "cursor").Action, Is.EqualTo("enable-agent"));
+            Assert.That(rows.Single(item => item.Id == "claude").Parts, Does.Contain("locked"));
+            Assert.That(rows.Any(item => item.Id == "forgeCapabilityEnabled"), Is.False);
+            Assert.That(binding.State["memberKind"], Is.EqualTo("DevReviewer"));
+            Assert.That(binding.State["opencodeSettings"], Is.EqualTo("1"));
+            Assert.That(binding.Text["agentEndpoint"], Is.EqualTo("http://localhost:11434"));
+            Assert.That(binding.Text["agentModel"], Is.EqualTo("llama"));
         });
     }
 
@@ -368,6 +377,29 @@ public sealed class CommandCenterSceneTests
     }
 
     [Test]
+    public void AgentSettingSave_readsEndpointModelAndToken()
+    {
+        var fields = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["agent-endpoint"] = " http://localhost:11434 ",
+            ["agent-model"] = " llama ",
+            ["save-agent-settings"] = " secret ",
+        };
+
+        var saved = CommandCenterScene.AgentSettingSave(fields, "ignored");
+        var fromText = CommandCenterScene.AgentSettingSave(null, " pasted ");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(saved.Endpoint, Is.EqualTo("http://localhost:11434"));
+            Assert.That(saved.Model, Is.EqualTo("llama"));
+            Assert.That(saved.Token, Is.EqualTo("secret"));
+            Assert.That(fromText.Token, Is.EqualTo("pasted"));
+            Assert.That(fromText.Endpoint, Is.EqualTo(""));
+        });
+    }
+
+    [Test]
     public void ParseRepositoryKey_readsModuleOwnerAndName()
     {
         Assert.Multiple(() =>
@@ -405,7 +437,7 @@ public sealed class CommandCenterSceneTests
     [Test]
     public void The_forge_field_shows_the_host_url()
     {
-        var binding = CommandCenterScene.Bind(Input([], sceneId: "settings") with
+        var binding = CommandCenterScene.Bind(Input([], sceneId: "agent-settings") with
         {
             ForgeTab = "github",
             ForgeEndpoint = "https://github.com",

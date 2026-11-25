@@ -25,6 +25,8 @@ public sealed class FakeBackendService
     private int _lifecycleGeneration;
     private int _loopGeneration;
     private bool _autonomyEnabled;
+    /// <summary>Team member kind per workspace. Missing is Author.</summary>
+    private readonly Dictionary<string, string> _memberKinds = new(StringComparer.OrdinalIgnoreCase);
     private long _agentSequence;
 
     public const int StartPhaseMilliseconds = 10000;
@@ -64,6 +66,7 @@ public sealed class FakeBackendService
             _autonomyEnabled = false;
             _loopGeneration++;
             _tokens.Clear();
+            _memberKinds.Clear();
             _tokens["bob"] = ("github", "https://github.com", "demo");
             CancelLifecycle();
             CaptureTemplates();
@@ -244,6 +247,10 @@ public sealed class FakeBackendService
             return GitMutation(workspaceId, rest["git/".Length..], request.Body);
         if (method == "GET" && rest == "agent/loop")
             return AgentLoop(workspaceId);
+        if (method == "GET" && rest == "agent/member")
+            return MemberKind(workspaceId);
+        if (method == "PUT" && rest == "agent/member")
+            return SetMemberKind(workspaceId, request.Body);
         if (method == "GET" && rest == "agent/autonomy")
             return Json(AutonomyDto(workspace: true));
         if (method == "PUT" && rest == "agent/autonomy")
@@ -647,6 +654,31 @@ public sealed class FakeBackendService
             ["enabled"] = _autonomyEnabled,
             ["preconditions"] = preconditions
         };
+    }
+
+    private FakeBackendResponseDto MemberKind(string workspaceId)
+    {
+        lock (_gate)
+        {
+            if (FindWorkspace(workspaceId) is null)
+                return NotFound();
+            var kind = _memberKinds.GetValueOrDefault(workspaceId, "Author");
+            return Json(new JsonObject { ["kind"] = kind });
+        }
+    }
+
+    private FakeBackendResponseDto SetMemberKind(string workspaceId, string? body)
+    {
+        lock (_gate)
+        {
+            if (FindWorkspace(workspaceId) is null)
+                return NotFound();
+            var kind = ReadJsonString(body, "kind")?.Trim();
+            if (kind is not ("Author" or "DevReviewer" or "PmReviewer"))
+                return new FakeBackendResponseDto(409, "application/json", """{"detail":"Choose Author, Dev reviewer, or PM reviewer."}""");
+            _memberKinds[workspaceId] = kind;
+            return Json(new JsonObject { ["kind"] = kind });
+        }
     }
 
     private static JsonObject Precondition(string id, bool satisfied, string remedy) => new()

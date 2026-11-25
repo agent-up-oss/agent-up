@@ -182,6 +182,7 @@ export class FakeBackendService {
   private loopGeneration = 0;
   private autonomyEnabled = false;
   private readonly permissionPolicies = new Map<string, unknown[]>();
+  private readonly memberKinds = new Map<string, string>();
   /** Messages sent while the Demo run plays, keyed by workspace; present only while it plays. */
   private readonly steering = new Map<string, string[]>();
   private cancelLifecycle: (() => void) | null = null;
@@ -213,6 +214,7 @@ export class FakeBackendService {
     this.agentSequence = 0;
     this.autonomyEnabled = false;
     this.permissionPolicies.clear();
+    this.memberKinds.clear();
     this.loopGeneration += 1;
     this.tokens.clear();
     this.tokens.set('bob', { module: 'github', endpoint: 'https://github.com', token: 'demo' });
@@ -320,6 +322,8 @@ export class FakeBackendService {
     if (method === 'GET' && rest.startsWith('git/file')) return this.gitDiff(workspaceId, request.query);
     if (method === 'POST' && rest.startsWith('git/')) return this.gitMutation(workspaceId, rest.slice('git/'.length), request.body);
     if (method === 'GET' && rest === 'agent/loop') return this.agentLoop(workspaceId);
+    if (method === 'GET' && rest === 'agent/member') return this.memberKind(workspaceId);
+    if (method === 'PUT' && rest === 'agent/member') return this.setMemberKind(workspaceId, request.body);
     if (method === 'GET' && rest === 'agent/autonomy') return json(this.autonomyStatus(workspaceId));
     if (method === 'GET' && rest === 'agent/policy') return json({ rules: this.permissionPolicies.get(workspaceId) ?? [] });
     if (method === 'PUT' && rest === 'agent/policy') {
@@ -864,6 +868,21 @@ export class FakeBackendService {
       return json(result);
     }
     return json({ found: true, succeeded: true, error: null });
+  }
+
+  private memberKind(workspaceId: string) {
+    if (!this.findWorkspace(workspaceId)) return notFound();
+    return json({ kind: this.memberKinds.get(workspaceId) ?? 'Author' });
+  }
+
+  private setMemberKind(workspaceId: string, body: string | null) {
+    if (!this.findWorkspace(workspaceId)) return notFound();
+    const kind = readJsonString(body, 'kind')?.trim();
+    if (kind !== 'Author' && kind !== 'DevReviewer' && kind !== 'PmReviewer') {
+      return { status: 409, contentType: 'application/json', body: JSON.stringify({ detail: 'Choose Author, Dev reviewer, or PM reviewer.' }) };
+    }
+    this.memberKinds.set(workspaceId, kind);
+    return json({ kind });
   }
 
   private autonomyStatus(workspaceId?: string) {

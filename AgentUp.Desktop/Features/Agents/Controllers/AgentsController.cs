@@ -19,5 +19,7 @@ public sealed class AgentsController(AgentChatService service)
     public Task PutAutonomyAsync(bool enabled, CancellationToken cancellationToken) => service.PutAutonomyAsync(enabled, cancellationToken);
     public Task PutLoopActivationAsync(string id, bool active, CancellationToken cancellationToken) => service.PutLoopActivationAsync(id, active, cancellationToken);
     public Task<AgentLoopStatusDto?> GetLoopAsync(string id, CancellationToken cancellationToken) => service.GetLoopAsync(id, cancellationToken);
+    public Task<TeamMemberDto?> GetMemberAsync(string id, CancellationToken cancellationToken) => service.GetMemberAsync(id, cancellationToken);
+    public Task<TeamMemberDto?> PutMemberAsync(string id, string kind, CancellationToken cancellationToken) => service.PutMemberAsync(id, kind, cancellationToken);
     public IAsyncEnumerable<AgentEventDto> EventsAsync(string id, long after, CancellationToken cancellationToken) => service.EventsAsync(id, after, cancellationToken);
 }

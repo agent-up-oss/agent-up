@@ -15,7 +15,7 @@ public sealed class AgentChatViewModel : ReactiveObject
 {
     private readonly AgentsController _controller;
     private readonly CapabilityModulesController? _modules;
-    private string? _workspaceId, _selectedAgent, _boundAgent, _sessionId, _message, _error, _sessionTitle, _mode, _usage, _permissionTitle, _permissionDetail, _hintKind, _hintTool, _loginUrl, _loginCode, _loginInstructions, _loginCodeInput;
+    private string? _workspaceId, _selectedAgent, _boundAgent, _sessionId, _message, _error, _sessionTitle, _mode, _usage, _permissionTitle, _permissionDetail, _hintKind, _hintTool, _loginUrl, _loginCode, _loginInstructions, _loginCodeInput, _memberKind;
     private bool _canCollectLoginCode, _canSubmitLoginCode;
     private AgentLoopStatusDto? _loop;
     private CancellationTokenSource? _loopPoll;
@@ -39,6 +39,7 @@ public sealed class AgentChatViewModel : ReactiveObject
     public string? SelectedAgent { get => _selectedAgent; private set => this.RaiseAndSetIfChanged(ref _selectedAgent, value); }
     public string? BoundAgent { get => _boundAgent; private set => this.RaiseAndSetIfChanged(ref _boundAgent, value); }
     public AgentLoopStatusDto? Loop { get => _loop; private set => this.RaiseAndSetIfChanged(ref _loop, value); }
+    public string MemberKind { get => _memberKind ?? "Author"; private set => this.RaiseAndSetIfChanged(ref _memberKind, value); }
     public ObservableCollection<AutonomyPreconditionDto> Preconditions { get; } = [];
     public bool HasAutonomy => Preconditions.Count > 0;
     public bool CanEnableAutonomy =>
@@ -149,8 +150,10 @@ public sealed class AgentChatViewModel : ReactiveObject
     public ReactiveCommand<Unit, Unit> StopCommand { get; }
     public ReactiveCommand<Unit, Unit> SubmitLoginCodeCommand { get; }
     public ReactiveCommand<Unit, Unit> EnableAutonomyCommand { get; }
+    public ReactiveCommand<Unit, Unit> ToggleAutonomyCommand { get; }
     public ReactiveCommand<Unit, Unit> ActivateLoopCommand { get; }
     public ReactiveCommand<Unit, Unit> CancelLoopCommand { get; }
+    public ReactiveCommand<string, Unit> SetMemberKindCommand { get; }
 
     public AgentChatViewModel(AgentsController controller, CapabilityModulesController? modules = null)
     {
@@ -164,8 +167,10 @@ public sealed class AgentChatViewModel : ReactiveObject
         StopCommand = ReactiveCommand.CreateFromTask(StopAsync);
         SubmitLoginCodeCommand = ReactiveCommand.CreateFromTask(SubmitLoginCodeAsync);
         EnableAutonomyCommand = ReactiveCommand.CreateFromTask(EnableAutonomyAsync);
+        ToggleAutonomyCommand = ReactiveCommand.CreateFromTask(ToggleAutonomyAsync);
         ActivateLoopCommand = ReactiveCommand.CreateFromTask(ActivateLoopAsync);
         CancelLoopCommand = ReactiveCommand.CreateFromTask(CancelLoopAsync);
+        SetMemberKindCommand = ReactiveCommand.CreateFromTask<string>(SetMemberKindAsync);
         Transcript.CollectionChanged += (_, _) => this.RaisePropertyChanged(nameof(HasMessages));
         Sessions.CollectionChanged += (_, _) => this.RaisePropertyChanged(nameof(HasNoSavedSessions));
         Preconditions.CollectionChanged += (_, _) => NotifyLoopSurface();
@@ -183,7 +188,7 @@ public sealed class AgentChatViewModel : ReactiveObject
         await StopLoopPollAsync();
         Transcript.Clear();
         _currentRun = null;
-        PermissionOptions.Clear(); AuthenticationOptions.Clear(); SelectedAgent = null; BoundAgent = null; Loop = null; State = "idle"; Error = null; Agents.Clear(); Sessions.Clear(); Preconditions.Clear();
+        PermissionOptions.Clear(); AuthenticationOptions.Clear(); SelectedAgent = null; BoundAgent = null; MemberKind = "Author"; Loop = null; State = "idle"; Error = null; Agents.Clear(); Sessions.Clear(); Preconditions.Clear();
         SessionTitle = Mode = Usage = PermissionTitle = PermissionDetail = LoginUrl = LoginCode = LoginInstructions = LoginCodeInput = _hintKind = _hintTool = null;
         CanCollectLoginCode = CanSubmitLoginCode = false;
         NotifyComputedChatState();
@@ -194,6 +199,7 @@ public sealed class AgentChatViewModel : ReactiveObject
             var session = await _controller.GetAsync(workspaceId, CancellationToken.None);
             if (generation != _loadGeneration) return;
             Apply(session);
+            await LoadMemberAsync(generation);
             await LoadAutonomyAsync(generation);
             if (generation != _loadGeneration) return;
             StartStream(workspaceId);
@@ -247,6 +253,43 @@ public sealed class AgentChatViewModel : ReactiveObject
         await _controller.PutAutonomyAsync(true, CancellationToken.None);
         ApplyAutonomy(await _controller.GetAutonomyAsync(id, CancellationToken.None));
     });
+    private async Task ToggleAutonomyAsync() => await RunAsync(async id =>
+    {
+        if (Loop?.Active == true)
+        {
+            await _controller.PutLoopActivationAsync(id, false, CancellationToken.None);
+            await StopLoopPollAsync();
+            ApplyLoop(await _controller.GetLoopAsync(id, CancellationToken.None));
+            return;
+        }
+
+        await _controller.PutAutonomyAsync(true, CancellationToken.None);
+        await _controller.PutLoopActivationAsync(id, true, CancellationToken.None);
+        ApplyLoop(await _controller.GetLoopAsync(id, CancellationToken.None));
+        ApplyAutonomy(await _controller.GetAutonomyAsync(id, CancellationToken.None));
+        TryStartLoopPoll();
+    });
+    private async Task SetMemberKindAsync(string kind) => await RunAsync(async id =>
+    {
+        var member = await _controller.PutMemberAsync(id, kind, CancellationToken.None);
+        if (member is not null)
+            MemberKind = member.Kind;
+    });
+    private async Task LoadMemberAsync(int generation)
+    {
+        if (_workspaceId is null) return;
+        try
+        {
+            var member = await _controller.GetMemberAsync(_workspaceId, CancellationToken.None);
+            if (generation != _loadGeneration) return;
+            MemberKind = member?.Kind ?? "Author";
+        }
+        catch (Exception exception) when (exception is HttpRequestException or JsonException or InvalidOperationException or TaskCanceledException)
+        {
+            if (generation == _loadGeneration)
+                MemberKind = "Author";
+        }
+    }
     private async Task ActivateLoopAsync() => await RunAsync(async id =>
     {
         await _controller.PutLoopActivationAsync(id, true, CancellationToken.None);

@@ -102,8 +102,11 @@ export function applyDemo(catalog, demo) {
   // The showcase draws the board as it opens, on Issues; the review tabs are the clients' to switch to.
   const board = byId.get('task-board');
   board.html = withoutWhen(withoutWhen(withoutWhen(board.html, 'devTab'), 'pmTab'), 'repoList');
-  const settings = byId.get('settings-panel');
-  settings.html = withoutWhen(settings.html, 'forgeConnected');
+  const memberSettings = byId.get('member-settings');
+  memberSettings.html = withoutWhen(
+    withoutWhen(withoutWhen(memberSettings.html, 'forgeConnected'), 'opencodeSettings'),
+    'ollamaSettings',
+  );
   fill('member-overview', 'overview', memberOverview(demo));
   const open = demo.open;
   fill('mobile-agent-head', 'member', memberHead(open));

@@ -8,7 +8,7 @@ namespace AgentUp.Desktop.Features.Interface.Services;
 /// <summary>
 /// The Tasks page's forge connections and the repository currently open on that page.
 /// The view holds one of these and applies it; it does not decide the rows or the host URL.
-/// Each team member has their own token; the board remembers which member's Auth tab is open.
+/// Each team member has their own token; the board remembers which member's Settings tab is open.
 /// </summary>
 public sealed class CommandCenterTaskSourceBoard
 {

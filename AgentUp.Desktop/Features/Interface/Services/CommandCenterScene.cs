@@ -51,7 +51,7 @@ public sealed record CommandCenterSettingSlot(
     bool Enabled,
     IReadOnlyList<CommandCenterSettingSlot>? Children = null);
 
-/// <summary>The agent properties Settings · Chat turns into one field each.</summary>
+/// <summary>The autonomous toggle and the agents this member can run.</summary>
 public sealed record CommandCenterChatSettings(
     IReadOnlyList<AutonomyPreconditionDto> Preconditions,
     IReadOnlyList<AgentDescriptorDto> Agents,
@@ -94,7 +94,11 @@ public sealed record CommandCenterSceneInput(
     string ForgeDetail = "",
     string ForgeEndpoint = "",
     bool ForgeConnected = false,
-    string AuthTab = "");
+    string AuthTab = "",
+    string MemberKind = "Author",
+    string BoundAgent = "",
+    string AgentEndpoint = "",
+    string AgentModel = "");
 
 /// <summary>One application of the open workspace, as its tab shows it.</summary>
 public sealed record CommandCenterApplicationSlot(string Name, bool Running);
@@ -154,6 +158,13 @@ public static class CommandCenterScene
             binding.State["authTab"] = authTab;
             binding.State["authMember"] = "1";
         }
+        binding.State["memberKind"] = input.MemberKind.Length > 0 ? input.MemberKind : "Author";
+        binding.Text["agentEndpoint"] = input.AgentEndpoint;
+        binding.Text["agentModel"] = input.AgentModel;
+        if (string.Equals(input.BoundAgent, "opencode", StringComparison.OrdinalIgnoreCase))
+            binding.State["opencodeSettings"] = "1";
+        if (string.Equals(input.BoundAgent, "ollama", StringComparison.OrdinalIgnoreCase))
+            binding.State["ollamaSettings"] = "1";
         if (string.IsNullOrEmpty(input.OpenRepository))
             binding.State["repoList"] = "1";
         else
@@ -393,37 +404,17 @@ public static class CommandCenterScene
 
     public static IReadOnlyList<CommandCenterSettingSlot> ChatFields(CommandCenterChatSettings settings)
     {
+        var on = settings.CanCancelLoop;
+        var autonomy = new CommandCenterSettingSlot(
+            "autonomy",
+            "Autonomous",
+            on ? "On" : "Off",
+            on ? "Disable" : "Enable",
+            on ? "cancel-loop" : "toggle-autonomy",
+            true);
         var agents = settings.Agents.Select(agent => AgentRow(agent, settings.BoundAgent)).ToArray();
-        var rows = settings.Preconditions.Select(item => Row(item, settings, agents)).ToList();
-        if (agents.Length > 0 && settings.Preconditions.All(item => item.Id != "agentAvailable"))
-            rows.Add(new CommandCenterSettingSlot("agents", "Agent", "Choose an agent", "Choose", null, false, agents));
-        if (settings.Preconditions.All(item => item.Id != "autonomyEnabled"))
-            rows.Add(Loop(settings));
-        return rows;
+        return agents.Length == 0 ? [autonomy] : [autonomy, .. agents];
     }
-
-    private static CommandCenterSettingSlot Row(
-        AutonomyPreconditionDto item,
-        CommandCenterChatSettings settings,
-        IReadOnlyList<CommandCenterSettingSlot> agents) => item.Id switch
-    {
-        "autonomyEnabled" => new(item.Id, item.Label, item.Status, "Enable", "enable-autonomy", !item.Satisfied && settings.CanEnableAutonomy, [Loop(settings)]),
-        "agentAvailable" => new(item.Id, item.Label, item.Status, "Choose", null, false, agents),
-        "boundAgent" => new(item.Id, item.Label, item.Status, "Start", "start-bound", settings.CanStartBound),
-        "hostConnectionAuthorized" => Locked(item, "Connect"),
-        "forgeCapabilityEnabled" => Locked(item, "Enable"),
-        "workspaceRegistered" => Locked(item, "Register"),
-        "permissionRequests" => Locked(item, "Require"),
-        "permissionPolicy" => Locked(item, "Set"),
-        "gitBranch" => Locked(item, "Checkout"),
-        "unpushedCommits" => Locked(item, "Push"),
-        "commitQueueEdit" => Locked(item, "Finish"),
-        "unassignedChanges" => Locked(item, "Review"),
-        _ => Locked(item, "Change"),
-    };
-
-    private static CommandCenterSettingSlot Locked(AutonomyPreconditionDto item, string label)
-        => new(item.Id, item.Label, item.Status, label, null, false);
 
     private static CommandCenterSettingSlot AgentRow(AgentDescriptorDto agent, string? boundAgent)
     {
@@ -433,15 +424,6 @@ public static class CommandCenterScene
         if (agent.CanEnable)
             return new(agent.Agent, agent.DisplayName, agent.Remedy ?? agent.StatusLabel, "Enable", "enable-agent", true);
         return new(agent.Agent, agent.DisplayName, agent.Remedy ?? agent.StatusLabel, "Enable", null, false);
-    }
-
-    private static CommandCenterSettingSlot Loop(CommandCenterChatSettings settings)
-    {
-        var detail = string.IsNullOrWhiteSpace(settings.LoopDetail) ? "Not running" : settings.LoopDetail;
-        return new("loop", "Unattended loop", detail, "Activate", "activate-loop", settings.CanActivateLoop,
-        [
-            new("cancel-loop", "Stop the loop", "Stops the running loop", "Cancel", "cancel-loop", settings.CanCancelLoop),
-        ]);
     }
 
     /// <summary>Which state a capability module is in; the scene words it and picks the button's tone.</summary>
@@ -497,7 +479,8 @@ public static class CommandCenterScene
         "agent-chat" or "mobile-chat" => "1",
         "agent-git" or "mobile-agent-git" => "2",
         "agent-files" or "agent-file" => "3",
-        "application" or "mobile-application" => "4",
+        "agent-settings" or "mobile-agent-settings" => "4",
+        "application" or "mobile-application" => "5",
         "mobile-settings" => "2",
         "mobile-tasks" => "1",
         _ => "0",
@@ -535,6 +518,17 @@ public static class CommandCenterScene
         var token = Read(fields, "save-token") ?? text ?? "";
         var endpoint = Read(fields, "forge-endpoint") ?? "";
         return (token.Trim(), endpoint.Trim());
+    }
+
+    /// <summary>OpenCode and the in-process PM agent save an endpoint, optional token, and model.</summary>
+    public static (string Endpoint, string Model, string Token) AgentSettingSave(
+        IReadOnlyDictionary<string, string>? fields,
+        string? text)
+    {
+        var endpoint = Read(fields, "agent-endpoint") ?? "";
+        var model = Read(fields, "agent-model") ?? "";
+        var token = Read(fields, "save-agent-settings") ?? text ?? "";
+        return (endpoint.Trim(), model.Trim(), token.Trim());
     }
 
     /// <summary>

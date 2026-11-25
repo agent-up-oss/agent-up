@@ -10,6 +10,7 @@ using Avalonia.VisualTree;
 using AgentUp.Desktop.DesignSystem;
 using AgentUp.Desktop.Features.Agents.ViewModels;
 using AgentUp.Desktop.Features.Applications.ViewModels;
+using AgentUp.Desktop.Features.Capabilities.ViewModels;
 using AgentUp.Desktop.Features.Interface.Services;
 using AgentUp.Desktop.Features.Interface.ViewModels;
 using AgentUp.Desktop.Features.Ports.ViewModels;
@@ -127,7 +128,9 @@ public partial class CommandCenterView : UserControl
         PlaceChatSettings(center);
         var swapped = PlaceSceneSurfaces(center, main);
         var team = center.Bridge?.Team.Select(row => row.Standing).ToArray() ?? [];
-        if (string.IsNullOrEmpty(_board.AuthTab))
+        if (center.Agent?.WorkspaceId is { Length: > 0 } memberId)
+            _board.ShowAuthTab(memberId);
+        else if (string.IsNullOrEmpty(_board.AuthTab))
         {
             var connected = center.TaskSource?.Identities.FirstOrDefault(identity => identity.Connected)?.WorkspaceId;
             _board.ShowAuthTab(connected ?? team.FirstOrDefault()?.WorkspaceId);
@@ -172,8 +175,13 @@ public partial class CommandCenterView : UserControl
             center.TaskSource?.DetailFor(_board.AuthTab, _board.ForgeTab) ?? "",
             center.TaskSource?.EndpointFor(_board.AuthTab, _board.ForgeTab) ?? CommandCenterScene.PrefillEndpoint(_board.ForgeTab, null),
             center.TaskSource?.IsConnected(_board.AuthTab, _board.ForgeTab) == true,
-            _board.AuthTab));
-        binding.State["chatSettings"] = "1";
+            _board.AuthTab,
+            main.Agent.MemberKind,
+            main.Agent.BoundAgent ?? "",
+            AgentSettingValue(main.Modules, main.Agent.BoundAgent, "endpoint"),
+            AgentSettingValue(main.Modules, main.Agent.BoundAgent, "model")));
+        if (center.SceneId is "agent-settings")
+            binding.State["chatSettings"] = "1";
         var stamp = Stamp(center.SceneId, binding);
         if (stamp == _applied) return;
         var app = binding.State.TryGetValue("app", out var selectedApp) ? selectedApp : "";
@@ -373,6 +381,9 @@ public partial class CommandCenterView : UserControl
             case "tab-files":
                 center.ShowSection(main.Files.IsEditorOpen ? "file" : "files");
                 break;
+            case "tab-settings":
+                center.ShowSection("settings");
+                break;
             case "tab-application":
                 center.ShowSection("application");
                 break;
@@ -467,13 +478,20 @@ public partial class CommandCenterView : UserControl
                 if (workspace is not null) main.Sidebar.SelectedWorkspace = workspace;
                 break;
             case "enable-autonomy":
-                main.Agent.EnableAutonomyCommand.Execute().Subscribe();
+            case "toggle-autonomy":
+                main.Agent.ToggleAutonomyCommand.Execute().Subscribe();
                 break;
             case "activate-loop":
                 main.Agent.ActivateLoopCommand.Execute().Subscribe();
                 break;
             case "cancel-loop":
                 main.Agent.CancelLoopCommand.Execute().Subscribe();
+                break;
+            case "member-kind":
+                if (!string.IsNullOrEmpty(action.Id)) main.Agent.SetMemberKindCommand.Execute(action.Id).Subscribe();
+                break;
+            case "save-agent-settings":
+                _ = SaveAgentSettingsAsync(main, action);
                 break;
             case "start-bound":
                 main.Agent.StartBoundCommand.Execute().Subscribe();
@@ -600,6 +618,7 @@ public partial class CommandCenterView : UserControl
         void OnChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs args)
         {
             if (args.PropertyName is nameof(AgentChatViewModel.BoundAgent)
+                or nameof(AgentChatViewModel.MemberKind)
                 or nameof(AgentChatViewModel.Loop)
                 or nameof(AgentChatViewModel.IsBusy)
                 or nameof(AgentChatViewModel.CanEnableAutonomy)
@@ -610,6 +629,31 @@ public partial class CommandCenterView : UserControl
         }
         agent.PropertyChanged += OnChanged;
         Disposable.Create(() => agent.PropertyChanged -= OnChanged).DisposeWith(_subscriptions);
+    }
+
+    private async Task SaveAgentSettingsAsync(MainViewModel main, NewUiActionEventArgs action)
+    {
+        var agent = main.Agent.BoundAgent;
+        if (string.IsNullOrEmpty(agent) || main.Modules is null)
+            return;
+        var (endpoint, model, token) = CommandCenterScene.AgentSettingSave(action.Fields, action.Text);
+        var values = new Dictionary<string, string>(StringComparer.Ordinal);
+        if (endpoint.Length > 0) values["endpoint"] = endpoint;
+        if (model.Length > 0) values["model"] = model;
+        if (token.Length > 0) values["token"] = token;
+        if (values.Count == 0)
+            return;
+        await main.Modules.SaveSettingsAsync(agent, values);
+        Apply();
+    }
+
+    private static string AgentSettingValue(CapabilityModulesViewModel? modules, string? agent, string key)
+    {
+        if (modules is null || string.IsNullOrEmpty(agent))
+            return "";
+        var field = modules.Modules.FirstOrDefault(module => module.Id == agent)?.Settings
+            .FirstOrDefault(setting => setting.Key == key);
+        return field?.Value ?? "";
     }
 
     private static IReadOnlyList<CommandCenterSettingSlot> ChatSettingsOf(AgentChatViewModel agent)

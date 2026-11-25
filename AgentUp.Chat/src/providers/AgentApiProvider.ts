@@ -117,6 +117,12 @@ export async function putLoopActivation(
 export async function getLoop(server: ServerSession, workspaceId: string, request: typeof fetch = fetch) {
   return requestServerJson<AgentLoopStatus>(server, `${root(workspaceId)}/loop`, {}, undefined, request);
 }
+export async function getMember(server: ServerSession, workspaceId: string, request: typeof fetch = fetch) {
+  return requestServerJson<{ kind: string }>(server, `${root(workspaceId)}/member`, {}, undefined, request);
+}
+export async function putMember(server: ServerSession, workspaceId: string, kind: string, request: typeof fetch = fetch) {
+  return requestServerJson<{ kind: string }>(server, `${root(workspaceId)}/member`, { ...jsonBody({ kind }), method: 'PUT' }, undefined, request);
+}
 export async function getPermissionPolicy(server: ServerSession, workspaceId: string, request: typeof fetch = fetch) {
   return requestServerJson<PermissionPolicy>(server, `${root(workspaceId)}/policy`, {}, undefined, request);
 }

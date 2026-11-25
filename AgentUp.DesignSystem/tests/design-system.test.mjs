@@ -793,11 +793,11 @@ test('new UI screens pair desktop and mobile instead of a chip per surface', asy
   const { screens, scenes } = await assembleNewUi();
   assert.deepEqual(screens.map(item => item.id), [
     'team', 'agent-overview', 'application', 'agent-chat',
-    'agent-git', 'agent-files', 'agent-file', 'tasks', 'settings',
+    'agent-git', 'agent-files', 'agent-file', 'agent-settings', 'tasks', 'settings',
   ]);
   assert.deepEqual(screens.map(item => item.title), [
     'Team', 'Agent · Overview', 'Agent · Application', 'Agent · Chat',
-    'Agent · Git', 'Agent · Files', 'Agent · File', 'Tasks', 'Settings',
+    'Agent · Git', 'Agent · Files', 'Agent · File', 'Agent · Settings', 'Tasks', 'Settings',
   ]);
   const files = screens.find(item => item.id === 'agent-files');
   assert.equal(files.desktopId, 'agent-files');
@@ -879,12 +879,19 @@ test('new UI screens pair desktop and mobile instead of a chip per surface', asy
   assert.match(phoneApp.html, /aria-label="Run"/);
   assert.doesNotMatch(phoneApp.html, /au-mobile-tab-bar/);
   assert.doesNotMatch(phoneApp.html, /au-validation-glyph/);
-  assert.match(scenes.find(item => item.id === 'settings').html, />Auth</);
+  assert.match(scenes.find(item => item.id === 'settings').html, />Interface</);
   assert.match(scenes.find(item => item.id === 'settings').html, />Capabilities</);
+  assert.doesNotMatch(scenes.find(item => item.id === 'settings').html, />Auth</);
   assert.doesNotMatch(scenes.find(item => item.id === 'settings').html, />Login</);
-  assert.match(scenes.find(item => item.id === 'mobile-settings').html, />Auth</);
+  assert.match(scenes.find(item => item.id === 'mobile-settings').html, />Interface</);
   assert.match(scenes.find(item => item.id === 'mobile-settings').html, />Capabilities</);
+  assert.doesNotMatch(scenes.find(item => item.id === 'mobile-settings').html, />Auth</);
   assert.doesNotMatch(scenes.find(item => item.id === 'mobile-settings').html, />Login</);
+  assert.match(scenes.find(item => item.id === 'agent-settings').html, />Settings</);
+  assert.match(scenes.find(item => item.id === 'agent-settings').html, />Type</);
+  assert.match(scenes.find(item => item.id === 'agent-settings').html, />Forge</);
+  assert.match(scenes.find(item => item.id === 'mobile-agent-settings').html, />Settings</);
+  assert.match(scenes.find(item => item.id === 'mobile-agent-settings').html, />Type</);
   assert.doesNotMatch(scenes.find(item => item.id === 'team').html, />Capabilities</);
   assert.match(scenes.find(item => item.id === 'tasks').html, /class="au-page-title"/);
   assert.match(scenes.find(item => item.id === 'tasks').html, /class="au-field-label"/);
@@ -993,10 +1000,18 @@ test('a New UI scene publishes the slots, states, and actions a command center b
   assert.ok(application.states.includes('expanded'));
   assert.ok(application.slots.some(slot => slot.name === 'applications' && slot.repeat === 'application-tab'));
   const settingsScene = manifest.scenes.find(scene => scene.id === 'settings');
-  assert.ok(settingsScene.actions.includes('settings-workspace'));
-  assert.ok(settingsScene.slots.some(slot => slot.name === 'chatFields' && slot.repeat === 'settings-field'));
-  assert.ok(settingsScene.slots.some(slot => slot.name === 'settingsWorkspaces' && slot.repeat === 'settings-workspace'));
-  assert.ok(settingsScene.states.includes('chatSettings'));
+  assert.ok(settingsScene.actions.includes('use-classic'));
+  assert.ok(settingsScene.slots.some(slot => slot.name === 'modules' && slot.repeat === 'settings-module'));
+  assert.ok(!settingsScene.actions.includes('settings-workspace'));
+  const memberSettings = manifest.scenes.find(scene => scene.id === 'agent-settings');
+  assert.ok(memberSettings.actions.includes('tab-settings'));
+  assert.ok(memberSettings.actions.includes('member-kind'));
+  assert.ok(memberSettings.actions.includes('save-token'));
+  assert.ok(memberSettings.actions.includes('save-agent-settings'));
+  assert.ok(memberSettings.slots.some(slot => slot.name === 'chatFields' && slot.repeat === 'settings-field'));
+  const phoneMember = manifest.scenes.find(scene => scene.id === 'mobile-agent-settings');
+  assert.ok(phoneMember.actions.includes('tab-settings'));
+  assert.ok(phoneMember.actions.includes('member-kind'));
 });
 
 test('the mounted scene lays the title bar and fleet out, and keeps text inside a text node', async () => {
