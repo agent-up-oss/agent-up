@@ -1,6 +1,6 @@
 import type { TranscriptItem } from '../models/AgentSession';
 import { thoughtLabel } from './AgentEventPresentationProvider';
-import { humanize, parseObject, presentToolFacts } from './ToolCallProvider';
+import { humanize, parseObject, presentToolFacts, shorten } from './ToolCallProvider';
 
 /**
  * Geometry and gesture decisions for the bottom sheet one transcript item opens into. Kept free of
@@ -88,7 +88,6 @@ export type SheetPresentation = {
 /** Arguments an edit carries that its diff already shows better. */
 const bodyKeys = new Set(['content', 'oldString', 'old_string', 'newString', 'new_string', 'edits', 'replaceAll', 'replace_all']);
 const maxArguments = 8;
-const maxArgumentChars = 400;
 const statusWords: Record<SheetStatusTone, string> = { done: '✓ Done', failed: '✕ Failed', running: 'Running' };
 
 /** How one transcript item reads once opened: a sentence for a title, its status, and labelled arguments. */
@@ -100,10 +99,12 @@ export function presentSheet(item: TranscriptItem, live: boolean): SheetPresenta
   const title = subject && subject !== view.title ? `${view.title} ${subject}` : view.title;
   const tone: SheetStatusTone = view.state === 'done' ? 'done' : view.state;
   const text = [statusWords[tone], view.state === 'running' ? undefined : view.duration, view.source].filter(Boolean).join(' · ');
-  // The diff card names the file; without one, the whole path is a detail worth showing.
-  const pathRow = path && !view.diff ? [{ label: 'Path', value: path }] : [];
-  const rows = [...pathRow, ...sheetArguments(item.rawInput, view.summary, Boolean(view.diff))];
-  return { title, status: { tone, text }, arguments: dedupe(rows) };
+  const details = sheetArguments(item.rawInput, view.summary, Boolean(view.diff));
+  // The diff card names the file; without one, the whole path is a detail worth showing - unless
+  // the title shortened it, and the argument it came from is already a detail in full.
+  const fullPathShown = details.some(row => view.summary !== undefined && row.value !== view.summary && shorten(row.value) === view.summary);
+  const pathRow = path && !view.diff && !fullPathShown ? [{ label: 'Path', value: path }] : [];
+  return { title, status: { tone, text }, arguments: dedupe([...pathRow, ...details]) };
 }
 
 function dedupe(rows: SheetArgument[]): SheetArgument[] {
@@ -121,7 +122,8 @@ function sheetArguments(rawInput: string | undefined, summary: string | undefine
     const value = typeof raw === 'string' ? raw : typeof raw === 'number' || typeof raw === 'boolean' ? String(raw) : JSON.stringify(raw);
     // The title already says this value only when it says all of it; a shortened one stays.
     if (summary && value === summary) continue;
-    rows.push({ label: humanize(key), value: value.length > maxArgumentChars ? `${value.slice(0, maxArgumentChars - 1)}…` : value });
+    // Kept whole: the sheet wraps it, and this is the one place the reader can see all of it.
+    rows.push({ label: humanize(key), value });
     if (rows.length === maxArguments) break;
   }
   return rows;

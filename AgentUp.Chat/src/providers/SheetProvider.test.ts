@@ -97,6 +97,20 @@ test('a command too long for the title keeps its whole text as a detail', () => 
   assert.deepEqual(presentSheet(run, false).arguments, [{ label: 'Command', value: command }]);
 });
 
+test('an argument longer than the old cut-off stays whole', () => {
+  const body = 'x'.repeat(900);
+  const call: TranscriptItem = { id: 'b', role: 'tool', text: '', status: 'completed', title: 'github-api_createIssue', rawInput: JSON.stringify({ title: 'Banner', body }) };
+  assert.equal(presentSheet(call, false).arguments.find(row => row.label === 'Body')?.value, body);
+});
+
+test('a path too long for the title is a detail in full, not its shortened form', () => {
+  const filePath = `src/${'storefront/'.repeat(8)}WeeklySpecial.tsx`;
+  const read: TranscriptItem = { id: 'p', role: 'tool', text: '', toolKind: 'read', status: 'completed', title: 'read', rawInput: JSON.stringify({ filePath }) };
+  const sheet = presentSheet(read, false);
+  assert.equal(sheet.title, 'Read WeeklySpecial.tsx');
+  assert.deepEqual(sheet.arguments, [{ label: 'File path', value: filePath }]);
+});
+
 test('a running MCP tool names its source and leaves out the argument the title already says', () => {
   const tool: TranscriptItem = { id: 'm', role: 'tool', text: '', status: 'pending', title: 'github-api_searchIssues', rawInput: JSON.stringify({ query: 'is:open', perPage: 5 }) };
   assert.deepEqual(presentSheet(tool, false), {
