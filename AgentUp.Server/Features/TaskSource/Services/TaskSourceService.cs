@@ -148,18 +148,20 @@ public sealed class TaskSourceService(
         var seen = new Dictionary<string, ForgeIssue>(StringComparer.Ordinal);
         foreach (var ready in ReadyAll(moduleId))
         {
+            IReadOnlyList<ForgeIssue> issues;
             try
             {
-                foreach (var issue in await ready.Forge.ListIssuesAsync(
+                issues = await ready.Forge.ListIssuesAsync(
                     new ForgeRequest(ready.Token, owner, repository, string.Empty, ready.EndpointUrl),
-                    cancellationToken))
-                {
-                    seen[issue.Id] = issue;
-                }
+                    cancellationToken);
             }
             catch (Exception failure) when (failure is HttpRequestException or TaskCanceledException)
             {
+                issues = [];
             }
+
+            foreach (var issue in issues)
+                seen[issue.Id] = issue;
         }
 
         return seen.Values.ToArray();
@@ -174,18 +176,20 @@ public sealed class TaskSourceService(
         var seen = new Dictionary<string, ForgePullRequest>(StringComparer.Ordinal);
         foreach (var ready in ReadyAll(moduleId))
         {
+            IReadOnlyList<ForgePullRequest> pulls;
             try
             {
-                foreach (var pull in await ready.Forge.ListPullRequestsAsync(
+                pulls = await ready.Forge.ListPullRequestsAsync(
                     new ForgeRequest(ready.Token, owner, repository, string.Empty, ready.EndpointUrl),
-                    cancellationToken))
-                {
-                    seen[pull.Id] = pull;
-                }
+                    cancellationToken);
             }
             catch (Exception failure) when (failure is HttpRequestException or TaskCanceledException)
             {
+                pulls = [];
             }
+
+            foreach (var pull in pulls)
+                seen[pull.Id] = pull;
         }
 
         var members = await team.ForAsync(owner, repository, cancellationToken);
@@ -252,10 +256,9 @@ public sealed class TaskSourceService(
         var forge = FindForge(host.Value.Id);
         if (forge is null)
             yield break;
-        foreach (var entry in Entries())
+        foreach (var entry in Entries().Where(entry =>
+            entry.ModuleId.Equals(host.Value.Id, StringComparison.OrdinalIgnoreCase)))
         {
-            if (!entry.ModuleId.Equals(host.Value.Id, StringComparison.OrdinalIgnoreCase))
-                continue;
             yield return (forge, entry.Token, entry.EndpointUrl);
         }
     }
