@@ -1580,6 +1580,7 @@
 .au-sheet-code-text {
   margin: 0;
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
   color: var(--au-color-text-secondary);
   font-family: var(--au-font-mono);
   font-size: var(--au-font-size-xs);
