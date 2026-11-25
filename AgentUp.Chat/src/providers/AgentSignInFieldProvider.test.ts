@@ -11,5 +11,6 @@ test('the pasted-code field refuses IME suggestions and autofill', () => {
   assert.equal(props.spellCheck, false);
   assert.equal(props.importantForAutofill, 'no');
   assert.equal(props.textContentType, 'none');
+  assert.equal(props.showSoftInputOnFocus, false);
   assert.equal(props.keyboardType, 'visible-password');
 });

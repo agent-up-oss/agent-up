@@ -13,6 +13,7 @@ export function codeFieldProps() {
     spellCheck: false,
     textContentType: 'none' as const,
     importantForAutofill: 'no' as const,
+    showSoftInputOnFocus: false,
     keyboardType: 'visible-password' as const,
   };
 }

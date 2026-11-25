@@ -315,12 +315,10 @@ async function fill(testId, value) {
   const field = element(by.id(testId));
   await field.tap();
   await field.clearText();
-  // One shot of 32-character PKCE on Android IME is how pasted-code submitted a truncated
-  // value, the CLI exited 1, and the suite waited 150s for ready.
-  const chunk = 8;
-  for (let index = 0; index < value.length; index += chunk) {
-    await field.typeText(value.slice(index, index + chunk));
-  }
+  // Type the value in one shot. Chunks of 8 let Android IME rewrite later pieces (CI saw
+  // UkMWuAYa7eGG- land as AYa7eGG-UkMWu) and left iOS Connect on the form because the
+  // Server URL was typed the same way.
+  await field.typeText(value);
 }
 
 async function waitUntilFieldHolds(testId, expected, timeoutMs = 15_000) {

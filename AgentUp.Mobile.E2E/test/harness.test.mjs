@@ -191,12 +191,12 @@ test('native pasted-code reads the field through getAttributes, not Detox text o
   assert.equal(helper.includes('toHaveText('), false);
 });
 
-test('native fill types long codes in chunks so Android IME does not truncate a PKCE secret', async () => {
+test('native fill types the whole value in one shot so IME cannot reorder chunks', async () => {
   const { readFile } = await import('node:fs/promises');
   const source = await readFile(new URL('../detox/signIn.test.js', import.meta.url), 'utf8');
-  const fill = source.slice(source.indexOf('async function fill('), source.indexOf('async function pastedCode('));
-  assert.match(fill, /const chunk = 8/);
-  assert.match(fill, /value\.slice\(index, index \+ chunk\)/);
+  const fill = source.slice(source.indexOf('async function fill('), source.indexOf('async function waitUntilFieldHolds('));
+  assert.match(fill, /await field\.typeText\(value\)/);
+  assert.equal(fill.includes('chunk'), false);
 });
 
 test('native pasted-code visits the provider before Open so the code exists before the browser takes the foreground', async () => {
