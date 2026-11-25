@@ -296,6 +296,36 @@
           "html": "<div class=\"au-stack\">\n        <button class=\"au-tool-call\" type=\"button\"><span class=\"au-tool-call-glyph\">✓</span> <span class=\"au-tool-call-title\">List workspaces</span> <span class=\"au-tool-call-source\">Agent-Up</span> <span class=\"au-tool-call-summary\">orchestration</span></button>\n        <button class=\"au-tool-call\" type=\"button\"><span class=\"au-tool-call-glyph au-tool-call-glyph--running\">◐</span> <span class=\"au-tool-call-title\">Read</span> <span class=\"au-tool-call-summary\">apps/storefront/PromoBanner.tsx</span></button>\n        <button class=\"au-tool-call\" type=\"button\"><span class=\"au-tool-call-glyph au-tool-call-glyph--failed\">✕</span> <span class=\"au-tool-call-title\">Run</span> <span class=\"au-tool-call-summary\">npm test</span></button>\n        <div class=\"au-tool-call-detail\">\n          <span class=\"au-tool-call-label\">Output</span>\n          <div class=\"au-tool-call-output\"><pre class=\"au-tool-call-output-text\">{\n  \"displayName\": \"Harbor Shop\",\n  \"state\": \"Running\"\n}</pre></div>\n          <span class=\"au-tool-call-more\">12 more lines</span>\n          <div class=\"au-tool-call-output au-tool-call-output--failed\"><pre class=\"au-tool-call-output-text au-tool-call-output-text--failed\">Error: 2 tests failed</pre></div>\n        </div>\n      </div>"
         },
         {
+          "id": "sheet",
+          "title": "Bottom sheet",
+          "note": "Mobile only. One transcript item - a tool call, an edit, a thought - opens here instead of unfolding in place, so the transcript keeps its place. It reads like a page, not a debug panel: a large title, a quiet line of facts, then prose or code. No raw JSON. It opens at half height; drag up for full height, drag down or tap the scrim to close. Keep the close button: the gesture is never the only way out. Sections that group items still unfold in place.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
+          "rootClass": "au-sheet",
+          "classes": [
+            "au-sheet",
+            "au-sheet-grabber",
+            "au-sheet-header",
+            "au-sheet-close",
+            "au-sheet-close-glyph",
+            "au-sheet-title",
+            "au-sheet-meta",
+            "au-sheet-label",
+            "au-sheet-code",
+            "au-sheet-code--failed",
+            "au-sheet-code-text",
+            "au-sheet-code-text--failed",
+            "au-sheet-body"
+          ],
+          "html": "<div class=\"au-sheet\" style=\"max-width: 24rem; padding-bottom: 1.25rem;\">\n        <div style=\"display: flex; justify-content: center; padding-top: 0.5rem;\"><span class=\"au-sheet-grabber\" style=\"display: block;\"></span></div>\n        <div class=\"au-sheet-header\" style=\"display: flex; align-items: center; gap: 0.875rem;\">\n          <button class=\"au-sheet-close\" type=\"button\" aria-label=\"Close\"><span class=\"au-sheet-close-glyph\">✕</span></button>\n          <span class=\"au-sheet-title\">Run npm test</span>\n        </div>\n        <div style=\"display: flex; flex-direction: column; gap: 0.75rem; padding: 0.25rem 1.25rem 0;\">\n          <span class=\"au-sheet-meta\">Failed after 4s</span>\n          <span class=\"au-sheet-label\">Output</span>\n          <div class=\"au-sheet-code au-sheet-code--failed\"><pre class=\"au-sheet-code-text au-sheet-code-text--failed\">Error: 2 tests failed</pre></div>\n          <span class=\"au-sheet-body\">The thought reads as prose at body size, never as a squinted italic line.</span>\n        </div>\n      </div>"
+        },
+        {
           "id": "chat-reply",
           "title": "Agent reply",
           "note": "The reply is prose on the canvas, rendered from the agent's markdown: headings, paragraphs, lists, quotes, inline code chips and mono code blocks. No card around it and no raw markdown symbols.",

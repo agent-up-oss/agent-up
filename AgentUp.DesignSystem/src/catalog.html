@@ -102,6 +102,21 @@
         </div>
       </div>
     </article>
+    <article data-au-component="sheet" data-au-title="Bottom sheet" data-au-note="Mobile only. One transcript item - a tool call, an edit, a thought - opens here instead of unfolding in place, so the transcript keeps its place. It reads like a page, not a debug panel: a large title, a quiet line of facts, then prose or code. No raw JSON. It opens at half height; drag up for full height, drag down or tap the scrim to close. Keep the close button: the gesture is never the only way out. Sections that group items still unfold in place." data-au-avalonia="Border" data-au-class="au-sheet">
+      <div class="au-sheet" style="max-width: 24rem; padding-bottom: 1.25rem;">
+        <div style="display: flex; justify-content: center; padding-top: 0.5rem;"><span class="au-sheet-grabber" style="display: block;"></span></div>
+        <div class="au-sheet-header" style="display: flex; align-items: center; gap: 0.875rem;">
+          <button class="au-sheet-close" type="button" aria-label="Close"><span class="au-sheet-close-glyph">✕</span></button>
+          <span class="au-sheet-title">Run npm test</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 0.75rem; padding: 0.25rem 1.25rem 0;">
+          <span class="au-sheet-meta">Failed after 4s</span>
+          <span class="au-sheet-label">Output</span>
+          <div class="au-sheet-code au-sheet-code--failed"><pre class="au-sheet-code-text au-sheet-code-text--failed">Error: 2 tests failed</pre></div>
+          <span class="au-sheet-body">The thought reads as prose at body size, never as a squinted italic line.</span>
+        </div>
+      </div>
+    </article>
     <article data-au-component="chat-reply" data-au-title="Agent reply" data-au-note="The reply is prose on the canvas, rendered from the agent's markdown: headings, paragraphs, lists, quotes, inline code chips and mono code blocks. No card around it and no raw markdown symbols." data-au-avalonia="StackPanel" data-au-class="au-chat-reply">
       <div class="au-chat-reply">
         <span class="au-chat-reply-agent">OpenCode</span>
