@@ -11,7 +11,7 @@ export function codeFieldProps() {
     autoCorrect: false,
     autoComplete: 'off' as const,
     spellCheck: false,
-    textContentType: 'oneTimeCode' as const,
+    textContentType: 'none' as const,
     importantForAutofill: 'no' as const,
     keyboardType: 'visible-password' as const,
   };

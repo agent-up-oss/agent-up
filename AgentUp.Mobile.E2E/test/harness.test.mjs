@@ -176,7 +176,7 @@ test('native pasted-code sign-in restores the connect URL when it returns from t
 
   assert.match(returnToApp, /url: connectLaunchUrl\(stack\.serverOriginForClient, stack\.workspace\.id\)/);
   assert.match(returnToApp, /pastedCode\(flow, stack\.control, carriedCode\)/);
-  assert.match(returnToApp, /toHaveText\(code\)/);
+  assert.match(returnToApp, /by\.id\('agent-signin-submit-code'\)\.and\(by\.enabled\(\)\)/);
 });
 
 test('native fill types long codes in chunks so Android IME does not truncate a PKCE secret', async () => {
@@ -194,9 +194,14 @@ test('native pasted-code visits the provider before Open so the code exists befo
     source.indexOf("await tap(`agent-auth-method-${methodId}`, 60_000)"),
     source.indexOf('if (carriedCode)'),
   );
+  assert.match(authenticate, /const pasteFirst = scenario\.flow === 'paste'/);
   assert.ok(
-    authenticate.indexOf('flow.approve') < authenticate.indexOf("await tap('agent-signin-open'"),
-    'approve must run before Open so the host fetch is not racing the system browser',
+    authenticate.indexOf('pasteFirst') < authenticate.indexOf("await tap('agent-signin-open'"),
+    'paste must approve before Open so the host fetch is not racing the system browser',
+  );
+  assert.ok(
+    authenticate.indexOf("await tap('agent-signin-open'") < authenticate.indexOf('if (!pasteFirst)'),
+    'device and poll must tap Open before approve so the button stays mounted',
   );
 });
 
@@ -287,19 +292,24 @@ test('ACP auth-required on the session is not a failed sign-in', () => {
 
 test('waiting for ready aborts when subscription login has already failed', async () => {
   const original = globalThis.fetch;
-  globalThis.fetch = async () => ({
-    ok: true,
-    json: async () => ({
-      state: 'authentication_required',
-      error: 'Subscription login failed with exit code 1. Open the printed link and finish signing in with your subscription.',
-      loginChallenge: { url: 'http://localhost/oauth/authorize', canSubmitCode: true },
-    }),
-  });
+  let fetches = 0;
+  globalThis.fetch = async () => {
+    fetches += 1;
+    return {
+      ok: true,
+      json: async () => ({
+        state: 'authentication_required',
+        error: 'Subscription login failed with exit code 1. Open the printed link and finish signing in with your subscription.',
+        loginChallenge: { url: 'http://localhost/oauth/authorize', canSubmitCode: true },
+      }),
+    };
+  };
   try {
     await assert.rejects(
       () => waitForAgentState('http://localhost:9', 'workspace', 'ready', { timeoutMs: 5_000, intervalMs: 10 }),
       /Subscription login failed with exit code 1/,
     );
+    assert.equal(fetches, 1);
   } finally {
     globalThis.fetch = original;
   }

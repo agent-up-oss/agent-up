@@ -120,11 +120,16 @@ describe('agent sign-in', () => {
         { timeoutMs: 120_000 },
       );
 
-      // Visit the provider from this host first so the code exists before Open hands the
-      // foreground to the system browser. Open then still runs the real button; a second visit
-      // after pre-approve issues another code for the same PKCE, and we paste the latest one.
-      const carriedCode = await flow.approve?.({ control: stack.control, session });
+      // Paste is the only shape that must visit the provider before Open: the code has to exist
+      // before the system browser takes the foreground. Device and poll complete sign-in on
+      // approve, which unmounts Open, so those shapes tap Open first.
+      const pasteFirst = scenario.flow === 'paste';
+      const carriedCode = pasteFirst
+        ? await flow.approve?.({ control: stack.control, session })
+        : undefined;
       await tap('agent-signin-open', 60_000);
+      if (!pasteFirst)
+        await flow.approve?.({ control: stack.control, session });
       if (carriedCode) {
         // Opening the sign-in page handed the foreground to the browser, which is what this shape
         // is: the page issues a code and the person carries it back. What a person does next is
@@ -145,14 +150,17 @@ describe('agent sign-in', () => {
         // Detox 20.42's Jest device has no dismissKeyboard; Return blurs the field, then wait
         // until Finish is hittable instead of sleeping. Re-read latestCode after the browser
         // visit so a second authorize from Open is the value that is pasted.
+        // Android TextInput is EditText: Detox toHaveText matches TextView and never sees the
+        // value. Finish signing in is enabled only when React state holds the paste.
         await waitFor(element(by.id('agent-signin-code-input'))).toBeVisible().withTimeout(30_000);
         const code = await pastedCode(flow, stack.control, carriedCode);
         await fill('agent-signin-code-input', code);
-        await waitFor(element(by.id('agent-signin-code-input'))).toHaveText(code).withTimeout(15_000);
         if (device.getPlatform() === 'ios') {
           await element(by.id('agent-signin-code-input')).tapReturnKey();
-          await waitFor(element(by.id('agent-signin-submit-code'))).toBeVisible().withTimeout(30_000);
         }
+        await waitFor(element(by.id('agent-signin-submit-code').and(by.enabled())))
+          .toBeVisible()
+          .withTimeout(15_000);
         await tap('agent-signin-submit-code', 60_000);
       }
 
