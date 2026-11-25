@@ -3995,13 +3995,13 @@
     <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextFaintBrush}"/>
   </Style>
   <Style Selector="Border.aun-rail">
-    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorCanvasBrush}"/>
     <Setter Property="BorderThickness" Value="0,0,1,0"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
     <Setter Property="Padding" Value="12,16,12,16"/>
   </Style>
   <Style Selector="TextBlock.aun-rail">
-    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorCanvasBrush}"/>
     <Setter Property="Padding" Value="12,16,12,16"/>
   </Style>
   <Style Selector="Border.aun-rail__server">
@@ -4271,16 +4271,16 @@
   </Style>
   <Style Selector="Border.aun-state-map__root">
     <Setter Property="Width" Value="256"/>
-    <Setter Property="CornerRadius" Value="{DynamicResource AgentUpCornerRadiusMd}"/>
-    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceRaisedBrush}"/>
+    <Setter Property="CornerRadius" Value="{DynamicResource AgentUpCornerRadiusLg}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorCanvasBrush}"/>
     <Setter Property="BorderThickness" Value="1"/>
-    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderStrongBrush}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
     <Setter Property="Padding" Value="16,12,16,12"/>
     <Setter Property="Margin" Value="0,20,0,0"/>
   </Style>
   <Style Selector="TextBlock.aun-state-map__root">
     <Setter Property="Width" Value="256"/>
-    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceRaisedBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorCanvasBrush}"/>
     <Setter Property="Padding" Value="16,12,16,12"/>
     <Setter Property="Margin" Value="0,20,0,0"/>
   </Style>
@@ -4336,34 +4336,34 @@
     <Setter Property="Margin" Value="0,3,0,0"/>
   </Style>
   <Style Selector="Border.aun-state-map__stem">
-    <Setter Property="Background" Value="{DynamicResource AgentUpColorTextFaintBrush}"/>
-    <Setter Property="Width" Value="2"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorBorderStrongBrush}"/>
+    <Setter Property="Width" Value="1"/>
     <Setter Property="Height" Value="22"/>
     <Setter Property="Margin" Value="0,0,0,0"/>
   </Style>
   <Style Selector="TextBlock.aun-state-map__stem">
-    <Setter Property="Background" Value="{DynamicResource AgentUpColorTextFaintBrush}"/>
-    <Setter Property="Width" Value="2"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorBorderStrongBrush}"/>
+    <Setter Property="Width" Value="1"/>
     <Setter Property="Height" Value="22"/>
     <Setter Property="Margin" Value="0,0,0,0"/>
   </Style>
   <Style Selector="Border.aun-state-map__crossbar">
-    <Setter Property="Background" Value="{DynamicResource AgentUpColorTextFaintBrush}"/>
-    <Setter Property="Height" Value="2"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorBorderStrongBrush}"/>
+    <Setter Property="Height" Value="1"/>
   </Style>
   <Style Selector="TextBlock.aun-state-map__crossbar">
-    <Setter Property="Background" Value="{DynamicResource AgentUpColorTextFaintBrush}"/>
-    <Setter Property="Height" Value="2"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorBorderStrongBrush}"/>
+    <Setter Property="Height" Value="1"/>
   </Style>
   <Style Selector="Border.aun-state-map__drop">
-    <Setter Property="Background" Value="{DynamicResource AgentUpColorTextFaintBrush}"/>
-    <Setter Property="Width" Value="2"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorBorderStrongBrush}"/>
+    <Setter Property="Width" Value="1"/>
     <Setter Property="Height" Value="16"/>
     <Setter Property="Margin" Value="0,0,0,0"/>
   </Style>
   <Style Selector="TextBlock.aun-state-map__drop">
-    <Setter Property="Background" Value="{DynamicResource AgentUpColorTextFaintBrush}"/>
-    <Setter Property="Width" Value="2"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorBorderStrongBrush}"/>
+    <Setter Property="Width" Value="1"/>
     <Setter Property="Height" Value="16"/>
     <Setter Property="Margin" Value="0,0,0,0"/>
   </Style>
@@ -4375,27 +4375,27 @@
   </Style>
   <Style Selector="Border.aun-state-map__branch">
     <Setter Property="MinHeight" Value="0"/>
-    <Setter Property="CornerRadius" Value="{DynamicResource AgentUpCornerRadiusMd}"/>
-    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceRaisedBrush}"/>
+    <Setter Property="CornerRadius" Value="{DynamicResource AgentUpCornerRadiusXl}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorCanvasBrush}"/>
     <Setter Property="BorderThickness" Value="1"/>
-    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderStrongBrush}"/>
-    <Setter Property="Padding" Value="12,12,12,12"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
+    <Setter Property="Padding" Value="16,16,16,16"/>
   </Style>
   <Style Selector="TextBlock.aun-state-map__branch">
     <Setter Property="MinHeight" Value="0"/>
-    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceRaisedBrush}"/>
-    <Setter Property="Padding" Value="12,12,12,12"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorCanvasBrush}"/>
+    <Setter Property="Padding" Value="16,16,16,16"/>
   </Style>
   <Style Selector="Border.aun-state-map__mark">
-    <Setter Property="Width" Value="14"/>
-    <Setter Property="Height" Value="14"/>
+    <Setter Property="Width" Value="10"/>
+    <Setter Property="Height" Value="10"/>
     <Setter Property="CornerRadius" Value="999"/>
-    <Setter Property="Background" Value="{DynamicResource AgentUpColorTextFaintBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorBorderStrongBrush}"/>
   </Style>
   <Style Selector="TextBlock.aun-state-map__mark">
-    <Setter Property="Width" Value="14"/>
-    <Setter Property="Height" Value="14"/>
-    <Setter Property="Background" Value="{DynamicResource AgentUpColorTextFaintBrush}"/>
+    <Setter Property="Width" Value="10"/>
+    <Setter Property="Height" Value="10"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorBorderStrongBrush}"/>
   </Style>
   <Style Selector="Border.aun-state-map__branch--working Border.aun-state-map__mark">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorStatusHealthyBrush}"/>
@@ -4409,7 +4409,7 @@
   <Style Selector="Border.aun-state-map__branch--idle Border.aun-state-map__mark">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
     <Setter Property="BorderThickness" Value="2"/>
-    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorTextFaintBrush}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderStrongBrush}"/>
   </Style>
   <Style Selector="Border.aun-state-map__branch-copy">
     <Setter Property="MinWidth" Value="0"/>
@@ -4447,15 +4447,11 @@
   </Style>
   <Style Selector="Border.aun-state-map__host">
     <Setter Property="MinWidth" Value="0"/>
-    <Setter Property="BorderThickness" Value="0,1,0,0"/>
-    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
-    <Setter Property="Padding" Value="0,12,0,0"/>
-    <Setter Property="Margin" Value="0,12,0,0"/>
+    <Setter Property="Margin" Value="0,16,0,0"/>
   </Style>
   <Style Selector="TextBlock.aun-state-map__host">
     <Setter Property="MinWidth" Value="0"/>
-    <Setter Property="Padding" Value="0,12,0,0"/>
-    <Setter Property="Margin" Value="0,12,0,0"/>
+    <Setter Property="Margin" Value="0,16,0,0"/>
   </Style>
   <Style Selector="Border.aun-state-map__agent">
     <Setter Property="MinWidth" Value="0"/>
@@ -4500,8 +4496,6 @@
     <Setter Property="Margin" Value="0,0,0,0"/>
   </Style>
   <Style Selector="Border.aun-state-map__messages">
-    <Setter Property="BorderThickness" Value="0,1,0,0"/>
-    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderStrongBrush}"/>
     <Setter Property="Margin" Value="0,8,0,0"/>
   </Style>
   <Style Selector="TextBlock.aun-state-map__messages">
@@ -5448,6 +5442,9 @@
   </Style>
   <Style Selector="Border.au-mobile-tab-bar Border.au-nav-icon">
     <Setter Property="Opacity" Value="0.55"/>
+  </Style>
+  <Style Selector="Border.au-mobile-tab-bar Border.au-subtab--selected">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
   </Style>
   <Style Selector="Border.aun-tabbar__item">
     <Setter Property="MinHeight" Value="{DynamicResource AgentUpControlHeightTouch}"/>

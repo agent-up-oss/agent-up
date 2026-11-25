@@ -2201,7 +2201,7 @@ export const newUiTheme = Object.freeze({
       color: "#718077",
     }),
     aunRail: Object.freeze({
-      backgroundColor: "#121416",
+      backgroundColor: "#0a0b0c",
       borderRightWidth: 1,
       borderRightColor: "#ffffff14",
       paddingTop: 16,
@@ -2394,9 +2394,9 @@ export const newUiTheme = Object.freeze({
       paddingBottom: 12,
       paddingLeft: 16,
       borderWidth: 1,
-      borderColor: "#ffffff29",
-      borderRadius: 8,
-      backgroundColor: "#191c1f",
+      borderColor: "#ffffff14",
+      borderRadius: 12,
+      backgroundColor: "#0a0b0c",
     }),
     aunStateMapTotal: Object.freeze({
       fontSize: 22,
@@ -2428,8 +2428,8 @@ export const newUiTheme = Object.freeze({
       fontSize: 11,
     }),
     aunStateMapStem: Object.freeze({
-      backgroundColor: "#718077",
-      width: 2,
+      backgroundColor: "#ffffff29",
+      width: 1,
       height: 22,
       marginTop: 0,
       marginRight: 0,
@@ -2437,12 +2437,12 @@ export const newUiTheme = Object.freeze({
       marginLeft: 0,
     }),
     aunStateMapCrossbar: Object.freeze({
-      backgroundColor: "#718077",
-      height: 2,
+      backgroundColor: "#ffffff29",
+      height: 1,
     }),
     aunStateMapDrop: Object.freeze({
-      backgroundColor: "#718077",
-      width: 2,
+      backgroundColor: "#ffffff29",
+      width: 1,
       height: 16,
       marginTop: 0,
       marginRight: 0,
@@ -2457,23 +2457,23 @@ export const newUiTheme = Object.freeze({
     }),
     aunStateMapBranch: Object.freeze({
       minHeight: 0,
-      paddingTop: 12,
-      paddingRight: 12,
-      paddingBottom: 12,
-      paddingLeft: 12,
+      paddingTop: 16,
+      paddingRight: 16,
+      paddingBottom: 16,
+      paddingLeft: 16,
       borderWidth: 1,
-      borderColor: "#ffffff29",
-      borderRadius: 8,
-      backgroundColor: "#191c1f",
+      borderColor: "#ffffff14",
+      borderRadius: 16,
+      backgroundColor: "#0a0b0c",
     }),
     aunStateMapBranchHead: Object.freeze({
 
     }),
     aunStateMapMark: Object.freeze({
-      width: 14,
-      height: 14,
+      width: 10,
+      height: 10,
       borderRadius: 999,
-      backgroundColor: "#718077",
+      backgroundColor: "#ffffff29",
     }),
     aunStateMapBranchWorking__aunStateMapMark: Object.freeze({
       backgroundColor: "#22c55e",
@@ -2487,7 +2487,7 @@ export const newUiTheme = Object.freeze({
     aunStateMapBranchIdle__aunStateMapMark: Object.freeze({
       backgroundColor: "transparent",
       borderWidth: 2,
-      borderColor: "#718077",
+      borderColor: "#ffffff29",
     }),
     aunStateMapBranchCopy: Object.freeze({
       minWidth: 0,
@@ -2508,10 +2508,7 @@ export const newUiTheme = Object.freeze({
     }),
     aunStateMapHost: Object.freeze({
       minWidth: 0,
-      marginTop: 12,
-      paddingTop: 12,
-      borderTopWidth: 1,
-      borderTopColor: "#ffffff14",
+      marginTop: 16,
     }),
     aunStateMapAgent: Object.freeze({
       minWidth: 0,
@@ -2540,8 +2537,6 @@ export const newUiTheme = Object.freeze({
     }),
     aunStateMapMessages: Object.freeze({
       marginTop: 8,
-      borderTopWidth: 1,
-      borderTopColor: "#ffffff29",
     }),
     aunStateMapEmpty: Object.freeze({
       marginTop: 12,
@@ -3165,6 +3160,9 @@ export const newUiTheme = Object.freeze({
     }),
     mobileTabBar__navIcon: Object.freeze({
       opacity: 0.55,
+    }),
+    mobileTabBar__subtabSelected: Object.freeze({
+      backgroundColor: "transparent",
     }),
     aunTabbarItem: Object.freeze({
       minHeight: 44,
