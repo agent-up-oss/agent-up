@@ -4,6 +4,9 @@ using AgentUp.Desktop.Features.Interface.Models;
 
 namespace AgentUp.Desktop.Features.Interface.Services;
 
+/// <summary>One repository the Tasks page can be drilled into.</summary>
+public sealed record CommandCenterRepositorySlot(string Id, string Name, string Host);
+
 /// <summary>One task row the scene repeats. The action is the catalog button the row runs; the scene words and tones it.</summary>
 public sealed record CommandCenterTaskSlot(
     string Id,
@@ -76,7 +79,13 @@ public sealed record CommandCenterSceneInput(
     IReadOnlyList<CommandCenterApplicationSlot>? Applications = null,
     IReadOnlyList<CommandCenterTaskSlot>? DevReviews = null,
     IReadOnlyList<CommandCenterTaskSlot>? PmReviews = null,
-    string TasksTab = "issues");
+    string TasksTab = "issues",
+    IReadOnlyList<CommandCenterRepositorySlot>? Repositories = null,
+    string? OpenRepository = null,
+    string ForgeTab = "github",
+    string ForgeDetail = "",
+    string ForgeEndpoint = "",
+    bool ForgeConnected = false);
 
 /// <summary>One application of the open workspace, as its tab shows it.</summary>
 public sealed record CommandCenterApplicationSlot(string Name, bool Running);
@@ -117,6 +126,22 @@ public static class CommandCenterScene
         binding.Items["queue"] = input.Tasks.Select(Task).ToArray();
         binding.Items["devReview"] = (input.DevReviews ?? []).Select(Task).ToArray();
         binding.Items["pmReview"] = (input.PmReviews ?? []).Select(Task).ToArray();
+        binding.Items["repos"] = (input.Repositories ?? []).Select(repo => new NewUiSlotItem
+        {
+            Id = repo.Id,
+            Action = "open-repo",
+            Text = new Dictionary<string, string>(StringComparer.Ordinal) { ["name"] = repo.Name, ["host"] = repo.Host },
+        }).ToArray();
+        binding.Text["repository"] = input.OpenRepository ?? "";
+        binding.Text["forgeDetail"] = input.ForgeDetail;
+        binding.Text["forgeEndpoint"] = input.ForgeEndpoint;
+        binding.State["forgeTab"] = input.ForgeTab;
+        if (input.ForgeConnected)
+            binding.State["forgeConnected"] = "1";
+        if (string.IsNullOrEmpty(input.OpenRepository))
+            binding.State["repoList"] = "1";
+        else
+            binding.State["repoOpen"] = "1";
         // The Tasks board shows one of its three queues; the scene marks the tab and the page.
         binding.State["tasksTab"] = input.TasksTab;
         binding.State[$"{input.TasksTab}Tab"] = "1";
@@ -433,4 +458,64 @@ public static class CommandCenterScene
         (TeamStandingKind.Working, "Working", "Moving work forward", "aun-state-map__branch--working"),
         (TeamStandingKind.Idle, "Idle", "Ready for work", "aun-state-map__branch--idle"),
     ];
+
+    public const string GithubDotCom = "https://github.com";
+
+    /// <summary>
+    /// The host URL the forge field should show: the saved origin, or github.com when this tab is
+    /// GitHub and nothing is saved yet. Forgejo has no default.
+    /// </summary>
+    public static string PrefillEndpoint(string moduleId, string? saved)
+    {
+        if (!string.IsNullOrWhiteSpace(saved))
+            return saved.Trim();
+        return moduleId.Equals("github", StringComparison.OrdinalIgnoreCase) ? GithubDotCom : "";
+    }
+
+    /// <summary>
+    /// Token and host URL the Save button should send. The scene keeps one field per action, so
+    /// Save reads every field rather than only the one named save-token.
+    /// </summary>
+    public static (string Token, string EndpointUrl) TokenSave(
+        IReadOnlyDictionary<string, string>? fields,
+        string? text)
+    {
+        var token = Read(fields, "save-token") ?? text ?? "";
+        var endpoint = Read(fields, "forge-endpoint") ?? "";
+        return (token.Trim(), endpoint.Trim());
+    }
+
+    /// <summary>
+    /// The Tasks page names a repository as <c>module/owner/name</c>. Anything else is not a
+    /// repository the page can open.
+    /// </summary>
+    public static (string ModuleId, string Owner, string Name)? ParseRepositoryKey(string? id)
+    {
+        var parts = id?.Split('/', 3);
+        return parts is { Length: 3 } && parts.All(part => part.Length > 0)
+            ? (parts[0], parts[1], parts[2])
+            : null;
+    }
+
+    /// <summary>
+    /// One row per review of the given kind, worded for the Dev review or PM review board.
+    /// </summary>
+    public static IReadOnlyList<CommandCenterTaskSlot> ReviewRows(
+        IReadOnlyList<TaskSourcePull> pulls,
+        string kind,
+        string repo)
+        => pulls.SelectMany(pull => pull.Reviews.Where(review => review.Kind == kind).Select(review => new CommandCenterTaskSlot(
+            $"{pull.Id}:{kind}",
+            $"#{pull.Number} · {pull.Title}",
+            repo,
+            review.Standing switch
+            {
+                "reviewed" => $"{review.Verdict} by {review.Login}",
+                "reviewing" => review.Login ?? "",
+                _ => "Waiting for a reviewer",
+            },
+            review.Standing))).ToArray();
+
+    private static string? Read(IReadOnlyDictionary<string, string>? fields, string key)
+        => fields is not null && fields.TryGetValue(key, out var value) ? value : null;
 }

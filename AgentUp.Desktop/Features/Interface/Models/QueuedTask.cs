@@ -33,4 +33,9 @@ public sealed record OfferedIssue(string Id, int Number, string Title, string Ur
 /// The issues on offer and where a pick is taken from. <see cref="PickFrom"/> is null when the
 /// Server's task source offered them: the Server then picks from that source, not from a workspace.
 /// </summary>
-public sealed record OfferedIssues(IReadOnlyList<OfferedIssue> Issues, string? PickFrom);
+public sealed record OfferedIssues(
+    IReadOnlyList<OfferedIssue> Issues,
+    string? PickFrom,
+    string? ModuleId = null,
+    string? Owner = null,
+    string? Repository = null);

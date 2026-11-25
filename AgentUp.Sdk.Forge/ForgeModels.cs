@@ -83,3 +83,25 @@ public sealed record ForgeSubmitReviewCommand(
 
 /// <summary>A file the host stores against an issue or proposal, and where a reader opens it.</summary>
 public sealed record ForgeAttachment(string Name, string Url);
+
+/// <summary>A repository the token can see. The owner and name are what later reads are addressed with.</summary>
+public sealed record ForgeRepository(string Owner, string Name);
+
+/// <summary>
+/// An open pull request, the people asked to review it, and the reviews already left. The review
+/// state is the host's own word for it.
+/// </summary>
+public sealed record ForgePullRequest(
+    string Id,
+    int Number,
+    string Title,
+    string Url,
+    IReadOnlyList<string> RequestedReviewers,
+    IReadOnlyList<ForgeReview> Reviews);
+
+/// <summary>
+/// What a personal access token can do for the task list. Both have to be true before the token
+/// is kept: the repository list and the review tabs are read from it, and a token that cannot
+/// see pull requests cannot say which reviews are still owed.
+/// </summary>
+public sealed record ForgeTokenAccess(bool CanListRepositories, bool CanReadPullRequests, string? Detail);

@@ -648,6 +648,16 @@ public sealed class ForgejoApiProviderTests
             Is.EqualTo("https://git.example.test/api/v1/"));
 
     [Test]
+    public void ApiBaseFromEndpoint_mapsAnOriginToApiV1()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(ForgejoHostConfigurationProvider.ApiBaseFromEndpoint("https://git.example.test"), Is.EqualTo("https://git.example.test/api/v1/"));
+            Assert.That(ForgejoHostConfigurationProvider.ApiBaseFromEndpoint("https://git.example.test/api/v1"), Is.EqualTo("https://git.example.test/api/v1/"));
+        });
+    }
+
+    [Test]
     public async Task ReadAsync_treatsMissingMergeabilityAsUnknown()
     {
         const string pulls = """
@@ -722,6 +732,202 @@ public sealed class ForgejoApiProviderTests
         }
     }
 
+
+    [Test]
+    public async Task ListRepositoriesAsync_readsTheRepositoriesTheTokenCanSee()
+    {
+        var handler = Recorded(("GET /user/repos?limit=100", """
+            [{"name":"widgets","owner":{"login":"acme"}}]
+            """));
+
+        var repositories = await new ForgejoForgeCapability(handler).ListRepositoriesAsync("token", "https://git.example.test");
+
+        Assert.That(repositories.Select(repository => $"{repository.Owner}/{repository.Name}"), Is.EqualTo(new[] { "acme/widgets" }));
+    }
+
+    [Test]
+    public async Task ListRepositoriesAsync_talksToTheEndpointUrlNotTheConfiguredHost()
+    {
+        var handler = Recorded(("GET /user/repos?limit=100", """[{"name":"widgets","owner":{"login":"acme"}}]"""));
+
+        await new ForgejoForgeCapability(handler).ListRepositoriesAsync("token", "https://git.company.test");
+
+        Assert.That(handler.Uris.Single(), Does.StartWith("https://git.company.test/api/v1/"));
+    }
+
+    [Test]
+    public async Task ReadTokenAccessAsync_refusesATokenTheHostWillNotAccept()
+    {
+        var handler = Recorded(("GET /user", HttpStatusCode.Unauthorized, ""));
+
+        var access = await new ForgejoForgeCapability(handler).ReadTokenAccessAsync("token", "https://git.example.test");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(access.CanListRepositories, Is.False);
+            Assert.That(access.CanReadPullRequests, Is.False);
+        });
+    }
+
+    [Test]
+    public async Task ReadTokenAccessAsync_refusesATokenThatCannotListRepositories()
+    {
+        var handler = Recorded(
+            ("GET /user", HttpStatusCode.OK, User),
+            ("GET /user/repos?limit=1", HttpStatusCode.Forbidden, ""));
+
+        var access = await new ForgejoForgeCapability(handler).ReadTokenAccessAsync("token", "https://git.example.test");
+
+        Assert.That(access.CanListRepositories, Is.False);
+        Assert.That(access.Detail, Does.Contain("list repositories"));
+    }
+
+    [Test]
+    public async Task ReadTokenAccessAsync_acceptsATokenWithNoRepositoriesYet()
+    {
+        var handler = Recorded(
+            ("GET /user", User),
+            ("GET /user/repos?limit=1", "[]"));
+
+        var access = await new ForgejoForgeCapability(handler).ReadTokenAccessAsync("token", "https://git.example.test");
+
+        Assert.That(access.CanListRepositories, Is.True);
+        Assert.That(access.CanReadPullRequests, Is.True);
+    }
+
+    [Test]
+    public async Task ReadTokenAccessAsync_refusesATokenThatCannotReadPullRequests()
+    {
+        var handler = Recorded(
+            ("GET /user", HttpStatusCode.OK, User),
+            ("GET /user/repos?limit=1", HttpStatusCode.OK, """[{"name":"widgets","owner":{"login":"acme"}}]"""),
+            ("GET /repos/acme/widgets/pulls?state=open&limit=1", HttpStatusCode.Forbidden, ""));
+
+        var access = await new ForgejoForgeCapability(handler).ReadTokenAccessAsync("token", "https://git.example.test");
+
+        Assert.That(access.CanReadPullRequests, Is.False);
+        Assert.That(access.Detail, Does.Contain("pull requests"));
+    }
+
+    [Test]
+    public async Task ReadTokenAccessAsync_probesPullRequestsOnTheFirstRepository()
+    {
+        var handler = Recorded(
+            ("GET /user", User),
+            ("GET /user/repos?limit=1", """[{"name":"widgets","owner":{"username":"acme"}}]"""),
+            ("GET /repos/acme/widgets/pulls?state=open&limit=1", "[]"));
+
+        var access = await new ForgejoForgeCapability(handler).ReadTokenAccessAsync("token", "https://git.example.test");
+
+        Assert.That(access.CanListRepositories, Is.True);
+        Assert.That(access.CanReadPullRequests, Is.True);
+    }
+
+    [Test]
+    public async Task ReadTokenAccessAsync_talksToTheEndpointUrlNotTheConfiguredHost()
+    {
+        var handler = Recorded(
+            ("GET /user", User),
+            ("GET /user/repos?limit=1", "[]"));
+
+        await new ForgejoForgeCapability(handler).ReadTokenAccessAsync("token", "https://git.company.test");
+
+        Assert.That(handler.Uris, Has.All.StartsWith("https://git.company.test/api/v1/"));
+    }
+
+    [Test]
+    public async Task ListRepositoriesAsync_readsTheOwnerUsernameWhenLoginIsMissing()
+    {
+        var repositories = await new ForgejoForgeCapability(Recorded(("GET /user/repos?limit=100", """
+            [{"name":"widgets","owner":{"username":"acme"}},{"name":"","owner":{"login":"skip"}},{"name":"orphan"}]
+            """))).ListRepositoriesAsync("token", "https://git.example.test");
+
+        Assert.That(repositories.Select(repository => $"{repository.Owner}/{repository.Name}"), Is.EqualTo(new[] { "acme/widgets" }));
+    }
+
+    [Test]
+    public async Task ListRepositoriesAsync_returnsEmptyWhenThePayloadIsNotAnArray()
+    {
+        var repositories = await new ForgejoForgeCapability(Recorded(("GET /user/repos?limit=100", "{}")))
+            .ListRepositoriesAsync("token", "https://git.example.test");
+
+        Assert.That(repositories, Is.Empty);
+    }
+
+    [Test]
+    public async Task ListPullRequestsAsync_readsRequestedReviewersAndReviews()
+    {
+        var handler = Recorded(
+            ("GET /repos/acme/widgets/pulls?state=open&limit=20", """
+                [{"id":9,"number":42,"title":"Product cards","html_url":"https://git.example.test/acme/widgets/pulls/42","requested_reviewers":[{"login":"hector"}]}]
+                """),
+            ("GET /repos/acme/widgets/pulls/42/reviews?limit=100", """
+                [{"user":{"login":"lucy"},"state":"APPROVED","submitted_at":"2026-01-02T00:00:00Z","commit_id":"abc123"}]
+                """));
+
+        var pulls = await new ForgejoForgeCapability(handler).ListPullRequestsAsync(Request());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(pulls.Single().RequestedReviewers, Is.EqualTo(new[] { "hector" }));
+            Assert.That(pulls.Single().Reviews.Single().Login, Is.EqualTo("lucy"));
+            Assert.That(pulls.Single().Reviews.Single().State, Is.EqualTo("APPROVED"));
+        });
+    }
+
+    [Test]
+    public async Task ListPullRequestsAsync_returnsEmptyWhenThePayloadIsNotAnArray()
+    {
+        var pulls = await new ForgejoForgeCapability(Recorded(
+                ("GET /repos/acme/widgets/pulls?state=open&limit=20", "{}")))
+            .ListPullRequestsAsync(Request());
+
+        Assert.That(pulls, Is.Empty);
+    }
+
+    [Test]
+    public async Task ListPullRequestsAsync_keepsAPullWhenItsReviewsCannotBeRead()
+    {
+        var handler = Recorded(
+            ("GET /repos/acme/widgets/pulls?state=open&limit=20", HttpStatusCode.OK, """
+                [{"id":9,"number":42,"title":"Product cards","html_url":"https://git.example.test/acme/widgets/pulls/42"}]
+                """),
+            ("GET /repos/acme/widgets/pulls/42/reviews?limit=100", HttpStatusCode.InternalServerError, ""));
+
+        var pulls = await new ForgejoForgeCapability(handler).ListPullRequestsAsync(Request());
+
+        Assert.That(pulls.Single().Title, Is.EqualTo("Product cards"));
+        Assert.That(pulls.Single().Reviews, Is.Empty);
+    }
+
+    [Test]
+    public async Task ListPullRequestsAsync_skipsAReviewWithNoReviewerAndMissingRequestedReviewers()
+    {
+        var handler = Recorded(
+            ("GET /repos/acme/widgets/pulls?state=open&limit=20", """
+                [{"id":9,"number":42,"title":"Product cards","html_url":"https://git.example.test/acme/widgets/pulls/42"}]
+                """),
+            ("GET /repos/acme/widgets/pulls/42/reviews?limit=100", """
+                [{"user":{"id":3},"state":"APPROVED"},{"user":{"login":"lucy"},"state":"COMMENT"}]
+                """));
+
+        var pulls = await new ForgejoForgeCapability(handler).ListPullRequestsAsync(Request());
+
+        Assert.That(pulls.Single().RequestedReviewers, Is.Empty);
+        Assert.That(pulls.Single().Reviews.Single().Login, Is.EqualTo("lucy"));
+    }
+
+    [Test]
+    public async Task ListPullRequestsAsync_talksToTheEndpointUrlNotTheConfiguredHost()
+    {
+        var handler = Recorded(
+            ("GET /repos/acme/widgets/pulls?state=open&limit=20", "[]"));
+
+        await new ForgejoForgeCapability(handler).ListPullRequestsAsync(
+            new ForgeRequest("token", "acme", "widgets", "topic", "https://git.company.test"));
+
+        Assert.That(handler.Uris.Single(), Does.StartWith("https://git.company.test/api/v1/"));
+    }
 
     private static ForgeRequest Request() => new("token", "acme", "widgets", "topic");
 

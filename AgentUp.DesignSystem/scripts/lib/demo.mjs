@@ -100,7 +100,9 @@ export function applyDemo(catalog, demo) {
   fill('task-board', 'queue', taskBoard(demo));
   // The showcase draws the board as it opens, on Issues; the review tabs are the clients' to switch to.
   const board = byId.get('task-board');
-  board.html = withoutWhen(withoutWhen(board.html, 'devTab'), 'pmTab');
+  board.html = withoutWhen(withoutWhen(withoutWhen(board.html, 'devTab'), 'pmTab'), 'repoList');
+  const settings = byId.get('settings-panel');
+  settings.html = withoutWhen(settings.html, 'forgeConnected');
   fill('member-overview', 'overview', memberOverview(demo));
   const open = demo.open;
   fill('mobile-agent-head', 'member', memberHead(open));

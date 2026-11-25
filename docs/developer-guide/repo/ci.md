@@ -129,7 +129,7 @@ One leg per real dependency, so a red leg names what broke. Each leg runs one sc
 
 - **Journeys** replay every Desktop QA flow of [QA coverage](../verification/qa-coverage.md) on an isolated real Server, one flow per `au-debug validate` run: `.github/scripts/run-journeys.sh desktop`.
 - **Showcase** drives the real client on its Demo through every documented screen; a screen the route cannot reach fails the leg. Desktop cannot report its own text yet, so no screen is compared with the design system.
-- **Native** legs run `AgentUp.Tests` on a real display: Linux from source, macOS and Windows from a framework-dependent runner each publishes for its own runtime with `.github/scripts/publish-native-e2e-runner.sh`.
+- **Native** legs run `AgentUp.Tests` on a real display: Linux from source, macOS and Windows from a framework-dependent runner each publishes for its own runtime with `.github/scripts/publish-native-e2e-runner.sh`. macOS arm64 runs on `macos-15` so it does not share the Xcode `macos-latest` pool that iOS store and sign-in use; GitHub cancelled that native leg when both targeted `macos-latest`.
 
 ## Mobile
 

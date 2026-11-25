@@ -96,32 +96,33 @@ public sealed class TaskQueueViewModelTests
     }
 
     [Test]
-    public async Task ReadAsync_offersTheTaskSourceIssuesBeforeTheWorkspaceRepository()
+    public async Task ReadAsync_offersTheChosenRepositoryRatherThanTheWorkspace()
     {
         var api = new FakeTaskQueueApi
         {
             Issues = [new OfferedIssue("8", 8, "From the workspace", "u")],
-            SourceIssues = [new OfferedIssue("57", 57, "From the source", "u")],
+            RepositoryIssues = [new OfferedIssue("57", 57, "From the repository", "u")],
         };
         var queue = ViewModel(api);
         queue.Attach([new TeamMember("ws-mia", "Mia", "", "Running")]);
+        queue.SelectRepository("github", "example", "repository");
 
         await queue.ReadAsync();
 
-        Assert.That(queue.Offered.Select(row => row.IssueLabel), Is.EqualTo(new[] { "#57 · From the source" }));
+        Assert.That(queue.Offered.Select(row => row.IssueLabel), Is.EqualTo(new[] { "#57 · From the repository" }));
     }
 
     [Test]
-    public async Task PickCommand_takesATaskSourceIssueFromTheSourceRatherThanAWorkspace()
+    public async Task PickCommand_takesAChosenRepositoryIssueThroughItsHost()
     {
-        var api = new FakeTaskQueueApi { SourceIssues = [new OfferedIssue("57", 57, "From the source", "u")] };
+        var api = new FakeTaskQueueApi { RepositoryIssues = [new OfferedIssue("57", 57, "From the repository", "u")] };
         var queue = ViewModel(api);
-        queue.Attach([new TeamMember("ws-mia", "Mia", "", "Running")]);
+        queue.SelectRepository("github", "example", "repository");
         await queue.ReadAsync();
 
         await queue.Offered.Single().PickCommand.Execute();
 
-        Assert.That(api.Enqueued, Is.EqualTo(new (string?, string)[] { (null, "57") }));
+        Assert.That(api.Enqueued, Is.EqualTo(new (string?, string, string?)[] { (null, "57", "github") }));
     }
 
     [Test]
@@ -134,7 +135,7 @@ public sealed class TaskQueueViewModelTests
 
         await queue.Offered.Single().PickCommand.Execute();
 
-        Assert.That(api.Enqueued, Is.EqualTo(new (string?, string)[] { ("ws-bob", "8") }));
+        Assert.That(api.Enqueued, Is.EqualTo(new (string?, string, string?)[] { ("ws-bob", "8", null) }));
     }
 
     [Test]
@@ -298,7 +299,7 @@ public sealed class TaskQueueViewModelTests
 
         public Exception? Failure { get; init; }
 
-        public List<(string? WorkspaceId, string IssueId)> Enqueued { get; } = [];
+        public List<(string? WorkspaceId, string IssueId, string? ModuleId)> Enqueued { get; } = [];
 
         public List<(string Id, int Index)> Moved { get; } = [];
 
@@ -314,14 +315,25 @@ public sealed class TaskQueueViewModelTests
         public Task<IReadOnlyList<OfferedIssue>> ListIssuesAsync(string workspaceId, CancellationToken cancellationToken) =>
             Task.FromResult(Issues);
 
-        public IReadOnlyList<OfferedIssue>? SourceIssues { get; init; }
+        public IReadOnlyList<OfferedIssue> RepositoryIssues { get; init; } = [];
 
-        public Task<IReadOnlyList<OfferedIssue>?> ListSourceIssuesAsync(CancellationToken cancellationToken) =>
-            Task.FromResult(SourceIssues);
+        public Task<IReadOnlyList<OfferedIssue>> ListRepositoryIssuesAsync(
+            string moduleId,
+            string owner,
+            string repository,
+            CancellationToken cancellationToken) =>
+            Task.FromResult(RepositoryIssues);
 
-        public Task EnqueueAsync(string? workspaceId, string issueId, string? targetWorkspaceId, CancellationToken cancellationToken)
+        public Task EnqueueAsync(
+            string? workspaceId,
+            string issueId,
+            string? targetWorkspaceId,
+            CancellationToken cancellationToken,
+            string? moduleId = null,
+            string? owner = null,
+            string? repository = null)
         {
-            Enqueued.Add((workspaceId, issueId));
+            Enqueued.Add((workspaceId, issueId, moduleId));
             return Task.CompletedTask;
         }
 

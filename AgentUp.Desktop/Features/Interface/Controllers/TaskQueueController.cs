@@ -15,8 +15,22 @@ public sealed class TaskQueueController(TaskQueueService service)
     public Task<OfferedIssues> ListOfferedAsync(string? workspaceId, CancellationToken cancellationToken) =>
         service.ListOfferedAsync(workspaceId, cancellationToken);
 
-    public Task EnqueueAsync(string? workspaceId, string issueId, string? targetWorkspaceId, CancellationToken cancellationToken) =>
-        service.EnqueueAsync(workspaceId, issueId, targetWorkspaceId, cancellationToken);
+    public Task<OfferedIssues> ListRepositoryAsync(
+        string moduleId,
+        string owner,
+        string repository,
+        CancellationToken cancellationToken) =>
+        service.ListRepositoryAsync(moduleId, owner, repository, cancellationToken);
+
+    public Task EnqueueAsync(
+        string? workspaceId,
+        string issueId,
+        string? targetWorkspaceId,
+        CancellationToken cancellationToken,
+        string? moduleId = null,
+        string? owner = null,
+        string? repository = null) =>
+        service.EnqueueAsync(workspaceId, issueId, targetWorkspaceId, cancellationToken, moduleId, owner, repository);
 
     public Task RemoveAsync(QueuedTask task, CancellationToken cancellationToken) =>
         service.RemoveAsync(task, cancellationToken);

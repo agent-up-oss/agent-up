@@ -67,10 +67,22 @@
         </div>
         <div class="aun-group">
           <div data-au-use="section-label" data-au-props="label=Forge connection"></div>
+          <div class="au-cluster">
+            <button class="au-app-tab au-app-tab--selected" type="button" data-au-action="forge-tab" data-au-id="github" data-au-selection="forgeTab:github:au-app-tab--selected">GitHub</button>
+            <button class="au-app-tab" type="button" data-au-action="forge-tab" data-au-id="forgejo" data-au-selection="forgeTab:forgejo:au-app-tab--selected">Forgejo</button>
+          </div>
+          <p class="aun-faint" data-au-text="forgeDetail">Paste the host URL and a personal access token. GitHub.com is https://github.com. A Forgejo instance is the origin you sign in at. The token needs access to repositories and pull requests, so Agent-Up can list every repository and read which reviews each pull request still needs.</p>
           <div class="aun-settings__list">
             <div class="aun-settings__row">
-              <span class="aun-settings__name">Task source</span>
-              <button class="aun-btn aun-btn--primary" type="button" data-au-action="connect-source">Connect</button>
+              <input class="aun-input" type="url" placeholder="https://git.example.com" data-au-action="forge-endpoint" data-au-text="forgeEndpoint" />
+            </div>
+            <div class="aun-settings__row">
+              <input class="aun-input" type="password" placeholder="Personal access token" data-au-action="save-token" />
+              <button class="aun-btn aun-btn--primary" type="button" data-au-action="save-token">Save</button>
+            </div>
+            <div class="aun-settings__row" data-au-when="forgeConnected">
+              <span class="aun-settings__name">Connected</span>
+              <button class="aun-btn" type="button" data-au-action="forget-token">Forget</button>
             </div>
           </div>
         </div>
@@ -288,25 +300,35 @@
       </div>
     </article>
 
-    <article data-au-component="task-board" data-au-title="Task board" data-au-note="Three queues. Issues is the Demo queue: three tasks in progress, two waiting, and three open issues. Dev review and PM review are the proposals waiting on each kind of reviewer; the host only counts approvals, so the Server works out which kinds a revision still needs, and the first reviewer of a kind keeps that review for every push. Desktop keeps the page title; the phone puts that title in its head." data-au-avalonia="Border" data-au-class="aun-task-board" data-au-parts="title">
+    <article data-au-component="task-board" data-au-title="Task board" data-au-note="Repositories first, then one repository's three queues. Issues is that repository's queue. Dev review and PM review are inferred from its open pull requests. Desktop keeps the page title; the phone puts that title in its head." data-au-avalonia="Border" data-au-class="aun-task-board" data-au-parts="title">
       <div class="aun-task-board">
         <div data-au-part="title" data-au-use="page-title" data-au-props="title=Tasks"></div>
-        <div class="au-cluster aun-task-tabs" role="tablist">
-          <button class="au-app-tab au-app-tab--selected" type="button" data-au-action="tasks-issues" data-au-selection="tasksTab:issues:au-app-tab--selected">Issues</button>
-          <button class="au-app-tab" type="button" data-au-action="tasks-dev-review" data-au-selection="tasksTab:dev:au-app-tab--selected">Dev review</button>
-          <button class="au-app-tab" type="button" data-au-action="tasks-pm-review" data-au-selection="tasksTab:pm:au-app-tab--selected">PM review</button>
+        <div data-au-when="repoList">
+          <div class="aun-group" data-au-slot="repos" data-au-repeat="task-repo"></div>
+          <p class="aun-faint" data-au-empty="repos">No repositories yet. Save a personal access token in Settings, on GitHub or Forgejo. It needs access to issues and pull requests.</p>
         </div>
-        <div class="aun-group" data-au-when="issuesTab">
-          <div class="aun-group" data-au-demo="queue" data-au-repeat="task-row" data-au-groups="stop:In progress; dequeue:Queue; queue:Open issues"></div>
-          <p class="aun-faint" data-au-empty="queue">Nothing is queued and no open issues are offered. Connect a task source in Settings, or open a workspace whose repository has issues.</p>
-        </div>
-        <div class="aun-group" data-au-when="devTab">
-          <div class="aun-group" data-au-demo="devReview" data-au-repeat="task-row" data-au-groups="waiting:Needs a reviewer; reviewing:Under review; reviewed:Reviewed"></div>
-          <p class="aun-faint" data-au-empty="devReview">No proposal is waiting on a dev review. A revision lands here as soon as its author pushes it.</p>
-        </div>
-        <div class="aun-group" data-au-when="pmTab">
-          <div class="aun-group" data-au-demo="pmReview" data-au-repeat="task-row" data-au-groups="waiting:Needs a reviewer; reviewing:Under review; reviewed:Reviewed"></div>
-          <p class="aun-faint" data-au-empty="pmReview">No proposal is waiting on a product review. A revision lands here as soon as its author pushes it.</p>
+        <div data-au-when="repoOpen">
+          <div class="au-cluster">
+            <button class="aun-btn" type="button" data-au-action="tasks-back">Back</button>
+            <span class="aun-settings__name" data-au-text="repository">example/repository</span>
+          </div>
+          <div class="au-cluster aun-task-tabs" role="tablist">
+            <button class="au-app-tab au-app-tab--selected" type="button" data-au-action="tasks-issues" data-au-selection="tasksTab:issues:au-app-tab--selected">Issues</button>
+            <button class="au-app-tab" type="button" data-au-action="tasks-dev-review" data-au-selection="tasksTab:dev:au-app-tab--selected">Dev review</button>
+            <button class="au-app-tab" type="button" data-au-action="tasks-pm-review" data-au-selection="tasksTab:pm:au-app-tab--selected">PM review</button>
+          </div>
+          <div class="aun-group" data-au-when="issuesTab">
+            <div class="aun-group" data-au-demo="queue" data-au-repeat="task-row" data-au-groups="stop:In progress; dequeue:Queue; queue:Open issues"></div>
+            <p class="aun-faint" data-au-empty="queue">Nothing is queued and this repository has no open issues.</p>
+          </div>
+          <div class="aun-group" data-au-when="devTab">
+            <div class="aun-group" data-au-demo="devReview" data-au-repeat="task-row" data-au-groups="waiting:Needs a reviewer; reviewing:Under review; reviewed:Reviewed"></div>
+            <p class="aun-faint" data-au-empty="devReview">No open pull request needs a dev review.</p>
+          </div>
+          <div class="aun-group" data-au-when="pmTab">
+            <div class="aun-group" data-au-demo="pmReview" data-au-repeat="task-row" data-au-groups="waiting:Needs a reviewer; reviewing:Under review; reviewed:Reviewed"></div>
+            <p class="aun-faint" data-au-empty="pmReview">No open pull request needs a product review.</p>
+          </div>
         </div>
       </div>
     </article>
@@ -408,6 +430,15 @@
         <div class="aun-state-map__agent"><span class="aun-state-map__agent-name" data-au-text="name">Bob</span><span class="aun-state-map__agent-task" data-au-text="task">No task in hand</span></div>
         <div class="aun-state-map__messages" data-au-part="messages"><p class="aun-state-map__message" data-au-text="message"></p></div>
       </div>
+    </article>
+
+    <article data-au-component="task-repo" data-au-title="Task repository" data-au-note="One repository the stored token can see. Choosing it opens that repository's queues." data-au-avalonia="Border" data-au-class="aun-task-slot">
+      <button class="aun-task-row" type="button" data-au-action="open-repo">
+        <span class="aun-task-row__body">
+          <span class="aun-task-row__title" data-au-text="name">example/repository</span>
+          <span class="aun-task-row__repo" data-au-text="host">GitHub</span>
+        </span>
+      </button>
     </article>
 
     <article data-au-component="task-row" data-au-title="Task row" data-au-note="One task on the board. The first row of a group carries that group's label. A review row names its reviewer and revision and has no button: reviewers take reviews themselves. Dequeue, stop, and queue are the same button; the client names which action this row runs and the tone it takes: danger to take work away, primary to give it." data-au-avalonia="Border" data-au-class="aun-task-slot" data-au-parts="section agent" data-au-actions="dequeue queue stop">

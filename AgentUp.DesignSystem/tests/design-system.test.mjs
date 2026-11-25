@@ -1056,10 +1056,10 @@ test('the scene owns the board: groups, labels, grips, tones, and the empty copy
   const h = (type, props, ...children) => ({ type, props: props ?? {}, children: children.flat() });
   const React = { createElement: h };
   const Scene = createNewUiScene(React, { View: 'View', Text: 'Text', Pressable: 'Pressable', ScrollView: 'ScrollView' });
-  // The board is the Issues tab of Tasks. The client always names the open tab, so mount it the
-  // way the client does rather than with no tab, which draws only the tab strip.
+  // The board is the Issues tab of an open repository. The client always names the open tab,
+  // so mount it the way the client does rather than with no tab, which draws only the tab strip.
   const mount = items => {
-    const tree = Scene({ scene: 'mobile-tasks', state: { tasksTab: 'issues', issuesTab: '1' }, items });
+    const tree = Scene({ scene: 'mobile-tasks', items, state: { repoOpen: '1', issuesTab: '1', tasksTab: 'issues' } });
     const expand = node => (node && typeof node.type === 'function' ? expand(node.type(node.props)) : node);
     return expand(tree);
   };
@@ -1106,9 +1106,10 @@ test('the New UI Avalonia sheet styles what the scene draws, the way the CSS doe
 
 test('a scene control answers only its own click, so a button inside a card does not fire the card', async () => {
   const scene = await readFile(new URL('./dist/dotnet/NewUiScene.g.cs', root), 'utf8');
-  assert.match(scene, /card\.Click \+= \(_, args\) =>\s*\{\s*if \(!ReferenceEquals\(args\.Source, card\)\) return;/);
-  assert.match(scene, /button\.Click \+= \(_, args\) =>\s*\{\s*if \(!ReferenceEquals\(args\.Source, button\)\) return;/);
-  assert.match(scene, /press\.Click \+= \(_, args\) =>\s*\{\s*if \(!ReferenceEquals\(args\.Source, press\)\) return;/);
+  assert.match(scene, /args\.Source is not Button inner \|\| ReferenceEquals\(inner, sender\)/);
+  assert.match(scene, /if \(!OwnClick\(card, args\)\) return;/);
+  assert.match(scene, /if \(!OwnClick\(button, args\)\) return;/);
+  assert.match(scene, /if \(!OwnClick\(press, args\)\) return;/);
 });
 
 test('Server and Logout close the desktop rail and sit above the phone tab bar', async () => {

@@ -48,6 +48,23 @@ public sealed class TaskQueueApiClientTests
     }
 
     [Test]
+    public async Task EnqueueAsync_postsTheHostAndRepositoryWhenPickingFromTheTaskSource()
+    {
+        var handler = Returning("{}");
+
+        await new TaskQueueApiClient(Client(handler)).EnqueueAsync(
+            null, "I-57", null, CancellationToken.None, "github", "example", "repository");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(handler.Requests.Single(), Is.EqualTo("POST api/tasks"));
+            Assert.That(handler.Bodies.Single(), Does.Contain("\"moduleId\":\"github\""));
+            Assert.That(handler.Bodies.Single(), Does.Contain("\"owner\":\"example\""));
+            Assert.That(handler.Bodies.Single(), Does.Contain("\"repository\":\"repository\""));
+        });
+    }
+
+    [Test]
     public async Task EnqueueAsync_postsTheWorkspaceTheIssueAndTheTarget()
     {
         var handler = Returning("{}");
@@ -121,29 +138,34 @@ public sealed class TaskQueueApiClientTests
     }
 
     [Test]
-    public async Task ListSourceIssuesAsync_readsTheSourceIssuesOnlyWhenASourceIsConfigured()
+    public async Task ListRepositoryIssuesAsync_readsAMissingListAsEmpty()
     {
-        var configured = new RoutedHandler(new Dictionary<string, string>
+        var handler = new RoutedHandler(new Dictionary<string, string>
         {
-            ["api/task-source"] = SourceJson(configured: true),
-            ["api/task-source/issues"] = """[{"id":"I-57","number":57,"title":"Cart badge","url":"u"}]""",
+            ["api/task-source/issues?moduleId=github&owner=example&repository=repository"] = "null",
         });
-        var unconfigured = new RoutedHandler(new Dictionary<string, string> { ["api/task-source"] = SourceJson(configured: false) });
 
-        var issues = await new TaskQueueApiClient(new HttpClient(configured) { BaseAddress = new Uri("http://localhost:5000/") }).ListSourceIssuesAsync(CancellationToken.None);
-        var none = await new TaskQueueApiClient(new HttpClient(unconfigured) { BaseAddress = new Uri("http://localhost:5000/") }).ListSourceIssuesAsync(CancellationToken.None);
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000/") };
+        var issues = await new TaskQueueApiClient(http)
+            .ListRepositoryIssuesAsync("github", "example", "repository", CancellationToken.None);
 
-        Assert.Multiple(() =>
-        {
-            Assert.That(issues!.Single().Number, Is.EqualTo(57));
-            Assert.That(configured.Requests, Is.EqualTo(new[] { "GET api/task-source", "GET api/task-source/issues" }));
-            Assert.That(none, Is.Null);
-            Assert.That(unconfigured.Requests, Is.EqualTo(new[] { "GET api/task-source" }));
-        });
+        Assert.That(issues, Is.Empty);
     }
 
-    private static string SourceJson(bool configured) =>
-        $$"""{"moduleId":"github","owner":"example","repository":"repository","configured":{{(configured ? "true" : "false")}},"connected":true,"canConnect":true,"detail":"","modules":[]}""";
+    [Test]
+    public async Task ListRepositoryIssuesAsync_asksForTheNamedRepository()
+    {
+        var handler = new RoutedHandler(new Dictionary<string, string>
+        {
+            ["api/task-source/issues?moduleId=github&owner=example&repository=repository"] = """[{"id":"I-57","number":57,"title":"Cart badge","url":"u"}]""",
+        });
+
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:5000/") };
+        var issues = await new TaskQueueApiClient(http)
+            .ListRepositoryIssuesAsync("github", "example", "repository", CancellationToken.None);
+
+        Assert.That(issues.Single().Number, Is.EqualTo(57));
+    }
 
     private sealed class RoutedHandler(IReadOnlyDictionary<string, string> bodies) : HttpMessageHandler
     {

@@ -33,7 +33,7 @@ CI replays every flow of both suites in Desktop · Journeys on a real Server and
 | Autonomous loop / activate | Activate after a satisfied checklist, typed terminal | gap | gap |
 | Forge review / hosting | Hosting strip notInstalled with bootstrap remedy | covered | covered |
 | Forge review / proposal | Open a proposal, checks, review threads | gap | gap |
-| Tasks / review queues | Switch the Tasks board to Dev review and PM review, see who holds each review and which revision | gap | gap |
+| Tasks / review queues | Open a repository, then switch to Dev review and PM review and see who holds each review | gap | gap |
 | Capabilities | List modules, enable one | gap | gap |
 | Capabilities / unavailable | A capability whose software is missing shows it on its button and cannot be enabled | gap | gap |
 | Capabilities / settings | Enable OpenCode, set endpoint, token, and model, see it become ready | gap | gap |

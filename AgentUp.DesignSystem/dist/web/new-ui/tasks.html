@@ -93,13 +93,18 @@
           
           <div class="au-screen-pane"><div class="aun-task-board">
         <h1 class="au-page-title">Tasks</h1>
-        <div class="au-cluster aun-task-tabs" role="tablist">
-          <button class="au-app-tab au-app-tab--selected" type="button" data-au-action="tasks-issues" data-au-selection="tasksTab:issues:au-app-tab--selected">Issues</button>
-          <button class="au-app-tab" type="button" data-au-action="tasks-dev-review" data-au-selection="tasksTab:dev:au-app-tab--selected">Dev review</button>
-          <button class="au-app-tab" type="button" data-au-action="tasks-pm-review" data-au-selection="tasksTab:pm:au-app-tab--selected">PM review</button>
-        </div>
-        <div class="aun-group" data-au-when="issuesTab">
-          <div class="aun-group" data-au-demo="queue" data-au-repeat="task-row" data-au-groups="stop:In progress; dequeue:Queue; queue:Open issues">
+        <div data-au-when="repoOpen">
+          <div class="au-cluster">
+            <button class="aun-btn" type="button" data-au-action="tasks-back">Back</button>
+            <span class="aun-settings__name">example/repository</span>
+          </div>
+          <div class="au-cluster aun-task-tabs" role="tablist">
+            <button class="au-app-tab au-app-tab--selected" type="button" data-au-action="tasks-issues" data-au-selection="tasksTab:issues:au-app-tab--selected">Issues</button>
+            <button class="au-app-tab" type="button" data-au-action="tasks-dev-review" data-au-selection="tasksTab:dev:au-app-tab--selected">Dev review</button>
+            <button class="au-app-tab" type="button" data-au-action="tasks-pm-review" data-au-selection="tasksTab:pm:au-app-tab--selected">PM review</button>
+          </div>
+          <div class="aun-group" data-au-when="issuesTab">
+            <div class="aun-group" data-au-demo="queue" data-au-repeat="task-row" data-au-groups="stop:In progress; dequeue:Queue; queue:Open issues">
     <div class="aun-group">
       <p class="au-field-label">In progress · 3</p>
       
@@ -169,6 +174,7 @@
         <button class="aun-btn aun-btn--primary" type="button">Queue</button>
       </div>
     </div></div>
+          </div>
         </div>
       </div></div>
         </main>

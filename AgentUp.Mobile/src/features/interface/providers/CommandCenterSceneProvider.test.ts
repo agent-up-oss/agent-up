@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { TeamStanding } from '../models/TeamStanding';
-import { commandCenterScene, commandCenterSceneId, commandCenterServerLabel, fleetHeadline, moduleRow, tasksTabFor } from './CommandCenterSceneProvider';
+import { commandCenterScene, commandCenterSceneId, commandCenterServerLabel, fleetHeadline, moduleRow, prefillEndpoint, tasksTabFor, tokenSave } from './CommandCenterSceneProvider';
 
 function standing(patch: Partial<TeamStanding> & Pick<TeamStanding, 'workspaceId' | 'displayName' | 'kind'>): TeamStanding {
   return {
@@ -177,7 +177,25 @@ test('the board opens one of its three queues and sorts proposals into each kind
   assert.equal(scene.state.issuesTab, undefined);
   assert.deepEqual(scene.items.devReview.map(item => [item.action, item.text?.agent]), [['reviewing', 'Hector · revision 1']]);
   assert.deepEqual(scene.items.pmReview.map(item => [item.action, item.text?.agent]), [['waiting', 'Waiting for a reviewer · revision 1']]);
+  assert.equal(scene.state.repoList, '1');
   assert.equal(tasksTabFor('nav-tasks'), null);
+});
+
+test('an open repository shows its pull requests instead of the queue', () => {
+  const scene = commandCenterScene({
+    surface: 'mobile', nav: 1, section: 'overview', agentOpen: false, serverLabel: 'Demo', openWorkspaceId: null,
+    team: [], queue: [], working: [], offered: [], names: new Map(), flows: [],
+    repository: 'example/repository',
+    repositories: [{ id: 'github/example/repository', name: 'example/repository', host: 'GitHub' }],
+    pulls: [{ id: '42', number: 42, title: 'Long names', reviews: [{ kind: 'devReviewer', standing: 'reviewing', login: 'hector' }] }],
+    validationsOpen: false, validationRunning: false, validationPassed: false, validationSummary: '',
+  });
+
+  assert.equal(scene.state.repoOpen, '1');
+  assert.equal(scene.state.repoList, undefined);
+  assert.equal(scene.text.repository, 'example/repository');
+  assert.deepEqual(scene.items.devReview.map(item => [item.action, item.text?.agent]), [['reviewing', 'hector']]);
+  assert.deepEqual(scene.items.pmReview, []);
 });
 
 test('a capability row names its state and the one change it offers; the scene words both', () => {
@@ -188,6 +206,38 @@ test('a capability row names its state and the one change it offers; the scene w
   assert.deepEqual([ready.action, ready.parts], ['disable-module', ['ready']]);
   assert.deepEqual([blocked.parts, blocked.text?.why], [['blocked'], 'Install Nix first.']);
   assert.deepEqual([off.action, off.parts], ['enable-module', ['disabled']]);
+});
+
+test('GitHub prefills github.com and Save reads the host URL from every field', () => {
+  assert.equal(prefillEndpoint('github', null), 'https://github.com');
+  assert.equal(prefillEndpoint('forgejo', null), '');
+  assert.equal(prefillEndpoint('github', ' https://ghe.example.test '), 'https://ghe.example.test');
+  assert.deepEqual(tokenSave({ 'forge-endpoint': ' https://git.example.test ', 'save-token': ' secret ' }, 'ignored'), {
+    token: 'secret',
+    endpointUrl: 'https://git.example.test',
+  });
+});
+
+test('the settings scene shows the host URL for the selected forge', () => {
+  const github = commandCenterScene({
+    surface: 'mobile', nav: 2, section: 'overview', agentOpen: false, serverLabel: 'Demo', openWorkspaceId: null,
+    team: [], queue: [], working: [], offered: [], names: new Map(), flows: [],
+    forgeTab: 'github',
+    forgeEndpoint: 'https://github.com',
+    validationsOpen: false, validationRunning: false, validationPassed: false, validationSummary: '',
+  });
+  const forgejo = commandCenterScene({
+    surface: 'mobile', nav: 2, section: 'overview', agentOpen: false, serverLabel: 'Demo', openWorkspaceId: null,
+    team: [], queue: [], working: [], offered: [], names: new Map(), flows: [],
+    forgeTab: 'forgejo',
+    forgeEndpoint: '',
+    validationsOpen: false, validationRunning: false, validationPassed: false, validationSummary: '',
+  });
+
+  assert.equal(github.state.forgeTab, 'github');
+  assert.equal(github.text.forgeEndpoint, 'https://github.com');
+  assert.equal(forgejo.state.forgeTab, 'forgejo');
+  assert.equal(forgejo.text.forgeEndpoint, '');
 });
 
 test('a capability whose software was not found offers no Enable and names what is missing', () => {

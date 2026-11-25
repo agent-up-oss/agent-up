@@ -1,6 +1,5 @@
 using AgentUp.Sdk.Forge;
 using AgentUp.Server.Features.Capabilities.Interfaces;
-using AgentUp.Server.Features.Forge.Interfaces;
 using AgentUp.Server.Features.TaskSource.DTOs;
 using AgentUp.Server.Features.TaskSource.Interfaces;
 using AgentUp.Server.Features.TaskSource.Models;
@@ -9,202 +8,219 @@ using Microsoft.AspNetCore.Http;
 namespace AgentUp.Server.Features.TaskSource.Services;
 
 /// <summary>
-/// The repository this Server's agents take work from, and the sign-in that lets it be read.
+/// The personal access tokens this Server uses to read every repository a host account can see.
 ///
-/// The source is named once, for the Server, instead of being inferred from whichever workspace a
-/// reader happened to open. The sign-in is the same OAuth the forge slice already performs - the
-/// same settings, the same code exchange - run for the Server rather than for one workspace, so
-/// there is one flow to get right rather than two that drift apart.
+/// One token per host, kept apart from the per-workspace forge credentials. A token is stored
+/// only after the host confirms it can list repositories and read pull requests, because the
+/// Tasks page lists those repositories and infers dev and PM review from the pull requests.
+/// The token itself is never returned. The host URL is stored with it so the Server knows which
+/// GitHub or Forgejo instance to call.
 /// </summary>
 public sealed class TaskSourceService(
-    ITaskSourceStore store,
     ITaskSourceCredentialStore credentials,
-    ITaskSourceStateStore states,
     IEnabledCapabilityPackages packages,
-    IForgeOAuthSettings oauth,
-    IForgeOAuthExchange exchange)
+    ITaskSourceTeam team)
 {
-    /// <summary>
-    /// Where the host returns the reader. It is this slice's own callback, on the same Server as
-    /// the forge sign-in's, so the OAuth application registers both redirect URIs.
-    /// </summary>
-    public const string CallbackPath = "/api/task-source/callback";
+    private static readonly (string Id, string Name)[] Hosts = [("github", "GitHub"), ("forgejo", "Forgejo")];
 
-    public TaskSourceSetting? Read() => store.Read();
-
-    /// <summary>What the clients draw: the source, whether it can be read, and what is missing.</summary>
     public TaskSourceDto Describe()
     {
-        var source = store.Read();
-        var modules = packages.ListForges()
-            .Select(forge => new TaskSourceModuleDto(forge.Identity.Id, forge.Identity.DisplayName))
-            .ToArray();
-        var configured = source is { IsComplete: true };
-        var connected = configured && !string.IsNullOrWhiteSpace(credentials.Read(source!.ModuleId));
-        var forge = configured ? Find(source!.ModuleId) : null;
-
-        return new TaskSourceDto(
-            source?.ModuleId,
-            source?.Owner,
-            source?.Repository,
-            configured,
-            connected,
-            CanConnect(forge),
-            Detail(source, forge, connected, modules.Length),
-            modules);
+        var enabled = packages.ListForges()
+            .Select(forge => forge.Identity.Id)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        return new TaskSourceDto(Hosts.Select(host => Module(host, enabled.Contains(host.Id))).ToArray());
     }
 
     /// <summary>
-    /// Points the Server at a repository. Changing where the work comes from drops the token for
-    /// the module it was pointed at before, because a credential is for one host and keeping it
-    /// would leave the Server holding an authorization nobody asked it to keep.
+    /// Stores a token and host URL for one host, or refuses them. A refused token is not stored.
     /// </summary>
-    public TaskSourceDto Set(SetTaskSourceRequest request)
+    public async Task<TaskSourceOutcome> SaveAsync(SaveTaskSourceTokenRequest request, CancellationToken cancellationToken)
     {
-        var existing = store.Read();
-        var source = new TaskSourceSetting(
-            request.ModuleId.Trim(),
-            request.Owner.Trim(),
-            request.Repository.Trim());
+        var host = FindHost(request.ModuleId);
+        if (host is null)
+            return Refuse(StatusCodes.Status409Conflict, "Choose GitHub or Forgejo.");
 
-        if (existing is not null && !existing.ModuleId.Equals(source.ModuleId, StringComparison.OrdinalIgnoreCase))
-            credentials.Delete(existing.ModuleId);
-
-        store.Write(source.IsComplete ? source : null);
-        return Describe();
-    }
-
-    /// <summary>Forgets the source and the token that went with it.</summary>
-    public TaskSourceDto Clear()
-    {
-        var existing = store.Read();
-        if (existing is not null) credentials.Delete(existing.ModuleId);
-        store.Write(null);
-        return Describe();
-    }
-
-    /// <summary>
-    /// Where to send the reader to authorize.
-    /// </summary>
-    public TaskSourceOutcome StartLogin()
-    {
-        var source = store.Read();
-        if (source is not { IsComplete: true })
-            return new TaskSourceOutcome(
+        var token = request.Token.Trim();
+        if (token.Length == 0)
+            return Refuse(StatusCodes.Status409Conflict, "Paste a personal access token.");
+        if (!TaskSourceEndpoint.TryNormalize(request.EndpointUrl, out var endpoint))
+        {
+            return Refuse(
                 StatusCodes.Status409Conflict,
-                new { title = "No task source", detail = "Name the repository the agents work from before signing in." });
+                string.IsNullOrWhiteSpace(request.EndpointUrl)
+                    ? "Paste the host URL, such as https://github.com or your Forgejo origin."
+                    : "The host URL must be an http or https address.");
+        }
 
-        var forge = Find(source.ModuleId);
+        var forge = FindForge(host.Value.Id);
         if (forge is null)
-            return new TaskSourceOutcome(
-                StatusCodes.Status503ServiceUnavailable,
-                new { title = "Host not installed", detail = $"The '{source.ModuleId}' module is not enabled on this Server." });
+            return Refuse(StatusCodes.Status409Conflict, $"Enable the {host.Value.Name} capability, then paste the token.");
 
-        var configuration = oauth.Read();
-        var authorizeUrl = forge.Host.OAuthAuthorizeUrl;
-        if (!configuration.IsConfigured || string.IsNullOrWhiteSpace(authorizeUrl))
-            return new TaskSourceOutcome(
-                StatusCodes.Status503ServiceUnavailable,
-                new { title = "Sign-in is not configured", detail = OAuthMissingDetail });
+        ForgeTokenAccess access;
+        try
+        {
+            access = await forge.ReadTokenAccessAsync(token, endpoint, cancellationToken);
+        }
+        catch (Exception failure) when (failure is HttpRequestException or TaskCanceledException)
+        {
+            return Refuse(StatusCodes.Status503ServiceUnavailable, $"Could not reach {host.Value.Name} to check the token.");
+        }
 
-        var state = states.Issue(source.ModuleId);
-        var separator = authorizeUrl.Contains('?', StringComparison.Ordinal) ? "&" : "?";
-        var url = authorizeUrl
-                  + separator
-                  + "response_type=code"
-                  + $"&client_id={Uri.EscapeDataString(configuration.ClientId)}"
-                  + $"&redirect_uri={Uri.EscapeDataString(configuration.RedirectTo(CallbackPath))}"
-                  + $"&state={Uri.EscapeDataString(state)}"
-                  + "&scope=repo";
-        return new TaskSourceOutcome(StatusCodes.Status200OK, new TaskSourceLoginDto(url));
+        if (!access.CanListRepositories || !access.CanReadPullRequests)
+            return Refuse(StatusCodes.Status409Conflict, access.Detail ?? "The token needs access to repositories and pull requests.");
+
+        credentials.Write(host.Value.Id, new TaskSourceCredential(token, endpoint));
+        return new TaskSourceOutcome(StatusCodes.Status200OK, Describe());
     }
 
-    /// <summary>
-    /// Finishes the sign-in the redirect began.
-    ///
-    /// The state is spent here, so a callback replayed with the same one is refused rather than
-    /// exchanged twice. A code that the host will not exchange leaves the source unconnected
-    /// rather than failing the callback with a stack trace in the reader's browser.
-    /// </summary>
-    public async Task<bool> CompleteLoginAsync(string code, string state, CancellationToken cancellationToken)
+    /// <summary>Forgets one host, or every host when <paramref name="moduleId"/> is omitted.</summary>
+    public TaskSourceDto Clear(string? moduleId)
     {
-        var moduleId = states.Consume(state);
-        if (moduleId is null) return false;
+        if (string.IsNullOrWhiteSpace(moduleId))
+        {
+            foreach (var host in Hosts)
+                credentials.Delete(host.Id);
+        }
+        else
+        {
+            var host = FindHost(moduleId);
+            if (host is not null)
+                credentials.Delete(host.Value.Id);
+        }
 
-        var forge = Find(moduleId);
-        if (forge is null) return false;
+        return Describe();
+    }
+
+    public async Task<IReadOnlyList<TaskSourceRepositoryDto>> ListRepositoriesAsync(CancellationToken cancellationToken)
+    {
+        var listed = new List<TaskSourceRepositoryDto>();
+        foreach (var host in Hosts)
+        {
+            var forge = FindForge(host.Id);
+            var stored = credentials.Read(host.Id);
+            if (forge is null || stored is null || string.IsNullOrWhiteSpace(stored.EndpointUrl))
+                continue;
+
+            IReadOnlyList<ForgeRepository> repositories;
+            try
+            {
+                repositories = await forge.ListRepositoriesAsync(stored.Token, stored.EndpointUrl, cancellationToken);
+            }
+            catch (Exception failure) when (failure is HttpRequestException or TaskCanceledException)
+            {
+                repositories = [];
+            }
+
+            listed.AddRange(repositories.Select(repository => new TaskSourceRepositoryDto(host.Id, repository.Owner, repository.Name)));
+        }
+
+        return listed;
+    }
+
+    public async Task<IReadOnlyList<ForgeIssue>> ListIssuesAsync(
+        string moduleId,
+        string owner,
+        string repository,
+        CancellationToken cancellationToken)
+    {
+        var ready = Ready(moduleId, owner, repository);
+        if (ready is null)
+            return [];
 
         try
         {
-            var token = await exchange.ExchangeAsync(code, forge.Host.OAuthTokenUrl, oauth.Read().RedirectTo(CallbackPath), cancellationToken);
-            if (string.IsNullOrWhiteSpace(token)) return false;
-            credentials.Write(moduleId, token);
-            return true;
-        }
-        // The exchange reports a host that refused the code as an invalid operation.
-        catch (Exception failure) when (failure is HttpRequestException or TaskCanceledException or InvalidOperationException)
-        {
-            return false;
-        }
-    }
-
-    /// <summary>
-    /// The source's open issues, or none where it is not named or not signed in.
-    ///
-    /// A host that cannot be reached answers with nothing rather than throwing: the surface that
-    /// reports why is the source itself, which says whether it is connected.
-    /// </summary>
-    public async Task<IReadOnlyList<ForgeIssue>> ListIssuesAsync(CancellationToken cancellationToken)
-    {
-        var source = store.Read();
-        if (source is not { IsComplete: true }) return [];
-
-        var forge = Find(source.ModuleId);
-        if (forge is null) return [];
-
-        var token = credentials.Read(source.ModuleId);
-        if (string.IsNullOrWhiteSpace(token)) return [];
-
-        try
-        {
-            // A branch is part of a forge request but means nothing to a repository's issue list,
-            // which belongs to the repository rather than to any one branch.
-            return await forge.ListIssuesAsync(
-                new ForgeRequest(token, source.Owner, source.Repository, string.Empty),
+            return await ready.Value.Forge.ListIssuesAsync(
+                new ForgeRequest(ready.Value.Token, owner, repository, string.Empty, ready.Value.EndpointUrl),
                 cancellationToken);
         }
         catch (Exception failure) when (failure is HttpRequestException or TaskCanceledException)
         {
-            return [];
+            return Array.Empty<ForgeIssue>();
         }
     }
 
-    private IForgeCapability? Find(string moduleId)
-        => packages.ListForges()
-            .FirstOrDefault(forge => forge.Identity.Id.Equals(moduleId, StringComparison.OrdinalIgnoreCase));
-
-    private bool CanConnect(IForgeCapability? forge)
-        => forge is not null
-           && oauth.Read().IsConfigured
-           && !string.IsNullOrWhiteSpace(forge.Host.OAuthAuthorizeUrl);
-
-    private string Detail(TaskSourceSetting? source, IForgeCapability? forge, bool connected, int moduleCount)
+    public async Task<IReadOnlyList<TaskSourcePullDto>> ListPullsAsync(
+        string moduleId,
+        string owner,
+        string repository,
+        CancellationToken cancellationToken)
     {
-        if (moduleCount == 0)
-            return "No repository host is enabled on this Server. Enable one under capabilities first.";
-        if (source is not { IsComplete: true })
-            return "Name the repository the agents take their work from.";
-        if (forge is null)
-            return $"The '{source.ModuleId}' module is not enabled on this Server.";
-        if (connected)
-            return $"Reading issues from {source.RepositoryKey}.";
-        return CanConnect(forge)
-            ? $"Sign in to read issues from {source.RepositoryKey}."
-            : OAuthMissingDetail;
+        var ready = Ready(moduleId, owner, repository);
+        if (ready is null)
+            return [];
+
+        IReadOnlyList<ForgePullRequest> pulls;
+        try
+        {
+            pulls = await ready.Value.Forge.ListPullRequestsAsync(
+                new ForgeRequest(ready.Value.Token, owner, repository, string.Empty, ready.Value.EndpointUrl),
+                cancellationToken);
+        }
+        catch (Exception failure) when (failure is HttpRequestException or TaskCanceledException)
+        {
+            pulls = [];
+        }
+
+        var members = await team.ForAsync(owner, repository, cancellationToken);
+        return pulls.Select(pull => new TaskSourcePullDto(
+            pull.Id,
+            pull.Number,
+            pull.Title,
+            pull.Url,
+            PullRequestReviewInference.For(pull, members.KindByLogin, members.Kinds)
+                .Select(review => new TaskSourceReviewDto(review.Kind, review.Standing, review.Login, review.Verdict))
+                .ToArray())).ToArray();
     }
 
-    private const string OAuthMissingDetail =
-        "This Server has no OAuth client configured for that host, so it cannot start a sign-in.";
+    private TaskSourceModuleDto Module((string Id, string Name) host, bool enabled)
+    {
+        var stored = credentials.Read(host.Id);
+        var token = stored is not null && !string.IsNullOrWhiteSpace(stored.Token);
+        var endpoint = stored is not null && !string.IsNullOrWhiteSpace(stored.EndpointUrl) ? stored.EndpointUrl : null;
+        var connected = token && endpoint is not null && enabled;
+        return new TaskSourceModuleDto(
+            host.Id,
+            host.Name,
+            connected,
+            Detail(host.Name, connected, enabled, token, endpoint),
+            endpoint);
+    }
+
+    private static string Detail(string name, bool connected, bool enabled, bool stored, string? endpoint)
+    {
+        if (!enabled && !stored)
+            return $"Enable the {name} capability, then paste the host URL and a personal access token.";
+        if (!enabled)
+            return $"Enable the {name} capability to use the saved token.";
+        if (connected)
+            return $"Reading repositories and pull requests from {name} at {endpoint}.";
+        return "Paste the host URL and a personal access token. It needs access to repositories and pull requests, so Agent-Up can list every repository and read which reviews each pull request still needs.";
+    }
+
+    private (IForgeCapability Forge, string Token, string EndpointUrl)? Ready(string moduleId, string owner, string repository)
+    {
+        var host = FindHost(moduleId);
+        if (host is null || string.IsNullOrWhiteSpace(owner) || string.IsNullOrWhiteSpace(repository))
+            return null;
+        var forge = FindForge(host.Value.Id);
+        var stored = credentials.Read(host.Value.Id);
+        return forge is null
+            || stored is null
+            || string.IsNullOrWhiteSpace(stored.Token)
+            || string.IsNullOrWhiteSpace(stored.EndpointUrl)
+            ? null
+            : (forge, stored.Token, stored.EndpointUrl);
+    }
+
+    private IForgeCapability? FindForge(string moduleId) =>
+        packages.ListForges().FirstOrDefault(forge => forge.Identity.Id.Equals(moduleId, StringComparison.OrdinalIgnoreCase));
+
+    private static (string Id, string Name)? FindHost(string? moduleId) =>
+        Hosts.Cast<(string Id, string Name)?>().FirstOrDefault(host =>
+            host!.Value.Id.Equals(moduleId?.Trim(), StringComparison.OrdinalIgnoreCase));
+
+    private static TaskSourceOutcome Refuse(int status, string detail) =>
+        new(status, new { title = "Task source", detail });
 }
 
 /// <summary>A status and a body, so the controller stays a pass-through.</summary>

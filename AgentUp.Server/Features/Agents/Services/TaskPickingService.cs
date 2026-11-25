@@ -18,47 +18,45 @@ public sealed class TaskPickingService(
     /// <summary>
     /// Picks one issue into the queue, from wherever the request says it comes from.
     ///
-    /// Naming a workspace picks from that workspace's own repository, which is how a Server with
-    /// no task source configured has always worked. Leaving it out picks from the Server's task
-    /// source: one backlog for the whole team, rather than one per workspace.
+    /// Naming a workspace picks from that workspace's own repository. Leaving the workspace out
+    /// and naming a host, owner, and repository picks from that repository through the personal
+    /// access token stored for the host.
     /// </summary>
     public Task<QueuedTask?> PickAsync(EnqueueTaskRequest request, CancellationToken cancellationToken = default)
         => string.IsNullOrWhiteSpace(request.WorkspaceId)
-            ? PickFromSourceAsync(request.IssueId, request.TargetWorkspaceId, cancellationToken)
+            ? PickFromSourceAsync(request, cancellationToken)
             : PickAsync(request.WorkspaceId, request.IssueId, request.TargetWorkspaceId, cancellationToken);
 
     /// <summary>
-    /// Picks from the Server's own task source rather than from a workspace.
-    ///
-    /// This is where work comes from once a Server has been pointed at a repository: one backlog
-    /// for the whole team, instead of whichever repository the reader's open workspace happened
-    /// to be checked out on. Returns null when the source serves no open issue with that id,
-    /// which is also the answer when nothing is configured or signed in.
+    /// Picks from a repository the stored token can read. Returns null when the request does not
+    /// name the host and repository, or when that repository has no open issue with the id.
     /// </summary>
     public async Task<QueuedTask?> PickFromSourceAsync(
-        string issueId,
-        string? targetWorkspaceId,
+        EnqueueTaskRequest request,
         CancellationToken cancellationToken = default)
     {
-        var configured = source.Describe();
-        if (!configured.Configured)
+        if (string.IsNullOrWhiteSpace(request.ModuleId)
+            || string.IsNullOrWhiteSpace(request.Owner)
+            || string.IsNullOrWhiteSpace(request.Repository))
+        {
             return null;
+        }
 
-        var issues = await source.ListIssuesAsync(cancellationToken);
-        var issue = issues.FirstOrDefault(item => item.Id == issueId);
+        var issues = await source.ListIssuesAsync(request.ModuleId, request.Owner, request.Repository, cancellationToken);
+        var issue = issues.FirstOrDefault(item => item.Id == request.IssueId);
         if (issue is null)
             return null;
 
         return queue.Enqueue(new QueuedTask(
             issue.Id,
-            configured.Owner!,
-            configured.Repository!,
+            request.Owner,
+            request.Repository,
             issue.Number,
             issue.Title,
             issue.Body,
             issue.Url,
             DateTimeOffset.UtcNow,
-            targetWorkspaceId));
+            request.TargetWorkspaceId));
     }
 
     /// <summary>

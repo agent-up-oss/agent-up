@@ -42,6 +42,18 @@ public sealed class ForgejoHostConfigurationProvider
     public static string Origin(string? origin)
         => string.IsNullOrWhiteSpace(origin) ? DefaultOrigin : origin.Trim().TrimEnd('/');
 
+    /// <summary>
+    /// Maps a user-facing Forgejo origin to <c>{origin}/api/v1/</c>. An URL that already names
+    /// the API is kept as the API. There is no github.com-style default origin.
+    /// </summary>
+    public static string ApiBaseFromEndpoint(string endpoint)
+    {
+        var uri = new Uri(endpoint.Trim());
+        if (uri.AbsolutePath.Contains("/api/v1", StringComparison.OrdinalIgnoreCase))
+            return ApiBase(uri.GetLeftPart(UriPartial.Path));
+        return ApiBase(null, uri.GetLeftPart(UriPartial.Authority));
+    }
+
     private static string Coalesce(string? value, string fallback)
         => string.IsNullOrWhiteSpace(value) ? fallback : value.Trim();
 }

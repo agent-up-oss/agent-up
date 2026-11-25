@@ -1,27 +1,32 @@
 import { jsonBody, requestServerJson, type ServerSession } from '@/features/servers/providers/ServerRequestProvider';
 import type { OfferedIssue, QueuedTask } from '../models/TaskQueue';
-import { readSourceIssues, readTaskSource } from './TaskSourceProvider';
+import { readRepositoryIssues } from './TaskSourceProvider';
 
 /**
- * The issues on offer and where a pick is taken from. `pickFrom` is null when the Server's task
- * source offered them: the Server then picks from that source rather than from a workspace.
+ * The issues on offer and the workspace a pick is taken from. The command center's open
+ * repository is separate: it asks the task source for that repository and picks with no workspace.
  */
 export type OfferedIssues = { issues: OfferedIssue[]; pickFrom: string | null };
 
-/**
- * The issues a reader can pick from. A configured source answers for the whole Server. Without
- * one, the opened workspace's own repository answers, which is what every Server did before a
- * source could be named.
- */
+/** The open issues of the opened workspace. With no workspace open, nothing is offered. */
 export async function readOffered(
   server: ServerSession,
   offeringWorkspaceId: string | null,
   request: typeof fetch = fetch,
 ): Promise<OfferedIssues> {
-  const source = await readTaskSource(server, request);
-  if (source?.configured) return { issues: await readSourceIssues(server, request), pickFrom: null };
   if (offeringWorkspaceId === null) return { issues: [], pickFrom: null };
   return { issues: await readIssues(server, offeringWorkspaceId, request), pickFrom: offeringWorkspaceId };
+}
+
+/** The open issues of one repository the stored token can see. */
+export async function readRepositoryOffered(
+  server: ServerSession,
+  moduleId: string,
+  owner: string,
+  repository: string,
+  request: typeof fetch = fetch,
+): Promise<OfferedIssue[]> {
+  return await readRepositoryIssues(server, moduleId, owner, repository, request);
 }
 
 /** The whole picked queue, in the order it will be worked. */
@@ -44,18 +49,26 @@ export async function readIssues(
   )) ?? [];
 }
 
-/** Picks an issue. A null workspace means the Server's task source. */
+/** Picks an issue. A repository names the host the token reads; otherwise the workspace does. */
 export async function pickIssue(
   server: ServerSession,
   workspaceId: string | null,
   issueId: string,
   targetWorkspaceId: string | null,
   request: typeof fetch = fetch,
+  repository?: { moduleId: string; owner: string; name: string },
 ): Promise<void> {
   await requestServerJson<unknown>(
     server,
     '/api/tasks',
-    jsonBody({ workspaceId, issueId, targetWorkspaceId }),
+    jsonBody({
+      workspaceId,
+      issueId,
+      targetWorkspaceId,
+      moduleId: repository?.moduleId,
+      owner: repository?.owner,
+      repository: repository?.name,
+    }),
     undefined,
     request,
   );

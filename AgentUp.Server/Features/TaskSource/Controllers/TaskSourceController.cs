@@ -9,15 +9,25 @@ public sealed class TaskSourceController(TaskSourceService source)
 {
     public TaskSourceDto Describe() => source.Describe();
 
-    public TaskSourceDto Set(SetTaskSourceRequest request) => source.Set(request);
+    public Task<TaskSourceOutcome> SaveAsync(SaveTaskSourceTokenRequest request, CancellationToken cancellationToken)
+        => source.SaveAsync(request, cancellationToken);
 
-    public TaskSourceDto Clear() => source.Clear();
+    public TaskSourceDto Clear(string? moduleId) => source.Clear(moduleId);
 
-    public TaskSourceOutcome StartLogin() => source.StartLogin();
+    public Task<IReadOnlyList<TaskSourceRepositoryDto>> ListRepositoriesAsync(CancellationToken cancellationToken)
+        => source.ListRepositoriesAsync(cancellationToken);
 
-    public Task<bool> CompleteLoginAsync(string code, string state, CancellationToken cancellationToken)
-        => source.CompleteLoginAsync(code, state, cancellationToken);
+    public Task<IReadOnlyList<ForgeIssue>> ListIssuesAsync(
+        string moduleId,
+        string owner,
+        string repository,
+        CancellationToken cancellationToken)
+        => source.ListIssuesAsync(moduleId, owner, repository, cancellationToken);
 
-    public Task<IReadOnlyList<ForgeIssue>> ListIssuesAsync(CancellationToken cancellationToken)
-        => source.ListIssuesAsync(cancellationToken);
+    public Task<IReadOnlyList<TaskSourcePullDto>> ListPullsAsync(
+        string moduleId,
+        string owner,
+        string repository,
+        CancellationToken cancellationToken)
+        => source.ListPullsAsync(moduleId, owner, repository, cancellationToken);
 }

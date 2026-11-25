@@ -10,7 +10,6 @@ using Avalonia.VisualTree;
 using AgentUp.Desktop.DesignSystem;
 using AgentUp.Desktop.Features.Agents.ViewModels;
 using AgentUp.Desktop.Features.Applications.ViewModels;
-using AgentUp.Desktop.Features.Interface.Models;
 using AgentUp.Desktop.Features.Interface.Services;
 using AgentUp.Desktop.Features.Interface.ViewModels;
 using AgentUp.Desktop.Features.Ports.ViewModels;
@@ -27,8 +26,7 @@ public partial class CommandCenterView : UserControl
     private readonly Dictionary<Control, (Panel Parent, int Index)> _homes = new();
     private bool _validationsOpen;
     private string? _runningFlowId;
-    /// <summary>Which of the Tasks board's three queues is open.</summary>
-    private string _tasksTab = "issues";
+    private readonly CommandCenterTaskSourceBoard _board = new();
     private string? _applied;
     private string? _heldScene;
     private string? _heldChrome;
@@ -123,6 +121,7 @@ public partial class CommandCenterView : UserControl
             return;
         }
         if (DataContext is not MainViewModel main || main.CommandCenter is not { } center) return;
+        _ = LoadSource(center);
         var tool = ToolOf(main.SelectedSubTab);
         var browser = tool is "port" or "desktop";
         PlaceChatSettings(center);
@@ -144,7 +143,7 @@ public partial class CommandCenterView : UserControl
             passed,
             summary,
             team,
-            TasksOf(center.Tasks, team),
+            _board.TasksOf(center.Tasks, team),
             FlowsOf(main.Validation),
             main.AddressBarUrl ?? "",
             main.SubTabs.OfType<PortSubTabViewModel>().FirstOrDefault(tab => tab.IsHttp)?.Label ?? "",
@@ -159,9 +158,15 @@ public partial class CommandCenterView : UserControl
             main.Applications.Applications.Select(application => new CommandCenterApplicationSlot(
                 application.Name,
                 string.Equals(application.State, "Running", StringComparison.OrdinalIgnoreCase))).ToArray(),
-            ReviewsOf(center.Tasks, team, TaskReviewQueue.DevReviewer),
-            ReviewsOf(center.Tasks, team, TaskReviewQueue.PmReviewer),
-            _tasksTab));
+            _board.VisibleDevPulls,
+            _board.VisiblePmPulls,
+            _board.TasksTab,
+            _board.RepositorySlots(),
+            _board.OpenRepositoryLabel,
+            _board.ForgeTab,
+            center.TaskSource?.DetailFor(_board.ForgeTab) ?? "",
+            center.TaskSource?.EndpointFor(_board.ForgeTab) ?? CommandCenterScene.PrefillEndpoint(_board.ForgeTab, null),
+            center.TaskSource?.IsConnected(_board.ForgeTab) == true));
         binding.State["chatSettings"] = "1";
         var stamp = Stamp(center.SceneId, binding);
         if (stamp == _applied) return;
@@ -400,8 +405,24 @@ public partial class CommandCenterView : UserControl
             case "open-workspace":
                 Open(center, action.Id);
                 break;
-            case "connect-source":
-                center.TaskSource?.ConnectCommand.Execute().Subscribe();
+            case "forge-tab":
+                _board.ShowForgeTab(action.Id);
+                Apply();
+                break;
+            case "save-token":
+                _ = SaveTokenAsync(center, action);
+                break;
+            case "forget-token":
+                _ = ForgetTokenAsync(center);
+                break;
+            case "open-repo":
+                OpenRepository(center, action.Id);
+                break;
+            case "tasks-back":
+                _board.CloseRepository(center.Tasks);
+                if (center.Tasks is { } tasks)
+                    _ = tasks.ReadAsync();
+                Apply();
                 break;
             case "reload":
                 main.Git.RefreshCommand.Execute().Subscribe();
@@ -463,8 +484,7 @@ public partial class CommandCenterView : UserControl
                 center.Tasks?.Working.FirstOrDefault(row => row.Id == action.Id)?.StopCommand.Execute().Subscribe();
                 break;
             case "queue":
-                if (int.TryParse(action.Id, out var index) && center.Tasks is { } tasks && index >= 0 && index < tasks.Offered.Count)
-                    tasks.Offered[index].PickCommand.Execute().Subscribe();
+                _board.PickOffered(center.Tasks, action.Id);
                 break;
             case "window-minimize":
                 if (TopLevel.GetTopLevel(this) is Window minimize) minimize.WindowState = WindowState.Minimized;
@@ -526,26 +546,41 @@ public partial class CommandCenterView : UserControl
 
     private void ShowTasksTab(string tab)
     {
-        _tasksTab = tab;
+        _board.ShowTasksTab(tab);
         Apply();
     }
 
-    private static IReadOnlyList<CommandCenterTaskSlot> ReviewsOf(TaskQueueViewModel? tasks, IReadOnlyList<TeamStanding> team, string kind)
+    private async Task LoadSource(CommandCenterViewModel center)
     {
-        if (tasks is null) return [];
-        return TaskReviewQueue.Rows(tasks.Tasks, kind, id => team.FirstOrDefault(standing => standing.WorkspaceId == id)?.DisplayName ?? id ?? "");
+        if (_board.SourceRequested || center.TaskSource is null)
+            return;
+        await _board.EnsureSourceAsync(center.TaskSource);
+        Apply();
     }
 
-    private static IReadOnlyList<CommandCenterTaskSlot> TasksOf(TaskQueueViewModel? tasks, IReadOnlyList<TeamStanding> team)
+    private async Task SaveTokenAsync(CommandCenterViewModel center, NewUiActionEventArgs action)
     {
-        if (tasks is null) return [];
-        string Holder(string? id) => team.FirstOrDefault(standing => standing.WorkspaceId == id)?.DisplayName ?? "";
-        return
-        [
-            .. tasks.Working.Select(row => new CommandCenterTaskSlot(row.Id, row.TaskLabel, row.RepositoryLabel, Holder(row.HeldByWorkspaceId), "stop")),
-            .. tasks.Queue.Select(row => new CommandCenterTaskSlot(row.Id, row.TaskLabel, row.RepositoryLabel, "", "dequeue")),
-            .. tasks.Offered.Select((row, index) => new CommandCenterTaskSlot(index.ToString(), row.IssueLabel, "", "", "queue")),
-        ];
+        await _board.SaveTokenAsync(center.TaskSource, action.Fields, action.Text);
+        Apply();
+    }
+
+    private async Task ForgetTokenAsync(CommandCenterViewModel center)
+    {
+        await _board.ForgetTokenAsync(center.TaskSource);
+        Apply();
+    }
+
+    private void OpenRepository(CommandCenterViewModel center, string? id)
+    {
+        if (!_board.OpenRepository(id, center.Tasks))
+            return;
+        _ = LoadOpenRepository(center);
+    }
+
+    private async Task LoadOpenRepository(CommandCenterViewModel center)
+    {
+        await _board.LoadOpenRepositoryAsync(center.Tasks, center.TaskSource);
+        Apply();
     }
 
     private void WatchAgent(AgentChatViewModel agent)

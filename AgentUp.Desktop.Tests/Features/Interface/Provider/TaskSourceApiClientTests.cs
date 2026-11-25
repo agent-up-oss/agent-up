@@ -11,70 +11,134 @@ public sealed class TaskSourceApiClientTests
     public async Task ReadAsync_readsWhereTheWorkComesFrom()
     {
         var handler = Returning("""
-            {"moduleId":"github","owner":"agent-up-oss","repository":"agent-up","configured":true,
-             "connected":true,"canConnect":true,"detail":"Reading issues.","modules":[]}
+            {"modules":[{"moduleId":"github","displayName":"GitHub","connected":true,"detail":"Reading repositories.","endpointUrl":"https://github.com"}]}
             """);
 
         var source = await new TaskSourceApiClient(Client(handler)).ReadAsync(CancellationToken.None);
 
         Assert.Multiple(() =>
         {
-            Assert.That(source!.Label, Is.EqualTo("agent-up-oss/agent-up"));
-            Assert.That(source.Connected, Is.True);
+            Assert.That(source!.Modules.Single().Connected, Is.True);
+            Assert.That(source.Modules.Single().EndpointUrl, Is.EqualTo("https://github.com"));
             Assert.That(handler.Requests.Single(), Is.EqualTo("GET api/task-source"));
         });
     }
 
     [Test]
-    public async Task SetAsync_putsTheRepositoryTheReaderNamed()
+    public async Task SaveAsync_putsTheTokenAndDoesNotKeepItInTheAnswer()
     {
-        var handler = Returning("""{"configured":true,"connected":false,"canConnect":true,"detail":"","modules":[]}""");
+        var handler = Returning("""{"modules":[{"moduleId":"github","displayName":"GitHub","connected":true,"detail":"Reading."}]}""");
 
-        await new TaskSourceApiClient(Client(handler))
-            .SetAsync("github", "acme", "widgets", CancellationToken.None);
+        var source = await new TaskSourceApiClient(Client(handler)).SaveAsync("github", "https://github.com", "secret-token", CancellationToken.None);
 
         Assert.Multiple(() =>
         {
             Assert.That(handler.Requests.Single(), Is.EqualTo("PUT api/task-source"));
-            Assert.That(handler.Bodies.Single(), Does.Contain("\"owner\":\"acme\""));
-            Assert.That(handler.Bodies.Single(), Does.Contain("\"repository\":\"widgets\""));
+            Assert.That(handler.Bodies.Single(), Does.Contain("\"token\":\"secret-token\""));
+            Assert.That(handler.Bodies.Single(), Does.Contain("\"endpointUrl\":\"https://github.com\""));
+            Assert.That(source!.Modules.Single().Detail, Does.Not.Contain("secret-token"));
         });
     }
 
     [Test]
-    public async Task StartLoginAsync_answersWithSomewhereToSendTheReader()
+    public async Task SaveAsync_surfacesTheServersReasonWhenTheTokenIsRefused()
     {
-        var handler = Returning("""{"authorizeUrl":"https://example.test/authorize"}""");
+        var client = new TaskSourceApiClient(Client(Returning(
+            """{"title":"Task source","detail":"The token cannot read pull requests."}""",
+            HttpStatusCode.Conflict)));
 
-        var url = await new TaskSourceApiClient(Client(handler)).StartLoginAsync(CancellationToken.None);
+        var error = await Assert.ThrowsAsync<HttpRequestException>(() => client.SaveAsync("github", "https://github.com", "narrow", CancellationToken.None));
+
+        Assert.That(error!.Message, Does.Contain("pull requests"));
+    }
+
+    [Test]
+    public async Task ForgetAsync_forgetsOneHost()
+    {
+        var handler = Returning("""{"modules":[{"moduleId":"github","displayName":"GitHub","connected":false,"detail":""}]}""");
+
+        var source = await new TaskSourceApiClient(Client(handler)).ForgetAsync("github", CancellationToken.None);
 
         Assert.Multiple(() =>
         {
-            Assert.That(url, Is.EqualTo("https://example.test/authorize"));
-            Assert.That(handler.Requests.Single(), Is.EqualTo("POST api/task-source/login"));
+            Assert.That(source!.Modules.Single().Connected, Is.False);
+            Assert.That(handler.Requests.Single(), Is.EqualTo("DELETE api/task-source/github"));
         });
     }
 
     [Test]
-    public async Task AServerThatRefusesTheSignInAnswersWithNowhereRatherThanThrowing()
+    public async Task ListRepositoriesAsync_readsTheRepositoriesTheTokenCanSee()
     {
-        var client = new TaskSourceApiClient(Client(Returning("{}", HttpStatusCode.Conflict)));
+        var handler = Returning("""[{"moduleId":"github","owner":"example","name":"repository"}]""");
 
-        Assert.That(await client.StartLoginAsync(CancellationToken.None), Is.Null);
+        var repositories = await new TaskSourceApiClient(Client(handler)).ListRepositoriesAsync(CancellationToken.None);
+
+        Assert.That(repositories.Single().Name, Is.EqualTo("repository"));
+        Assert.That(handler.Requests.Single(), Is.EqualTo("GET api/task-source/repositories"));
     }
 
     [Test]
-    public async Task ClearAsync_takesTheSourceBackOut()
+    public async Task ListRepositoriesAsync_readsAMissingListAsEmpty()
     {
-        var handler = Returning("""{"configured":false,"connected":false,"canConnect":true,"detail":"","modules":[]}""");
+        var repositories = await new TaskSourceApiClient(Client(Returning("null"))).ListRepositoriesAsync(CancellationToken.None);
 
-        var source = await new TaskSourceApiClient(Client(handler)).ClearAsync(CancellationToken.None);
+        Assert.That(repositories, Is.Empty);
+    }
 
-        Assert.Multiple(() =>
-        {
-            Assert.That(source!.Configured, Is.False);
-            Assert.That(handler.Requests.Single(), Is.EqualTo("DELETE api/task-source"));
-        });
+    [Test]
+    public async Task ListPullsAsync_readsAMissingListAsEmpty()
+    {
+        var pulls = await new TaskSourceApiClient(Client(Returning("null")))
+            .ListPullsAsync("github", "example", "repository", CancellationToken.None);
+
+        Assert.That(pulls, Is.Empty);
+    }
+
+    [Test]
+    public async Task ListPullsAsync_asksForTheNamedRepository()
+    {
+        var handler = Returning("""[{"id":"42","number":42,"title":"Product cards","url":"u","reviews":[]}]""");
+
+        var pulls = await new TaskSourceApiClient(Client(handler))
+            .ListPullsAsync("github", "example", "repository", CancellationToken.None);
+
+        Assert.That(pulls.Single().Number, Is.EqualTo(42));
+        Assert.That(handler.Requests.Single(), Does.Contain("api/task-source/pulls").And.Contain("moduleId=github"));
+    }
+
+    [Test]
+    public async Task SaveAsync_surfacesAHostThatCannotBeReached()
+    {
+        var client = new TaskSourceApiClient(Client(Returning(
+            """{"title":"Task source","detail":"Could not reach GitHub to check the token."}""",
+            HttpStatusCode.ServiceUnavailable)));
+
+        var error = await Assert.ThrowsAsync<HttpRequestException>(() =>
+            client.SaveAsync("github", "https://github.com", "token", CancellationToken.None));
+
+        Assert.That(error!.Message, Does.Contain("Could not reach GitHub"));
+    }
+
+    [Test]
+    public async Task SaveAsync_namesTheStatusWhenTheRefusalJsonHasNoDetail()
+    {
+        var client = new TaskSourceApiClient(Client(Returning("""{"title":"Task source"}""", HttpStatusCode.Conflict)));
+
+        var error = await Assert.ThrowsAsync<HttpRequestException>(() =>
+            client.SaveAsync("github", "https://github.com", "token", CancellationToken.None));
+
+        Assert.That(error!.Message, Does.Contain("409"));
+    }
+
+    [Test]
+    public async Task SaveAsync_namesTheStatusWhenTheRefusalHasNoDetail()
+    {
+        var client = new TaskSourceApiClient(Client(Returning("not-json", HttpStatusCode.Conflict)));
+
+        var error = await Assert.ThrowsAsync<HttpRequestException>(() =>
+            client.SaveAsync("github", "https://github.com", "token", CancellationToken.None));
+
+        Assert.That(error!.Message, Does.Contain("409"));
     }
 
     [Test]

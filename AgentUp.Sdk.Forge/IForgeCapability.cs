@@ -76,4 +76,34 @@ public interface IForgeCapability : ICapability
         string contentType,
         byte[] content,
         CancellationToken cancellationToken = default) => Task.FromResult<ForgeAttachment?>(null);
+
+    /// <summary>
+    /// The repositories <paramref name="token"/> can see on <paramref name="endpointUrl"/>,
+    /// newest activity first. A host that cannot list them answers with none.
+    /// </summary>
+    Task<IReadOnlyList<ForgeRepository>> ListRepositoriesAsync(
+        string token,
+        string endpointUrl,
+        CancellationToken cancellationToken = default)
+        => Task.FromResult<IReadOnlyList<ForgeRepository>>([]);
+
+    /// <summary>
+    /// The open pull requests on the request's repository, with who was asked to review each one
+    /// and the reviews already left. A host that cannot list them answers with none.
+    /// </summary>
+    Task<IReadOnlyList<ForgePullRequest>> ListPullRequestsAsync(
+        ForgeRequest request,
+        CancellationToken cancellationToken = default)
+        => Task.FromResult<IReadOnlyList<ForgePullRequest>>([]);
+
+    /// <summary>
+    /// Whether <paramref name="token"/> can list repositories and read pull requests on
+    /// <paramref name="endpointUrl"/>. A host that cannot check a token refuses it, so a token is
+    /// never stored against a module that cannot say what the token is allowed to do.
+    /// </summary>
+    Task<ForgeTokenAccess> ReadTokenAccessAsync(
+        string token,
+        string endpointUrl,
+        CancellationToken cancellationToken = default)
+        => Task.FromResult(new ForgeTokenAccess(false, false, "This host cannot check a personal access token."));
 }

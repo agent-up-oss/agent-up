@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -16,7 +17,7 @@ public sealed class GithubApiProvider(HttpMessageHandler? handler = null, string
 
     public async Task<ForgeHostSnapshot> ReadAsync(ForgeRequest request, CancellationToken cancellationToken)
     {
-        using var client = CreateClient(request.Token);
+        using var client = CreateClient(request.Token, request.EndpointUrl);
         var account = await ReadAccountAsync(client, cancellationToken);
         var pulls = await client.GetFromJsonAsync<JsonElement>(
             $"repos/{request.Owner}/{request.Repository}/pulls?head={request.Owner}:{request.Branch}&state=open",
@@ -123,7 +124,7 @@ public sealed class GithubApiProvider(HttpMessageHandler? handler = null, string
         ForgeRequest request,
         CancellationToken cancellationToken)
     {
-        using var client = CreateClient(request.Token);
+        using var client = CreateClient(request.Token, request.EndpointUrl);
         var issues = await client.GetFromJsonAsync<JsonElement>(
             "issues?filter=assigned&state=open&per_page=100",
             Json,
@@ -135,7 +136,7 @@ public sealed class GithubApiProvider(HttpMessageHandler? handler = null, string
         ForgeRequest request,
         CancellationToken cancellationToken)
     {
-        using var client = CreateClient(request.Token);
+        using var client = CreateClient(request.Token, request.EndpointUrl);
         var issues = await client.GetFromJsonAsync<JsonElement>(
             $"repos/{request.Owner}/{request.Repository}/issues?state=open&sort=updated&direction=desc&per_page=100",
             Json,
@@ -168,7 +169,7 @@ public sealed class GithubApiProvider(HttpMessageHandler? handler = null, string
         ForgeOpenProposalCommand command,
         CancellationToken cancellationToken)
     {
-        using var client = CreateClient(request.Token);
+        using var client = CreateClient(request.Token, request.EndpointUrl);
         using var response = await client.PostAsJsonAsync(
             $"repos/{request.Owner}/{request.Repository}/pulls",
             new { title = command.Title, body = command.Body, head = command.HeadRef, @base = command.BaseRef },
@@ -186,7 +187,7 @@ public sealed class GithubApiProvider(HttpMessageHandler? handler = null, string
         if (IsProtected(command.Ref))
             throw new ForgeProtectedRefException(command.Ref);
 
-        using var client = CreateClient(request.Token);
+        using var client = CreateClient(request.Token, request.EndpointUrl);
         using var response = await client.PatchAsJsonAsync(
             $"repos/{request.Owner}/{request.Repository}/git/refs/heads/{TrimHeads(command.Ref)}",
             new { sha = command.Sha, force = false },
@@ -199,7 +200,7 @@ public sealed class GithubApiProvider(HttpMessageHandler? handler = null, string
         ForgeCommentCommand command,
         CancellationToken cancellationToken)
     {
-        using var client = CreateClient(request.Token);
+        using var client = CreateClient(request.Token, request.EndpointUrl);
         using var response = await client.PostAsJsonAsync(
             $"repos/{request.Owner}/{request.Repository}/issues/{command.ProposalNumber}/comments",
             new { body = command.Body },
@@ -212,7 +213,7 @@ public sealed class GithubApiProvider(HttpMessageHandler? handler = null, string
         ForgeSubmitReviewCommand command,
         CancellationToken cancellationToken)
     {
-        using var client = CreateClient(request.Token);
+        using var client = CreateClient(request.Token, request.EndpointUrl);
         // A finding sits on a line of the new side of the change.
         var comments = (command.Comments ?? [])
             .Select(comment => new { path = comment.Path, line = comment.Line, side = "RIGHT", body = comment.Body })
@@ -231,7 +232,7 @@ public sealed class GithubApiProvider(HttpMessageHandler? handler = null, string
 
     public async Task AssignIssueAsync(ForgeRequest request, int issueNumber, string login, CancellationToken cancellationToken)
     {
-        using var client = CreateClient(request.Token);
+        using var client = CreateClient(request.Token, request.EndpointUrl);
         using var response = await client.PostAsJsonAsync(
             $"repos/{request.Owner}/{request.Repository}/issues/{issueNumber}/assignees",
             new { assignees = new[] { login } },
@@ -241,7 +242,7 @@ public sealed class GithubApiProvider(HttpMessageHandler? handler = null, string
 
     public async Task RequestReviewAsync(ForgeRequest request, string proposalNumber, string login, CancellationToken cancellationToken)
     {
-        using var client = CreateClient(request.Token);
+        using var client = CreateClient(request.Token, request.EndpointUrl);
         using var response = await client.PostAsJsonAsync(
             $"repos/{request.Owner}/{request.Repository}/pulls/{proposalNumber}/requested_reviewers",
             new { reviewers = new[] { login } },
@@ -321,13 +322,141 @@ public sealed class GithubApiProvider(HttpMessageHandler? handler = null, string
     private static string TrimHeads(string @ref)
         => @ref.StartsWith("refs/heads/", StringComparison.Ordinal) ? @ref["refs/heads/".Length..] : @ref;
 
-    private HttpClient CreateClient(string token)
+    public async Task<IReadOnlyList<ForgeRepository>> ListRepositoriesAsync(
+        string token,
+        string endpointUrl,
+        CancellationToken cancellationToken)
+    {
+        using var client = CreateClient(token, endpointUrl);
+        var repos = await client.GetFromJsonAsync<JsonElement>(
+            "user/repos?per_page=100&sort=updated&affiliation=owner,collaborator,organization_member",
+            Json,
+            cancellationToken);
+        return Repositories(repos);
+    }
+
+    public async Task<IReadOnlyList<ForgePullRequest>> ListPullRequestsAsync(
+        ForgeRequest request,
+        CancellationToken cancellationToken)
+    {
+        using var client = CreateClient(request.Token, request.EndpointUrl);
+        var pulls = await client.GetFromJsonAsync<JsonElement>(
+            $"repos/{request.Owner}/{request.Repository}/pulls?state=open&sort=updated&direction=desc&per_page=20",
+            Json,
+            cancellationToken);
+        if (pulls.ValueKind != JsonValueKind.Array)
+            return [];
+
+        var listed = new List<ForgePullRequest>();
+        foreach (var pull in pulls.EnumerateArray())
+        {
+            var number = pull.GetProperty("number").GetRawText();
+            IReadOnlyList<ForgeReview> reviews;
+            try
+            {
+                reviews = await ReadReviewsAsync(client, request, number, cancellationToken);
+            }
+            catch (HttpRequestException)
+            {
+                reviews = [];
+            }
+
+            listed.Add(new ForgePullRequest(
+                pull.GetProperty("id").GetRawText(),
+                pull.GetProperty("number").GetInt32(),
+                pull.GetProperty("title").GetString() ?? "",
+                pull.GetProperty("html_url").GetString() ?? "",
+                Logins(pull, "requested_reviewers"),
+                reviews));
+        }
+
+        return listed;
+    }
+
+    public async Task<ForgeTokenAccess> ReadTokenAccessAsync(
+        string token,
+        string endpointUrl,
+        CancellationToken cancellationToken)
+    {
+        using var client = CreateClient(token, endpointUrl);
+        using var user = await client.GetAsync("user", cancellationToken);
+        if (user.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+            return new ForgeTokenAccess(false, false, "The token was refused.");
+        user.EnsureSuccessStatusCode();
+
+        if (user.Headers.TryGetValues("X-OAuth-Scopes", out var scopes)
+            && !scopes.SelectMany(value => value.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries))
+                .Any(scope => scope is "repo" or "public_repo"))
+        {
+            return new ForgeTokenAccess(
+                true,
+                false,
+                "The token needs the repo scope so pull requests can be read. Dev review and PM review are inferred from them.");
+        }
+
+        using var repos = await client.GetAsync(
+            "user/repos?per_page=1&affiliation=owner,collaborator,organization_member",
+            cancellationToken);
+        if (repos.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+            return new ForgeTokenAccess(false, false, "The token cannot list repositories.");
+        repos.EnsureSuccessStatusCode();
+        var listed = await repos.Content.ReadFromJsonAsync<JsonElement>(Json, cancellationToken);
+        if (listed.ValueKind != JsonValueKind.Array || listed.GetArrayLength() == 0)
+            return new ForgeTokenAccess(true, true, null);
+
+        var first = listed[0];
+        var owner = first.GetProperty("owner").GetProperty("login").GetString();
+        var name = first.GetProperty("name").GetString();
+        using var pulls = await client.GetAsync($"repos/{owner}/{name}/pulls?state=open&per_page=1", cancellationToken);
+        if (pulls.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+        {
+            return new ForgeTokenAccess(
+                true,
+                false,
+                "The token cannot read pull requests. Dev review and PM review are inferred from them.");
+        }
+
+        pulls.EnsureSuccessStatusCode();
+        return new ForgeTokenAccess(true, true, null);
+    }
+
+    private static IReadOnlyList<ForgeRepository> Repositories(JsonElement repos)
+    {
+        if (repos.ValueKind != JsonValueKind.Array)
+            return [];
+
+        return repos.EnumerateArray()
+            .Select(repo => new ForgeRepository(
+                repo.GetProperty("owner").GetProperty("login").GetString() ?? "",
+                repo.GetProperty("name").GetString() ?? ""))
+            .Where(repo => repo.Owner.Length > 0 && repo.Name.Length > 0)
+            .ToArray();
+    }
+
+    private static IReadOnlyList<string> Logins(JsonElement element, string property)
+    {
+        if (!element.TryGetProperty(property, out var users) || users.ValueKind != JsonValueKind.Array)
+            return [];
+
+        return users.EnumerateArray()
+            .Select(user => user.TryGetProperty("login", out var login) ? login.GetString() : null)
+            .OfType<string>()
+            .Where(login => login.Length > 0)
+            .ToArray();
+    }
+
+    private HttpClient CreateClient(string token, string? endpointUrl = null)
     {
         var client = handler is null ? new HttpClient() : new HttpClient(handler, disposeHandler: false);
-        client.BaseAddress = new Uri(_apiBaseUrl);
+        client.BaseAddress = new Uri(ApiBaseFor(endpointUrl));
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         client.DefaultRequestHeaders.UserAgent.ParseAdd("agent-up");
         client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
         return client;
     }
+
+    private string ApiBaseFor(string? endpointUrl) =>
+        string.IsNullOrWhiteSpace(endpointUrl)
+            ? _apiBaseUrl
+            : GithubHostConfigurationProvider.ApiBaseFromEndpoint(endpointUrl);
 }

@@ -466,9 +466,9 @@ export class FakeBackendService {
   }
 
   /**
-   * The Demo's own task source. It starts already pointed at the example repository and signed
-   * in, because the Demo is there to show the product working rather than to walk a reader
-   * through an OAuth round trip against a host that does not exist.
+   * The Demo's forge connections. GitHub starts with a token and https://github.com already
+   * stored, so the Tasks page can list the example repository. A token that cannot read pull
+   * requests is refused, as is a save without a host URL.
    */
   private taskSource(method: string, path: string, body: string | undefined): FakeBackendResponse {
     const rest = path.slice('/api/task-source'.length);
@@ -476,60 +476,101 @@ export class FakeBackendService {
     if (method === 'GET' && (rest === '' || rest === '/')) return json(this.describeSource());
 
     if (method === 'PUT') {
-      const asked = body ? (JSON.parse(body) as { moduleId?: string; owner?: string; repository?: string }) : {};
-      this.source = {
-        moduleId: asked.moduleId?.trim() || 'github',
-        owner: asked.owner?.trim() ?? '',
-        repository: asked.repository?.trim() ?? '',
-        connected: this.source?.connected ?? true,
-      };
+      const asked = body ? (JSON.parse(body) as { moduleId?: string; token?: string; endpointUrl?: string }) : {};
+      const moduleId = asked.moduleId?.trim() ?? '';
+      const token = asked.token?.trim() ?? '';
+      const endpointUrl = asked.endpointUrl?.trim() ?? '';
+      if ((moduleId !== 'github' && moduleId !== 'forgejo')
+        || token.length === 0
+        || token === 'denied'
+        || !looksLikeHostUrl(endpointUrl)) {
+        return {
+          status: 409,
+          contentType: 'application/json',
+          body: JSON.stringify({ title: 'Task source', detail: 'The token needs access to repositories and pull requests.' }),
+        };
+      }
+      if (moduleId === 'github') {
+        this.githubToken = token;
+        this.githubEndpoint = endpointUrl.replace(/\/+$/, '');
+      } else {
+        this.forgejoToken = token;
+        this.forgejoEndpoint = endpointUrl.replace(/\/+$/, '');
+      }
       return json(this.describeSource());
     }
 
-    if (method === 'DELETE') {
-      this.source = null;
+    if (method === 'DELETE' && (rest === '' || rest === '/')) {
+      this.githubToken = null;
+      this.githubEndpoint = null;
+      this.forgejoToken = null;
+      this.forgejoEndpoint = null;
       return json(this.describeSource());
     }
 
-    if (method === 'POST' && rest === '/login') {
-      if (!this.source) return { status: 409, contentType: 'application/json', body: '{}' };
-      this.source = { ...this.source, connected: true };
-      return json({ authorizeUrl: 'https://example.test/login/oauth/authorize?demo=1' });
+    if (method === 'DELETE' && rest.length > 1) {
+      const moduleId = decodeURIComponent(rest.slice(1));
+      if (moduleId === 'github') {
+        this.githubToken = null;
+        this.githubEndpoint = null;
+      }
+      if (moduleId === 'forgejo') {
+        this.forgejoToken = null;
+        this.forgejoEndpoint = null;
+      }
+      return json(this.describeSource());
+    }
+
+    if (method === 'GET' && rest.startsWith('/repositories')) {
+      const listed = [];
+      if (this.githubToken) listed.push({ moduleId: 'github', owner: 'example', name: 'repository' });
+      if (this.forgejoToken) listed.push({ moduleId: 'forgejo', owner: 'example', name: 'repository' });
+      return json(listed);
     }
 
     if (method === 'GET' && rest.startsWith('/issues')) {
-      // The Demo's issues belong to the example repository, which is the first workspace's.
       const first = (this.state.workspaces[0] as { id?: string } | undefined)?.id;
-      return json(this.source?.connected && first ? this.openIssues(first) : []);
+      return json(this.anyForgeConnected && first ? this.openIssues(first) : []);
+    }
+
+    if (method === 'GET' && rest.startsWith('/pulls')) {
+      return json(this.anyForgeConnected ? [{
+        id: '42',
+        number: 42,
+        title: 'Product cards cut off long names',
+        url: 'https://example.test/42',
+        reviews: [{ kind: 'devReviewer', standing: 'reviewing', login: 'hector', verdict: null }],
+      }] : []);
     }
 
     return notFound();
   }
 
   private describeSource() {
-    const source = this.source;
+    const module = (id: string, name: string, connected: boolean, endpoint: string | null) => ({
+      moduleId: id,
+      displayName: name,
+      connected,
+      detail: connected
+        ? `Reading repositories and pull requests from ${name} at ${endpoint}.`
+        : 'Paste the host URL and a personal access token. It needs access to repositories and pull requests.',
+      endpointUrl: endpoint,
+    });
     return {
-      moduleId: source?.moduleId ?? null,
-      owner: source?.owner ?? null,
-      repository: source?.repository ?? null,
-      configured: !!source && !!source.owner && !!source.repository,
-      connected: !!source?.connected,
-      canConnect: true,
-      detail: source?.connected
-        ? `Reading issues from ${source.owner}/${source.repository}.`
-        : source
-          ? `Sign in to read issues from ${source.owner}/${source.repository}.`
-          : 'Name the repository the agents take their work from.',
-      modules: [{ moduleId: 'github', displayName: 'GitHub' }],
+      modules: [
+        module('github', 'GitHub', this.githubToken !== null, this.githubEndpoint),
+        module('forgejo', 'Forgejo', this.forgejoToken !== null, this.forgejoEndpoint),
+      ],
     };
   }
 
-  private source: { moduleId: string; owner: string; repository: string; connected: boolean } | null = {
-    moduleId: 'github',
-    owner: 'example',
-    repository: 'repository',
-    connected: true,
-  };
+  private githubToken: string | null = 'demo';
+  private githubEndpoint: string | null = 'https://github.com';
+  private forgejoToken: string | null = null;
+  private forgejoEndpoint: string | null = null;
+  private get anyForgeConnected() {
+    return this.githubToken !== null || this.forgejoToken !== null;
+  }
 
   private decisions(): FakeProductDecision[] {
     return this.state.productDecisions ?? [];
@@ -627,7 +668,7 @@ export class FakeBackendService {
     // No workspace named means the Server's task source, which the Demo reads from the first
     // workspace's repository, the same place GET /api/task-source/issues reads.
     const workspaceId = named
-      ?? (this.source?.connected ? (this.state.workspaces[0] as { id?: string } | undefined)?.id : undefined);
+      ?? (this.githubToken ? (this.state.workspaces[0] as { id?: string } | undefined)?.id : undefined);
     if (!workspaceId) return notFound();
 
     const issue = (this.state.issues?.[workspaceId] ?? []).find(item => item.id === issueId);
@@ -1449,6 +1490,15 @@ function notFound(): FakeBackendResponse {
     contentType: 'application/json',
     body: JSON.stringify({ title: 'Not Found', detail: 'The fake Server has no resource at that path.' }),
   };
+}
+
+function looksLikeHostUrl(endpoint: string): boolean {
+  try {
+    const uri = new URL(endpoint);
+    return (uri.protocol === 'http:' || uri.protocol === 'https:') && uri.hostname.length > 0;
+  } catch {
+    return false;
+  }
 }
 
 type ValidationFlowRecord = {

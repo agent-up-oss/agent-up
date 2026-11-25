@@ -261,10 +261,112 @@ public sealed class CommandCenterSceneTests
         {
             Assert.That(binding.State["tasksTab"], Is.EqualTo("dev"));
             Assert.That(binding.State["devTab"], Is.EqualTo("1"));
+            Assert.That(binding.State["repoList"], Is.EqualTo("1"));
             Assert.That(binding.State.ContainsKey("issuesTab"), Is.False);
             Assert.That(binding.Items["devReview"].Single().Action, Is.EqualTo("reviewing"));
             Assert.That(binding.Items["pmReview"], Is.Empty);
         });
+    }
+
+    [Test]
+    public void An_open_repository_replaces_the_repository_list()
+    {
+        var binding = CommandCenterScene.Bind(Input([], sceneId: "tasks") with
+        {
+            OpenRepository = "example/repository",
+            Repositories = [new CommandCenterRepositorySlot("github/example/repository", "example/repository", "GitHub")],
+            ForgeTab = "forgejo",
+            ForgeConnected = true,
+        });
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(binding.State["repoOpen"], Is.EqualTo("1"));
+            Assert.That(binding.State.ContainsKey("repoList"), Is.False);
+            Assert.That(binding.Text["repository"], Is.EqualTo("example/repository"));
+            Assert.That(binding.Items["repos"].Single().Text["host"], Is.EqualTo("GitHub"));
+            Assert.That(binding.State["forgeConnected"], Is.EqualTo("1"));
+            Assert.That(binding.State["forgeTab"], Is.EqualTo("forgejo"));
+        });
+    }
+
+    [Test]
+    public void GitHubPrefillsGithubDotComAndForgejoHasNoDefaultHost()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(CommandCenterScene.PrefillEndpoint("github", null), Is.EqualTo("https://github.com"));
+            Assert.That(CommandCenterScene.PrefillEndpoint("forgejo", null), Is.EqualTo(""));
+            Assert.That(CommandCenterScene.PrefillEndpoint("github", " https://ghe.example.test "), Is.EqualTo("https://ghe.example.test"));
+        });
+    }
+
+    [Test]
+    public void SaveReadsTheHostUrlAndTokenFromEveryField()
+    {
+        var fields = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["forge-endpoint"] = " https://git.example.test ",
+            ["save-token"] = " secret ",
+        };
+
+        var saved = CommandCenterScene.TokenSave(fields, "ignored");
+        var fromText = CommandCenterScene.TokenSave(null, " pasted ");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(saved.Token, Is.EqualTo("secret"));
+            Assert.That(saved.EndpointUrl, Is.EqualTo("https://git.example.test"));
+            Assert.That(fromText.Token, Is.EqualTo("pasted"));
+            Assert.That(fromText.EndpointUrl, Is.EqualTo(""));
+        });
+    }
+
+    [Test]
+    public void ParseRepositoryKey_readsModuleOwnerAndName()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(CommandCenterScene.ParseRepositoryKey("github/example/repository"), Is.EqualTo(("github", "example", "repository")));
+            Assert.That(CommandCenterScene.ParseRepositoryKey("github/example"), Is.Null);
+            Assert.That(CommandCenterScene.ParseRepositoryKey(""), Is.Null);
+        });
+    }
+
+    [Test]
+    public void ReviewRows_wordTheStandingTheBoardShows()
+    {
+        var pulls = new[]
+        {
+            new TaskSourcePull("42", 42, "Product cards", "u",
+            [
+                new TaskSourceReview("devReviewer", "reviewing", "hector", null),
+                new TaskSourceReview("pmReviewer", "reviewed", "lucy", "Approved"),
+                new TaskSourceReview("devReviewer", "waiting", null, null),
+            ]),
+        };
+
+        var reviewing = CommandCenterScene.ReviewRows(pulls, "devReviewer", "example/repository");
+        var reviewed = CommandCenterScene.ReviewRows(pulls, "pmReviewer", "example/repository");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(reviewing.Select(row => row.Agent), Is.EqualTo(new[] { "hector", "Waiting for a reviewer" }));
+            Assert.That(reviewed.Single().Agent, Is.EqualTo("Approved by lucy"));
+            Assert.That(reviewed.Single().Action, Is.EqualTo("reviewed"));
+        });
+    }
+
+    [Test]
+    public void The_forge_field_shows_the_host_url()
+    {
+        var binding = CommandCenterScene.Bind(Input([], sceneId: "settings") with
+        {
+            ForgeTab = "github",
+            ForgeEndpoint = "https://github.com",
+        });
+
+        Assert.That(binding.Text["forgeEndpoint"], Is.EqualTo("https://github.com"));
     }
 
     private static CommandCenterSceneInput Input(

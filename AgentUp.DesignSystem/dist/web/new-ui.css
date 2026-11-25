@@ -2623,6 +2623,7 @@
 }
 .aun-settings__state-text { color: var(--au-color-text-muted); font-size: var(--au-font-size-ui-sm); }
 .aun-settings__row > .aun-btn { flex: 0 0 auto; margin-left: auto; }
+.aun-settings__row > .aun-input { flex: 1 1 auto; min-width: 0; width: auto; }
 .aun-settings__field { display: flex; flex-direction: column; }
 .aun-settings__subs { display: flex; flex-direction: column; }
 

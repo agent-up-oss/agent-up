@@ -9,10 +9,21 @@ public interface ITaskQueueApiProvider
 
     Task<IReadOnlyList<OfferedIssue>> ListIssuesAsync(string workspaceId, CancellationToken cancellationToken);
 
-    /// <summary>The open issues of the Server's task source, or null when no source is configured.</summary>
-    Task<IReadOnlyList<OfferedIssue>?> ListSourceIssuesAsync(CancellationToken cancellationToken);
+    /// <summary>The open issues of one repository the stored token can read.</summary>
+    Task<IReadOnlyList<OfferedIssue>> ListRepositoryIssuesAsync(
+        string moduleId,
+        string owner,
+        string repository,
+        CancellationToken cancellationToken);
 
-    Task EnqueueAsync(string? workspaceId, string issueId, string? targetWorkspaceId, CancellationToken cancellationToken);
+    Task EnqueueAsync(
+        string? workspaceId,
+        string issueId,
+        string? targetWorkspaceId,
+        CancellationToken cancellationToken,
+        string? moduleId = null,
+        string? owner = null,
+        string? repository = null);
 
     Task RemoveAsync(QueuedTask task, CancellationToken cancellationToken);
 
