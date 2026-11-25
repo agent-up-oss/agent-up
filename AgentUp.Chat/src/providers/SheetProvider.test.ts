@@ -91,6 +91,12 @@ test('a failed command reads as a sentence with its other arguments as labelled 
   });
 });
 
+test('a command too long for the title keeps its whole text as a detail', () => {
+  const command = `npx vitest run ${'src/storefront/'.repeat(6)}Featured.test.tsx`;
+  const run: TranscriptItem = { id: 'l', role: 'tool', text: '', toolKind: 'execute', status: 'completed', title: 'bash', rawInput: JSON.stringify({ command }) };
+  assert.deepEqual(presentSheet(run, false).arguments, [{ label: 'Command', value: command }]);
+});
+
 test('a running MCP tool names its source and leaves out the argument the title already says', () => {
   const tool: TranscriptItem = { id: 'm', role: 'tool', text: '', status: 'pending', title: 'github-api_searchIssues', rawInput: JSON.stringify({ query: 'is:open', perPage: 5 }) };
   assert.deepEqual(presentSheet(tool, false), {

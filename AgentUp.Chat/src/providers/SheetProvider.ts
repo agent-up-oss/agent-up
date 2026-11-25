@@ -1,6 +1,6 @@
 import type { TranscriptItem } from '../models/AgentSession';
 import { thoughtLabel } from './AgentEventPresentationProvider';
-import { humanize, parseObject, presentToolFacts, shorten } from './ToolCallProvider';
+import { humanize, parseObject, presentToolFacts } from './ToolCallProvider';
 
 /**
  * Geometry and gesture decisions for the bottom sheet one transcript item opens into. Kept free of
@@ -119,7 +119,8 @@ function sheetArguments(rawInput: string | undefined, summary: string | undefine
     if (raw === null || raw === undefined || raw === '') continue;
     if (hasDiff && bodyKeys.has(key)) continue;
     const value = typeof raw === 'string' ? raw : typeof raw === 'number' || typeof raw === 'boolean' ? String(raw) : JSON.stringify(raw);
-    if (summary && shorten(value) === summary) continue;
+    // The title already says this value only when it says all of it; a shortened one stays.
+    if (summary && value === summary) continue;
     rows.push({ label: humanize(key), value: value.length > maxArgumentChars ? `${value.slice(0, maxArgumentChars - 1)}…` : value });
     if (rows.length === maxArguments) break;
   }

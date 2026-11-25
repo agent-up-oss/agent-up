@@ -51,8 +51,18 @@ export function BottomSheet({ title, status, onClose, children, testID = 'agent-
 
   useEffect(() => { rest('half'); }, [rest]);
 
-  const responder = useMemo(() => {
-    const takes = (dx: number, dy: number) => !live.current.closing && sheetTakesDrag({ detent: live.current.detent, scrollTop: live.current.scrollTop, dx, dy });
+  // A rotation or a resized window moves the detents; the sheet keeps its detent and takes the new height.
+  const sized = useRef(false);
+  useEffect(() => {
+    if (!sized.current) { sized.current = true; return; }
+    if (!live.current.closing) shown.setValue(detentHeight(live.current.detent, detents));
+  }, [detents, shown]);
+
+  // The whole sheet answers to a drag the content does not want. The grabber and header always
+  // move the sheet, whatever the content's scroll position, because nothing in them scrolls.
+  const makeResponder = useCallback((fromHeader: boolean) => {
+    const takes = (dx: number, dy: number) => !live.current.closing
+      && sheetTakesDrag({ detent: live.current.detent, scrollTop: fromHeader ? 0 : live.current.scrollTop, dx, dy });
     return PanResponder.create({
       onMoveShouldSetPanResponderCapture: (_, gesture) => takes(gesture.dx, gesture.dy),
       onMoveShouldSetPanResponder: (_, gesture) => takes(gesture.dx, gesture.dy),
@@ -69,6 +79,8 @@ export function BottomSheet({ title, status, onClose, children, testID = 'agent-
       onPanResponderTerminationRequest: () => false,
     });
   }, [rest, shown]);
+  const responder = useMemo(() => makeResponder(false), [makeResponder]);
+  const headerResponder = useMemo(() => makeResponder(true), [makeResponder]);
 
   const translateY = Animated.subtract(detents.full, shown);
   const scrim = shown.interpolate({ inputRange: [0, Math.max(1, detents.half)], outputRange: [0, 1], extrapolate: 'clamp' });
@@ -84,6 +96,7 @@ export function BottomSheet({ title, status, onClose, children, testID = 'agent-
         accessibilityViewIsModal
         style={[styles.sheet, { height: detents.full, transform: [{ translateY }] }]}
         {...responder.panHandlers}>
+        <View testID={`${testID}-header`} {...headerResponder.panHandlers}>
         <Pressable
           testID={`${testID}-grabber`}
           accessibilityRole="button"
@@ -100,6 +113,7 @@ export function BottomSheet({ title, status, onClose, children, testID = 'agent-
             <Text accessibilityRole="header" style={styles.title} numberOfLines={1}>{title}</Text>
             {status ? <Text testID={`${testID}-status`} style={[styles.status, status.tone === 'failed' && styles.statusFailed, status.tone === 'running' && styles.statusRunning]} numberOfLines={1}>{status.text}</Text> : null}
           </View>
+        </View>
         </View>
         <ScrollView
           testID={`${testID}-content`}

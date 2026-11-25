@@ -3,7 +3,6 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { auBox, auText } from '@agent-up/design-system/native';
 import type { TranscriptItem } from '../models/AgentSession';
-import { visibleText } from '../providers/AgentEventPresentationProvider';
 import { presentSheet, type SheetArgument } from '../providers/SheetProvider';
 import { languageForPath } from '../providers/SyntaxProvider';
 import { BottomSheet } from './BottomSheet';
@@ -25,7 +24,7 @@ export function TranscriptItemSheet({ item, live, onClose }: { item: TranscriptI
   const sheet = presentSheet(item, live);
   return <BottomSheet title={sheet.title} status={sheet.status} onClose={onClose}>
     {item.role === 'thought'
-      ? <View testID="agent-sheet-thought"><MarkdownView markdown={visibleText(item.text)} /></View>
+      ? <View testID="agent-sheet-thought"><MarkdownView markdown={item.text} /></View>
       : <ToolSheetBody item={item} details={sheet.arguments} />}
   </BottomSheet>;
 }
