@@ -3,12 +3,11 @@ import { Animated, Easing, Modal, PanResponder, Platform, Pressable, ScrollView,
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { auBox, auText } from '@agent-up/design-system/native';
 import { useReducedMotion } from './Motion';
+import type { SheetStatusTone } from '../providers/SheetProvider';
 import { detentHeight, draggedHeight, settleSheet, sheetDetents, sheetTakesDrag, type SheetDetent, type SheetRest } from '../providers/SheetProvider';
 
 const nativeDriver = Platform.OS !== 'web';
 const closeMs = 200;
-/** The sheet's side margin; content that runs edge to edge takes it back. */
-export const sheetGutter = auBox('sheetContent').paddingHorizontal as number;
 
 /**
  * A sheet that rises from the bottom over a scrim to show one thing in full. It opens at half
@@ -16,7 +15,14 @@ export const sheetGutter = auBox('sheetContent').paddingHorizontal as number;
  * close button, the scrim or the system back gesture closes it. The host mounts it while something
  * is open and unmounts it from `onClose`, which runs once the sheet has slid away.
  */
-export function BottomSheet({ title, onClose, children, testID = 'agent-sheet' }: { title: string; onClose: () => void; children: ReactNode; testID?: string }) {
+export function BottomSheet({ title, status, onClose, children, testID = 'agent-sheet' }: {
+  title: string;
+  /** How the thing shown went, under the title, so the header reads as one unit. */
+  status?: { tone: SheetStatusTone; text: string };
+  onClose: () => void;
+  children: ReactNode;
+  testID?: string;
+}) {
   const window = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const reduced = useReducedMotion();
@@ -90,7 +96,10 @@ export function BottomSheet({ title, onClose, children, testID = 'agent-sheet' }
           <Pressable testID={`${testID}-close`} accessibilityRole="button" accessibilityLabel="Close" onPress={() => rest('closed')} style={styles.close}>
             <Text style={styles.closeGlyph}>✕</Text>
           </Pressable>
-          <Text accessibilityRole="header" style={styles.title} numberOfLines={1}>{title}</Text>
+          <View style={styles.heading}>
+            <Text accessibilityRole="header" style={styles.title} numberOfLines={1}>{title}</Text>
+            {status ? <Text testID={`${testID}-status`} style={[styles.status, status.tone === 'failed' && styles.statusFailed, status.tone === 'running' && styles.statusRunning]} numberOfLines={1}>{status.text}</Text> : null}
+          </View>
         </View>
         <ScrollView
           testID={`${testID}-content`}
@@ -124,7 +133,11 @@ const styles = StyleSheet.create({
   header: { ...auBox('sheetHeader'), flexDirection: 'row', alignItems: 'center', gap: 12 },
   close: { ...auBox('sheetClose'), alignItems: 'center', justifyContent: 'center' },
   closeGlyph: auText('sheetCloseGlyph'),
-  title: { ...auText('sheetTitle'), flex: 1 },
+  heading: { ...auBox('sheetHeading'), flex: 1, gap: 2 },
+  title: auText('sheetTitle'),
+  status: auText('sheetStatus'),
+  statusFailed: auText('sheetStatusFailed'),
+  statusRunning: auText('sheetStatusRunning'),
   content: { flex: 1 },
   contentInner: { ...auBox('sheetContent'), gap: 16 },
 });

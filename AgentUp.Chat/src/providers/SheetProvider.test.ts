@@ -57,32 +57,45 @@ test('only tool calls and thoughts open into a sheet', () => {
   assert.deepEqual((['tool', 'thought', 'plan', 'agent', 'user'] as const).map(role => opensInSheet({ role })), [true, true, false, false, false]);
 });
 
-test('a thought is titled by how long it took', () => {
+test('a thought is titled by how long it took and needs no status', () => {
   const thought: TranscriptItem = { id: 't', role: 'thought', text: 'hm', startedAt: '2026-01-01T00:00:00Z', endedAt: '2026-01-01T00:00:03Z' };
   assert.equal(presentSheet(thought, true).title, 'Thinking');
   assert.deepEqual(presentSheet(thought, false), { title: 'Thought for 3s', arguments: [] });
 });
 
-test('an edit is titled with its file and keeps the whole path and its change in the facts line', () => {
+test('an edit is titled with its file and leaves the path and counts to its diff', () => {
   const edit: TranscriptItem = {
     id: 'e', role: 'tool', text: '', toolKind: 'edit', status: 'completed', title: 'edit',
     rawInput: JSON.stringify({ filePath: 'src/api/products.ts', oldString: 'a', newString: 'b' }),
     diffPath: 'src/api/products.ts', diffOldText: 'a', diffNewText: 'b',
     startedAt: '2026-01-01T00:00:00Z', endedAt: '2026-01-01T00:00:02Z',
   };
-  assert.deepEqual(presentSheet(edit, false), { title: 'Edit products.ts', meta: 'src/api/products.ts · +1 −1 · Took 2s', arguments: [] });
+  assert.deepEqual(presentSheet(edit, false), { title: 'Edit products.ts', status: { tone: 'done', text: '✓ Done · 2s' }, arguments: [] });
 });
 
-test('a command reads as a sentence and its other arguments as labelled values, not JSON', () => {
-  const run: TranscriptItem = { id: 'r', role: 'tool', text: '', toolKind: 'execute', status: 'failed', title: 'bash', rawInput: JSON.stringify({ command: 'npm test', description: 'Run the tests', timeout: 120 }) };
+test('a read keeps its whole path as a detail', () => {
+  const read: TranscriptItem = { id: 'r', role: 'tool', text: '', toolKind: 'read', status: 'completed', title: 'read', rawInput: JSON.stringify({ filePath: 'src/api/products.ts' }) };
+  assert.deepEqual(presentSheet(read, false).arguments, [{ label: 'Path', value: 'src/api/products.ts' }]);
+});
+
+test('a failed command reads as a sentence with its other arguments as labelled values, not JSON', () => {
+  const run: TranscriptItem = {
+    id: 'r', role: 'tool', text: '', toolKind: 'execute', status: 'failed', title: 'bash',
+    rawInput: JSON.stringify({ command: 'npm test', description: 'Run the tests', timeout: 120 }),
+    startedAt: '2026-01-01T00:00:00Z', endedAt: '2026-01-01T00:00:04Z',
+  };
   assert.deepEqual(presentSheet(run, false), {
     title: 'Run npm test',
-    meta: 'Failed',
+    status: { tone: 'failed', text: '✕ Failed · 4s' },
     arguments: [{ label: 'Description', value: 'Run the tests' }, { label: 'Timeout', value: '120' }],
   });
 });
 
-test('an MCP tool names its source and leaves out the argument the title already says', () => {
+test('a running MCP tool names its source and leaves out the argument the title already says', () => {
   const tool: TranscriptItem = { id: 'm', role: 'tool', text: '', status: 'pending', title: 'github-api_searchIssues', rawInput: JSON.stringify({ query: 'is:open', perPage: 5 }) };
-  assert.deepEqual(presentSheet(tool, false), { title: 'Search issues is:open', meta: 'Github api · Running', arguments: [{ label: 'Per page', value: '5' }] });
+  assert.deepEqual(presentSheet(tool, false), {
+    title: 'Search issues is:open',
+    status: { tone: 'running', text: 'Running · Github api' },
+    arguments: [{ label: 'Per page', value: '5' }],
+  });
 });

@@ -75,11 +75,12 @@ export function opensInSheet(item: Pick<TranscriptItem, 'role'>): boolean {
 }
 
 export type SheetArgument = { label: string; value: string };
+export type SheetStatusTone = 'done' | 'failed' | 'running';
 export type SheetPresentation = {
-  /** What the row says, as a sentence: "Edit products.ts", "Run npm test", "Thought for 3s". */
+  /** What the row did, as a sentence: "Edit products.ts", "Run npm test", "Thought for 3s". */
   title: string;
-  /** One quiet line of facts: where the tool came from, the whole path, what changed, how it went. */
-  meta?: string;
+  /** How it went, under the title: "✕ Failed · 4s", "✓ Done · Github api", "Running". */
+  status?: { tone: SheetStatusTone; text: string };
   /** The call's arguments as labelled values, without the one the title already says. Never raw JSON. */
   arguments: SheetArgument[];
 };
@@ -88,20 +89,26 @@ export type SheetPresentation = {
 const bodyKeys = new Set(['content', 'oldString', 'old_string', 'newString', 'new_string', 'edits', 'replaceAll', 'replace_all']);
 const maxArguments = 8;
 const maxArgumentChars = 400;
+const statusWords: Record<SheetStatusTone, string> = { done: '✓ Done', failed: '✕ Failed', running: 'Running' };
 
-/** How one transcript item reads once opened: a sentence for a title, a facts line, and labelled arguments. */
+/** How one transcript item reads once opened: a sentence for a title, its status, and labelled arguments. */
 export function presentSheet(item: TranscriptItem, live: boolean): SheetPresentation {
   if (item.role === 'thought') return { title: thoughtLabel(item, live), arguments: [] };
   const view = presentToolFacts({ ...item, kind: item.toolKind });
   const path = view.summary && /[\\/]/.test(view.summary) && !/\s/.test(view.summary) ? view.summary : undefined;
   const subject = path ? path.split(/[\\/]/).filter(Boolean).at(-1) : view.summary;
   const title = subject && subject !== view.title ? `${view.title} ${subject}` : view.title;
-  const changed = view.diff ? [view.diff.added ? `+${view.diff.added}` : '', view.diff.removed ? `−${view.diff.removed}` : ''].filter(Boolean).join(' ') : '';
-  const outcome = view.state === 'running' ? 'Running'
-    : view.state === 'failed' ? (view.duration ? `Failed after ${view.duration}` : 'Failed')
-      : view.duration ? `Took ${view.duration}` : undefined;
-  const meta = [view.source, path, changed || undefined, outcome].filter(Boolean).join(' · ') || undefined;
-  return { title, ...(meta ? { meta } : {}), arguments: sheetArguments(item.rawInput, view.summary, Boolean(view.diff)) };
+  const tone: SheetStatusTone = view.state === 'done' ? 'done' : view.state;
+  const text = [statusWords[tone], view.state === 'running' ? undefined : view.duration, view.source].filter(Boolean).join(' · ');
+  // The diff card names the file; without one, the whole path is a detail worth showing.
+  const pathRow = path && !view.diff ? [{ label: 'Path', value: path }] : [];
+  const rows = [...pathRow, ...sheetArguments(item.rawInput, view.summary, Boolean(view.diff))];
+  return { title, status: { tone, text }, arguments: dedupe(rows) };
+}
+
+function dedupe(rows: SheetArgument[]): SheetArgument[] {
+  const seen = new Set<string>();
+  return rows.filter(row => !seen.has(row.label) && seen.add(row.label));
 }
 
 function sheetArguments(rawInput: string | undefined, summary: string | undefined, hasDiff: boolean): SheetArgument[] {
