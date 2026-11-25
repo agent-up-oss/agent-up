@@ -42,6 +42,9 @@ public sealed class ProductScreenCatalog : IProductScreenCatalog
     private const string SecondPromoBannerPath = "apps/storefront/PromoBanner2.tsx";
     private const string ProductGridPath = "apps/storefront/ProductGrid.tsx";
     private const string OrdersPath = "apps/api/orders.ts";
+    private const string FirstWorkSection = "Worked for";
+    private const string FirstWorkFold = "1 search, 1 thought";
+    private const string FirstSearch = "Search, featured";
 
     public IReadOnlyList<string> Surfaces => [ProductSurface.Desktop, ProductSurface.Mobile];
 
@@ -199,17 +202,26 @@ public sealed class ProductScreenCatalog : IProductScreenCatalog
             ScreenStepDto.Tap("Settings", 2000),
             ScreenStepDto.Tap("Disable", 1500)
         ]),
-        // The agent chat, the application space and the workspace list are the three Mobile
-        // routes the design system documented no screen for. They come last because each
-        // navigates away from the workspace tabs the earlier routes depend on.
+        // The agent chat, its item sheet, the application space and the workspace list come
+        // last because each navigates away from the workspace tabs the earlier routes depend on.
         MobileScreen("agent", "Mobile agent chat",
         [
             ScreenStepDto.Navigate($"/workspace/{DebugLayout.DemoWorkspaceId}/agents"),
             ScreenStepDto.Tap("Open Codex", 2500),
             ScreenStepDto.Settle(1200)
         ]),
+        // Opens the first finished work section and its fold, then the search in it: only the
+        // lowest level opens a sheet, so the section and fold unfold in place first.
+        MobileScreen("agent-sheet", "Mobile agent item sheet",
+        [
+            ScreenStepDto.Tap(FirstWorkSection, 800),
+            ScreenStepDto.Tap(FirstWorkFold, 800),
+            ScreenStepDto.Tap(FirstSearch, 1500)
+        ]),
         MobileScreen("application", "Mobile application space",
         [
+            // The sheet is a modal over the chat and outlives a client-side route change.
+            ScreenStepDto.Tap("Close", 800),
             ScreenStepDto.Navigate($"/workspace/{DebugLayout.DemoWorkspaceId}/application/Storefront", 4000)
         ]),
         MobileScreen("database", "Mobile database",
