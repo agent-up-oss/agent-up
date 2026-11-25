@@ -3,7 +3,7 @@ import { createServer } from 'node:net';
 import test from 'node:test';
 
 import { createIdpControl, loginIdFrom } from '../harness/idpControl.mjs';
-import { hasTransport, isTerminalSignInError, isUsableChallenge, waitForChallenge } from '../harness/signInFlows.mjs';
+import { hasTransport, isTerminalSignInError, isUsableChallenge, waitForAgentState, waitForChallenge } from '../harness/signInFlows.mjs';
 import { shimScript } from '../harness/shims.mjs';
 import { AGENT_PROFILES, hostBrowser, hostOriginFor, hostPortsToReverse, profilesFor, serverEnvironment } from '../harness/stackConfig.mjs';
 import { freePort, isFree, portWindow, removeWorkspaceTree } from '../harness/stack.mjs';
@@ -175,6 +175,29 @@ test('native pasted-code sign-in restores the connect URL when it returns from t
   );
 
   assert.match(returnToApp, /url: connectLaunchUrl\(stack\.serverOriginForClient, stack\.workspace\.id\)/);
+  assert.match(returnToApp, /pastedCode\(flow, stack\.control, carriedCode\)/);
+  assert.match(returnToApp, /toHaveText\(code\)/);
+});
+
+test('native fill types long codes in chunks so Android IME does not truncate a PKCE secret', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const source = await readFile(new URL('../detox/signIn.test.js', import.meta.url), 'utf8');
+  const fill = source.slice(source.indexOf('async function fill('), source.indexOf('async function pastedCode('));
+  assert.match(fill, /const chunk = 8/);
+  assert.match(fill, /value\.slice\(index, index \+ chunk\)/);
+});
+
+test('native pasted-code visits the provider before Open so the code exists before the browser takes the foreground', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const source = await readFile(new URL('../detox/signIn.test.js', import.meta.url), 'utf8');
+  const authenticate = source.slice(
+    source.indexOf("await tap(`agent-auth-method-${methodId}`, 60_000)"),
+    source.indexOf('if (carriedCode)'),
+  );
+  assert.ok(
+    authenticate.indexOf('flow.approve') < authenticate.indexOf("await tap('agent-signin-open'"),
+    'approve must run before Open so the host fetch is not racing the system browser',
+  );
 });
 
 test('native sign-in waits for the method button after the Server reports authentication_required', async () => {
@@ -255,7 +278,31 @@ test('ACP auth-required on the session is not a failed sign-in', () => {
     false,
   );
   assert.equal(isTerminalSignInError('The agent CLI did not print a sign-in link within 30 seconds.'), true);
+  assert.equal(
+    isTerminalSignInError('Subscription login failed with exit code 1. Open the printed link and finish signing in with your subscription.'),
+    true,
+  );
   assert.equal(isTerminalSignInError(null), false);
+});
+
+test('waiting for ready aborts when subscription login has already failed', async () => {
+  const original = globalThis.fetch;
+  globalThis.fetch = async () => ({
+    ok: true,
+    json: async () => ({
+      state: 'authentication_required',
+      error: 'Subscription login failed with exit code 1. Open the printed link and finish signing in with your subscription.',
+      loginChallenge: { url: 'http://localhost/oauth/authorize', canSubmitCode: true },
+    }),
+  });
+  try {
+    await assert.rejects(
+      () => waitForAgentState('http://localhost:9', 'workspace', 'ready', { timeoutMs: 5_000, intervalMs: 10 }),
+      /Subscription login failed with exit code 1/,
+    );
+  } finally {
+    globalThis.fetch = original;
+  }
 });
 
 test('a failed sign-in is reported instead of waiting out the challenge deadline', async () => {

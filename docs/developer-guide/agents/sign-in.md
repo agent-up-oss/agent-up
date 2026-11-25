@@ -107,7 +107,11 @@ Native Detox launches the harness through `agent-up-chat://connect` instead of t
 connect form. The method-button tap uses the same 60s visibility budget as the picker and Open:
 iOS can still be laying out after the Server already reports that sign-in is required. Android
 Fabric's `replaceText` does not update React state, so Connect was a no-op and the suite timed
-out on a picker the chat never mounted. The installable-web suite still fills the form. When a
+out on a picker the chat never mounted. The installable-web suite still fills the form. Pasted-code
+values are typed in 8-character chunks and checked against the field before Finish: a single Android
+IME `typeText` of a 32-character PKCE secret submitted a truncated code, the CLI exited 1, and the
+suite waited 150s for ready. Waiting for ready aborts once the Server reports a subscription login
+failure. When a
 native pasted-code flow returns from the system browser, Detox delivers that connect URL again
 so an iOS process reclaimed in the background remounts the same workspace. After launch the
 native suite waits for the picker, the connect form, or the picker

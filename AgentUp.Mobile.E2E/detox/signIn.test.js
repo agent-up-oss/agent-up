@@ -120,9 +120,11 @@ describe('agent sign-in', () => {
         { timeoutMs: 120_000 },
       );
 
-      await tap('agent-signin-open', 60_000);
-
+      // Visit the provider from this host first so the code exists before Open hands the
+      // foreground to the system browser. Open then still runs the real button; a second visit
+      // after pre-approve issues another code for the same PKCE, and we paste the latest one.
       const carriedCode = await flow.approve?.({ control: stack.control, session });
+      await tap('agent-signin-open', 60_000);
       if (carriedCode) {
         // Opening the sign-in page handed the foreground to the browser, which is what this shape
         // is: the page issues a code and the person carries it back. What a person does next is
@@ -141,9 +143,12 @@ describe('agent sign-in', () => {
         // carries it out of the browser. fill() taps first so Fabric onChangeText enables Finish;
         // typeText alone leaves the button disabled. iOS then covers Finish with the keyboard.
         // Detox 20.42's Jest device has no dismissKeyboard; Return blurs the field, then wait
-        // until Finish is hittable instead of sleeping.
+        // until Finish is hittable instead of sleeping. Re-read latestCode after the browser
+        // visit so a second authorize from Open is the value that is pasted.
         await waitFor(element(by.id('agent-signin-code-input'))).toBeVisible().withTimeout(30_000);
-        await fill('agent-signin-code-input', carriedCode);
+        const code = await pastedCode(flow, stack.control, carriedCode);
+        await fill('agent-signin-code-input', code);
+        await waitFor(element(by.id('agent-signin-code-input'))).toHaveText(code).withTimeout(15_000);
         if (device.getPlatform() === 'ios') {
           await element(by.id('agent-signin-code-input')).tapReturnKey();
           await waitFor(element(by.id('agent-signin-submit-code'))).toBeVisible().withTimeout(30_000);
@@ -302,7 +307,21 @@ async function fill(testId, value) {
   const field = element(by.id(testId));
   await field.tap();
   await field.clearText();
-  await field.typeText(value);
+  // One shot of 32-character PKCE on Android IME is how pasted-code submitted a truncated
+  // value, the CLI exited 1, and the suite waited 150s for ready.
+  const chunk = 8;
+  for (let index = 0; index < value.length; index += chunk) {
+    await field.typeText(value.slice(index, index + chunk));
+  }
+}
+
+async function pastedCode(flow, control, fallback) {
+  if (!flow.clientId) return fallback;
+  try {
+    return (await control.latestCode(flow.clientId)) || fallback;
+  } catch {
+    return fallback;
+  }
 }
 
 async function appears(testId, timeoutMs = 500) {

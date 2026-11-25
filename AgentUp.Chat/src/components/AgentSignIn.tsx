@@ -7,6 +7,7 @@ import type { AgentLoginApi, AgentLoginChallenge } from '@agent-up/agent-auth';
 import { createAgentLoginPort } from '../providers/AgentLoginPortProvider';
 import type { PendingRedirect } from '../providers/AgentLoginPortProvider';
 import { shouldInterceptNavigation } from '../providers/AgentLoginRedirectProvider';
+import { codeFieldProps } from '../providers/AgentSignInFieldProvider';
 import { styles } from './AgentSignIn.styles';
 
 export type AgentSignInProps = {
@@ -108,9 +109,8 @@ export function AgentSignIn({ challenge, api, copy, onError }: AgentSignInProps)
             value={code}
             onChangeText={setCode}
             placeholder="Paste the code from the page"
-            autoCapitalize="none"
-            autoCorrect={false}
             editable={!busy}
+            {...codeFieldProps()}
           />
           <Pressable
             testID="agent-signin-submit-code"
