@@ -3,17 +3,19 @@ using AgentUp.Server.Features.TaskSource.Models;
 namespace AgentUp.Server.Features.TaskSource.Interfaces;
 
 /// <summary>
-/// The token and host URL the Server holds for the task source.
+/// The tokens the Server holds for the task source, keyed by team member (workspace id).
 ///
-/// It is kept apart from the per-workspace forge credentials on purpose: this one belongs to the
-/// Server, and filing it under a workspace id would mean inventing a workspace that does not
-/// exist and letting a workspace's sign-out take the Server's backlog down with it.
+/// A legacy file keyed by host (<c>github</c>, <c>forgejo</c>) is still readable: those entries
+/// keep listing repositories until a member saves their own token, and they never name a member
+/// on the repository's access banners.
 /// </summary>
 public interface ITaskSourceCredentialStore
 {
-    TaskSourceCredential? Read(string moduleId);
+    IReadOnlyList<string> Keys();
 
-    void Write(string moduleId, TaskSourceCredential credential);
+    TaskSourceCredential? Read(string key);
 
-    void Delete(string moduleId);
+    void Write(string key, TaskSourceCredential credential);
+
+    void Delete(string key);
 }

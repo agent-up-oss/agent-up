@@ -128,6 +128,7 @@ public sealed class ForgejoApiProviderTests
 
         Assert.That(issues.Single().Number, Is.EqualTo(3));
         Assert.That(issues.Single().Id, Is.EqualTo("7"));
+        Assert.That(issues.Single().AssigneeLogin, Is.EqualTo("agentup"));
     }
 
     [Test]

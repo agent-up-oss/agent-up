@@ -244,6 +244,9 @@ public sealed class QueuedTaskRowViewModel
 
     public string RepositoryLabel => $"{_task.Owner}/{_task.Repository}";
 
+    /// <summary>The one workspace this queued task is pointed at, when it has an assignee.</summary>
+    public string? TargetWorkspaceId => _task.TargetWorkspaceId;
+
     public ReactiveCommand<Unit, Unit> RemoveCommand { get; }
 
     public ReactiveCommand<Unit, Unit> MoveUpCommand { get; }
@@ -291,6 +294,9 @@ public sealed class OfferedIssueRowViewModel
     }
 
     public string IssueLabel => $"#{_issue.Number} · {_issue.Title}";
+
+    /// <summary>The host's one assignee login, when the issue names one.</summary>
+    public string? AssigneeLogin => _issue.AssigneeLogin;
 
     public ReactiveCommand<Unit, Unit> PickCommand { get; }
 }

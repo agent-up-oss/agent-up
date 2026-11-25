@@ -15,7 +15,7 @@ HTTP routes owned by the Task Source slice.
 | `DELETE` | `/api/task-source` | Clear |
 | `GET` | `/api/task-source` | Get |
 | `PUT` | `/api/task-source` | Set |
-| `DELETE` | `/api/task-source/{moduleId}` | Forget |
+| `DELETE` | `/api/task-source/{workspaceId}` | Forget |
 | `GET` | `/api/task-source/issues` | Issues |
 | `GET` | `/api/task-source/pulls` | Pulls |
 | `GET` | `/api/task-source/repositories` | Repositories |

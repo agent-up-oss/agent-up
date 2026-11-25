@@ -42,7 +42,8 @@ public sealed record ForgeIssueDto(
     string Body,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt,
-    string Url);
+    string Url,
+    string? AssigneeLogin = null);
 
 /// <summary>The owner and repository a workspace's checkout points at.</summary>
 public sealed record ForgeRepositoryDto(string Owner, string Repository);

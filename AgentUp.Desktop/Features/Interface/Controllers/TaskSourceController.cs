@@ -10,14 +10,15 @@ public sealed class TaskSourceController(TaskSourceService source)
         => source.ReadAsync(cancellationToken);
 
     public Task<TaskSource?> SaveAsync(
+        string workspaceId,
         string moduleId,
         string endpointUrl,
         string token,
         CancellationToken cancellationToken = default)
-        => source.SaveAsync(moduleId, endpointUrl, token, cancellationToken);
+        => source.SaveAsync(workspaceId, moduleId, endpointUrl, token, cancellationToken);
 
-    public Task<TaskSource?> ForgetAsync(string moduleId, CancellationToken cancellationToken = default)
-        => source.ForgetAsync(moduleId, cancellationToken);
+    public Task<TaskSource?> ForgetAsync(string workspaceId, CancellationToken cancellationToken = default)
+        => source.ForgetAsync(workspaceId, cancellationToken);
 
     public Task<IReadOnlyList<TaskSourceRepository>> ListRepositoriesAsync(CancellationToken cancellationToken = default)
         => source.ListRepositoriesAsync(cancellationToken);

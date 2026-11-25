@@ -648,7 +648,7 @@
         }
       }
     },
-    "/api/task-source/{moduleId}": {
+    "/api/task-source/{workspaceId}": {
       "delete": {
         "tags": [
           "TaskSource"

@@ -72,6 +72,7 @@ function CommandCenterBinder() {
   const { workspaces, refresh } = useWorkspaces();
   const [nav, setNav] = useState<0 | 1 | 2>(0);
   const [tasksTab, setTasksTab] = useState<TasksTab>('issues');
+  const [authTab, setAuthTab] = useState<string | null>(null);
   const [forgeTab, setForgeTab] = useState('github');
   const [openRepo, setOpenRepo] = useState<{ moduleId: string; owner: string; name: string } | null>(null);
   const [repoIssues, setRepoIssues] = useState<OfferedIssue[]>([]);
@@ -91,6 +92,11 @@ function CommandCenterBinder() {
   const [chatAutonomy, setChatAutonomy] = useState<ServerAutonomy | null>(null);
   const [chatNonce, setChatNonce] = useState(0);
   const chatWorkspace = settingsWorkspace ?? standing.team[0]?.workspaceId ?? null;
+  const authMember = authTab
+    ?? source.source?.identities?.find(item => item.connected)?.workspaceId
+    ?? standing.team[0]?.workspaceId
+    ?? null;
+  const identity = source.source?.identities?.find(item => item.workspaceId === authMember) ?? null;
 
   // Settings · Chat reads the selected workspace's agent and loop when Settings is shown.
   useEffect(() => {
@@ -167,15 +173,25 @@ function CommandCenterBinder() {
       id: repositoryId(repository),
       name: `${repository.owner}/${repository.name}`,
       host: forgeHostLabel(repository.moduleId),
+      members: (repository.members ?? []).map(member => ({
+        id: member.workspaceId,
+        name: member.displayName,
+        initials: member.initials,
+      })),
     })),
     pulls: openRepo ? pulls : undefined,
+    authTab: authMember ?? '',
     forgeTab,
-    forgeDetail: source.source?.modules.find(module => module.moduleId === forgeTab)?.detail ?? '',
+    forgeDetail: identity && identity.moduleId === forgeTab
+      ? identity.detail
+      : identity
+        ? `Paste the host URL and a personal access token for ${identity.displayName}. It needs access to repositories and pull requests.`
+        : source.error ?? 'Add a workspace to give a team member their own access token.',
     forgeEndpoint: prefillEndpoint(
       forgeTab,
-      source.source?.modules.find(module => module.moduleId === forgeTab)?.endpointUrl,
+      identity?.moduleId === forgeTab ? identity.endpointUrl : null,
     ),
-    forgeConnected: source.source?.modules.some(module => module.moduleId === forgeTab && module.connected) ?? false,
+    forgeConnected: identity?.connected === true && identity.moduleId === forgeTab,
     // The application page carries the client's own dock, which replays a flow for real.
     flows: [],
     modules,
@@ -253,13 +269,17 @@ function CommandCenterBinder() {
     if (name === 'logout') { logout(); return; }
     if (name === 'use-classic') { choose('classic'); return; }
     if (name === 'reload') { refresh(); return; }
+    if (name === 'auth-member' && id) { setAuthTab(id); return; }
     if (name === 'forge-tab' && id) { setForgeTab(id); return; }
     if (name === 'save-token') {
       const saved = tokenSave(fields, text);
-      if (saved.token) void source.save(forgeTab, saved.endpointUrl, saved.token);
+      if (saved.token && authMember) void source.save(authMember, forgeTab, saved.endpointUrl, saved.token);
       return;
     }
-    if (name === 'forget-token') { void source.forget(forgeTab); return; }
+    if (name === 'forget-token') {
+      if (authMember) void source.forget(authMember);
+      return;
+    }
     if (name === 'open-repo' && id) {
       const [moduleId, owner, name] = id.split('/');
       if (moduleId && owner && name) setOpenRepo({ moduleId, owner, name });

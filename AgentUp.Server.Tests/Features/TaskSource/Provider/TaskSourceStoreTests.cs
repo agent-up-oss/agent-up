@@ -7,28 +7,30 @@ namespace AgentUp.Server.Tests.Features.TaskSource.Provider;
 public sealed class TaskSourceStoreTests
 {
     [Test]
-    public void TheTokenAndHostAreKeptPerModuleAndCanBeTakenBack()
+    public void TheTokenAndHostAreKeptPerMemberAndCanBeTakenBack()
     {
         var root = Root();
         try
         {
             var store = new JsonTaskSourceCredentialStore(root);
-            store.Write("github", new TaskSourceCredential("token-a", "https://github.com"));
-            store.Write("forgejo", new TaskSourceCredential("token-b", "https://git.example.test"));
+            store.Write("bob", new TaskSourceCredential("token-a", "https://github.com", "github"));
+            store.Write("frank", new TaskSourceCredential("token-b", "https://git.example.test", "forgejo"));
 
             Assert.Multiple(() =>
             {
-                Assert.That(store.Read("github")?.Token, Is.EqualTo("token-a"));
-                Assert.That(store.Read("github")?.EndpointUrl, Is.EqualTo("https://github.com"));
-                Assert.That(store.Read("forgejo")?.Token, Is.EqualTo("token-b"));
+                Assert.That(store.Read("bob")?.Token, Is.EqualTo("token-a"));
+                Assert.That(store.Read("bob")?.EndpointUrl, Is.EqualTo("https://github.com"));
+                Assert.That(store.Read("bob")?.ModuleId, Is.EqualTo("github"));
+                Assert.That(store.Read("frank")?.Token, Is.EqualTo("token-b"));
+                Assert.That(store.Keys(), Is.EquivalentTo(new[] { "bob", "frank" }));
             });
 
-            store.Delete("github");
+            store.Delete("bob");
 
             Assert.Multiple(() =>
             {
-                Assert.That(store.Read("github"), Is.Null);
-                Assert.That(store.Read("forgejo")?.Token, Is.EqualTo("token-b"), "forgetting one host keeps the other");
+                Assert.That(store.Read("bob"), Is.Null);
+                Assert.That(store.Read("frank")?.Token, Is.EqualTo("token-b"), "forgetting one member keeps the other");
             });
         }
         finally
@@ -49,8 +51,9 @@ public sealed class TaskSourceStoreTests
 
             Assert.Multiple(() =>
             {
-                Assert.That(stored?.Token, Is.EqualTo("legacy-token"));
-                Assert.That(stored?.EndpointUrl, Is.EqualTo(""));
+            Assert.That(stored?.Token, Is.EqualTo("legacy-token"));
+            Assert.That(stored?.EndpointUrl, Is.EqualTo(""));
+            Assert.That(stored?.ModuleId, Is.EqualTo("github"));
             });
         }
         finally
@@ -74,6 +77,7 @@ public sealed class TaskSourceStoreTests
             Assert.Multiple(() =>
             {
                 Assert.That(store.Read("github")?.Token, Is.EqualTo("kept"));
+                Assert.That(store.Read("github")?.ModuleId, Is.EqualTo("github"));
                 Assert.That(store.Read("empty"), Is.Null);
             });
         }
@@ -99,6 +103,7 @@ public sealed class TaskSourceStoreTests
             {
                 Assert.That(stored?.Token, Is.EqualTo("kept"));
                 Assert.That(stored?.EndpointUrl, Is.EqualTo(""));
+                Assert.That(stored?.ModuleId, Is.EqualTo("github"));
             });
         }
         finally
@@ -138,6 +143,7 @@ public sealed class TaskSourceStoreTests
                 Assert.That(store.Read("github"), Is.Null);
                 Assert.That(store.Read("empty"), Is.Null);
                 Assert.That(store.Read("forgejo")?.Token, Is.EqualTo("kept"));
+                Assert.That(store.Read("forgejo")?.ModuleId, Is.EqualTo("forgejo"));
             });
         }
         finally

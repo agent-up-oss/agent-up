@@ -4,8 +4,15 @@ using AgentUp.Desktop.Features.Interface.Models;
 
 namespace AgentUp.Desktop.Features.Interface.Services;
 
+/// <summary>One team member a round banner can name.</summary>
+public sealed record CommandCenterMemberSlot(string Id, string Name, string Initials);
+
 /// <summary>One repository the Tasks page can be drilled into.</summary>
-public sealed record CommandCenterRepositorySlot(string Id, string Name, string Host);
+public sealed record CommandCenterRepositorySlot(
+    string Id,
+    string Name,
+    string Host,
+    IReadOnlyList<CommandCenterMemberSlot>? Members = null);
 
 /// <summary>One task row the scene repeats. The action is the catalog button the row runs; the scene words and tones it.</summary>
 public sealed record CommandCenterTaskSlot(
@@ -13,7 +20,8 @@ public sealed record CommandCenterTaskSlot(
     string Title,
     string Repository,
     string Agent,
-    string Action);
+    string Action,
+    string Initials = "");
 
 /// <summary>One recorded validation flow the rail and the dock repeat.</summary>
 public sealed record CommandCenterFlowSlot(
@@ -85,7 +93,8 @@ public sealed record CommandCenterSceneInput(
     string ForgeTab = "github",
     string ForgeDetail = "",
     string ForgeEndpoint = "",
-    bool ForgeConnected = false);
+    bool ForgeConnected = false,
+    string AuthTab = "");
 
 /// <summary>One application of the open workspace, as its tab shows it.</summary>
 public sealed record CommandCenterApplicationSlot(string Name, bool Running);
@@ -122,22 +131,29 @@ public static class CommandCenterScene
         if (input.PortLabel.Length > 0) binding.Text["port"] = input.PortLabel;
         binding.Items["workspaces"] = team.Select(standing => Workspace(standing, input.OpenWorkspaceId)).ToArray();
         binding.Items["settingsWorkspaces"] = team.Select(standing => SettingsWorkspace(standing, input.SettingsWorkspaceId ?? input.OpenWorkspaceId)).ToArray();
+        var authTab = input.AuthTab.Length > 0
+            ? input.AuthTab
+            : team.Count > 0 ? team[0].WorkspaceId : "";
+        binding.Items["authMembers"] = team.Select(standing => AuthMember(standing, authTab)).ToArray();
         binding.Items["fleet"] = Lanes(team).ToArray();
         binding.Items["queue"] = input.Tasks.Select(Task).ToArray();
         binding.Items["devReview"] = (input.DevReviews ?? []).Select(Task).ToArray();
         binding.Items["pmReview"] = (input.PmReviews ?? []).Select(Task).ToArray();
-        binding.Items["repos"] = (input.Repositories ?? []).Select(repo => new NewUiSlotItem
-        {
-            Id = repo.Id,
-            Action = "open-repo",
-            Text = new Dictionary<string, string>(StringComparer.Ordinal) { ["name"] = repo.Name, ["host"] = repo.Host },
-        }).ToArray();
+        binding.Items["repos"] = (input.Repositories ?? []).Select(Repository).ToArray();
+        var openRepo = (input.Repositories ?? []).FirstOrDefault(repo =>
+            string.Equals(repo.Name, input.OpenRepository, StringComparison.OrdinalIgnoreCase));
+        binding.Items["access"] = (openRepo?.Members ?? []).Select(Avatar).ToArray();
         binding.Text["repository"] = input.OpenRepository ?? "";
         binding.Text["forgeDetail"] = input.ForgeDetail;
         binding.Text["forgeEndpoint"] = input.ForgeEndpoint;
         binding.State["forgeTab"] = input.ForgeTab;
         if (input.ForgeConnected)
             binding.State["forgeConnected"] = "1";
+        if (authTab.Length > 0)
+        {
+            binding.State["authTab"] = authTab;
+            binding.State["authMember"] = "1";
+        }
         if (string.IsNullOrEmpty(input.OpenRepository))
             binding.State["repoList"] = "1";
         else
@@ -217,6 +233,40 @@ public static class CommandCenterScene
         },
     };
 
+    private static NewUiSlotItem AuthMember(TeamStanding standing, string selectedId) => new()
+    {
+        Id = standing.WorkspaceId,
+        State = standing.WorkspaceId == selectedId ? "au-app-tab--selected" : null,
+        Text = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["name"] = standing.DisplayName,
+        },
+    };
+
+    private static NewUiSlotItem Repository(CommandCenterRepositorySlot repository) => new()
+    {
+        Id = repository.Id,
+        Action = "open-repo",
+        Text = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["name"] = repository.Name,
+            ["host"] = repository.Host,
+        },
+        Items = new Dictionary<string, List<NewUiSlotItem>>(StringComparer.Ordinal)
+        {
+            ["access"] = (repository.Members ?? []).Select(Avatar).ToList(),
+        },
+    };
+
+    private static NewUiSlotItem Avatar(CommandCenterMemberSlot member) => new()
+    {
+        Id = member.Id,
+        Text = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["initials"] = member.Initials,
+        },
+    };
+
     private static NewUiSlotItem Workspace(TeamStanding standing, string? openId)
     {
         var parts = new HashSet<string>(StringComparer.Ordinal) { Part(standing.Kind) };
@@ -284,6 +334,7 @@ public static class CommandCenterScene
     {
         var parts = new HashSet<string>(StringComparer.Ordinal);
         if (task.Agent.Length > 0) parts.Add("agent");
+        if (task.Initials.Length > 0) parts.Add("assignee");
         return new NewUiSlotItem
         {
             Id = task.Id,
@@ -294,6 +345,7 @@ public static class CommandCenterScene
                 ["title"] = task.Title,
                 ["repo"] = task.Repository,
                 ["agent"] = task.Agent,
+                ["initials"] = task.Initials,
             },
         };
     }

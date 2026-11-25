@@ -10,15 +10,29 @@ internal sealed class EmptyTaskSourceTeam : ITaskSourceTeam
         => Task.FromResult(new TaskSourceTeam(new Dictionary<string, string>(), []));
 }
 
+/// <summary>No team members, for a host that is not asking who can hold a token.</summary>
+internal sealed class EmptyTaskSourceIdentities : ITaskSourceIdentities
+{
+    public IReadOnlyList<TaskSourcePerson> List() => [];
+}
+
+/// <summary>The named team members a test is saving tokens for.</summary>
+internal sealed class FixedTaskSourceIdentities(params TaskSourcePerson[] people) : ITaskSourceIdentities
+{
+    public IReadOnlyList<TaskSourcePerson> List() => people;
+}
+
 /// <summary>The task source's tokens, held in memory.</summary>
 internal sealed class MemoryTaskSourceCredentialStore : ITaskSourceCredentialStore
 {
     private readonly Dictionary<string, TaskSourceCredential> _credentials = new(StringComparer.OrdinalIgnoreCase);
 
-    public TaskSourceCredential? Read(string moduleId)
-        => _credentials.TryGetValue(moduleId, out var credential) ? credential : null;
+    public IReadOnlyList<string> Keys() => _credentials.Keys.ToArray();
 
-    public void Write(string moduleId, TaskSourceCredential credential) => _credentials[moduleId] = credential;
+    public TaskSourceCredential? Read(string key)
+        => _credentials.TryGetValue(key, out var credential) ? credential : null;
 
-    public void Delete(string moduleId) => _credentials.Remove(moduleId);
+    public void Write(string key, TaskSourceCredential credential) => _credentials[key] = credential;
+
+    public void Delete(string key) => _credentials.Remove(key);
 }

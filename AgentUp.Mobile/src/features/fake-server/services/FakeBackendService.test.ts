@@ -632,31 +632,35 @@ test('picking an issue puts it at the back of the queue and stops offering it', 
   assert.deepEqual(offered.map((issue: { number: number }) => issue.number), [58, 61]);
 });
 
-test('the demo starts with GitHub connected at github.com and refuses a token without a host URL', () => {
+test('the demo starts with Bob connected to GitHub and refuses a token without a host URL', () => {
   const service = backend();
   const source = json(service, 'GET', '/api/task-source');
-  const github = source.modules.find((module: { moduleId: string }) => module.moduleId === 'github');
-  assert.equal(github.connected, true);
-  assert.equal(github.endpointUrl, 'https://github.com');
+  const bob = source.identities.find((identity: { workspaceId: string }) => identity.workspaceId === 'bob');
+  assert.equal(bob.connected, true);
+  assert.equal(bob.moduleId, 'github');
+  assert.equal(bob.initials, 'BO');
+  assert.equal(bob.endpointUrl, 'https://github.com');
 
   const refused = service.handle({
     method: 'PUT',
     path: '/api/task-source',
     query: '',
-    body: JSON.stringify({ moduleId: 'forgejo', token: 'forgejo-token' }),
+    body: JSON.stringify({ workspaceId: 'frank', moduleId: 'forgejo', token: 'forgejo-token' }),
   });
   assert.equal(refused.status, 409);
 
   const saved = json(service, 'PUT', '/api/task-source', JSON.stringify({
+    workspaceId: 'frank',
     moduleId: 'forgejo',
     endpointUrl: 'https://git.example.test',
     token: 'forgejo-token',
   }));
-  const forgejo = saved.modules.find((module: { moduleId: string }) => module.moduleId === 'forgejo');
-  assert.equal(forgejo.connected, true);
-  assert.equal(forgejo.endpointUrl, 'https://git.example.test');
+  const frank = saved.identities.find((identity: { workspaceId: string }) => identity.workspaceId === 'frank');
+  assert.equal(frank.connected, true);
+  assert.equal(frank.endpointUrl, 'https://git.example.test');
   const repositories = json(service, 'GET', '/api/task-source/repositories');
-  assert.ok(repositories.some((row: { moduleId: string }) => row.moduleId === 'forgejo'));
+  const forgejo = repositories.find((row: { moduleId: string }) => row.moduleId === 'forgejo');
+  assert.equal(forgejo.members[0].displayName, 'Frank');
 });
 
 test('picking with no workspace takes the issue from the task source', () => {

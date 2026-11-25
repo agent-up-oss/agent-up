@@ -33,7 +33,7 @@
       "demo": true
     },
     {
-      "route": "DELETE /api/task-source/{moduleId}",
+      "route": "DELETE /api/task-source/{workspaceId}",
       "demo": true
     },
     {
@@ -451,7 +451,7 @@
         "status": 200,
         "body": "object",
         "keys": [
-          "modules"
+          "identities"
         ]
       }
     },

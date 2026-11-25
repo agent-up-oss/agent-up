@@ -98,6 +98,7 @@ export function applyDemo(catalog, demo) {
   write('agent-state-map', 'totalLabel', demo.fleet.agents === 1 ? 'AGENT' : 'AGENTS');
   write('agent-state-map', 'meta', fleetMeta(demo.fleet));
   fill('task-board', 'queue', taskBoard(demo));
+  fill('task-board', 'access', accessAvatars(demo.workspaces));
   // The showcase draws the board as it opens, on Issues; the review tabs are the clients' to switch to.
   const board = byId.get('task-board');
   board.html = withoutWhen(withoutWhen(withoutWhen(board.html, 'devTab'), 'pmTab'), 'repoList');
@@ -285,11 +286,16 @@ function taskBoard(demo) {
   const sections = [
     ['In progress', demo.working, task => queuedRow(task, demo.names, 'Stop', 'aun-btn aun-btn--danger', false)],
     ['Queue', demo.waiting, task => queuedRow(task, demo.names, 'Dequeue', 'aun-btn aun-btn--danger', true)],
-    ['Open issues', demo.offered, issue => `
+    ['Open issues', demo.offered, issue => {
+      const login = issue.assigneeLogin;
+      const face = login ? `<span class="aun-avatar aun-avatar--sm">${esc(initialsOf(login))}</span>` : '';
+      return `
       <div class="aun-task-row">
+        ${face}
         <span class="aun-task-row__body"><span class="aun-task-row__title">${esc(`#${issue.number} · ${issue.title}`)}</span></span>
         <button class="aun-btn aun-btn--primary" type="button">Queue</button>
-      </div>`],
+      </div>`;
+    }],
   ];
   const groups = sections.filter(([, items]) => items.length).map(([label, items, row]) => `
     <div class="aun-group">
@@ -300,12 +306,15 @@ function taskBoard(demo) {
 }
 
 function queuedRow(task, names, action, buttonClass, grip) {
-  const holder = task.heldByWorkspaceId ? names.get(task.heldByWorkspaceId) : null;
+  const holderId = task.heldByWorkspaceId || task.targetWorkspaceId;
+  const holder = holderId ? names.get(holderId) : null;
   const who = holder ? `<span class="aun-task-row__agent">${esc(holder)}</span>` : '';
+  const face = holder ? `<span class="aun-avatar aun-avatar--sm">${esc(initialsOf(holder))}</span>` : '';
   const handle = grip ? '<span class="aun-task__grip" aria-hidden="true"><span></span><span></span><span></span></span>' : '';
   return `
     <div class="aun-task-row">
       ${handle}
+      ${face}
       <span class="aun-task-row__body">
         <span class="aun-task-row__title">${esc(`#${task.number} · ${task.title}`)}</span>
         ${who}
@@ -313,6 +322,17 @@ function queuedRow(task, names, action, buttonClass, grip) {
       </span>
       <button class="${buttonClass}" type="button">${esc(action)}</button>
     </div>`;
+}
+
+function accessAvatars(workspaces) {
+  return workspaces.map(workspace => `<span class="aun-avatar aun-avatar--sm">${esc(initialsOf(workspace.displayName))}</span>`).join('');
+}
+
+function initialsOf(name) {
+  const parts = String(name ?? '').split(/[\s\-_]+/).filter(Boolean);
+  if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+  const trimmed = String(name ?? '');
+  return (trimmed.length >= 2 ? trimmed.slice(0, 2) : trimmed).toUpperCase();
 }
 
 

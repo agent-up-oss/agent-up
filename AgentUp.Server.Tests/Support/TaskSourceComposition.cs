@@ -13,6 +13,7 @@ internal static class TaskSourceComposition
         return new TaskSourceController(new TaskSourceService(
             new MemoryTaskSourceCredentialStore(),
             packages,
-            new EmptyTaskSourceTeam()));
+            new EmptyTaskSourceTeam(),
+            new EmptyTaskSourceIdentities()));
     }
 }

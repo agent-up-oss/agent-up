@@ -371,8 +371,8 @@ public sealed class AgentWorkspacePaneTests
         var window = await LaunchDemoCommandCenterAsync();
         var center = ((MainViewModel)window.DataContext!).CommandCenter!;
         var source = center.TaskSource!;
-        await WaitAsync(() => source.IsConnected("github"));
-        Assert.That(source.IsConnected("github"), Is.True, source.Error);
+        await WaitAsync(() => source.IsConnected("bob", "github"));
+        Assert.That(source.IsConnected("bob", "github"), Is.True, source.Error);
         center.ShowNav(1);
         await HeadlessExtensions.FlushAsync();
         await WaitAsync(() => ButtonTexts(window).Any(text => text.Contains("example/repository")));
@@ -386,15 +386,15 @@ public sealed class AgentWorkspacePaneTests
         await window.ClickControlAsync(VisibleButtonNamed(window, "Back"));
         center.ShowNav(2);
         await HeadlessExtensions.FlushAsync();
-        await WaitAsync(() => source.IsConnected("github") && ButtonTexts(window).Contains("Forget"));
+        await WaitAsync(() => source.IsConnected("bob", "github") && ButtonTexts(window).Contains("Forget"));
         await window.ClickControlAsync(VisibleButtonNamed(window, "Forget"));
-        await WaitAsync(() => !source.IsConnected("github"));
+        await WaitAsync(() => !source.IsConnected("bob", "github"));
         await window.ClickControlAsync(VisibleButtonNamed(window, "Forgejo"));
         await WaitAsync(() => TabSelected(window, "Forgejo"));
 
         Assert.Multiple(() =>
         {
-            Assert.That(source.IsConnected("github"), Is.False);
+            Assert.That(source.IsConnected("bob", "github"), Is.False);
             Assert.That(TabSelected(window, "Forgejo"), Is.True);
             Assert.That(center.SceneId, Is.EqualTo("settings"));
         });
@@ -407,24 +407,24 @@ public sealed class AgentWorkspacePaneTests
         var window = await LaunchDemoCommandCenterAsync();
         var center = ((MainViewModel)window.DataContext!).CommandCenter!;
         var source = center.TaskSource!;
-        await WaitAsync(() => source.IsConnected("github"));
+        await WaitAsync(() => source.IsConnected("bob", "github"));
         center.ShowNav(2);
         await HeadlessExtensions.FlushAsync();
-        await WaitAsync(() => source.IsConnected("github") && ButtonTexts(window).Contains("Forget"));
+        await WaitAsync(() => source.IsConnected("bob", "github") && ButtonTexts(window).Contains("Forget"));
         await window.ClickControlAsync(VisibleButtonNamed(window, "Forget"));
-        await WaitAsync(() => !source.IsConnected("github"));
+        await WaitAsync(() => !source.IsConnected("bob", "github"));
         await window.ClickControlAsync(VisibleButtonNamed(window, "Forgejo"));
         await WaitAsync(() => TabSelected(window, "Forgejo"));
         await HeadlessExtensions.FlushAsync();
         UrlBox(window).Text = "https://git.example.test";
         PasswordBox(window).Text = "forgejo-token";
         await window.ClickControlAsync(VisibleButtonNamed(window, "Save"));
-        await WaitAsync(() => source.IsConnected("forgejo"));
+        await WaitAsync(() => source.IsConnected("bob", "forgejo"));
 
         Assert.Multiple(() =>
         {
-            Assert.That(source.IsConnected("github"), Is.False, source.Error);
-            Assert.That(source.IsConnected("forgejo"), Is.True, source.Error);
+            Assert.That(source.IsConnected("bob", "github"), Is.False, source.Error);
+            Assert.That(source.IsConnected("bob", "forgejo"), Is.True, source.Error);
             Assert.That(TabSelected(window, "Forgejo"), Is.True);
         });
         window.Close();

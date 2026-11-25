@@ -81,6 +81,7 @@ export type FakeOfferedIssue = {
   createdAt: string;
   updatedAt: string;
   url: string;
+  assigneeLogin?: string | null;
 };
 
 export function cloneDefinition(definition: FakeServerDefinition): FakeServerDefinition {

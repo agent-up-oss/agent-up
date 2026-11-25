@@ -87,8 +87,23 @@ public sealed class ForgejoApiProvider(HttpMessageHandler? handler = null, strin
                 issue.TryGetProperty("body", out var body) ? body.GetString() ?? "" : "",
                 issue.GetProperty("created_at").GetDateTimeOffset(),
                 issue.GetProperty("updated_at").GetDateTimeOffset(),
-                issue.GetProperty("html_url").GetString() ?? ""))
+                issue.GetProperty("html_url").GetString() ?? "",
+                FirstAssigneeLogin(issue)))
             .ToArray();
+    }
+
+    /// <summary>The one assignee the Tasks page draws. Forgejo can name several; we take the first.</summary>
+    private static string? FirstAssigneeLogin(JsonElement issue)
+    {
+        if (!issue.TryGetProperty("assignees", out var assignees) || assignees.ValueKind != JsonValueKind.Array)
+            return null;
+        foreach (var user in assignees.EnumerateArray())
+        {
+            if (user.TryGetProperty("login", out var name) && name.GetString() is { Length: > 0 } listed)
+                return listed;
+        }
+
+        return null;
     }
 
     private static bool HasAssignee(JsonElement issue, string login)

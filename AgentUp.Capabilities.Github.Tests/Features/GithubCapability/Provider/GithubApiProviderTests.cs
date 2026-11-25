@@ -253,6 +253,7 @@ public sealed class GithubApiProviderTests
 
         Assert.That(issues.Single().Number, Is.EqualTo(3));
         Assert.That(issues.Single().Id, Is.EqualTo("7"));
+        Assert.That(issues.Single().AssigneeLogin, Is.EqualTo("bob"));
     }
 
     [Test]
@@ -802,7 +803,7 @@ public sealed class GithubApiProviderTests
     // here is a real issue, and the first carries the pull_request member that marks it.
     private const string RepositoryIssues = """
         [{"id":9,"number":5,"title":"A proposal","body":"","created_at":"2026-01-03T00:00:00Z","updated_at":"2026-01-04T00:00:00Z","html_url":"https://github.com/acme/widgets/pull/5","pull_request":{"url":"https://api.github.com/repos/acme/widgets/pulls/5"}},
-         {"id":7,"number":3,"title":"Restock","body":"do it","created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-02T00:00:00Z","html_url":"https://github.com/acme/widgets/issues/3"}]
+         {"id":7,"number":3,"title":"Restock","body":"do it","created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-02T00:00:00Z","html_url":"https://github.com/acme/widgets/issues/3","assignee":{"login":"bob"}}]
         """;
 
     /// <summary>One issue with no body member and a null title and URL, and one whose body is null.</summary>

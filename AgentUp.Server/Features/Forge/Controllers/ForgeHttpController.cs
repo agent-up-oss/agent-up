@@ -25,7 +25,8 @@ public sealed class ForgeHttpController(ForgeController forge) : ControllerBase
             issue.Body,
             issue.CreatedAt,
             issue.UpdatedAt,
-            issue.Url)));
+            issue.Url,
+            issue.AssigneeLogin)));
     }
 
     [HttpPost("login")]

@@ -20,7 +20,7 @@ public sealed class CommandCenterTaskSourceBoardTests
         {
             Repositories =
             [
-                new TaskSourceRepository("github", "example", "repository"),
+                new TaskSourceRepository("github", "example", "repository", [new TaskSourceMember("bob", "Bob", "BO")]),
                 new TaskSourceRepository("forgejo", "acme", "widgets"),
             ],
         }));
@@ -31,6 +31,7 @@ public sealed class CommandCenterTaskSourceBoardTests
         {
             Assert.That(slots[0].Id, Is.EqualTo("github/example/repository"));
             Assert.That(slots[0].Host, Is.EqualTo("GitHub"));
+            Assert.That(slots[0].Members!.Single().Initials, Is.EqualTo("BO"));
             Assert.That(slots[1].Host, Is.EqualTo("Forgejo"));
             Assert.That(slots[1].Name, Is.EqualTo("acme/widgets"));
         });
@@ -61,11 +62,14 @@ public sealed class CommandCenterTaskSourceBoardTests
         var board = new CommandCenterTaskSourceBoard();
         board.ShowForgeTab("forgejo");
         board.ShowForgeTab("");
+        board.ShowAuthTab("bob");
+        board.ShowAuthTab("");
         board.ShowTasksTab("dev");
 
         Assert.Multiple(() =>
         {
             Assert.That(board.ForgeTab, Is.EqualTo("forgejo"));
+            Assert.That(board.AuthTab, Is.EqualTo("bob"));
             Assert.That(board.TasksTab, Is.EqualTo("dev"));
         });
     }
@@ -78,9 +82,9 @@ public sealed class CommandCenterTaskSourceBoardTests
             Queue =
             [
                 Queued("1", 1) with { HeldByWorkspaceId = "ws-bob" },
-                Queued("2", 2),
+                Queued("2", 2) with { TargetWorkspaceId = "ws-frank" },
             ],
-            RepositoryIssues = [new OfferedIssue("57", 57, "From the repository", "u")],
+            RepositoryIssues = [new OfferedIssue("57", 57, "From the repository", "u", "hector")],
         };
         var queue = Queue(api);
         queue.SelectRepository("github", "example", "repository");
@@ -88,12 +92,18 @@ public sealed class CommandCenterTaskSourceBoardTests
         var board = new CommandCenterTaskSourceBoard();
         board.OpenRepository("github/example/repository", queue);
 
-        var rows = board.TasksOf(queue, [TeamStandingComposition.Standing(workspaceId: "ws-bob", displayName: "Bob")]);
+        var rows = board.TasksOf(queue, [
+            TeamStandingComposition.Standing(workspaceId: "ws-bob", displayName: "Bob"),
+            TeamStandingComposition.Standing(workspaceId: "ws-frank", displayName: "Frank"),
+        ]);
 
         Assert.Multiple(() =>
         {
             Assert.That(rows.Select(row => row.Action), Is.EqualTo(new[] { "stop", "dequeue", "queue" }));
             Assert.That(rows[0].Agent, Is.EqualTo("Bob"));
+            Assert.That(rows[0].Initials, Is.EqualTo("BO"));
+            Assert.That(rows[1].Initials, Is.EqualTo("FR"));
+            Assert.That(rows[2].Initials, Is.EqualTo("HE"));
             Assert.That(board.TasksOf(null, []), Is.Empty);
         });
     }
@@ -110,13 +120,14 @@ public sealed class CommandCenterTaskSourceBoardTests
             ["save-token"] = "secret-token",
         };
 
-        await board.SaveTokenAsync(source, fields, null);
-        await board.ForgetTokenAsync(source);
+        board.ShowAuthTab("bob");
+        await board.SaveTokenAsync(source, "bob", fields, null);
+        await board.ForgetTokenAsync(source, "bob");
 
         Assert.Multiple(() =>
         {
-            Assert.That(api.Saved, Is.EqualTo(("github", "https://github.com", "secret-token")));
-            Assert.That(api.Forgotten, Is.EqualTo("github"));
+            Assert.That(api.Saved, Is.EqualTo(("bob", "github", "https://github.com", "secret-token")));
+            Assert.That(api.Forgotten, Is.EqualTo("bob"));
         });
     }
 
@@ -126,9 +137,9 @@ public sealed class CommandCenterTaskSourceBoardTests
         var api = new FakeTaskSourceApi();
         var board = new CommandCenterTaskSourceBoard();
 
-        await board.SaveTokenAsync(Source(api), new Dictionary<string, string>(), "  ");
-        await board.SaveTokenAsync(null, null, "token");
-        await board.ForgetTokenAsync(null);
+        await board.SaveTokenAsync(Source(api), "bob", new Dictionary<string, string>(), "  ");
+        await board.SaveTokenAsync(null, "bob", null, "token");
+        await board.ForgetTokenAsync(null, "bob");
 
         Assert.That(api.Saved, Is.Null);
     }
@@ -214,8 +225,15 @@ public sealed class CommandCenterTaskSourceBoardTests
 
     private static TaskSource Connected(bool github = true) => new(
     [
-        new TaskSourceModule("github", "GitHub", github, github ? "Reading." : "Paste a token.", github ? "https://github.com" : null),
-        new TaskSourceModule("forgejo", "Forgejo", false, "Enable Forgejo."),
+        new TaskSourceIdentity(
+            "bob",
+            "Bob",
+            "BO",
+            github ? "github" : null,
+            github,
+            github ? "Reading." : "Paste a token.",
+            github ? "https://github.com" : null),
+        new TaskSourceIdentity("frank", "Frank", "FR", null, false, "Enable Forgejo."),
     ]);
 
     private sealed class FakeTaskSourceApi : ITaskSourceApiProvider
@@ -228,7 +246,7 @@ public sealed class CommandCenterTaskSourceBoardTests
 
         public Exception? PullsFailure { get; set; }
 
-        public (string Module, string Endpoint, string Token)? Saved { get; private set; }
+        public (string Workspace, string Module, string Endpoint, string Token)? Saved { get; private set; }
 
         public string? Forgotten { get; private set; }
 
@@ -240,16 +258,21 @@ public sealed class CommandCenterTaskSourceBoardTests
             return Task.FromResult(State);
         }
 
-        public Task<TaskSource?> SaveAsync(string moduleId, string endpointUrl, string token, CancellationToken cancellationToken)
+        public Task<TaskSource?> SaveAsync(
+            string workspaceId,
+            string moduleId,
+            string endpointUrl,
+            string token,
+            CancellationToken cancellationToken)
         {
-            Saved = (moduleId, endpointUrl, token);
+            Saved = (workspaceId, moduleId, endpointUrl, token);
             State = Connected();
             return Task.FromResult<TaskSource?>(State);
         }
 
-        public Task<TaskSource?> ForgetAsync(string moduleId, CancellationToken cancellationToken)
+        public Task<TaskSource?> ForgetAsync(string workspaceId, CancellationToken cancellationToken)
         {
-            Forgotten = moduleId;
+            Forgotten = workspaceId;
             State = Connected(false);
             return Task.FromResult<TaskSource?>(State);
         }

@@ -12,7 +12,7 @@ public sealed class TaskSourceController(TaskSourceService source)
     public Task<TaskSourceOutcome> SaveAsync(SaveTaskSourceTokenRequest request, CancellationToken cancellationToken)
         => source.SaveAsync(request, cancellationToken);
 
-    public TaskSourceDto Clear(string? moduleId) => source.Clear(moduleId);
+    public TaskSourceDto Clear(string? workspaceId) => source.Clear(workspaceId);
 
     public Task<IReadOnlyList<TaskSourceRepositoryDto>> ListRepositoriesAsync(CancellationToken cancellationToken)
         => source.ListRepositoriesAsync(cancellationToken);

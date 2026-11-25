@@ -879,10 +879,10 @@ test('new UI screens pair desktop and mobile instead of a chip per surface', asy
   assert.match(phoneApp.html, /aria-label="Run"/);
   assert.doesNotMatch(phoneApp.html, /au-mobile-tab-bar/);
   assert.doesNotMatch(phoneApp.html, /au-validation-glyph/);
-  assert.match(scenes.find(item => item.id === 'settings').html, />Forge connection</);
+  assert.match(scenes.find(item => item.id === 'settings').html, />Auth</);
   assert.match(scenes.find(item => item.id === 'settings').html, />Capabilities</);
   assert.doesNotMatch(scenes.find(item => item.id === 'settings').html, />Login</);
-  assert.match(scenes.find(item => item.id === 'mobile-settings').html, />Forge connection</);
+  assert.match(scenes.find(item => item.id === 'mobile-settings').html, />Auth</);
   assert.match(scenes.find(item => item.id === 'mobile-settings').html, />Capabilities</);
   assert.doesNotMatch(scenes.find(item => item.id === 'mobile-settings').html, />Login</);
   assert.doesNotMatch(scenes.find(item => item.id === 'team').html, />Capabilities</);

@@ -3562,7 +3562,8 @@
         "body": "",
         "createdAt": "2026-03-01T08:00:00Z",
         "updatedAt": "2026-03-02T08:00:00Z",
-        "url": "https://github.com/example/repository/issues/57"
+        "url": "https://github.com/example/repository/issues/57",
+        "assigneeLogin": "bob"
       },
       {
         "id": "I-58",
@@ -3618,7 +3619,8 @@
         "body": "",
         "createdAt": "2026-03-01T08:00:00Z",
         "updatedAt": "2026-03-02T08:00:00Z",
-        "url": "https://github.com/example/repository/issues/57"
+        "url": "https://github.com/example/repository/issues/57",
+        "assigneeLogin": "bob"
       },
       {
         "id": "I-58",
@@ -3674,7 +3676,8 @@
         "body": "",
         "createdAt": "2026-03-01T08:00:00Z",
         "updatedAt": "2026-03-02T08:00:00Z",
-        "url": "https://github.com/example/repository/issues/57"
+        "url": "https://github.com/example/repository/issues/57",
+        "assigneeLogin": "bob"
       },
       {
         "id": "I-58",

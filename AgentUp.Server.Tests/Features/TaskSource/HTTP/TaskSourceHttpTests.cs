@@ -22,7 +22,7 @@ public sealed class TaskSourceHttpTests
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
     [Test]
-    public async Task Get_listsBothHostsAndDoesNotIncludeAToken()
+    public async Task Get_listsEachTeamMemberAndDoesNotIncludeAToken()
     {
         await using var host = await HostAsync();
 
@@ -31,7 +31,7 @@ public sealed class TaskSourceHttpTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(source!.Modules.Select(module => module.ModuleId), Is.EqualTo(new[] { "github", "forgejo" }));
+            Assert.That(source!.Identities.Select(identity => identity.WorkspaceId), Is.EqualTo(new[] { "bob" }));
             Assert.That(body, Does.Not.Contain("secret-token"));
         });
     }
@@ -41,16 +41,17 @@ public sealed class TaskSourceHttpTests
     {
         await using var host = await HostAsync();
 
-        var response = await host.Client.PutAsJsonAsync("/api/task-source", new SaveTaskSourceTokenRequest("github", "https://github.com", "secret-token"), Json);
+        var response = await host.Client.PutAsJsonAsync("/api/task-source", new SaveTaskSourceTokenRequest("bob", "github", "https://github.com", "secret-token"), Json);
         var body = await response.Content.ReadAsStringAsync();
 
         Assert.Multiple(() =>
         {
             Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
             Assert.That(body, Does.Not.Contain("secret-token"));
-            Assert.That(host.Credentials.Read("github")?.Token, Is.EqualTo("secret-token"));
-            Assert.That(host.Credentials.Read("github")?.EndpointUrl, Is.EqualTo("https://github.com"));
+            Assert.That(host.Credentials.Read("bob")?.Token, Is.EqualTo("secret-token"));
+            Assert.That(host.Credentials.Read("bob")?.EndpointUrl, Is.EqualTo("https://github.com"));
             Assert.That(body, Does.Contain("\"endpointUrl\":\"https://github.com\""));
+            Assert.That(body, Does.Contain("\"workspaceId\":\"bob\""));
         });
     }
 
@@ -59,14 +60,14 @@ public sealed class TaskSourceHttpTests
     {
         await using var host = await HostAsync();
 
-        var response = await host.Client.PutAsJsonAsync("/api/task-source", new SaveTaskSourceTokenRequest("github", " ", "secret-token"), Json);
+        var response = await host.Client.PutAsJsonAsync("/api/task-source", new SaveTaskSourceTokenRequest("bob", "github", " ", "secret-token"), Json);
         var body = await response.Content.ReadAsStringAsync();
 
         Assert.Multiple(() =>
         {
             Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Conflict));
             Assert.That(body, Does.Contain("host URL"));
-            Assert.That(host.Credentials.Read("github"), Is.Null);
+            Assert.That(host.Credentials.Read("bob"), Is.Null);
         });
     }
 
@@ -75,51 +76,51 @@ public sealed class TaskSourceHttpTests
     {
         await using var host = await HostAsync(new ForgeTokenAccess(true, false, "The token cannot read pull requests."));
 
-        var response = await host.Client.PutAsJsonAsync("/api/task-source", new SaveTaskSourceTokenRequest("github", "https://github.com", "narrow"), Json);
+        var response = await host.Client.PutAsJsonAsync("/api/task-source", new SaveTaskSourceTokenRequest("bob", "github", "https://github.com", "narrow"), Json);
         var body = await response.Content.ReadAsStringAsync();
 
         Assert.Multiple(() =>
         {
             Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.Conflict));
             Assert.That(body, Does.Contain("pull requests"));
-            Assert.That(host.Credentials.Read("github"), Is.Null);
+            Assert.That(host.Credentials.Read("bob"), Is.Null);
         });
     }
 
     [Test]
-    public async Task Delete_forgetsOneHost()
+    public async Task Delete_forgetsOneMember()
     {
         await using var host = await HostAsync();
-        host.Credentials.Write("github", new TaskSourceCredential("github-token", "https://github.com"));
-        host.Credentials.Write("forgejo", new TaskSourceCredential("forgejo-token", "https://git.example.test"));
+        host.Credentials.Write("bob", new TaskSourceCredential("github-token", "https://github.com", "github"));
+        host.Credentials.Write("frank", new TaskSourceCredential("forgejo-token", "https://git.example.test", "forgejo"));
 
-        var response = await host.Client.DeleteAsync("/api/task-source/github");
+        var response = await host.Client.DeleteAsync("/api/task-source/bob");
 
         Assert.Multiple(() =>
         {
             Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-            Assert.That(host.Credentials.Read("github"), Is.Null);
-            Assert.That(host.Credentials.Read("forgejo")?.Token, Is.EqualTo("forgejo-token"));
+            Assert.That(host.Credentials.Read("bob"), Is.Null);
+            Assert.That(host.Credentials.Read("frank")?.Token, Is.EqualTo("forgejo-token"));
         });
     }
 
     [Test]
-    public async Task Delete_forgetsEveryHost()
+    public async Task Delete_forgetsEveryMember()
     {
         await using var host = await HostAsync();
-        host.Credentials.Write("github", new TaskSourceCredential("github-token", "https://github.com"));
+        host.Credentials.Write("bob", new TaskSourceCredential("github-token", "https://github.com", "github"));
 
         var response = await host.Client.DeleteAsync("/api/task-source");
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
-        Assert.That(host.Credentials.Read("github"), Is.Null);
+        Assert.That(host.Credentials.Read("bob"), Is.Null);
     }
 
     [Test]
     public async Task Get_repositoriesAndIssuesAndPullsUseTheStoredToken()
     {
         await using var host = await HostAsync();
-        host.Credentials.Write("github", new TaskSourceCredential("token", "https://github.com"));
+        host.Credentials.Write("bob", new TaskSourceCredential("token", "https://github.com", "github"));
 
         var repositories = await host.Client.GetFromJsonAsync<TaskSourceRepositoryDto[]>("/api/task-source/repositories", Json);
         var issues = await host.Client.GetFromJsonAsync<JsonElement>(
@@ -130,7 +131,9 @@ public sealed class TaskSourceHttpTests
         Assert.Multiple(() =>
         {
             Assert.That(repositories!.Single().Name, Is.EqualTo("widgets"));
+            Assert.That(repositories.Single().Members!.Single().WorkspaceId, Is.EqualTo("bob"));
             Assert.That(issues.GetArrayLength(), Is.EqualTo(1));
+            Assert.That(issues[0].GetProperty("assigneeLogin").GetString(), Is.EqualTo("bob"));
             Assert.That(pulls!.Single().Reviews.Single().Standing, Is.EqualTo("reviewing"));
         });
     }
@@ -147,11 +150,12 @@ public sealed class TaskSourceHttpTests
         {
             TokenAccess = access ?? new ForgeTokenAccess(true, true, null),
             Repositories = [new ForgeRepository("acme", "widgets")],
-            Issues = [new ForgeIssue("I-7", 7, "Cart badge", "", DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch, "https://example.test/7")],
+            Issues = [new ForgeIssue("I-7", 7, "Cart badge", "", DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch, "https://example.test/7", "bob")],
             PullRequests = [new ForgePullRequest("42", 42, "Product cards", "https://example.test/42", ["hector"], [])],
         };
         builder.Services.AddSingleton<IEnabledCapabilityPackages>(new FakeEnabledCapabilityPackages().WithForges(forge));
         builder.Services.AddSingleton<ITaskSourceCredentialStore>(credentials);
+        builder.Services.AddSingleton<ITaskSourceIdentities>(new FixedTaskSourceIdentities(new TaskSourcePerson("bob", "Bob")));
         builder.Services.AddSingleton<ITaskSourceTeam>(new FixedTeam());
         builder.Services.AddSingleton<TaskSourceService>();
         builder.Services.AddSingleton<TaskSourceController>();

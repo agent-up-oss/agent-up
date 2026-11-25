@@ -63,6 +63,7 @@ public sealed class CommandCenterSceneTests
         {
             Assert.That(binding.Items["queue"].Single().Action, Is.EqualTo("dequeue"));
             Assert.That(binding.Items["queue"].Single().Text["agent"], Is.EqualTo("Bob"));
+            Assert.That(binding.Items["queue"].Single().Parts, Does.Not.Contain("assignee"));
             Assert.That(binding.Items["flows"].Single().Text["name"], Is.EqualTo("Checkout featured goods"));
             Assert.That(binding.State.ContainsKey("open"), Is.True);
             Assert.That(binding.State.ContainsKey("running"), Is.True);
@@ -182,6 +183,50 @@ public sealed class CommandCenterSceneTests
             Assert.That(flow.Parts, Does.Contain("play"));
             Assert.That(stage.Text["label"], Is.EqualTo("Starting page"));
             Assert.That(stage.Items["checks"].Single().Text["label"], Is.EqualTo("Title is Harbor Shop Orders"));
+        });
+    }
+
+    [Test]
+    public void One_assignee_is_the_round_initials_on_the_task_row()
+    {
+        var binding = CommandCenterScene.Bind(Input([],
+            tasks: [new CommandCenterTaskSlot("task-1", "#45 · Deliver", "shop/store", "Bob", "dequeue", "BO")]));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(binding.Items["queue"].Single().Parts, Does.Contain("assignee"));
+            Assert.That(binding.Items["queue"].Single().Text["initials"], Is.EqualTo("BO"));
+        });
+    }
+
+    [Test]
+    public void Auth_tabs_are_one_per_team_member_and_the_open_repository_names_who_can_see_it()
+    {
+        var binding = CommandCenterScene.Bind(Input(
+        [
+            TeamStandingComposition.Standing(displayName: "Bob", workspaceId: "bob"),
+            TeamStandingComposition.Standing(displayName: "Frank", workspaceId: "frank"),
+        ], sceneId: "settings") with
+        {
+            AuthTab = "frank",
+            OpenRepository = "example/repository",
+            Repositories =
+            [
+                new CommandCenterRepositorySlot(
+                    "github/example/repository",
+                    "example/repository",
+                    "GitHub",
+                    [new CommandCenterMemberSlot("bob", "Bob", "BO"), new CommandCenterMemberSlot("frank", "Frank", "FR")]),
+            ],
+        });
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(binding.Items["authMembers"].Select(item => item.Text["name"]), Is.EqualTo(new[] { "Bob", "Frank" }));
+            Assert.That(binding.Items["authMembers"].Single(item => item.Id == "frank").State, Is.EqualTo("au-app-tab--selected"));
+            Assert.That(binding.State["authTab"], Is.EqualTo("frank"));
+            Assert.That(binding.Items["access"].Select(item => item.Text["initials"]), Is.EqualTo(new[] { "BO", "FR" }));
+            Assert.That(binding.Items["repos"].Single().Items["access"].Select(item => item.Text["initials"]), Is.EqualTo(new[] { "BO", "FR" }));
         });
     }
 

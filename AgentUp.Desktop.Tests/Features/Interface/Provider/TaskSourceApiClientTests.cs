@@ -11,15 +11,16 @@ public sealed class TaskSourceApiClientTests
     public async Task ReadAsync_readsWhereTheWorkComesFrom()
     {
         var handler = Returning("""
-            {"modules":[{"moduleId":"github","displayName":"GitHub","connected":true,"detail":"Reading repositories.","endpointUrl":"https://github.com"}]}
+            {"identities":[{"workspaceId":"bob","displayName":"Bob","initials":"BO","moduleId":"github","connected":true,"detail":"Reading repositories.","endpointUrl":"https://github.com"}]}
             """);
 
         var source = await new TaskSourceApiClient(Client(handler)).ReadAsync(CancellationToken.None);
 
         Assert.Multiple(() =>
         {
-            Assert.That(source!.Modules.Single().Connected, Is.True);
-            Assert.That(source.Modules.Single().EndpointUrl, Is.EqualTo("https://github.com"));
+            Assert.That(source!.Identities.Single().Connected, Is.True);
+            Assert.That(source.Identities.Single().EndpointUrl, Is.EqualTo("https://github.com"));
+            Assert.That(source.Identities.Single().Initials, Is.EqualTo("BO"));
             Assert.That(handler.Requests.Single(), Is.EqualTo("GET api/task-source"));
         });
     }
@@ -27,16 +28,17 @@ public sealed class TaskSourceApiClientTests
     [Test]
     public async Task SaveAsync_putsTheTokenAndDoesNotKeepItInTheAnswer()
     {
-        var handler = Returning("""{"modules":[{"moduleId":"github","displayName":"GitHub","connected":true,"detail":"Reading."}]}""");
+        var handler = Returning("""{"identities":[{"workspaceId":"bob","displayName":"Bob","initials":"BO","moduleId":"github","connected":true,"detail":"Reading."}]}""");
 
-        var source = await new TaskSourceApiClient(Client(handler)).SaveAsync("github", "https://github.com", "secret-token", CancellationToken.None);
+        var source = await new TaskSourceApiClient(Client(handler)).SaveAsync("bob", "github", "https://github.com", "secret-token", CancellationToken.None);
 
         Assert.Multiple(() =>
         {
             Assert.That(handler.Requests.Single(), Is.EqualTo("PUT api/task-source"));
+            Assert.That(handler.Bodies.Single(), Does.Contain("\"workspaceId\":\"bob\""));
             Assert.That(handler.Bodies.Single(), Does.Contain("\"token\":\"secret-token\""));
             Assert.That(handler.Bodies.Single(), Does.Contain("\"endpointUrl\":\"https://github.com\""));
-            Assert.That(source!.Modules.Single().Detail, Does.Not.Contain("secret-token"));
+            Assert.That(source!.Identities.Single().Detail, Does.Not.Contain("secret-token"));
         });
     }
 
@@ -47,7 +49,7 @@ public sealed class TaskSourceApiClientTests
             """{"title":"Task source","detail":"The token cannot read pull requests."}""",
             HttpStatusCode.Conflict)));
 
-        var error = await Assert.ThrowsAsync<HttpRequestException>(() => client.SaveAsync("github", "https://github.com", "narrow", CancellationToken.None));
+        var error = await Assert.ThrowsAsync<HttpRequestException>(() => client.SaveAsync("bob", "github", "https://github.com", "narrow", CancellationToken.None));
 
         Assert.That(error!.Message, Does.Contain("pull requests"));
     }
@@ -55,14 +57,14 @@ public sealed class TaskSourceApiClientTests
     [Test]
     public async Task ForgetAsync_forgetsOneHost()
     {
-        var handler = Returning("""{"modules":[{"moduleId":"github","displayName":"GitHub","connected":false,"detail":""}]}""");
+        var handler = Returning("""{"identities":[{"workspaceId":"bob","displayName":"Bob","initials":"BO","connected":false,"detail":""}]}""");
 
-        var source = await new TaskSourceApiClient(Client(handler)).ForgetAsync("github", CancellationToken.None);
+        var source = await new TaskSourceApiClient(Client(handler)).ForgetAsync("bob", CancellationToken.None);
 
         Assert.Multiple(() =>
         {
-            Assert.That(source!.Modules.Single().Connected, Is.False);
-            Assert.That(handler.Requests.Single(), Is.EqualTo("DELETE api/task-source/github"));
+            Assert.That(source!.Identities.Single().Connected, Is.False);
+            Assert.That(handler.Requests.Single(), Is.EqualTo("DELETE api/task-source/bob"));
         });
     }
 
@@ -114,7 +116,7 @@ public sealed class TaskSourceApiClientTests
             HttpStatusCode.ServiceUnavailable)));
 
         var error = await Assert.ThrowsAsync<HttpRequestException>(() =>
-            client.SaveAsync("github", "https://github.com", "token", CancellationToken.None));
+            client.SaveAsync("bob", "github", "https://github.com", "token", CancellationToken.None));
 
         Assert.That(error!.Message, Does.Contain("Could not reach GitHub"));
     }
@@ -125,7 +127,7 @@ public sealed class TaskSourceApiClientTests
         var client = new TaskSourceApiClient(Client(Returning("""{"title":"Task source"}""", HttpStatusCode.Conflict)));
 
         var error = await Assert.ThrowsAsync<HttpRequestException>(() =>
-            client.SaveAsync("github", "https://github.com", "token", CancellationToken.None));
+            client.SaveAsync("bob", "github", "https://github.com", "token", CancellationToken.None));
 
         Assert.That(error!.Message, Does.Contain("409"));
     }
@@ -136,7 +138,7 @@ public sealed class TaskSourceApiClientTests
         var client = new TaskSourceApiClient(Client(Returning("not-json", HttpStatusCode.Conflict)));
 
         var error = await Assert.ThrowsAsync<HttpRequestException>(() =>
-            client.SaveAsync("github", "https://github.com", "token", CancellationToken.None));
+            client.SaveAsync("bob", "github", "https://github.com", "token", CancellationToken.None));
 
         Assert.That(error!.Message, Does.Contain("409"));
     }

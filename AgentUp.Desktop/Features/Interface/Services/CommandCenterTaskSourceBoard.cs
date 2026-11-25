@@ -8,9 +8,12 @@ namespace AgentUp.Desktop.Features.Interface.Services;
 /// <summary>
 /// The Tasks page's forge connections and the repository currently open on that page.
 /// The view holds one of these and applies it; it does not decide the rows or the host URL.
+/// Each team member has their own token; the board remembers which member's Auth tab is open.
 /// </summary>
 public sealed class CommandCenterTaskSourceBoard
 {
+    public string AuthTab { get; private set; } = "";
+
     public string ForgeTab { get; private set; } = "github";
 
     public string TasksTab { get; private set; } = "issues";
@@ -39,7 +42,17 @@ public sealed class CommandCenterTaskSourceBoard
         => Repositories.Select(repository => new CommandCenterRepositorySlot(
             $"{repository.ModuleId}/{repository.Owner}/{repository.Name}",
             $"{repository.Owner}/{repository.Name}",
-            repository.ModuleId == "forgejo" ? "Forgejo" : "GitHub")).ToArray();
+            repository.ModuleId == "forgejo" ? "Forgejo" : "GitHub",
+            (repository.Members ?? []).Select(member => new CommandCenterMemberSlot(
+                member.WorkspaceId,
+                member.DisplayName,
+                member.Initials)).ToArray())).ToArray();
+
+    public void ShowAuthTab(string? id)
+    {
+        if (!string.IsNullOrEmpty(id))
+            AuthTab = id;
+    }
 
     public void ShowForgeTab(string? id)
     {
@@ -79,11 +92,21 @@ public sealed class CommandCenterTaskSourceBoard
         var repo = $"{OpenOwner}/{OpenName}";
         bool Mine(string label) => string.Equals(label, repo, StringComparison.OrdinalIgnoreCase);
         string Holder(string? id) => team.FirstOrDefault(standing => standing.WorkspaceId == id)?.DisplayName ?? "";
+        string Face(string? workspaceId, string? login = null)
+        {
+            var name = workspaceId is { Length: > 0 } ? Holder(workspaceId) : null;
+            var source = name is { Length: > 0 } ? name : login;
+            return source is { Length: > 0 } ? TaskSourceMember.InitialsFrom(source) : "";
+        }
+
         return
         [
-            .. tasks.Working.Where(row => Mine(row.RepositoryLabel)).Select(row => new CommandCenterTaskSlot(row.Id, row.TaskLabel, row.RepositoryLabel, Holder(row.HeldByWorkspaceId), "stop")),
-            .. tasks.Queue.Where(row => Mine(row.RepositoryLabel)).Select(row => new CommandCenterTaskSlot(row.Id, row.TaskLabel, row.RepositoryLabel, "", "dequeue")),
-            .. tasks.Offered.Select((row, index) => new CommandCenterTaskSlot(index.ToString(), row.IssueLabel, repo, "", "queue")),
+            .. tasks.Working.Where(row => Mine(row.RepositoryLabel)).Select(row => new CommandCenterTaskSlot(
+                row.Id, row.TaskLabel, row.RepositoryLabel, Holder(row.HeldByWorkspaceId), "stop", Face(row.HeldByWorkspaceId))),
+            .. tasks.Queue.Where(row => Mine(row.RepositoryLabel)).Select(row => new CommandCenterTaskSlot(
+                row.Id, row.TaskLabel, row.RepositoryLabel, "", "dequeue", Face(row.TargetWorkspaceId))),
+            .. tasks.Offered.Select((row, index) => new CommandCenterTaskSlot(
+                index.ToString(), row.IssueLabel, repo, "", "queue", Face(null, row.AssigneeLogin))),
         ];
     }
 
@@ -99,21 +122,22 @@ public sealed class CommandCenterTaskSourceBoard
 
     public async Task SaveTokenAsync(
         TaskSourceViewModel? source,
+        string workspaceId,
         IReadOnlyDictionary<string, string>? fields,
         string? text)
     {
         var (token, endpoint) = CommandCenterScene.TokenSave(fields, text);
-        if (source is null || token.Length == 0)
+        if (source is null || workspaceId.Length == 0 || token.Length == 0)
             return;
-        await source.SaveAsync(ForgeTab, endpoint, token);
+        await source.SaveAsync(workspaceId, ForgeTab, endpoint, token);
         Repositories = source.Repositories;
     }
 
-    public async Task ForgetTokenAsync(TaskSourceViewModel? source)
+    public async Task ForgetTokenAsync(TaskSourceViewModel? source, string workspaceId)
     {
-        if (source is null)
+        if (source is null || workspaceId.Length == 0)
             return;
-        await source.ForgetAsync(ForgeTab);
+        await source.ForgetAsync(workspaceId);
         Repositories = source.Repositories;
     }
 

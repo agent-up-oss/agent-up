@@ -54,7 +54,7 @@
       </aside>
     </article>
 
-    <article data-au-component="settings-panel" data-au-title="Settings panel" data-au-note="Interface switch, forge connection, capability modules, and chat. Each group has the same small headline." data-au-avalonia="Border" data-au-class="aun-settings">
+    <article data-au-component="settings-panel" data-au-title="Settings panel" data-au-note="Interface switch, per-member auth, capability modules, and chat. Each group has the same small headline. Auth is one tab per team member: that member's own host URL and personal access token." data-au-avalonia="Border" data-au-class="aun-settings">
       <div class="aun-settings">
         <div class="aun-group">
           <div data-au-use="section-label" data-au-props="label=Interface"></div>
@@ -66,23 +66,33 @@
           </div>
         </div>
         <div class="aun-group">
-          <div data-au-use="section-label" data-au-props="label=Forge connection"></div>
-          <div class="au-cluster">
-            <button class="au-app-tab au-app-tab--selected" type="button" data-au-action="forge-tab" data-au-id="github" data-au-selection="forgeTab:github:au-app-tab--selected">GitHub</button>
-            <button class="au-app-tab" type="button" data-au-action="forge-tab" data-au-id="forgejo" data-au-selection="forgeTab:forgejo:au-app-tab--selected">Forgejo</button>
+          <div data-au-use="section-label" data-au-props="label=Auth"></div>
+          <div class="au-cluster" data-au-slot="authMembers" data-au-repeat="auth-member">
+            <button class="au-app-tab au-app-tab--selected" type="button">Bob</button>
+            <button class="au-app-tab" type="button">Frank</button>
+            <button class="au-app-tab" type="button">Hector</button>
+            <button class="au-app-tab" type="button">Lucy</button>
+            <button class="au-app-tab" type="button">Mia</button>
           </div>
-          <p class="aun-faint" data-au-text="forgeDetail">Paste the host URL and a personal access token. GitHub.com is https://github.com. A Forgejo instance is the origin you sign in at. The token needs access to repositories and pull requests, so Agent-Up can list every repository and read which reviews each pull request still needs.</p>
-          <div class="aun-settings__list">
-            <div class="aun-settings__row">
-              <input class="aun-input" type="url" placeholder="https://git.example.com" data-au-action="forge-endpoint" data-au-text="forgeEndpoint" />
+          <p class="aun-faint" data-au-empty="authMembers">Add a workspace to give a team member their own access token.</p>
+          <div data-au-when="authMember">
+            <div class="au-cluster">
+              <button class="au-app-tab au-app-tab--selected" type="button" data-au-action="forge-tab" data-au-id="github" data-au-selection="forgeTab:github:au-app-tab--selected">GitHub</button>
+              <button class="au-app-tab" type="button" data-au-action="forge-tab" data-au-id="forgejo" data-au-selection="forgeTab:forgejo:au-app-tab--selected">Forgejo</button>
             </div>
-            <div class="aun-settings__row">
-              <input class="aun-input" type="password" placeholder="Personal access token" data-au-action="save-token" />
-              <button class="aun-btn aun-btn--primary" type="button" data-au-action="save-token">Save</button>
-            </div>
-            <div class="aun-settings__row" data-au-when="forgeConnected">
-              <span class="aun-settings__name">Connected</span>
-              <button class="aun-btn" type="button" data-au-action="forget-token">Forget</button>
+            <p class="aun-faint" data-au-text="forgeDetail">Paste the host URL and a personal access token for this team member. GitHub.com is https://github.com. A Forgejo instance is the origin you sign in at. The token needs access to repositories and pull requests, so Agent-Up can list every repository this member can see.</p>
+            <div class="aun-settings__list">
+              <div class="aun-settings__row">
+                <input class="aun-input" type="url" placeholder="https://git.example.com" data-au-action="forge-endpoint" data-au-text="forgeEndpoint" />
+              </div>
+              <div class="aun-settings__row">
+                <input class="aun-input" type="password" placeholder="Personal access token" data-au-action="save-token" />
+                <button class="aun-btn aun-btn--primary" type="button" data-au-action="save-token">Save</button>
+              </div>
+              <div class="aun-settings__row" data-au-when="forgeConnected">
+                <span class="aun-settings__name">Connected</span>
+                <button class="aun-btn" type="button" data-au-action="forget-token">Forget</button>
+              </div>
             </div>
           </div>
         </div>
@@ -155,6 +165,14 @@
 
     <article data-au-component="settings-workspace" data-au-title="Settings workspace" data-au-note="One workspace in Settings · Chat. The selected tab is the workspace whose agent and unattended loop are shown." data-au-avalonia="Button" data-au-class="au-app-tab">
       <button class="au-app-tab" type="button" data-au-kind="1" data-au-action="settings-workspace" data-au-text="name"></button>
+    </article>
+
+    <article data-au-component="auth-member" data-au-title="Auth member" data-au-note="One team member in Settings · Auth. The selected tab is the member whose host URL and access token are shown." data-au-avalonia="Button" data-au-class="au-app-tab">
+      <button class="au-app-tab" type="button" data-au-kind="1" data-au-action="auth-member" data-au-selection="authTab:@id:au-app-tab--selected" data-au-text="name"></button>
+    </article>
+
+    <article data-au-component="member-avatar" data-au-title="Member avatar" data-au-note="A round banner for one team member. Initials stand in until a portrait is stored." data-au-avalonia="Border" data-au-class="aun-avatar">
+      <span class="aun-avatar aun-avatar--sm" data-au-text="initials">BO</span>
     </article>
 
     <article data-au-component="settings-field" data-au-title="Settings field" data-au-note="One chat property. Its control is greyed when the value cannot be changed. Nested rows are that property's own fields." data-au-avalonia="Border" data-au-class="aun-settings__field" data-au-parts="control">
@@ -300,17 +318,24 @@
       </div>
     </article>
 
-    <article data-au-component="task-board" data-au-title="Task board" data-au-note="Repositories first, then one repository's three queues. Issues is that repository's queue. Dev review and PM review are inferred from its open pull requests. Desktop keeps the page title; the phone puts that title in its head." data-au-avalonia="Border" data-au-class="aun-task-board" data-au-parts="title">
+    <article data-au-component="task-board" data-au-title="Task board" data-au-note="Repositories first, then one repository's three queues. The open repository names who on the team can see it, as round initials. Issues is that repository's queue. Dev review and PM review are inferred from its open pull requests. Desktop keeps the page title; the phone puts that title in its head." data-au-avalonia="Border" data-au-class="aun-task-board" data-au-parts="title">
       <div class="aun-task-board">
         <div data-au-part="title" data-au-use="page-title" data-au-props="title=Tasks"></div>
         <div data-au-when="repoList">
           <div class="aun-group" data-au-slot="repos" data-au-repeat="task-repo"></div>
-          <p class="aun-faint" data-au-empty="repos">No repositories yet. Save a personal access token in Settings, on GitHub or Forgejo. It needs access to issues and pull requests.</p>
+          <p class="aun-faint" data-au-empty="repos">No repositories yet. Save a personal access token on a team member in Settings · Auth. It needs access to issues and pull requests.</p>
         </div>
         <div data-au-when="repoOpen">
           <div class="au-cluster">
             <button class="aun-btn" type="button" data-au-action="tasks-back">Back</button>
             <span class="aun-settings__name" data-au-text="repository">example/repository</span>
+            <span class="au-cluster aun-task-access" data-au-demo="access" data-au-slot="access" data-au-repeat="member-avatar">
+              <span class="aun-avatar aun-avatar--sm">BO</span>
+              <span class="aun-avatar aun-avatar--sm">FR</span>
+              <span class="aun-avatar aun-avatar--sm">HE</span>
+              <span class="aun-avatar aun-avatar--sm">LU</span>
+              <span class="aun-avatar aun-avatar--sm">MI</span>
+            </span>
           </div>
           <div class="au-cluster aun-task-tabs" role="tablist">
             <button class="au-app-tab au-app-tab--selected" type="button" data-au-action="tasks-issues" data-au-selection="tasksTab:issues:au-app-tab--selected">Issues</button>
@@ -432,20 +457,22 @@
       </div>
     </article>
 
-    <article data-au-component="task-repo" data-au-title="Task repository" data-au-note="One repository the stored token can see. Choosing it opens that repository's queues." data-au-avalonia="Border" data-au-class="aun-task-slot">
+    <article data-au-component="task-repo" data-au-title="Task repository" data-au-note="One repository any team member's token can see. Choosing it opens that repository's queues. The round banners are the members who can see it." data-au-avalonia="Border" data-au-class="aun-task-slot">
       <button class="aun-task-row" type="button" data-au-action="open-repo">
         <span class="aun-task-row__body">
           <span class="aun-task-row__title" data-au-text="name">example/repository</span>
           <span class="aun-task-row__repo" data-au-text="host">GitHub</span>
         </span>
+        <span class="au-cluster aun-task-access" data-au-slot="access" data-au-repeat="member-avatar"></span>
       </button>
     </article>
 
-    <article data-au-component="task-row" data-au-title="Task row" data-au-note="One task on the board. The first row of a group carries that group's label. A review row names its reviewer and revision and has no button: reviewers take reviews themselves. Dequeue, stop, and queue are the same button; the client names which action this row runs and the tone it takes: danger to take work away, primary to give it." data-au-avalonia="Border" data-au-class="aun-task-slot" data-au-parts="section agent" data-au-actions="dequeue queue stop">
+    <article data-au-component="task-row" data-au-title="Task row" data-au-note="One task on the board. The first row of a group carries that group's label. A review row names its reviewer and revision and has no button: reviewers take reviews themselves. Dequeue, stop, and queue are the same button; the client names which action this row runs and the tone it takes: danger to take work away, primary to give it. One assignee, when there is one, is the round initials on the row." data-au-avalonia="Border" data-au-class="aun-task-slot" data-au-parts="section agent assignee" data-au-actions="dequeue queue stop">
       <div class="aun-task-slot">
         <p class="au-field-label aun-task-slot__section" data-au-part="section" data-au-text="section">Queue · 2</p>
         <div class="aun-task-row" data-au-actions="queue stop">
           <span class="aun-task__grip" data-au-for="dequeue" aria-hidden="true"><span></span><span></span><span></span></span>
+          <span class="aun-avatar aun-avatar--sm" data-au-part="assignee" data-au-text="initials"></span>
           <span class="aun-task-row__body">
             <span class="aun-task-row__title" data-au-text="title"></span>
             <span class="aun-task-row__agent" data-au-part="agent" data-au-text="agent"></span>

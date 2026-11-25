@@ -41,6 +41,8 @@ export type OfferedIssue = {
   number: number;
   title: string;
   url: string;
+  /** The host's one assignee login, when the issue names one. */
+  assigneeLogin?: string | null;
 };
 
 /** How a row names the task, as the queue and the host both label it. */

@@ -127,6 +127,11 @@ public partial class CommandCenterView : UserControl
         PlaceChatSettings(center);
         var swapped = PlaceSceneSurfaces(center, main);
         var team = center.Bridge?.Team.Select(row => row.Standing).ToArray() ?? [];
+        if (string.IsNullOrEmpty(_board.AuthTab))
+        {
+            var connected = center.TaskSource?.Identities.FirstOrDefault(identity => identity.Connected)?.WorkspaceId;
+            _board.ShowAuthTab(connected ?? team.FirstOrDefault()?.WorkspaceId);
+        }
         var running = main.Validation?.Flows.FirstOrDefault(flow => flow.IsRunning);
         var passed = running is null && _runningFlowId is not null
             && main.Validation?.Flows.FirstOrDefault(flow => flow.Flow.Id == _runningFlowId)?.RunState
@@ -164,9 +169,10 @@ public partial class CommandCenterView : UserControl
             _board.RepositorySlots(),
             _board.OpenRepositoryLabel,
             _board.ForgeTab,
-            center.TaskSource?.DetailFor(_board.ForgeTab) ?? "",
-            center.TaskSource?.EndpointFor(_board.ForgeTab) ?? CommandCenterScene.PrefillEndpoint(_board.ForgeTab, null),
-            center.TaskSource?.IsConnected(_board.ForgeTab) == true));
+            center.TaskSource?.DetailFor(_board.AuthTab, _board.ForgeTab) ?? "",
+            center.TaskSource?.EndpointFor(_board.AuthTab, _board.ForgeTab) ?? CommandCenterScene.PrefillEndpoint(_board.ForgeTab, null),
+            center.TaskSource?.IsConnected(_board.AuthTab, _board.ForgeTab) == true,
+            _board.AuthTab));
         binding.State["chatSettings"] = "1";
         var stamp = Stamp(center.SceneId, binding);
         if (stamp == _applied) return;
@@ -405,6 +411,10 @@ public partial class CommandCenterView : UserControl
             case "open-workspace":
                 Open(center, action.Id);
                 break;
+            case "auth-member":
+                _board.ShowAuthTab(action.Id);
+                Apply();
+                break;
             case "forge-tab":
                 _board.ShowForgeTab(action.Id);
                 Apply();
@@ -560,13 +570,13 @@ public partial class CommandCenterView : UserControl
 
     private async Task SaveTokenAsync(CommandCenterViewModel center, NewUiActionEventArgs action)
     {
-        await _board.SaveTokenAsync(center.TaskSource, action.Fields, action.Text);
+        await _board.SaveTokenAsync(center.TaskSource, _board.AuthTab, action.Fields, action.Text);
         Apply();
     }
 
     private async Task ForgetTokenAsync(CommandCenterViewModel center)
     {
-        await _board.ForgetTokenAsync(center.TaskSource);
+        await _board.ForgetTokenAsync(center.TaskSource, _board.AuthTab);
         Apply();
     }
 
