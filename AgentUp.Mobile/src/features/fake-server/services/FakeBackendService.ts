@@ -182,6 +182,7 @@ export class FakeBackendService {
   private loopGeneration = 0;
   private autonomyEnabled = false;
   private readonly permissionPolicies = new Map<string, unknown[]>();
+  private readonly memberKinds = new Map<string, string>();
   /** Messages sent while the Demo run plays, keyed by workspace; present only while it plays. */
   private readonly steering = new Map<string, string[]>();
   private cancelLifecycle: (() => void) | null = null;
@@ -213,7 +214,10 @@ export class FakeBackendService {
     this.agentSequence = 0;
     this.autonomyEnabled = false;
     this.permissionPolicies.clear();
+    this.memberKinds.clear();
     this.loopGeneration += 1;
+    this.tokens.clear();
+    this.tokens.set('bob', { module: 'github', endpoint: 'https://github.com', token: 'demo' });
     this.hydrate();
   }
 
@@ -318,6 +322,8 @@ export class FakeBackendService {
     if (method === 'GET' && rest.startsWith('git/file')) return this.gitDiff(workspaceId, request.query);
     if (method === 'POST' && rest.startsWith('git/')) return this.gitMutation(workspaceId, rest.slice('git/'.length), request.body);
     if (method === 'GET' && rest === 'agent/loop') return this.agentLoop(workspaceId);
+    if (method === 'GET' && rest === 'agent/member') return this.memberKind(workspaceId);
+    if (method === 'PUT' && rest === 'agent/member') return this.setMemberKind(workspaceId, request.body);
     if (method === 'GET' && rest === 'agent/autonomy') return json(this.autonomyStatus(workspaceId));
     if (method === 'GET' && rest === 'agent/policy') return json({ rules: this.permissionPolicies.get(workspaceId) ?? [] });
     if (method === 'PUT' && rest === 'agent/policy') {
@@ -476,11 +482,19 @@ export class FakeBackendService {
     if (method === 'GET' && (rest === '' || rest === '/')) return json(this.describeSource());
 
     if (method === 'PUT') {
-      const asked = body ? (JSON.parse(body) as { moduleId?: string; token?: string; endpointUrl?: string }) : {};
+      const asked = body ? (JSON.parse(body) as {
+        workspaceId?: string;
+        moduleId?: string;
+        token?: string;
+        endpointUrl?: string;
+      }) : {};
+      const workspaceId = asked.workspaceId?.trim() ?? '';
       const moduleId = asked.moduleId?.trim() ?? '';
       const token = asked.token?.trim() ?? '';
       const endpointUrl = asked.endpointUrl?.trim() ?? '';
-      if ((moduleId !== 'github' && moduleId !== 'forgejo')
+      const member = this.people().find(person => person.id === workspaceId);
+      if (!member
+        || (moduleId !== 'github' && moduleId !== 'forgejo')
         || token.length === 0
         || token === 'denied'
         || !looksLikeHostUrl(endpointUrl)) {
@@ -490,42 +504,26 @@ export class FakeBackendService {
           body: JSON.stringify({ title: 'Task source', detail: 'The token needs access to repositories and pull requests.' }),
         };
       }
-      if (moduleId === 'github') {
-        this.githubToken = token;
-        this.githubEndpoint = endpointUrl.replace(/\/+$/, '');
-      } else {
-        this.forgejoToken = token;
-        this.forgejoEndpoint = endpointUrl.replace(/\/+$/, '');
-      }
+      this.tokens.set(workspaceId, {
+        module: moduleId,
+        endpoint: endpointUrl.replace(/\/+$/, ''),
+        token,
+      });
       return json(this.describeSource());
     }
 
     if (method === 'DELETE' && (rest === '' || rest === '/')) {
-      this.githubToken = null;
-      this.githubEndpoint = null;
-      this.forgejoToken = null;
-      this.forgejoEndpoint = null;
+      this.tokens.clear();
       return json(this.describeSource());
     }
 
     if (method === 'DELETE' && rest.length > 1) {
-      const moduleId = decodeURIComponent(rest.slice(1));
-      if (moduleId === 'github') {
-        this.githubToken = null;
-        this.githubEndpoint = null;
-      }
-      if (moduleId === 'forgejo') {
-        this.forgejoToken = null;
-        this.forgejoEndpoint = null;
-      }
+      this.tokens.delete(decodeURIComponent(rest.slice(1)));
       return json(this.describeSource());
     }
 
     if (method === 'GET' && rest.startsWith('/repositories')) {
-      const listed = [];
-      if (this.githubToken) listed.push({ moduleId: 'github', owner: 'example', name: 'repository' });
-      if (this.forgejoToken) listed.push({ moduleId: 'forgejo', owner: 'example', name: 'repository' });
-      return json(listed);
+      return json(this.repositories());
     }
 
     if (method === 'GET' && rest.startsWith('/issues')) {
@@ -547,29 +545,64 @@ export class FakeBackendService {
   }
 
   private describeSource() {
-    const module = (id: string, name: string, connected: boolean, endpoint: string | null) => ({
-      moduleId: id,
-      displayName: name,
-      connected,
-      detail: connected
-        ? `Reading repositories and pull requests from ${name} at ${endpoint}.`
-        : 'Paste the host URL and a personal access token. It needs access to repositories and pull requests.',
-      endpointUrl: endpoint,
-    });
     return {
-      modules: [
-        module('github', 'GitHub', this.githubToken !== null, this.githubEndpoint),
-        module('forgejo', 'Forgejo', this.forgejoToken !== null, this.forgejoEndpoint),
-      ],
+      identities: this.people().map(person => {
+        const stored = this.tokens.get(person.id);
+        return {
+          workspaceId: person.id,
+          displayName: person.name,
+          initials: initialsOf(person.name),
+          moduleId: stored?.module ?? null,
+          connected: stored != null,
+          detail: stored
+            ? `Reading repositories and pull requests from ${stored.module === 'forgejo' ? 'Forgejo' : 'GitHub'} at ${stored.endpoint}.`
+            : `Paste the host URL and a personal access token for ${person.name}. It needs access to repositories and pull requests.`,
+          endpointUrl: stored?.endpoint ?? null,
+        };
+      }),
     };
   }
 
-  private githubToken: string | null = 'demo';
-  private githubEndpoint: string | null = 'https://github.com';
-  private forgejoToken: string | null = null;
-  private forgejoEndpoint: string | null = null;
+  private repositories() {
+    const listed = new Map<string, {
+      moduleId: string;
+      owner: string;
+      name: string;
+      members: { workspaceId: string; displayName: string; initials: string }[];
+    }>();
+    for (const [workspaceId, stored] of this.tokens) {
+      const person = this.people().find(item => item.id === workspaceId);
+      const key = `${stored.module}/example/repository`;
+      const repo = listed.get(key) ?? {
+        moduleId: stored.module,
+        owner: 'example',
+        name: 'repository',
+        members: [],
+      };
+      if (!repo.members.some(member => member.workspaceId === workspaceId)) {
+        repo.members.push({
+          workspaceId,
+          displayName: person?.name ?? workspaceId,
+          initials: initialsOf(person?.name ?? workspaceId),
+        });
+      }
+      listed.set(key, repo);
+    }
+    return [...listed.values()];
+  }
+
+  private people(): { id: string; name: string }[] {
+    return (this.state.workspaces as Array<{ id?: string; displayName?: string }>)
+      .filter(workspace => workspace.id)
+      .map(workspace => ({ id: workspace.id as string, name: workspace.displayName ?? workspace.id as string }));
+  }
+
+  private tokens = new Map<string, { module: string; endpoint: string; token: string }>([
+    ['bob', { module: 'github', endpoint: 'https://github.com', token: 'demo' }],
+  ]);
+
   private get anyForgeConnected() {
-    return this.githubToken !== null || this.forgejoToken !== null;
+    return this.tokens.size > 0;
   }
 
   private decisions(): FakeProductDecision[] {
@@ -668,7 +701,7 @@ export class FakeBackendService {
     // No workspace named means the Server's task source, which the Demo reads from the first
     // workspace's repository, the same place GET /api/task-source/issues reads.
     const workspaceId = named
-      ?? (this.githubToken ? (this.state.workspaces[0] as { id?: string } | undefined)?.id : undefined);
+      ?? (this.anyForgeConnected ? (this.state.workspaces[0] as { id?: string } | undefined)?.id : undefined);
     if (!workspaceId) return notFound();
 
     const issue = (this.state.issues?.[workspaceId] ?? []).find(item => item.id === issueId);
@@ -835,6 +868,21 @@ export class FakeBackendService {
       return json(result);
     }
     return json({ found: true, succeeded: true, error: null });
+  }
+
+  private memberKind(workspaceId: string) {
+    if (!this.findWorkspace(workspaceId)) return notFound();
+    return json({ kind: this.memberKinds.get(workspaceId) ?? 'Author' });
+  }
+
+  private setMemberKind(workspaceId: string, body: string | null) {
+    if (!this.findWorkspace(workspaceId)) return notFound();
+    const kind = readJsonString(body, 'kind')?.trim();
+    if (kind !== 'Author' && kind !== 'DevReviewer' && kind !== 'PmReviewer') {
+      return { status: 409, contentType: 'application/json', body: JSON.stringify({ detail: 'Choose Author, Dev reviewer, or PM reviewer.' }) };
+    }
+    this.memberKinds.set(workspaceId, kind);
+    return json({ kind });
   }
 
   private autonomyStatus(workspaceId?: string) {
@@ -1499,6 +1547,13 @@ function looksLikeHostUrl(endpoint: string): boolean {
   } catch {
     return false;
   }
+}
+
+function initialsOf(name: string): string {
+  const parts = String(name ?? '').split(/[\s\-_]+/).filter(Boolean);
+  if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+  const trimmed = String(name ?? '');
+  return (trimmed.length >= 2 ? trimmed.slice(0, 2) : trimmed).toUpperCase();
 }
 
 type ValidationFlowRecord = {

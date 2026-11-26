@@ -1,6 +1,7 @@
 import type { QueuedTask, OfferedIssue, ReviewKind } from '../models/TaskQueue';
 import { reviewLine, reviewQueue } from './ReviewQueueProvider';
 import { issueLabel, repositoryLabel, taskLabel } from '../models/TaskQueue';
+import { memberInitials } from '../models/TaskSource';
 import type { TeamStanding, TeamStandingKind } from '../models/TeamStanding';
 
 export type SceneSlotItem = {
@@ -37,7 +38,7 @@ export type CommandCenterModuleSlot = {
 export type CommandCenterSceneInput = {
   surface: 'desktop' | 'mobile';
   nav: 0 | 1 | 2;
-  section: 'overview' | 'chat' | 'git' | 'files' | 'file' | 'application';
+  section: 'overview' | 'chat' | 'git' | 'files' | 'file' | 'settings' | 'application';
   agentOpen: boolean;
   serverLabel: string;
   openWorkspaceId: string | null;
@@ -56,15 +57,20 @@ export type CommandCenterSceneInput = {
   tasksTab?: TasksTab;
   /** The repository the Tasks page has opened. Empty shows the repository list. */
   repository?: string | null;
-  repositories?: { id: string; name: string; host: string }[];
+  repositories?: { id: string; name: string; host: string; members?: { id: string; name: string; initials: string }[] }[];
   pulls?: { id: string; number: number; title: string; reviews: { kind: string; standing: string; login?: string | null; verdict?: string | null }[] }[];
   forgeTab?: string;
+  authTab?: string;
   forgeDetail?: string;
   forgeEndpoint?: string;
   forgeConnected?: boolean;
+  memberKind?: string;
+  boundAgent?: string | null;
+  agentEndpoint?: string;
+  agentModel?: string;
   flows: CommandCenterFlowSlot[];
   modules?: CommandCenterModuleSlot[];
-  /** Settings · Chat: the team as tabs, and the selected workspace's agent and loop fields. */
+  /** Member Settings: the autonomous toggle and this member's agents. */
   chat?: { workspaces: SceneSlotItem[]; fields: SceneSlotItem[] };
   validationsOpen: boolean;
   validationRunning: boolean;
@@ -97,6 +103,7 @@ export function commandCenterSceneId(input: Pick<CommandCenterSceneInput, 'nav' 
   if (input.section === 'files') return 'mobile-agent-files';
   if (input.section === 'file') return 'mobile-agent-file';
   if (input.section === 'application') return 'mobile-application';
+  if (input.section === 'settings') return 'mobile-agent-settings';
   return 'mobile-agent-overview';
 }
 
@@ -114,6 +121,8 @@ export function commandCenterScene(input: CommandCenterSceneInput): CommandCente
     repository: input.repository ?? '',
     forgeDetail: input.forgeDetail ?? '',
     forgeEndpoint: input.forgeEndpoint ?? '',
+    agentEndpoint: input.agentEndpoint ?? '',
+    agentModel: input.agentModel ?? '',
   };
   const state: Record<string, string> = {
     selected: scene === 'mobile-tasks' ? '1' : scene === 'mobile-settings' ? '2' : '0',
@@ -122,10 +131,18 @@ export function commandCenterScene(input: CommandCenterSceneInput): CommandCente
   state.tasksTab = tab;
   state[`${tab}Tab`] = '1';
   state.forgeTab = input.forgeTab ?? 'github';
+  const authTab = input.authTab || input.team[0]?.workspaceId || '';
+  if (authTab) {
+    state.authTab = authTab;
+    state.authMember = '1';
+  }
   if (input.forgeConnected) state.forgeConnected = '1';
+  state.memberKind = input.memberKind || 'Author';
+  if (input.boundAgent === 'opencode') state.opencodeSettings = '1';
+  if (input.boundAgent === 'ollama') state.ollamaSettings = '1';
   if (input.repository) state.repoOpen = '1';
   else state.repoList = '1';
-  if (input.chat && input.chat.workspaces.length > 0) state.chatSettings = '1';
+  if (input.chat && input.chat.fields.length > 0) state.chatSettings = '1';
   if (input.validationsOpen) state.open = '1';
   if (input.validationRunning) state.running = '1';
   if (input.validationPassed) state.passed = '1';
@@ -136,10 +153,25 @@ export function commandCenterScene(input: CommandCenterSceneInput): CommandCente
     items: {
       fleet: lanes(input.team),
       queue: tasks(input),
+      authMembers: input.team.map(standing => ({
+        id: standing.workspaceId,
+        state: standing.workspaceId === authTab ? 'au-app-tab--selected' : undefined,
+        text: { name: standing.displayName },
+      })),
+      access: (input.repositories ?? [])
+        .find(repository => repository.name === (input.repository ?? ''))
+        ?.members
+        ?.map(member => ({ id: member.id, text: { initials: member.initials } })) ?? [],
       repos: (input.repositories ?? []).map(repository => ({
         id: repository.id,
         action: 'open-repo',
         text: { name: repository.name, host: repository.host },
+        items: {
+          access: (repository.members ?? []).map(member => ({
+            id: member.id,
+            text: { initials: member.initials },
+          })),
+        },
       })),
       devReview: reviews(input, 'devReviewer'),
       pmReview: reviews(input, 'pmReviewer'),
@@ -209,10 +241,15 @@ function tasks(input: CommandCenterSceneInput): SceneSlotItem[] {
   const open = input.repository;
   const working = open ? input.working.filter(task => repositoryLabel(task) === open) : input.working;
   const queue = open ? input.queue.filter(task => repositoryLabel(task) === open) : input.queue;
+  const face = (workspaceId: string | null, login?: string | null) => {
+    const named = workspaceId ? input.names.get(workspaceId) : undefined;
+    const source = named || login || '';
+    return source ? memberInitials(source) : '';
+  };
   return [
-    ...working.map(task => row(task.id, 'stop', taskLabel(task), repositoryLabel(task), name(task.heldByWorkspaceId))),
-    ...queue.map(task => row(task.id, 'dequeue', taskLabel(task), repositoryLabel(task), name(task.heldByWorkspaceId))),
-    ...input.offered.map(issue => row(issue.id, 'queue', issueLabel(issue), open ?? '', '')),
+    ...working.map(task => row(task.id, 'stop', taskLabel(task), repositoryLabel(task), name(task.heldByWorkspaceId), face(task.heldByWorkspaceId))),
+    ...queue.map(task => row(task.id, 'dequeue', taskLabel(task), repositoryLabel(task), name(task.heldByWorkspaceId), face(task.heldByWorkspaceId || task.targetWorkspaceId))),
+    ...input.offered.map(issue => row(issue.id, 'queue', issueLabel(issue), open ?? '', '', face(null, issue.assigneeLogin))),
   ];
 }
 
@@ -238,8 +275,11 @@ function pullRows(input: CommandCenterSceneInput, kind: ReviewKind): SceneSlotIt
   )));
 }
 
-function row(id: string, action: string, title: string, repo: string, agent: string): SceneSlotItem {
-  return { id, action, parts: agent ? ['agent'] : [], text: { title, repo, agent } };
+function row(id: string, action: string, title: string, repo: string, agent: string, initials = ''): SceneSlotItem {
+  const parts: string[] = [];
+  if (agent) parts.push('agent');
+  if (initials) parts.push('assignee');
+  return { id, action, parts, text: { title, repo, agent, initials } };
 }
 
 /** The short status a capability whose software is missing shows on its button. */
@@ -263,6 +303,18 @@ export function tokenSave(
   return {
     token: (fields?.['save-token'] ?? text ?? '').trim(),
     endpointUrl: (fields?.['forge-endpoint'] ?? '').trim(),
+  };
+}
+
+/** Endpoint, model, and optional token for OpenCode or the in-process PM agent. */
+export function agentSettingSave(
+  fields?: Record<string, string>,
+  text?: string,
+): { endpoint: string; model: string; token: string } {
+  return {
+    endpoint: (fields?.['agent-endpoint'] ?? '').trim(),
+    model: (fields?.['agent-model'] ?? '').trim(),
+    token: (fields?.['save-agent-settings'] ?? text ?? '').trim(),
   };
 }
 

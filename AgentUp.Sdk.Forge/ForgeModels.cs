@@ -58,7 +58,8 @@ public sealed record ForgeIssue(
     string Body,
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt,
-    string Url);
+    string Url,
+    string? AssigneeLogin = null);
 
 public sealed record ForgeOpenProposalCommand(string Title, string Body, string HeadRef, string BaseRef);
 

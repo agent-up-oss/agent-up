@@ -1,6 +1,7 @@
 using AgentUp.Desktop.Features.Agents.DTOs;
 using AgentUp.Desktop.Features.Agents.Interfaces;
 using AgentUp.Desktop.Features.Agents.Services;
+using AgentUp.Desktop.Tests.Features.Agents.Headless;
 using System.Runtime.CompilerServices;
 
 namespace AgentUp.Desktop.Tests.Features.Agents.Unit;
@@ -47,13 +48,27 @@ public sealed class AgentChatServiceTests
         await service.PutAutonomyAsync(true, CancellationToken.None);
         await service.PutLoopActivationAsync("ws-1", true, CancellationToken.None);
         await service.GetLoopAsync("ws-1", CancellationToken.None);
+        var member = await service.GetMemberAsync("ws-1", CancellationToken.None);
+        var saved = await service.PutMemberAsync("ws-1", "DevReviewer", CancellationToken.None);
 
         Assert.Multiple(() =>
         {
             Assert.That(provider.AutonomyEnabled, Is.True);
             Assert.That(provider.LoopActivation, Is.EqualTo(("ws-1", true)));
             Assert.That(provider.LoopReads, Is.EqualTo("ws-1"));
+            Assert.That(member!.Kind, Is.EqualTo("Author"));
+            Assert.That(saved!.Kind, Is.EqualTo("DevReviewer"));
+            Assert.That(provider.MemberKind, Is.EqualTo("DevReviewer"));
         });
+    }
+
+    [Test]
+    public async Task DefaultMemberRoutes_returnNullUntilAProviderImplementsThem()
+    {
+        IAgentApiProvider provider = new StreamApiFake();
+
+        Assert.That(await provider.GetMemberAsync("ws-1", CancellationToken.None), Is.Null);
+        Assert.That(await provider.PutMemberAsync("ws-1", "Author", CancellationToken.None), Is.Null);
     }
 }
 
@@ -80,5 +95,13 @@ internal sealed class FakeAgentApiProvider : IAgentApiProvider
     public Task PutAutonomyAsync(bool enabled, CancellationToken cancellationToken) { AutonomyEnabled = enabled; return Task.CompletedTask; }
     public Task PutLoopActivationAsync(string workspaceId, bool active, CancellationToken cancellationToken) { LoopActivation = (workspaceId, active); return Task.CompletedTask; }
     public Task<AgentLoopStatusDto?> GetLoopAsync(string workspaceId, CancellationToken cancellationToken) { LoopReads = workspaceId; return Task.FromResult<AgentLoopStatusDto?>(null); }
+    public string? MemberKind { get; private set; }
+    public Task<TeamMemberDto?> GetMemberAsync(string workspaceId, CancellationToken cancellationToken)
+        => Task.FromResult<TeamMemberDto?>(new TeamMemberDto("Author"));
+    public Task<TeamMemberDto?> PutMemberAsync(string workspaceId, string kind, CancellationToken cancellationToken)
+    {
+        MemberKind = kind;
+        return Task.FromResult<TeamMemberDto?>(new TeamMemberDto(kind));
+    }
     public async IAsyncEnumerable<AgentEventDto> EventsAsync(string workspaceId, long after, [EnumeratorCancellation] CancellationToken cancellationToken) { await Task.CompletedTask; yield break; }
 }

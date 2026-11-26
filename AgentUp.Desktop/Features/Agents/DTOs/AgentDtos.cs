@@ -86,6 +86,9 @@ public sealed record AutonomyPreconditionDto(string Id, bool Satisfied, string? 
 
 public sealed record ServerAutonomyDto(bool Enabled, IReadOnlyList<AutonomyPreconditionDto> Preconditions);
 
+/// <summary>The kind this workspace plays: Author, DevReviewer, or PmReviewer.</summary>
+public sealed record TeamMemberDto(string Kind);
+
 public sealed record AgentLoopStatusDto(
     bool Active,
     string Phase,

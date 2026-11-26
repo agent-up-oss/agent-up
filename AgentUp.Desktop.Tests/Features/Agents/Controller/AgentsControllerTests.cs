@@ -52,12 +52,17 @@ public sealed class AgentsControllerTests
         await controller.PutAutonomyAsync(true, CancellationToken.None);
         await controller.PutLoopActivationAsync("ws-1", true, CancellationToken.None);
         await controller.GetLoopAsync("ws-1", CancellationToken.None);
+        var loaded = await controller.GetMemberAsync("ws-1", CancellationToken.None);
+        var saved = await controller.PutMemberAsync("ws-1", "PmReviewer", CancellationToken.None);
 
         Assert.Multiple(() =>
         {
             Assert.That(provider.AutonomyEnabled, Is.True);
             Assert.That(provider.LoopActivation, Is.EqualTo(("ws-1", true)));
             Assert.That(provider.LoopReads, Is.EqualTo("ws-1"));
+            Assert.That(loaded!.Kind, Is.EqualTo("Author"));
+            Assert.That(saved!.Kind, Is.EqualTo("PmReviewer"));
+            Assert.That(provider.MemberKind, Is.EqualTo("PmReviewer"));
         });
     }
 }

@@ -20,6 +20,7 @@ import {
   disableCapabilityModule,
   enableCapabilityModule,
   listCapabilityModules,
+  updateCapabilitySettings,
 } from '@/features/capabilities/providers/CapabilityModulesApiProvider';
 import { SceneIcon } from './SceneIcon';
 import { runTaskAction } from '../providers/TaskActionProvider';
@@ -32,14 +33,17 @@ import {
   enableAgentCapability,
   getAgent,
   getAutonomy,
-  putAutonomy,
+  getMember,
   putLoopActivation,
+  putMember,
+  putAutonomy,
   scheduleAgent,
   type AgentSession,
   type ServerAutonomy,
 } from '@agent-up/chat';
 import { chatSettingsFields, settingsWorkspaces } from '../providers/ChatSettingsProvider';
 import {
+  agentSettingSave,
   commandCenterScene,
   commandCenterServerLabel,
   prefillEndpoint,
@@ -50,7 +54,7 @@ import {
 
 const Scene = createNewUiScene(React, { View, Text, Pressable, ScrollView, Icon: SceneIcon, TextInput });
 
-type Section = 'overview' | 'chat' | 'git' | 'files' | 'file' | 'application';
+type Section = 'overview' | 'chat' | 'git' | 'files' | 'file' | 'settings' | 'application';
 
 /**
  * The command center is the generated New UI scene. This host selects that scene and
@@ -72,6 +76,7 @@ function CommandCenterBinder() {
   const { workspaces, refresh } = useWorkspaces();
   const [nav, setNav] = useState<0 | 1 | 2>(0);
   const [tasksTab, setTasksTab] = useState<TasksTab>('issues');
+  const [authTab, setAuthTab] = useState<string | null>(null);
   const [forgeTab, setForgeTab] = useState('github');
   const [openRepo, setOpenRepo] = useState<{ moduleId: string; owner: string; name: string } | null>(null);
   const [repoIssues, setRepoIssues] = useState<OfferedIssue[]>([]);
@@ -89,32 +94,54 @@ function CommandCenterBinder() {
   const [settingsWorkspace, setSettingsWorkspace] = useState<string | null>(null);
   const [chatSession, setChatSession] = useState<AgentSession | null>(null);
   const [chatAutonomy, setChatAutonomy] = useState<ServerAutonomy | null>(null);
+  const [memberKind, setMemberKind] = useState('Author');
   const [chatNonce, setChatNonce] = useState(0);
-  const chatWorkspace = settingsWorkspace ?? standing.team[0]?.workspaceId ?? null;
+  const chatWorkspace = openAgent ?? settingsWorkspace ?? standing.team[0]?.workspaceId ?? null;
+  const authMember = openAgent
+    ?? authTab
+    ?? source.source?.identities?.find(item => item.connected)?.workspaceId
+    ?? standing.team[0]?.workspaceId
+    ?? null;
+  const identity = source.source?.identities?.find(item => item.workspaceId === authMember) ?? null;
+  const memberSettingsOpen = openAgent !== null && section === 'settings';
 
-  // Settings · Chat reads the selected workspace's agent and loop when Settings is shown.
+  // Member Settings reads this workspace's agent, loop, and kind.
   useEffect(() => {
-    if (!activeServer || nav !== 2 || openAgent !== null || !chatWorkspace) return;
+    if (!activeServer || !chatWorkspace || !memberSettingsOpen) return;
     let live = true;
-    Promise.all([getAgent(activeServer, chatWorkspace), getAutonomy(activeServer, chatWorkspace)])
-      .then(([session, autonomy]) => { if (live) { setChatSession(session); setChatAutonomy(autonomy); } })
-      .catch(() => { if (live) { setChatSession(null); setChatAutonomy(null); } });
+    Promise.all([
+      getAgent(activeServer, chatWorkspace),
+      getAutonomy(activeServer, chatWorkspace),
+      getMember(activeServer, chatWorkspace).catch(() => null),
+    ])
+      .then(([session, autonomy, member]) => {
+        if (!live) return;
+        setChatSession(session);
+        setChatAutonomy(autonomy);
+        setMemberKind(member?.kind ?? 'Author');
+      })
+      .catch(() => {
+        if (!live) return;
+        setChatSession(null);
+        setChatAutonomy(null);
+        setMemberKind('Author');
+      });
     return () => { live = false; };
-  }, [activeServer, nav, openAgent, chatWorkspace, chatNonce]);
+  }, [activeServer, chatWorkspace, chatNonce, memberSettingsOpen]);
 
   const changeChat = (change: Promise<unknown>) => {
     void change.catch(() => undefined).finally(() => setChatNonce(current => current + 1));
   };
 
-  // Settings lists the Server's own modules, read when Settings is shown and after every change.
+  // Instance Settings and member Settings both need the Server's modules.
   useEffect(() => {
-    if (!activeServer || nav !== 2 || openAgent !== null) return;
+    if (!activeServer || (nav !== 2 && !memberSettingsOpen)) return;
     let live = true;
     listCapabilityModules(activeServer)
       .then(listed => { if (live) setModules(listed); })
       .catch(() => { if (live) setModules([]); });
     return () => { live = false; };
-  }, [activeServer, nav, openAgent, modulesNonce]);
+  }, [activeServer, nav, memberSettingsOpen, modulesNonce]);
 
   const changeModule = (id: string | null, enable: boolean) => {
     const module = modules.find(item => item.id === id);
@@ -144,7 +171,9 @@ function CommandCenterBinder() {
   const agent = openAgent === null ? null : standing.team.find(item => item.workspaceId === openAgent) ?? null;
   const workspace = agent ? workspaces.find(item => item.id === agent.workspaceId) ?? null : null;
   const applicationName = workspace?.applications?.[0]?.name ?? '';
-
+  const boundAgent = chatSession?.boundAgent ?? null;
+  const boundModule = modules.find(module => module.id === boundAgent);
+  const agentSetting = (key: string) => boundModule?.settings?.find(setting => setting.key === key)?.value ?? '';
 
   const model = commandCenterScene({
     surface: 'mobile',
@@ -167,15 +196,29 @@ function CommandCenterBinder() {
       id: repositoryId(repository),
       name: `${repository.owner}/${repository.name}`,
       host: forgeHostLabel(repository.moduleId),
+      members: (repository.members ?? []).map(member => ({
+        id: member.workspaceId,
+        name: member.displayName,
+        initials: member.initials,
+      })),
     })),
     pulls: openRepo ? pulls : undefined,
+    authTab: authMember ?? '',
     forgeTab,
-    forgeDetail: source.source?.modules.find(module => module.moduleId === forgeTab)?.detail ?? '',
+    forgeDetail: identity && identity.moduleId === forgeTab
+      ? identity.detail
+      : identity
+        ? `Paste the host URL and a personal access token for ${identity.displayName}. It needs access to repositories and pull requests.`
+        : source.error ?? 'Add a workspace to give a team member their own access token.',
     forgeEndpoint: prefillEndpoint(
       forgeTab,
-      source.source?.modules.find(module => module.moduleId === forgeTab)?.endpointUrl,
+      identity?.moduleId === forgeTab ? identity.endpointUrl : null,
     ),
-    forgeConnected: source.source?.modules.some(module => module.moduleId === forgeTab && module.connected) ?? false,
+    forgeConnected: identity?.connected === true && identity.moduleId === forgeTab,
+    memberKind,
+    boundAgent,
+    agentEndpoint: agentSetting('endpoint'),
+    agentModel: agentSetting('model'),
     // The application page carries the client's own dock, which replays a flow for real.
     flows: [],
     modules,
@@ -248,18 +291,23 @@ function CommandCenterBinder() {
     if (name === 'tab-chat') { setSection('chat'); return; }
     if (name === 'tab-git') { setSection('git'); return; }
     if (name === 'tab-files') { setSection('files'); return; }
+    if (name === 'tab-settings') { setSection('settings'); return; }
     if (name === 'tab-application') { setSection('application'); return; }
     if (name === 'open-workspace' && id) { setOpenAgent(id); setSection('overview'); return; }
     if (name === 'logout') { logout(); return; }
     if (name === 'use-classic') { choose('classic'); return; }
     if (name === 'reload') { refresh(); return; }
+    if (name === 'auth-member' && id) { setAuthTab(id); return; }
     if (name === 'forge-tab' && id) { setForgeTab(id); return; }
     if (name === 'save-token') {
       const saved = tokenSave(fields, text);
-      if (saved.token) void source.save(forgeTab, saved.endpointUrl, saved.token);
+      if (saved.token && authMember) void source.save(authMember, forgeTab, saved.endpointUrl, saved.token);
       return;
     }
-    if (name === 'forget-token') { void source.forget(forgeTab); return; }
+    if (name === 'forget-token') {
+      if (authMember) void source.forget(authMember);
+      return;
+    }
     if (name === 'open-repo' && id) {
       const [moduleId, owner, name] = id.split('/');
       if (moduleId && owner && name) setOpenRepo({ moduleId, owner, name });
@@ -278,12 +326,39 @@ function CommandCenterBinder() {
     if (runTaskAction(name, id, tasks)) return;
     if (name === 'settings-workspace' && id) { setSettingsWorkspace(id); return; }
     if (activeServer && chatWorkspace) {
-      if (name === 'enable-autonomy') { changeChat(putAutonomy(activeServer, true)); return; }
+      if (name === 'enable-autonomy' || name === 'toggle-autonomy') {
+        changeChat((async () => {
+          if (chatSession?.loop?.active) {
+            await putLoopActivation(activeServer, chatWorkspace, false);
+            return;
+          }
+          await putAutonomy(activeServer, true);
+          await putLoopActivation(activeServer, chatWorkspace, true);
+        })());
+        return;
+      }
       if (name === 'activate-loop') { changeChat(putLoopActivation(activeServer, chatWorkspace, true)); return; }
       if (name === 'cancel-loop') { changeChat(putLoopActivation(activeServer, chatWorkspace, false)); return; }
       if (name === 'select-agent' && id) { changeChat(bindAgent(activeServer, chatWorkspace, id)); return; }
       if (name === 'enable-agent' && id) { changeChat(enableAgentCapability(activeServer, id)); return; }
       if (name === 'start-bound' && chatSession?.boundAgent) { changeChat(scheduleAgent(activeServer, chatWorkspace, chatSession.boundAgent)); return; }
+      if (name === 'member-kind' && id) {
+        changeChat(putMember(activeServer, chatWorkspace, id).then(member => { if (member) setMemberKind(member.kind); }));
+        return;
+      }
+      if (name === 'save-agent-settings' && boundAgent) {
+        const saved = agentSettingSave(fields, text);
+        const values: Record<string, string> = {};
+        if (saved.endpoint) values.endpoint = saved.endpoint;
+        if (saved.model) values.model = saved.model;
+        if (saved.token) values.token = saved.token;
+        if (Object.keys(values).length > 0) {
+          void updateCapabilitySettings(activeServer, boundAgent, values)
+            .catch(() => undefined)
+            .finally(() => setModulesNonce(current => current + 1));
+        }
+        return;
+      }
     }
   };
 

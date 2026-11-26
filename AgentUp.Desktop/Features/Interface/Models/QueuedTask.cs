@@ -27,7 +27,7 @@ public sealed record QueuedTaskProposal(string Number, string Url, string Branch
 public sealed record QueuedTaskReview(string WorkspaceId, string Verdict, int Revision, string Body, string Kind = "devReviewer");
 
 /// <summary>An open issue on a workspace's repository, offered for picking.</summary>
-public sealed record OfferedIssue(string Id, int Number, string Title, string Url);
+public sealed record OfferedIssue(string Id, int Number, string Title, string Url, string? AssigneeLogin = null);
 
 /// <summary>
 /// The issues on offer and where a pick is taken from. <see cref="PickFrom"/> is null when the

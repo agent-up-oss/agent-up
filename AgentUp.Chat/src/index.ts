@@ -33,6 +33,8 @@ export {
   putAutonomy,
   putLoopActivation,
   getLoop,
+  getMember,
+  putMember,
   getPermissionPolicy,
   putPermissionPolicy,
 } from './providers/AgentApiProvider';

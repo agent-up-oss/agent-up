@@ -109,7 +109,8 @@ public sealed class CommandCenterViewModelTests
 
     [TestCase("files", "agent-files")]
     [TestCase("file", "agent-file")]
-    public void Files_and_an_open_file_are_pages_of_the_open_agent(string section, string scene)
+    [TestCase("settings", "agent-settings")]
+    public void An_open_agent_page_is_its_own_scene(string section, string scene)
     {
         var view = InterfaceTestComposition.CommandCenter();
         view.OpenAgentCommand.Execute(TeamStandingComposition.Standing()).Subscribe();

@@ -7,9 +7,9 @@ using ReactiveUI;
 namespace AgentUp.Desktop.Features.Interface.ViewModels;
 
 /// <summary>
-/// The GitHub and Forgejo connections. A host URL and personal access token are sent to the
-/// Server and the token is not kept on this view: the Server checks that it can list repositories
-/// and read pull requests.
+/// Each team member's GitHub or Forgejo connection. A host URL and personal access token are
+/// sent to the Server and the token is not kept on this view: the Server checks that it can list
+/// repositories and read pull requests.
 /// </summary>
 public sealed class TaskSourceViewModel : ReactiveObject
 {
@@ -26,7 +26,7 @@ public sealed class TaskSourceViewModel : ReactiveObject
 
     public ReactiveCommand<Unit, Unit> RefreshCommand { get; }
 
-    public IReadOnlyList<TaskSourceModule> Modules => _state?.Modules ?? [];
+    public IReadOnlyList<TaskSourceIdentity> Identities => _state?.Identities ?? [];
 
     public IReadOnlyList<TaskSourceRepository> Repositories => _repositories;
 
@@ -34,25 +34,45 @@ public sealed class TaskSourceViewModel : ReactiveObject
 
     public bool HasError => _error is { Length: > 0 };
 
-    public string DetailFor(string moduleId)
+    public TaskSourceIdentity? IdentityFor(string? workspaceId)
+        => Identities.FirstOrDefault(identity => identity.WorkspaceId.Equals(workspaceId, StringComparison.OrdinalIgnoreCase));
+
+    public string DetailFor(string? workspaceId, string moduleId)
     {
         if (_error is { Length: > 0 })
             return _error;
-        return Modules.FirstOrDefault(module => module.ModuleId.Equals(moduleId, StringComparison.OrdinalIgnoreCase))?.Detail
-            ?? "Paste the host URL and a personal access token. It needs access to repositories and pull requests.";
+        var identity = IdentityFor(workspaceId);
+        if (identity is null)
+            return "Add a workspace to give a team member their own access token.";
+        if (identity.ModuleId is not null
+            && identity.ModuleId.Equals(moduleId, StringComparison.OrdinalIgnoreCase))
+        {
+            return identity.Detail;
+        }
+
+        return $"Paste the host URL and a personal access token for {identity.DisplayName}. It needs access to repositories and pull requests.";
     }
 
-    public bool IsConnected(string moduleId) =>
-        Modules.Any(module => module.ModuleId.Equals(moduleId, StringComparison.OrdinalIgnoreCase) && module.Connected);
+    public bool IsConnected(string? workspaceId, string moduleId)
+    {
+        var identity = IdentityFor(workspaceId);
+        return identity is { Connected: true }
+            && identity.ModuleId is not null
+            && identity.ModuleId.Equals(moduleId, StringComparison.OrdinalIgnoreCase);
+    }
 
     /// <summary>
-    /// The host URL the field should show: the saved origin, or github.com when this tab is GitHub
-    /// and nothing is saved yet.
+    /// The host URL the field should show: the saved origin when this member is on this host, or
+    /// github.com when this tab is GitHub and nothing is saved yet.
     /// </summary>
-    public string EndpointFor(string moduleId)
+    public string EndpointFor(string? workspaceId, string moduleId)
     {
-        var saved = Modules.FirstOrDefault(module => module.ModuleId.Equals(moduleId, StringComparison.OrdinalIgnoreCase))
-            ?.EndpointUrl;
+        var identity = IdentityFor(workspaceId);
+        var saved = identity is not null
+            && identity.ModuleId is not null
+            && identity.ModuleId.Equals(moduleId, StringComparison.OrdinalIgnoreCase)
+            ? identity.EndpointUrl
+            : null;
         return CommandCenterScene.PrefillEndpoint(moduleId, saved);
     }
 
@@ -72,6 +92,7 @@ public sealed class TaskSourceViewModel : ReactiveObject
     }
 
     public async Task SaveAsync(
+        string workspaceId,
         string moduleId,
         string endpointUrl,
         string token,
@@ -79,7 +100,7 @@ public sealed class TaskSourceViewModel : ReactiveObject
     {
         try
         {
-            _state = await _source.SaveAsync(moduleId, endpointUrl, token, cancellationToken);
+            _state = await _source.SaveAsync(workspaceId, moduleId, endpointUrl, token, cancellationToken);
             _error = null;
             Raise();
             await LoadRepositoriesAsync(cancellationToken);
@@ -91,11 +112,11 @@ public sealed class TaskSourceViewModel : ReactiveObject
         }
     }
 
-    public async Task ForgetAsync(string moduleId, CancellationToken cancellationToken = default)
+    public async Task ForgetAsync(string workspaceId, CancellationToken cancellationToken = default)
     {
         try
         {
-            _state = await _source.ForgetAsync(moduleId, cancellationToken);
+            _state = await _source.ForgetAsync(workspaceId, cancellationToken);
             _error = null;
             Raise();
             await LoadRepositoriesAsync(cancellationToken);
@@ -130,7 +151,7 @@ public sealed class TaskSourceViewModel : ReactiveObject
 
     private void Raise()
     {
-        this.RaisePropertyChanged(nameof(Modules));
+        this.RaisePropertyChanged(nameof(Identities));
         this.RaisePropertyChanged(nameof(Error));
         this.RaisePropertyChanged(nameof(HasError));
     }

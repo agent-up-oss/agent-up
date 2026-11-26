@@ -5,7 +5,8 @@ using AgentUp.Server.Features.TaskSource.Models;
 namespace AgentUp.Server.Features.TaskSource.Providers;
 
 /// <summary>
-/// The task source's token and host URL on disk, by module.
+/// The task source's tokens on disk, keyed by team member. A legacy file keyed by host is still
+/// readable.
 ///
 /// The file is written for this process's own user only. It holds a credential that can read a
 /// repository, so it is not left at whatever the directory's default happens to be.
@@ -20,28 +21,34 @@ public sealed class JsonTaskSourceCredentialStore : ITaskSourceCredentialStore
     public JsonTaskSourceCredentialStore(string dataDirectory)
         => _path = Path.Join(dataDirectory, "task-source-credentials.json");
 
-    public TaskSourceCredential? Read(string moduleId)
+    public IReadOnlyList<string> Keys()
     {
         lock (_gate)
-            return Credentials().TryGetValue(moduleId, out var credential) ? credential : null;
+            return Credentials().Keys.ToArray();
     }
 
-    public void Write(string moduleId, TaskSourceCredential credential)
+    public TaskSourceCredential? Read(string key)
+    {
+        lock (_gate)
+            return Credentials().TryGetValue(key, out var credential) ? credential : null;
+    }
+
+    public void Write(string key, TaskSourceCredential credential)
     {
         lock (_gate)
         {
             var credentials = Credentials();
-            credentials[moduleId] = credential;
+            credentials[key] = credential;
             Persist(credentials);
         }
     }
 
-    public void Delete(string moduleId)
+    public void Delete(string key)
     {
         lock (_gate)
         {
             var credentials = Credentials();
-            if (credentials.Remove(moduleId)) Persist(credentials);
+            if (credentials.Remove(key)) Persist(credentials);
         }
     }
 
@@ -53,7 +60,7 @@ public sealed class JsonTaskSourceCredentialStore : ITaskSourceCredentialStore
         {
             using var document = JsonDocument.Parse(File.ReadAllText(_path));
             return document.RootElement.EnumerateObject()
-                .Select(property => (property.Name, Credential: Parse(property.Value)))
+                .Select(property => (property.Name, Credential: Parse(property.Name, property.Value)))
                 .Where(entry => entry.Credential is not null)
                 .ToDictionary(
                     entry => entry.Name,
@@ -66,12 +73,12 @@ public sealed class JsonTaskSourceCredentialStore : ITaskSourceCredentialStore
         }
     }
 
-    private static TaskSourceCredential? Parse(JsonElement value)
+    private static TaskSourceCredential? Parse(string key, JsonElement value)
     {
         if (value.ValueKind == JsonValueKind.String)
         {
             var token = value.GetString();
-            return string.IsNullOrWhiteSpace(token) ? null : new TaskSourceCredential(token, "");
+            return string.IsNullOrWhiteSpace(token) ? null : new TaskSourceCredential(token, "", HostKey(key));
         }
 
         if (value.ValueKind != JsonValueKind.Object)
@@ -82,8 +89,19 @@ public sealed class JsonTaskSourceCredentialStore : ITaskSourceCredentialStore
         var endpoint = value.TryGetProperty("endpointUrl", out var endpointProperty)
             ? endpointProperty.GetString() ?? ""
             : "";
-        return new TaskSourceCredential(stored, endpoint);
+        var module = value.TryGetProperty("moduleId", out var moduleProperty)
+            ? moduleProperty.GetString() ?? ""
+            : "";
+        if (string.IsNullOrWhiteSpace(module))
+            module = HostKey(key);
+        return new TaskSourceCredential(stored, endpoint, module);
     }
+
+    private static string HostKey(string key)
+        => key.Equals("github", StringComparison.OrdinalIgnoreCase)
+            || key.Equals("forgejo", StringComparison.OrdinalIgnoreCase)
+            ? key.ToLowerInvariant()
+            : "";
 
     private void Persist(Dictionary<string, TaskSourceCredential> credentials)
     {

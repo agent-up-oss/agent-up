@@ -9,13 +9,13 @@ export type TaskSourceState = {
   loading: boolean;
   error: string | null;
   refresh: () => void;
-  save: (moduleId: string, endpointUrl: string, token: string) => Promise<void>;
-  forget: (moduleId: string) => Promise<void>;
+  save: (workspaceId: string, moduleId: string, endpointUrl: string, token: string) => Promise<void>;
+  forget: (workspaceId: string) => Promise<void>;
 };
 
 /**
- * The GitHub and Forgejo connections. A personal access token is sent to the Server and is not
- * kept here: the Server checks that it can list repositories and read pull requests.
+ * Each team member's GitHub or Forgejo connection. A personal access token is sent to the Server
+ * and is not kept here: the Server checks that it can list repositories and read pull requests.
  */
 export function useTaskSource(): TaskSourceState {
   const { server } = useWorkspaces();
@@ -43,10 +43,10 @@ export function useTaskSource(): TaskSourceState {
     return () => { current = false; };
   }, [server, nonce]);
 
-  const save = useCallback(async (moduleId: string, endpointUrl: string, token: string) => {
+  const save = useCallback(async (workspaceId: string, moduleId: string, endpointUrl: string, token: string) => {
     if (!server) return;
     try {
-      setSource(await saveTaskSourceToken(server, moduleId, endpointUrl, token));
+      setSource(await saveTaskSourceToken(server, workspaceId, moduleId, endpointUrl, token));
       setRepositories(await readRepositories(server));
       setError(null);
     } catch (cause) {
@@ -54,10 +54,10 @@ export function useTaskSource(): TaskSourceState {
     }
   }, [server]);
 
-  const forget = useCallback(async (moduleId: string) => {
+  const forget = useCallback(async (workspaceId: string) => {
     if (!server) return;
     try {
-      setSource(await forgetTaskSource(server, moduleId));
+      setSource(await forgetTaskSource(server, workspaceId));
       setRepositories(await readRepositories(server));
       setError(null);
     } catch (cause) {

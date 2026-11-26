@@ -305,9 +305,16 @@ function androidAdb() {
 async function connectTo(serverUrl, workspaceId) {
   await waitFor(element(by.id('server-url-input'))).toBeVisible().withTimeout(60_000);
   await fill('server-url-input', serverUrl);
+  await waitUntilFieldHolds('server-url-input', serverUrl);
   await fill('workspace-id-input', workspaceId);
+  await waitUntilFieldHolds('workspace-id-input', workspaceId);
+  // iOS covers Connect with the keyboard the same way it covers pasted-code Finish.
+  // A tap that lands on the keyboard leaves both fields filled and the form mounted.
+  if (device.getPlatform() === 'ios') {
+    await element(by.id('workspace-id-input')).tapReturnKey();
+  }
   await tap('server-connect');
-  await waitFor(element(by.id('server-url-input'))).not.toBeVisible().withTimeout(15_000);
+  await waitFor(element(by.id('server-url-input'))).not.toBeVisible().withTimeout(30_000);
 }
 
 /** Android Fabric's replaceText does not fire onChangeText, so Connect would no-op. */

@@ -63,6 +63,7 @@ public sealed class CommandCenterSceneTests
         {
             Assert.That(binding.Items["queue"].Single().Action, Is.EqualTo("dequeue"));
             Assert.That(binding.Items["queue"].Single().Text["agent"], Is.EqualTo("Bob"));
+            Assert.That(binding.Items["queue"].Single().Parts, Does.Not.Contain("assignee"));
             Assert.That(binding.Items["flows"].Single().Text["name"], Is.EqualTo("Checkout featured goods"));
             Assert.That(binding.State.ContainsKey("open"), Is.True);
             Assert.That(binding.State.ContainsKey("running"), Is.True);
@@ -143,7 +144,7 @@ public sealed class CommandCenterSceneTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(binding.State["selected"], Is.EqualTo("4"));
+            Assert.That(binding.State["selected"], Is.EqualTo("5"));
             Assert.That(binding.State["app"], Is.EqualTo("Orders API"));
         });
     }
@@ -186,6 +187,50 @@ public sealed class CommandCenterSceneTests
     }
 
     [Test]
+    public void One_assignee_is_the_round_initials_on_the_task_row()
+    {
+        var binding = CommandCenterScene.Bind(Input([],
+            tasks: [new CommandCenterTaskSlot("task-1", "#45 · Deliver", "shop/store", "Bob", "dequeue", "BO")]));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(binding.Items["queue"].Single().Parts, Does.Contain("assignee"));
+            Assert.That(binding.Items["queue"].Single().Text["initials"], Is.EqualTo("BO"));
+        });
+    }
+
+    [Test]
+    public void Auth_tabs_are_one_per_team_member_and_the_open_repository_names_who_can_see_it()
+    {
+        var binding = CommandCenterScene.Bind(Input(
+        [
+            TeamStandingComposition.Standing(displayName: "Bob", workspaceId: "bob"),
+            TeamStandingComposition.Standing(displayName: "Frank", workspaceId: "frank"),
+        ], sceneId: "settings") with
+        {
+            AuthTab = "frank",
+            OpenRepository = "example/repository",
+            Repositories =
+            [
+                new CommandCenterRepositorySlot(
+                    "github/example/repository",
+                    "example/repository",
+                    "GitHub",
+                    [new CommandCenterMemberSlot("bob", "Bob", "BO"), new CommandCenterMemberSlot("frank", "Frank", "FR")]),
+            ],
+        });
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(binding.Items["authMembers"].Select(item => item.Text["name"]), Is.EqualTo(new[] { "Bob", "Frank" }));
+            Assert.That(binding.Items["authMembers"].Single(item => item.Id == "frank").State, Is.EqualTo("au-app-tab--selected"));
+            Assert.That(binding.State["authTab"], Is.EqualTo("frank"));
+            Assert.That(binding.Items["access"].Select(item => item.Text["initials"]), Is.EqualTo(new[] { "BO", "FR" }));
+            Assert.That(binding.Items["repos"].Single().Items["access"].Select(item => item.Text["initials"]), Is.EqualTo(new[] { "BO", "FR" }));
+        });
+    }
+
+    [Test]
     public void Settings_names_the_workspace_whose_chat_is_being_set()
     {
         var binding = CommandCenterScene.Bind(Input(
@@ -209,7 +254,7 @@ public sealed class CommandCenterSceneTests
     }
 
     [Test]
-    public void Chat_settings_are_one_field_per_property_and_a_locked_control_cannot_run()
+    public void Member_settings_are_the_autonomous_toggle_and_the_agents()
     {
         var fields = CommandCenterScene.ChatFields(new CommandCenterChatSettings(
             [
@@ -223,28 +268,53 @@ public sealed class CommandCenterSceneTests
                 new AgentDescriptorDtoBuilder().Named("cursor", "Cursor").PackageDisabled().Build(),
                 new AgentDescriptorDtoBuilder().Named("claude", "Claude").ExecutableMissing().Build(),
             ],
-            BoundAgent: null,
+            BoundAgent: "codex",
             LoopDetail: null,
             CanEnableAutonomy: true,
             CanActivateLoop: false,
             CanCancelLoop: false,
             CanStartBound: false));
         var rows = CommandCenterScene.Bind(Input([]) with { ChatSettings = fields }).Items["chatFields"];
-        var agents = rows.Single(item => item.Id == "agentAvailable").Items["fields"];
 
         Assert.Multiple(() =>
         {
-            Assert.That(rows.Single(item => item.Id == "forgeCapabilityEnabled").Parts, Does.Contain("locked"));
-            Assert.That(rows.Single(item => item.Id == "forgeCapabilityEnabled").Action, Is.Null);
-            Assert.That(rows.Single(item => item.Id == "autonomyEnabled").Action, Is.EqualTo("enable-autonomy"));
-            Assert.That(rows.Single(item => item.Id == "autonomyEnabled").Parts, Does.Not.Contain("locked"));
-            Assert.That(rows.Single(item => item.Id == "autonomyEnabled").Text["detail"], Is.EqualTo("Enable autonomy for this Server"));
-            Assert.That(rows.Single(item => item.Id == "autonomyEnabled").Items["fields"].Single(item => item.Id == "loop").Parts, Does.Contain("locked"));
-            Assert.That(agents.Single(item => item.Id == "codex").Action, Is.EqualTo("select-agent"));
-            Assert.That(agents.Single(item => item.Id == "cursor").Action, Is.EqualTo("enable-agent"));
-            Assert.That(agents.Single(item => item.Id == "claude").Parts, Does.Contain("locked"));
-            Assert.That(rows.Single(item => item.Id == "boundAgent").Parts, Does.Contain("locked"));
+            Assert.That(rows.Select(item => item.Id), Is.EqualTo(new[] { "autonomy", "codex", "cursor", "claude" }));
+            Assert.That(rows.Single(item => item.Id == "autonomy").Action, Is.EqualTo("toggle-autonomy"));
+            Assert.That(rows.Single(item => item.Id == "autonomy").Text["detail"], Is.EqualTo("Off"));
+            Assert.That(rows.Single(item => item.Id == "codex").Text["detail"], Is.EqualTo("Bound"));
+            Assert.That(rows.Single(item => item.Id == "cursor").Action, Is.EqualTo("enable-agent"));
+            Assert.That(rows.Single(item => item.Id == "claude").Parts, Does.Contain("locked"));
+            Assert.That(rows.Any(item => item.Id == "forgeCapabilityEnabled"), Is.False);
         });
+    }
+
+    [Test]
+    public void Member_settings_mark_kind_and_OpenCode_fields()
+    {
+        var binding = CommandCenterScene.Bind(Input([], "agent-settings") with
+        {
+            MemberKind = "DevReviewer",
+            BoundAgent = "opencode",
+            AgentEndpoint = "http://localhost:11434",
+            AgentModel = "llama",
+        });
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(binding.State["selected"], Is.EqualTo("4"));
+            Assert.That(binding.State["memberKind"], Is.EqualTo("DevReviewer"));
+            Assert.That(binding.State["opencodeSettings"], Is.EqualTo("1"));
+            Assert.That(binding.Text["agentEndpoint"], Is.EqualTo("http://localhost:11434"));
+            Assert.That(binding.Text["agentModel"], Is.EqualTo("llama"));
+        });
+    }
+
+    [Test]
+    public void Member_settings_show_Ollama_fields_for_the_in_process_PM_agent()
+    {
+        var binding = CommandCenterScene.Bind(Input([], "agent-settings") with { BoundAgent = "ollama" });
+
+        Assert.That(binding.State["ollamaSettings"], Is.EqualTo("1"));
     }
 
     // The board opens one queue; a review row carries its standing as the action the scene groups by.
@@ -323,6 +393,29 @@ public sealed class CommandCenterSceneTests
     }
 
     [Test]
+    public void AgentSettingSave_readsEndpointModelAndToken()
+    {
+        var fields = new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            ["agent-endpoint"] = " http://localhost:11434 ",
+            ["agent-model"] = " llama ",
+            ["save-agent-settings"] = " secret ",
+        };
+
+        var saved = CommandCenterScene.AgentSettingSave(fields, "ignored");
+        var fromText = CommandCenterScene.AgentSettingSave(null, " pasted ");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(saved.Endpoint, Is.EqualTo("http://localhost:11434"));
+            Assert.That(saved.Model, Is.EqualTo("llama"));
+            Assert.That(saved.Token, Is.EqualTo("secret"));
+            Assert.That(fromText.Token, Is.EqualTo("pasted"));
+            Assert.That(fromText.Endpoint, Is.EqualTo(""));
+        });
+    }
+
+    [Test]
     public void ParseRepositoryKey_readsModuleOwnerAndName()
     {
         Assert.Multiple(() =>
@@ -360,7 +453,7 @@ public sealed class CommandCenterSceneTests
     [Test]
     public void The_forge_field_shows_the_host_url()
     {
-        var binding = CommandCenterScene.Bind(Input([], sceneId: "settings") with
+        var binding = CommandCenterScene.Bind(Input([], sceneId: "agent-settings") with
         {
             ForgeTab = "github",
             ForgeEndpoint = "https://github.com",

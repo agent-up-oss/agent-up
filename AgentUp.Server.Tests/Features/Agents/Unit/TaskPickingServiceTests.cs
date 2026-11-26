@@ -66,11 +66,12 @@ public sealed class TaskPickingServiceTests
             new ForgeOAuthStateStore(),
             new FixedForgeOAuthExchange("token")));
         var sourceCredentials = new MemoryTaskSourceCredentialStore();
-        sourceCredentials.Write("github", new TaskSourceCredential("token", "https://github.com"));
+        sourceCredentials.Write("github", new TaskSourceCredential("token", "https://github.com", "github"));
         var source = new TaskSourceController(new TaskSourceService(
             sourceCredentials,
             new FakeEnabledCapabilityPackages().WithForges(new StubForgeCapability { Issues = issues }),
-            new EmptyTaskSourceTeam()));
+            new EmptyTaskSourceTeam(),
+            new EmptyTaskSourceIdentities()));
         var queue = new TaskQueueService(new MemoryTaskQueueStore());
         return (new TaskPickingService(queue, forge, source), queue);
     }

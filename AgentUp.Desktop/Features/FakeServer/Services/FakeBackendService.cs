@@ -25,6 +25,8 @@ public sealed class FakeBackendService
     private int _lifecycleGeneration;
     private int _loopGeneration;
     private bool _autonomyEnabled;
+    /// <summary>Team member kind per workspace. Missing is Author.</summary>
+    private readonly Dictionary<string, string> _memberKinds = new(StringComparer.OrdinalIgnoreCase);
     private long _agentSequence;
 
     public const int StartPhaseMilliseconds = 10000;
@@ -63,6 +65,9 @@ public sealed class FakeBackendService
             _agentSequence = 0;
             _autonomyEnabled = false;
             _loopGeneration++;
+            _tokens.Clear();
+            _memberKinds.Clear();
+            _tokens["bob"] = ("github", "https://github.com", "demo");
             CancelLifecycle();
             CaptureTemplates();
         }
@@ -242,6 +247,10 @@ public sealed class FakeBackendService
             return GitMutation(workspaceId, rest["git/".Length..], request.Body);
         if (method == "GET" && rest == "agent/loop")
             return AgentLoop(workspaceId);
+        if (method == "GET" && rest == "agent/member")
+            return MemberKind(workspaceId);
+        if (method == "PUT" && rest == "agent/member")
+            return SetMemberKind(workspaceId, request.Body);
         if (method == "GET" && rest == "agent/autonomy")
             return Json(AutonomyDto(workspace: true));
         if (method == "PUT" && rest == "agent/autonomy")
@@ -645,6 +654,31 @@ public sealed class FakeBackendService
             ["enabled"] = _autonomyEnabled,
             ["preconditions"] = preconditions
         };
+    }
+
+    private FakeBackendResponseDto MemberKind(string workspaceId)
+    {
+        lock (_gate)
+        {
+            if (FindWorkspace(workspaceId) is null)
+                return NotFound();
+            var kind = _memberKinds.GetValueOrDefault(workspaceId, "Author");
+            return Json(new JsonObject { ["kind"] = kind });
+        }
+    }
+
+    private FakeBackendResponseDto SetMemberKind(string workspaceId, string? body)
+    {
+        lock (_gate)
+        {
+            if (FindWorkspace(workspaceId) is null)
+                return NotFound();
+            var kind = ReadJsonString(body, "kind")?.Trim();
+            if (kind is not ("Author" or "DevReviewer" or "PmReviewer"))
+                return new FakeBackendResponseDto(409, "application/json", """{"detail":"Choose Author, Dev reviewer, or PM reviewer."}""");
+            _memberKinds[workspaceId] = kind;
+            return Json(new JsonObject { ["kind"] = kind });
+        }
     }
 
     private static JsonObject Precondition(string id, bool satisfied, string remedy) => new()
@@ -1188,11 +1222,9 @@ public sealed class FakeBackendService
     private const string DemoRepository = "repository";
 
     /// <summary>
-    /// The Demo's forge connections.
-    ///
-    /// GitHub starts with a token and https://github.com already stored, so the Tasks page can
-    /// list the example repository without asking for one. A token that cannot read pull requests
-    /// is refused, as is a save without a host URL.
+    /// The Demo's per-member forge connections. Bob starts with a GitHub token at github.com, so
+    /// the Tasks page can list the example repository without asking for one. A token that cannot
+    /// read pull requests is refused, as is a save without a host URL.
     /// </summary>
     private FakeBackendResponseDto TaskSourceRoute(string method, string rest, string? body)
     {
@@ -1203,10 +1235,12 @@ public sealed class FakeBackendService
 
             if (method == "PUT")
             {
+                var workspaceId = ReadJsonString(body, "workspaceId")?.Trim() ?? "";
                 var module = ReadJsonString(body, "moduleId")?.Trim() ?? "";
                 var token = ReadJsonString(body, "token")?.Trim() ?? "";
                 var endpoint = ReadJsonString(body, "endpointUrl")?.Trim() ?? "";
-                if (module is not ("github" or "forgejo")
+                if (FindWorkspace(workspaceId) is null
+                    || module is not ("github" or "forgejo")
                     || token.Length == 0
                     || token == "denied"
                     || !LooksLikeHostUrl(endpoint))
@@ -1217,41 +1251,19 @@ public sealed class FakeBackendService
                         """{"title":"Task source","detail":"The token needs access to repositories and pull requests."}""");
                 }
 
-                if (module == "github")
-                {
-                    _githubToken = token;
-                    _githubEndpoint = endpoint;
-                }
-                else
-                {
-                    _forgejoToken = token;
-                    _forgejoEndpoint = endpoint;
-                }
+                _tokens[workspaceId] = (module, endpoint, token);
                 return Json(DescribeSource());
             }
 
             if (method == "DELETE" && rest is "" or "/")
             {
-                _githubToken = null;
-                _githubEndpoint = null;
-                _forgejoToken = null;
-                _forgejoEndpoint = null;
+                _tokens.Clear();
                 return Json(DescribeSource());
             }
 
             if (method == "DELETE" && rest.Length > 1)
             {
-                var module = Uri.UnescapeDataString(rest[1..]);
-                if (module == "github")
-                {
-                    _githubToken = null;
-                    _githubEndpoint = null;
-                }
-                if (module == "forgejo")
-                {
-                    _forgejoToken = null;
-                    _forgejoEndpoint = null;
-                }
+                _tokens.Remove(Uri.UnescapeDataString(rest[1..]));
                 return Json(DescribeSource());
             }
 
@@ -1271,32 +1283,59 @@ public sealed class FakeBackendService
         }
     }
 
-    private JsonObject DescribeSource() => new()
+    private JsonObject DescribeSource()
     {
-        ["modules"] = new JsonArray(
-            Module("github", "GitHub", _githubToken is not null, _githubEndpoint),
-            Module("forgejo", "Forgejo", _forgejoToken is not null, _forgejoEndpoint)),
-    };
+        var identities = new JsonArray();
+        foreach (var workspace in _state.Workspaces.OfType<JsonObject>())
+        {
+            var id = workspace["id"]?.GetValue<string>();
+            var name = workspace["displayName"]?.GetValue<string>() ?? id ?? "";
+            if (id is null)
+                continue;
+            var stored = _tokens.TryGetValue(id, out var credential);
+            identities.Add(new JsonObject
+            {
+                ["workspaceId"] = id,
+                ["displayName"] = name,
+                ["initials"] = InitialsOf(name),
+                ["moduleId"] = stored ? credential.Module : null,
+                ["connected"] = stored,
+                ["detail"] = stored
+                    ? $"Reading repositories and pull requests from {(credential.Module == "forgejo" ? "Forgejo" : "GitHub")} at {credential.Endpoint}."
+                    : $"Paste the host URL and a personal access token for {name}. It needs access to repositories and pull requests.",
+                ["endpointUrl"] = stored ? credential.Endpoint : null,
+            });
+        }
 
-    private static JsonObject Module(string id, string name, bool connected, string? endpoint) => new()
-    {
-        ["moduleId"] = id,
-        ["displayName"] = name,
-        ["connected"] = connected,
-        ["detail"] = connected
-            ? $"Reading repositories and pull requests from {name} at {endpoint}."
-            : "Paste the host URL and a personal access token. It needs access to repositories and pull requests.",
-        ["endpointUrl"] = endpoint,
-    };
+        return new JsonObject { ["identities"] = identities };
+    }
 
     private JsonArray Repositories()
     {
-        var listed = new JsonArray();
-        if (_githubToken is not null)
-            listed.Add(DemoRepo("github"));
-        if (_forgejoToken is not null)
-            listed.Add(DemoRepo("forgejo"));
-        return listed;
+        var listed = new Dictionary<string, JsonObject>(StringComparer.Ordinal);
+        foreach (var (workspaceId, credential) in _tokens)
+        {
+            var workspace = FindWorkspace(workspaceId);
+            var name = workspace?["displayName"]?.GetValue<string>() ?? workspaceId;
+            var key = $"{credential.Module}/{DemoOwner}/{DemoRepository}";
+            if (!listed.TryGetValue(key, out var repo))
+            {
+                repo = DemoRepo(credential.Module);
+                listed[key] = repo;
+            }
+
+            var members = repo["members"]!.AsArray();
+            if (members.Any(member => member?["workspaceId"]?.GetValue<string>() == workspaceId))
+                continue;
+            members.Add(new JsonObject
+            {
+                ["workspaceId"] = workspaceId,
+                ["displayName"] = name,
+                ["initials"] = InitialsOf(name),
+            });
+        }
+
+        return new JsonArray([.. listed.Values]);
     }
 
     private static JsonObject DemoRepo(string moduleId) => new()
@@ -1304,9 +1343,18 @@ public sealed class FakeBackendService
         ["moduleId"] = moduleId,
         ["owner"] = DemoOwner,
         ["name"] = DemoRepository,
+        ["members"] = new JsonArray(),
     };
 
-    private bool AnyForgeConnected => _githubToken is not null || _forgejoToken is not null;
+    private bool AnyForgeConnected => _tokens.Count > 0;
+
+    private static string InitialsOf(string name)
+    {
+        var parts = name.Split([' ', '-', '_'], StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length >= 2
+            ? $"{char.ToUpperInvariant(parts[0][0])}{char.ToUpperInvariant(parts[1][0])}"
+            : name.Length >= 2 ? name[..2].ToUpperInvariant() : name.ToUpperInvariant();
+    }
 
     private JsonArray Pulls()
     {
@@ -1328,10 +1376,10 @@ public sealed class FakeBackendService
         });
     }
 
-    private string? _githubToken = "demo";
-    private string? _githubEndpoint = "https://github.com";
-    private string? _forgejoToken;
-    private string? _forgejoEndpoint;
+    private readonly Dictionary<string, (string Module, string Endpoint, string Token)> _tokens = new(StringComparer.Ordinal)
+    {
+        ["bob"] = ("github", "https://github.com", "demo"),
+    };
 
     private static bool LooksLikeHostUrl(string endpoint)
         => Uri.TryCreate(endpoint, UriKind.Absolute, out var uri)
@@ -1546,7 +1594,7 @@ public sealed class FakeBackendService
             // first workspace's repository, the same place GET /api/task-source/issues reads.
             if (workspaceId is null)
             {
-                if (_githubToken is null)
+                if (!AnyForgeConnected)
                     return NotFound();
                 workspaceId = _state.Workspaces.OfType<JsonObject>().FirstOrDefault()?["id"]?.GetValue<string>();
                 if (workspaceId is null)

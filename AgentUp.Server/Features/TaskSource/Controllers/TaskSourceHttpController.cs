@@ -21,8 +21,8 @@ public sealed class TaskSourceHttpController(TaskSourceController source) : Cont
     [HttpDelete]
     public ActionResult<TaskSourceDto> Clear() => Ok(source.Clear(null));
 
-    [HttpDelete("{moduleId}")]
-    public ActionResult<TaskSourceDto> Forget(string moduleId) => Ok(source.Clear(moduleId));
+    [HttpDelete("{workspaceId}")]
+    public ActionResult<TaskSourceDto> Forget(string workspaceId) => Ok(source.Clear(workspaceId));
 
     [HttpGet("repositories")]
     public async Task<ActionResult<IReadOnlyList<TaskSourceRepositoryDto>>> Repositories(CancellationToken cancellationToken)
@@ -43,7 +43,8 @@ public sealed class TaskSourceHttpController(TaskSourceController source) : Cont
             issue.Body,
             issue.CreatedAt,
             issue.UpdatedAt,
-            issue.Url)));
+            issue.Url,
+            issue.AssigneeLogin)));
     }
 
     [HttpGet("pulls")]

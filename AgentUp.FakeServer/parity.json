@@ -33,7 +33,7 @@
       "demo": true
     },
     {
-      "route": "DELETE /api/task-source/{moduleId}",
+      "route": "DELETE /api/task-source/{workspaceId}",
       "demo": true
     },
     {
@@ -451,7 +451,7 @@
         "status": 200,
         "body": "object",
         "keys": [
-          "modules"
+          "identities"
         ]
       }
     },
@@ -805,7 +805,11 @@
     {
       "route": "GET /api/workspaces/{workspaceId}/agent/member",
       "demo": {
-        "absent": "A team member's grants are enforced by the Server and read by agents over MCP; neither client reads them."
+        "status": 200,
+        "body": "object",
+        "keys": [
+          "kind"
+        ]
       },
       "server": {
         "status": 200,
@@ -1417,9 +1421,7 @@
     },
     {
       "route": "PUT /api/workspaces/{workspaceId}/agent/member",
-      "demo": {
-        "absent": "A team member's grants are enforced by the Server and read by agents over MCP; neither client reads them."
-      }
+      "demo": true
     },
     {
       "route": "PUT /api/workspaces/{workspaceId}/agent/policy",

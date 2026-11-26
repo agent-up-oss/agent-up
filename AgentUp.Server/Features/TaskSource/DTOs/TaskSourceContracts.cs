@@ -1,30 +1,41 @@
 namespace AgentUp.Server.Features.TaskSource.DTOs;
 
 /// <summary>
-/// The forge connections a client shows. Each module is one host. The token is never in this
-/// document: a client can see that a host is connected, and nothing it could replay.
+/// The forge connections a client shows. Each identity is one team member. The token is never in
+/// this document: a client can see that a member is connected, and nothing it could replay.
 /// </summary>
-public sealed record TaskSourceDto(IReadOnlyList<TaskSourceModuleDto> Modules);
+public sealed record TaskSourceDto(IReadOnlyList<TaskSourceIdentityDto> Identities);
 
 /// <summary>
-/// One repository host, whether a personal access token is stored for it, and the origin that
-/// token talks to. The token itself is never here.
+/// One team member, whether a personal access token is stored for them, which host that token
+/// talks to, and the origin. The token itself is never here.
 /// </summary>
-public sealed record TaskSourceModuleDto(
-    string ModuleId,
+public sealed record TaskSourceIdentityDto(
+    string WorkspaceId,
     string DisplayName,
+    string Initials,
+    string? ModuleId,
     bool Connected,
     string Detail,
     string? EndpointUrl);
 
 /// <summary>
-/// A personal access token and the host URL it should use. Both are checked, then stored. The
-/// token is never returned.
+/// A personal access token and the host URL it should use, saved for one team member. Both are
+/// checked, then stored. The token is never returned.
 /// </summary>
-public sealed record SaveTaskSourceTokenRequest(string ModuleId, string EndpointUrl, string Token);
+public sealed record SaveTaskSourceTokenRequest(string WorkspaceId, string ModuleId, string EndpointUrl, string Token);
 
-/// <summary>A repository the stored token can see.</summary>
-public sealed record TaskSourceRepositoryDto(string ModuleId, string Owner, string Name);
+/// <summary>A team member a client can draw as a round banner.</summary>
+public sealed record TaskSourceMemberDto(string WorkspaceId, string DisplayName, string Initials);
+
+/// <summary>
+/// A repository any stored token can see, and the team members whose tokens can see it.
+/// </summary>
+public sealed record TaskSourceRepositoryDto(
+    string ModuleId,
+    string Owner,
+    string Name,
+    IReadOnlyList<TaskSourceMemberDto>? Members = null);
 
 /// <summary>An open pull request and the review standings inferred from it.</summary>
 public sealed record TaskSourcePullDto(

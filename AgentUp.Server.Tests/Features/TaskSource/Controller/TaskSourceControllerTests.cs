@@ -1,6 +1,7 @@
 using AgentUp.Sdk.Forge;
 using AgentUp.Server.Features.TaskSource.Controllers;
 using AgentUp.Server.Features.TaskSource.DTOs;
+using AgentUp.Server.Features.TaskSource.Interfaces;
 using AgentUp.Server.Features.TaskSource.Services;
 using AgentUp.Server.Tests.Support;
 
@@ -15,14 +16,14 @@ public sealed class TaskSourceControllerTests
     {
         var controller = Controller();
 
-        var saved = await controller.SaveAsync(new SaveTaskSourceTokenRequest("github", "https://github.com", "token"), CancellationToken.None);
-        var cleared = controller.Clear("github");
+        var saved = await controller.SaveAsync(new SaveTaskSourceTokenRequest("bob", "github", "https://github.com", "token"), CancellationToken.None);
+        var cleared = controller.Clear("bob");
 
         Assert.Multiple(() =>
         {
             Assert.That(saved.StatusCode, Is.EqualTo(200));
-            Assert.That(((TaskSourceDto)saved.Body!).Modules.Single(module => module.ModuleId == "github").Connected, Is.True);
-            Assert.That(cleared.Modules.Single(module => module.ModuleId == "github").Connected, Is.False);
+            Assert.That(((TaskSourceDto)saved.Body!).Identities.Single(identity => identity.WorkspaceId == "bob").Connected, Is.True);
+            Assert.That(cleared.Identities.Single(identity => identity.WorkspaceId == "bob").Connected, Is.False);
         });
     }
 
@@ -41,6 +42,7 @@ public sealed class TaskSourceControllerTests
         return new TaskSourceController(new TaskSourceService(
             new MemoryTaskSourceCredentialStore(),
             packages,
-            new EmptyTaskSourceTeam()));
+            new EmptyTaskSourceTeam(),
+            new FixedTaskSourceIdentities(new TaskSourcePerson("bob", "Bob"))));
     }
 }

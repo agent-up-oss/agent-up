@@ -10,7 +10,7 @@ namespace AgentUp.Desktop.Tests.Features.Interface.Unit;
 public sealed class TaskSourceViewModelTests
 {
     [Test]
-    public async Task LoadAsync_showsWhichHostsAreConnected()
+    public async Task LoadAsync_showsWhichMemberIsConnected()
     {
         var source = ViewModel(new FakeTaskSourceApi { State = Connected() });
 
@@ -18,29 +18,30 @@ public sealed class TaskSourceViewModelTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(source.IsConnected("github"), Is.True);
+            Assert.That(source.IsConnected("bob", "github"), Is.True);
             Assert.That(source.Error, Is.Null);
-            Assert.That(source.DetailFor("github"), Does.Contain("GitHub"));
-            Assert.That(source.EndpointFor("github"), Is.EqualTo("https://github.com"));
-            Assert.That(source.IsConnected("forgejo"), Is.False);
-            Assert.That(source.EndpointFor("forgejo"), Is.EqualTo(""));
+            Assert.That(source.DetailFor("bob", "github"), Does.Contain("GitHub"));
+            Assert.That(source.EndpointFor("bob", "github"), Is.EqualTo("https://github.com"));
+            Assert.That(source.IsConnected("bob", "forgejo"), Is.False);
+            Assert.That(source.EndpointFor("frank", "forgejo"), Is.EqualTo(""));
+            Assert.That(source.IdentityFor("bob")!.Initials, Is.EqualTo("BO"));
         });
     }
 
     [Test]
-    public async Task SaveAsync_sendsTheTokenAndDoesNotKeepIt()
+    public async Task SaveAsync_sendsTheMembersTokenAndDoesNotKeepIt()
     {
         var api = new FakeTaskSourceApi { State = Connected(false) };
         var source = ViewModel(api);
 
-        await source.SaveAsync("github", " https://github.com ", " secret-token ");
+        await source.SaveAsync("bob", "github", " https://github.com ", " secret-token ");
 
         Assert.Multiple(() =>
         {
-            Assert.That(api.Saved, Is.EqualTo(("github", "https://github.com", "secret-token")));
-            Assert.That(source.DetailFor("github"), Does.Not.Contain("secret-token"));
-            Assert.That(source.IsConnected("github"), Is.True);
-            Assert.That(source.EndpointFor("github"), Is.EqualTo("https://github.com"));
+            Assert.That(api.Saved, Is.EqualTo(("bob", "github", "https://github.com", "secret-token")));
+            Assert.That(source.DetailFor("bob", "github"), Does.Not.Contain("secret-token"));
+            Assert.That(source.IsConnected("bob", "github"), Is.True);
+            Assert.That(source.EndpointFor("bob", "github"), Is.EqualTo("https://github.com"));
         });
     }
 
@@ -49,28 +50,28 @@ public sealed class TaskSourceViewModelTests
     {
         var source = ViewModel(new FakeTaskSourceApi { Failure = new HttpRequestException("The token cannot read pull requests.") });
 
-        await source.SaveAsync("github", "https://github.com", "narrow");
+        await source.SaveAsync("bob", "github", "https://github.com", "narrow");
 
         Assert.Multiple(() =>
         {
             Assert.That(source.HasError, Is.True);
-            Assert.That(source.DetailFor("github"), Does.Contain("pull requests"));
+            Assert.That(source.DetailFor("bob", "github"), Does.Contain("pull requests"));
         });
     }
 
     [Test]
-    public async Task ForgetAsync_dropsThatHost()
+    public async Task ForgetAsync_dropsThatMember()
     {
         var api = new FakeTaskSourceApi { State = Connected() };
         var source = ViewModel(api);
         await source.LoadAsync();
 
-        await source.ForgetAsync("github");
+        await source.ForgetAsync("bob");
 
         Assert.Multiple(() =>
         {
-            Assert.That(api.Forgotten, Is.EqualTo("github"));
-            Assert.That(source.IsConnected("github"), Is.False);
+            Assert.That(api.Forgotten, Is.EqualTo("bob"));
+            Assert.That(source.IsConnected("bob", "github"), Is.False);
         });
     }
 
@@ -82,7 +83,7 @@ public sealed class TaskSourceViewModelTests
         await source.LoadAsync();
 
         Assert.That(source.HasError, Is.True);
-        Assert.That(source.DetailFor("github"), Does.Contain("offline"));
+        Assert.That(source.DetailFor("bob", "github"), Does.Contain("offline"));
     }
 
     [Test]
@@ -90,10 +91,10 @@ public sealed class TaskSourceViewModelTests
     {
         var source = ViewModel(new FakeTaskSourceApi { Failure = new HttpRequestException("offline") });
 
-        await source.ForgetAsync("github");
+        await source.ForgetAsync("bob");
 
         Assert.That(source.HasError, Is.True);
-        Assert.That(source.DetailFor("github"), Does.Contain("offline"));
+        Assert.That(source.DetailFor("bob", "github"), Does.Contain("offline"));
     }
 
     [Test]
@@ -104,17 +105,17 @@ public sealed class TaskSourceViewModelTests
         await source.LoadRepositoriesAsync();
 
         Assert.That(source.HasError, Is.True);
-        Assert.That(source.DetailFor("github"), Does.Contain("offline"));
+        Assert.That(source.DetailFor("bob", "github"), Does.Contain("offline"));
     }
 
     [Test]
-    public void DetailFor_fallsBackWhenNoHostIsLoaded()
+    public void DetailFor_fallsBackWhenNoMemberIsLoaded()
     {
         var source = ViewModel(new FakeTaskSourceApi());
 
-        Assert.That(source.DetailFor("github"), Does.Contain("host URL"));
-        Assert.That(source.EndpointFor("github"), Is.EqualTo("https://github.com"));
-        Assert.That(source.IsConnected("github"), Is.False);
+        Assert.That(source.DetailFor("bob", "github"), Does.Contain("Add a workspace"));
+        Assert.That(source.EndpointFor("bob", "github"), Is.EqualTo("https://github.com"));
+        Assert.That(source.IsConnected("bob", "github"), Is.False);
     }
 
     [Test]
@@ -125,7 +126,7 @@ public sealed class TaskSourceViewModelTests
         await source.LoadAsync();
 
         Assert.That(source.HasError, Is.True);
-        Assert.That(source.DetailFor("github"), Does.Contain("timed out"));
+        Assert.That(source.DetailFor("bob", "github"), Does.Contain("timed out"));
     }
 
     [Test]
@@ -153,10 +154,17 @@ public sealed class TaskSourceViewModelTests
         Assert.That(source.Repositories.Single().Name, Is.EqualTo("repository"));
     }
 
-    private static TaskSource Connected(bool github = true) => new(
+    private static TaskSource Connected(bool bob = true) => new(
     [
-        new TaskSourceModule("github", "GitHub", github, github ? "Reading repositories and pull requests from GitHub." : "Paste a token.", github ? "https://github.com" : null),
-        new TaskSourceModule("forgejo", "Forgejo", false, "Enable the Forgejo capability, then paste a personal access token."),
+        new TaskSourceIdentity(
+            "bob",
+            "Bob",
+            "BO",
+            bob ? "github" : null,
+            bob,
+            bob ? "Reading repositories and pull requests from GitHub." : "Paste a token for Bob.",
+            bob ? "https://github.com" : null),
+        new TaskSourceIdentity("frank", "Frank", "FR", null, false, "Paste a token for Frank."),
     ]);
 
     private static TaskSourceViewModel ViewModel(ITaskSourceApiProvider api)
@@ -174,27 +182,32 @@ public sealed class TaskSourceViewModelTests
 
         public Exception? RepositoryFailure { get; init; }
 
-        public (string Module, string Endpoint, string Token)? Saved { get; private set; }
+        public (string Workspace, string Module, string Endpoint, string Token)? Saved { get; private set; }
 
         public string? Forgotten { get; private set; }
 
         public Task<TaskSource?> ReadAsync(CancellationToken cancellationToken)
             => Failure is null ? Task.FromResult(State) : Task.FromException<TaskSource?>(Failure);
 
-        public Task<TaskSource?> SaveAsync(string moduleId, string endpointUrl, string token, CancellationToken cancellationToken)
+        public Task<TaskSource?> SaveAsync(
+            string workspaceId,
+            string moduleId,
+            string endpointUrl,
+            string token,
+            CancellationToken cancellationToken)
         {
             if (Failure is not null)
                 return Task.FromException<TaskSource?>(Failure);
-            Saved = (moduleId, endpointUrl, token);
+            Saved = (workspaceId, moduleId, endpointUrl, token);
             State = Connected();
             return Task.FromResult<TaskSource?>(State);
         }
 
-        public Task<TaskSource?> ForgetAsync(string moduleId, CancellationToken cancellationToken)
+        public Task<TaskSource?> ForgetAsync(string workspaceId, CancellationToken cancellationToken)
         {
             if (Failure is not null)
                 return Task.FromException<TaskSource?>(Failure);
-            Forgotten = moduleId;
+            Forgotten = workspaceId;
             State = Connected(false);
             return Task.FromResult<TaskSource?>(State);
         }

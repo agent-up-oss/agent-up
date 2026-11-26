@@ -164,7 +164,7 @@ public sealed class NewUiSceneActionTests
 
     private static void ApplySettings(NewUiScene scene, string endpoint) =>
         scene.Apply(
-            "settings",
+            "agent-settings",
             new Dictionary<string, string>
             {
                 ["server"] = "Demo",

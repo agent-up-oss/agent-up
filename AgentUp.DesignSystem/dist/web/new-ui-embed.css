@@ -311,6 +311,16 @@
 .aun-avatar--md { width: 2.25rem; height: 2.25rem; font-size: var(--au-font-size-ui-sm); }
 .aun-avatar--lg { width: 3.25rem; height: 3.25rem; font-size: var(--au-font-size-ui-lg); }
 
+.aun-task-access {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: 0 0 auto;
+}
+.aun-task-access .aun-avatar {
+  box-shadow: 0 0 0 2px var(--au-color-surface);
+}
+
 .aun-card {
   border: var(--au-stroke) solid var(--au-color-border-subtle);
   border-radius: var(--au-radius-lg);

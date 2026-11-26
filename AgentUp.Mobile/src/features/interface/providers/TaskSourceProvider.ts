@@ -10,9 +10,10 @@ export async function readTaskSource(
   return await requestServerJson<TaskSource>(server, '/api/task-source', undefined, undefined, request);
 }
 
-/** Stores a personal access token and host URL for one host. The Server checks them and does not return the token. */
+/** Stores a personal access token and host URL for one team member. The Server checks them and does not return the token. */
 export async function saveTaskSourceToken(
   server: ServerSession,
+  workspaceId: string,
   moduleId: string,
   endpointUrl: string,
   token: string,
@@ -21,21 +22,21 @@ export async function saveTaskSourceToken(
   return await requestServerJson<TaskSource>(
     server,
     '/api/task-source',
-    { ...jsonBody({ moduleId, endpointUrl, token }), method: 'PUT' },
+    { ...jsonBody({ workspaceId, moduleId, endpointUrl, token }), method: 'PUT' },
     undefined,
     request,
   );
 }
 
-/** Forgets the token stored for one host. */
+/** Forgets the token stored for one team member. */
 export async function forgetTaskSource(
   server: ServerSession,
-  moduleId: string,
+  workspaceId: string,
   request: typeof fetch = fetch,
 ): Promise<TaskSource | null> {
   return await requestServerJson<TaskSource>(
     server,
-    `/api/task-source/${encodeURIComponent(moduleId)}`,
+    `/api/task-source/${encodeURIComponent(workspaceId)}`,
     { method: 'DELETE' },
     undefined,
     request,

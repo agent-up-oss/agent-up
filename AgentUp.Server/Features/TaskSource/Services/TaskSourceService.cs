@@ -8,18 +8,20 @@ using Microsoft.AspNetCore.Http;
 namespace AgentUp.Server.Features.TaskSource.Services;
 
 /// <summary>
-/// The personal access tokens this Server uses to read every repository a host account can see.
+/// The personal access tokens this Server uses to read every repository the team can see.
 ///
-/// One token per host, kept apart from the per-workspace forge credentials. A token is stored
-/// only after the host confirms it can list repositories and read pull requests, because the
-/// Tasks page lists those repositories and infers dev and PM review from the pull requests.
-/// The token itself is never returned. The host URL is stored with it so the Server knows which
-/// GitHub or Forgejo instance to call.
+/// One token per team member, kept apart from the per-workspace forge credentials those
+/// members use to push and review. A token is stored only after the host confirms it can list
+/// repositories and read pull requests, because the Tasks page lists those repositories and
+/// infers dev and PM review from the pull requests. The token itself is never returned. The
+/// host URL is stored with it so the Server knows which GitHub or Forgejo instance to call.
+/// The instance unions every member's repositories and names who can see each one.
 /// </summary>
 public sealed class TaskSourceService(
     ITaskSourceCredentialStore credentials,
     IEnabledCapabilityPackages packages,
-    ITaskSourceTeam team)
+    ITaskSourceTeam team,
+    ITaskSourceIdentities identities)
 {
     private static readonly (string Id, string Name)[] Hosts = [("github", "GitHub"), ("forgejo", "Forgejo")];
 
@@ -28,14 +30,19 @@ public sealed class TaskSourceService(
         var enabled = packages.ListForges()
             .Select(forge => forge.Identity.Id)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
-        return new TaskSourceDto(Hosts.Select(host => Module(host, enabled.Contains(host.Id))).ToArray());
+        return new TaskSourceDto(identities.List().Select(person => Identity(person, enabled)).ToArray());
     }
 
     /// <summary>
-    /// Stores a token and host URL for one host, or refuses them. A refused token is not stored.
+    /// Stores a token and host URL for one team member, or refuses them. A refused token is not
+    /// stored.
     /// </summary>
     public async Task<TaskSourceOutcome> SaveAsync(SaveTaskSourceTokenRequest request, CancellationToken cancellationToken)
     {
+        var person = FindPerson(request.WorkspaceId);
+        if (person is null)
+            return Refuse(StatusCodes.Status409Conflict, "Choose a team member.");
+
         var host = FindHost(request.ModuleId);
         if (host is null)
             return Refuse(StatusCodes.Status409Conflict, "Choose GitHub or Forgejo.");
@@ -69,23 +76,21 @@ public sealed class TaskSourceService(
         if (!access.CanListRepositories || !access.CanReadPullRequests)
             return Refuse(StatusCodes.Status409Conflict, access.Detail ?? "The token needs access to repositories and pull requests.");
 
-        credentials.Write(host.Value.Id, new TaskSourceCredential(token, endpoint));
+        credentials.Write(person.WorkspaceId, new TaskSourceCredential(token, endpoint, host.Value.Id));
         return new TaskSourceOutcome(StatusCodes.Status200OK, Describe());
     }
 
-    /// <summary>Forgets one host, or every host when <paramref name="moduleId"/> is omitted.</summary>
-    public TaskSourceDto Clear(string? moduleId)
+    /// <summary>Forgets one member, or every member when <paramref name="workspaceId"/> is omitted.</summary>
+    public TaskSourceDto Clear(string? workspaceId)
     {
-        if (string.IsNullOrWhiteSpace(moduleId))
+        if (string.IsNullOrWhiteSpace(workspaceId))
         {
-            foreach (var host in Hosts)
-                credentials.Delete(host.Id);
+            foreach (var key in credentials.Keys())
+                credentials.Delete(key);
         }
         else
         {
-            var host = FindHost(moduleId);
-            if (host is not null)
-                credentials.Delete(host.Value.Id);
+            credentials.Delete(workspaceId.Trim());
         }
 
         return Describe();
@@ -93,28 +98,45 @@ public sealed class TaskSourceService(
 
     public async Task<IReadOnlyList<TaskSourceRepositoryDto>> ListRepositoriesAsync(CancellationToken cancellationToken)
     {
-        var listed = new List<TaskSourceRepositoryDto>();
-        foreach (var host in Hosts)
+        var listed = new Dictionary<string, TaskSourceRepositoryDto>(StringComparer.OrdinalIgnoreCase);
+        var people = identities.List().ToDictionary(person => person.WorkspaceId, StringComparer.OrdinalIgnoreCase);
+        foreach (var entry in Entries())
         {
-            var forge = FindForge(host.Id);
-            var stored = credentials.Read(host.Id);
-            if (forge is null || stored is null || string.IsNullOrWhiteSpace(stored.EndpointUrl))
+            var forge = FindForge(entry.ModuleId);
+            if (forge is null)
                 continue;
 
             IReadOnlyList<ForgeRepository> repositories;
             try
             {
-                repositories = await forge.ListRepositoriesAsync(stored.Token, stored.EndpointUrl, cancellationToken);
+                repositories = await forge.ListRepositoriesAsync(entry.Token, entry.EndpointUrl, cancellationToken);
             }
             catch (Exception failure) when (failure is HttpRequestException or TaskCanceledException)
             {
                 repositories = [];
             }
 
-            listed.AddRange(repositories.Select(repository => new TaskSourceRepositoryDto(host.Id, repository.Owner, repository.Name)));
+            people.TryGetValue(entry.Key, out var person);
+            foreach (var repository in repositories)
+            {
+                var id = $"{entry.ModuleId}/{repository.Owner}/{repository.Name}";
+                if (!listed.TryGetValue(id, out var current))
+                {
+                    current = new TaskSourceRepositoryDto(entry.ModuleId, repository.Owner, repository.Name, []);
+                    listed[id] = current;
+                }
+
+                if (person is null)
+                    continue;
+                var members = current.Members?.ToList() ?? [];
+                if (members.Any(member => member.WorkspaceId.Equals(person.WorkspaceId, StringComparison.OrdinalIgnoreCase)))
+                    continue;
+                members.Add(new TaskSourceMemberDto(person.WorkspaceId, person.DisplayName, MemberInitials.From(person.DisplayName)));
+                listed[id] = current with { Members = members };
+            }
         }
 
-        return listed;
+        return listed.Values.ToArray();
     }
 
     public async Task<IReadOnlyList<ForgeIssue>> ListIssuesAsync(
@@ -123,20 +145,26 @@ public sealed class TaskSourceService(
         string repository,
         CancellationToken cancellationToken)
     {
-        var ready = Ready(moduleId, owner, repository);
-        if (ready is null)
-            return [];
+        var seen = new Dictionary<string, ForgeIssue>(StringComparer.Ordinal);
+        foreach (var ready in ReadyAll(moduleId))
+        {
+            IReadOnlyList<ForgeIssue> issues;
+            try
+            {
+                issues = await ready.Forge.ListIssuesAsync(
+                    new ForgeRequest(ready.Token, owner, repository, string.Empty, ready.EndpointUrl),
+                    cancellationToken);
+            }
+            catch (Exception failure) when (failure is HttpRequestException or TaskCanceledException)
+            {
+                issues = [];
+            }
 
-        try
-        {
-            return await ready.Value.Forge.ListIssuesAsync(
-                new ForgeRequest(ready.Value.Token, owner, repository, string.Empty, ready.Value.EndpointUrl),
-                cancellationToken);
+            foreach (var issue in issues)
+                seen[issue.Id] = issue;
         }
-        catch (Exception failure) when (failure is HttpRequestException or TaskCanceledException)
-        {
-            return Array.Empty<ForgeIssue>();
-        }
+
+        return seen.Values.ToArray();
     }
 
     public async Task<IReadOnlyList<TaskSourcePullDto>> ListPullsAsync(
@@ -145,24 +173,27 @@ public sealed class TaskSourceService(
         string repository,
         CancellationToken cancellationToken)
     {
-        var ready = Ready(moduleId, owner, repository);
-        if (ready is null)
-            return [];
+        var seen = new Dictionary<string, ForgePullRequest>(StringComparer.Ordinal);
+        foreach (var ready in ReadyAll(moduleId))
+        {
+            IReadOnlyList<ForgePullRequest> pulls;
+            try
+            {
+                pulls = await ready.Forge.ListPullRequestsAsync(
+                    new ForgeRequest(ready.Token, owner, repository, string.Empty, ready.EndpointUrl),
+                    cancellationToken);
+            }
+            catch (Exception failure) when (failure is HttpRequestException or TaskCanceledException)
+            {
+                pulls = [];
+            }
 
-        IReadOnlyList<ForgePullRequest> pulls;
-        try
-        {
-            pulls = await ready.Value.Forge.ListPullRequestsAsync(
-                new ForgeRequest(ready.Value.Token, owner, repository, string.Empty, ready.Value.EndpointUrl),
-                cancellationToken);
-        }
-        catch (Exception failure) when (failure is HttpRequestException or TaskCanceledException)
-        {
-            pulls = [];
+            foreach (var pull in pulls)
+                seen[pull.Id] = pull;
         }
 
         var members = await team.ForAsync(owner, repository, cancellationToken);
-        return pulls.Select(pull => new TaskSourcePullDto(
+        return seen.Values.Select(pull => new TaskSourcePullDto(
             pull.Id,
             pull.Number,
             pull.Title,
@@ -172,45 +203,69 @@ public sealed class TaskSourceService(
                 .ToArray())).ToArray();
     }
 
-    private TaskSourceModuleDto Module((string Id, string Name) host, bool enabled)
+    private TaskSourceIdentityDto Identity(TaskSourcePerson person, HashSet<string> enabled)
     {
-        var stored = credentials.Read(host.Id);
+        var stored = credentials.Read(person.WorkspaceId);
+        var moduleId = stored is { ModuleId.Length: > 0 } ? stored.ModuleId : null;
         var token = stored is not null && !string.IsNullOrWhiteSpace(stored.Token);
         var endpoint = stored is not null && !string.IsNullOrWhiteSpace(stored.EndpointUrl) ? stored.EndpointUrl : null;
-        var connected = token && endpoint is not null && enabled;
-        return new TaskSourceModuleDto(
-            host.Id,
-            host.Name,
+        var host = FindHost(moduleId);
+        var name = host?.Name ?? "GitHub";
+        var hostEnabled = moduleId is not null && enabled.Contains(moduleId);
+        var connected = token && endpoint is not null && hostEnabled;
+        return new TaskSourceIdentityDto(
+            person.WorkspaceId,
+            person.DisplayName,
+            MemberInitials.From(person.DisplayName),
+            token ? moduleId : null,
             connected,
-            Detail(host.Name, connected, enabled, token, endpoint),
-            endpoint);
+            Detail(name, person.DisplayName, connected, hostEnabled || moduleId is null, token, endpoint),
+            token ? endpoint : null);
     }
 
-    private static string Detail(string name, bool connected, bool enabled, bool stored, string? endpoint)
+    private static string Detail(string name, string member, bool connected, bool enabled, bool stored, string? endpoint)
     {
         if (!enabled && !stored)
-            return $"Enable the {name} capability, then paste the host URL and a personal access token.";
+            return $"Enable the {name} capability, then paste the host URL and a personal access token for {member}.";
         if (!enabled)
-            return $"Enable the {name} capability to use the saved token.";
+            return $"Enable the {name} capability to use {member}'s saved token.";
         if (connected)
-            return $"Reading repositories and pull requests from {name} at {endpoint}.";
-        return "Paste the host URL and a personal access token. It needs access to repositories and pull requests, so Agent-Up can list every repository and read which reviews each pull request still needs.";
+            return $"Reading repositories and pull requests as {member} from {name} at {endpoint}.";
+        return $"Paste the host URL and a personal access token for {member}. It needs access to repositories and pull requests, so Agent-Up can list every repository this team member can see.";
     }
 
-    private (IForgeCapability Forge, string Token, string EndpointUrl)? Ready(string moduleId, string owner, string repository)
+    private IEnumerable<(string Key, string ModuleId, string Token, string EndpointUrl)> Entries()
+    {
+        foreach (var key in credentials.Keys())
+        {
+            var stored = credentials.Read(key);
+            if (stored is null || string.IsNullOrWhiteSpace(stored.Token) || string.IsNullOrWhiteSpace(stored.EndpointUrl))
+                continue;
+            var moduleId = stored.ModuleId.Length > 0 ? stored.ModuleId : HostKey(key);
+            if (moduleId.Length == 0)
+                continue;
+            yield return (key, moduleId, stored.Token, stored.EndpointUrl);
+        }
+    }
+
+    private IEnumerable<(IForgeCapability Forge, string Token, string EndpointUrl)> ReadyAll(string moduleId)
     {
         var host = FindHost(moduleId);
-        if (host is null || string.IsNullOrWhiteSpace(owner) || string.IsNullOrWhiteSpace(repository))
-            return null;
+        if (host is null)
+            yield break;
         var forge = FindForge(host.Value.Id);
-        var stored = credentials.Read(host.Value.Id);
-        return forge is null
-            || stored is null
-            || string.IsNullOrWhiteSpace(stored.Token)
-            || string.IsNullOrWhiteSpace(stored.EndpointUrl)
-            ? null
-            : (forge, stored.Token, stored.EndpointUrl);
+        if (forge is null)
+            yield break;
+        foreach (var entry in Entries().Where(entry =>
+            entry.ModuleId.Equals(host.Value.Id, StringComparison.OrdinalIgnoreCase)))
+        {
+            yield return (forge, entry.Token, entry.EndpointUrl);
+        }
     }
+
+    private TaskSourcePerson? FindPerson(string? workspaceId)
+        => identities.List().FirstOrDefault(person =>
+            person.WorkspaceId.Equals(workspaceId?.Trim(), StringComparison.OrdinalIgnoreCase));
 
     private IForgeCapability? FindForge(string moduleId) =>
         packages.ListForges().FirstOrDefault(forge => forge.Identity.Id.Equals(moduleId, StringComparison.OrdinalIgnoreCase));
@@ -218,6 +273,12 @@ public sealed class TaskSourceService(
     private static (string Id, string Name)? FindHost(string? moduleId) =>
         Hosts.Cast<(string Id, string Name)?>().FirstOrDefault(host =>
             host!.Value.Id.Equals(moduleId?.Trim(), StringComparison.OrdinalIgnoreCase));
+
+    private static string HostKey(string key)
+        => key.Equals("github", StringComparison.OrdinalIgnoreCase)
+            || key.Equals("forgejo", StringComparison.OrdinalIgnoreCase)
+            ? key.ToLowerInvariant()
+            : "";
 
     private static TaskSourceOutcome Refuse(int status, string detail) =>
         new(status, new { title = "Task source", detail });

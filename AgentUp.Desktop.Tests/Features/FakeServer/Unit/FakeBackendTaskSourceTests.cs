@@ -6,29 +6,32 @@ using AgentUp.Desktop.Tests.Support;
 namespace AgentUp.Desktop.Tests.Features.FakeServer.Unit;
 
 /// <summary>
-/// The Demo's forge connections. GitHub starts with a token, so the Tasks page can list the
-/// example repository without asking for one.
+/// The Demo's per-member forge connections. Bob starts with a GitHub token, so the Tasks page
+/// can list the example repository without asking for one.
 /// </summary>
 [TestFixture]
 public sealed class FakeBackendTaskSourceTests
 {
     [Test]
-    public void TheDemoStartsWithGitHubConnected()
+    public void TheDemoStartsWithBobsGitHubConnected()
     {
         var backend = FakeServerTestComposition.Backend();
 
-        var modules = Json(backend, Get("/api/task-source"))["modules"]!.AsArray();
+        var identities = Json(backend, Get("/api/task-source"))["identities"]!.AsArray();
+        var bob = identities.Single(identity => identity!["workspaceId"]!.GetValue<string>() == "bob")!;
 
         Assert.Multiple(() =>
         {
-            Assert.That(modules.Single(module => module!["moduleId"]!.GetValue<string>() == "github")!["connected"]!.GetValue<bool>(), Is.True);
-            Assert.That(modules.Single(module => module!["moduleId"]!.GetValue<string>() == "github")!["endpointUrl"]!.GetValue<string>(), Is.EqualTo("https://github.com"));
-            Assert.That(modules.Single(module => module!["moduleId"]!.GetValue<string>() == "forgejo")!["connected"]!.GetValue<bool>(), Is.False);
+            Assert.That(bob["connected"]!.GetValue<bool>(), Is.True);
+            Assert.That(bob["moduleId"]!.GetValue<string>(), Is.EqualTo("github"));
+            Assert.That(bob["initials"]!.GetValue<string>(), Is.EqualTo("BO"));
+            Assert.That(bob["endpointUrl"]!.GetValue<string>(), Is.EqualTo("https://github.com"));
+            Assert.That(identities.Single(identity => identity!["workspaceId"]!.GetValue<string>() == "frank")!["connected"]!.GetValue<bool>(), Is.False);
         });
     }
 
     [Test]
-    public void TheDemoListsTheExampleRepositoryAndItsIssues()
+    public void TheDemoListsTheExampleRepositoryAndTheMembersWhoCanSeeIt()
     {
         var backend = FakeServerTestComposition.Backend();
 
@@ -38,6 +41,7 @@ public sealed class FakeBackendTaskSourceTests
         Assert.Multiple(() =>
         {
             Assert.That(repositories.Single()!["name"]!.GetValue<string>(), Is.EqualTo("repository"));
+            Assert.That(repositories.Single()!["members"]!.AsArray().Single()!["initials"]!.GetValue<string>(), Is.EqualTo("BO"));
             Assert.That(issues, Is.Not.Empty);
         });
     }
@@ -47,7 +51,7 @@ public sealed class FakeBackendTaskSourceTests
     {
         var backend = FakeServerTestComposition.Backend();
 
-        var refused = Run(backend, Put("/api/task-source", """{"moduleId":"forgejo","endpointUrl":"https://git.example.test","token":"denied"}"""));
+        var refused = Run(backend, Put("/api/task-source", """{"workspaceId":"frank","moduleId":"forgejo","endpointUrl":"https://git.example.test","token":"denied"}"""));
 
         Assert.That(refused.Status, Is.EqualTo(409));
     }
@@ -57,55 +61,56 @@ public sealed class FakeBackendTaskSourceTests
     {
         var backend = FakeServerTestComposition.Backend();
 
-        var refused = Run(backend, Put("/api/task-source", """{"moduleId":"forgejo","token":"forgejo-token"}"""));
+        var refused = Run(backend, Put("/api/task-source", """{"workspaceId":"frank","moduleId":"forgejo","token":"forgejo-token"}"""));
 
         Assert.That(refused.Status, Is.EqualTo(409));
     }
 
     [Test]
-    public void SavingAGitHubTokenKeepsThatHostConnected()
+    public void SavingAGitHubTokenKeepsThatMemberConnected()
     {
         var backend = FakeServerTestComposition.Backend();
-        Json(backend, Delete("/api/task-source/github"));
+        Json(backend, Delete("/api/task-source/bob"));
 
-        var source = Json(backend, Put("/api/task-source", """{"moduleId":"github","endpointUrl":"https://github.com","token":"github-token"}"""));
-        var github = source["modules"]!.AsArray().Single(module => module!["moduleId"]!.GetValue<string>() == "github")!;
+        var source = Json(backend, Put("/api/task-source", """{"workspaceId":"bob","moduleId":"github","endpointUrl":"https://github.com","token":"github-token"}"""));
+        var bob = source["identities"]!.AsArray().Single(identity => identity!["workspaceId"]!.GetValue<string>() == "bob")!;
 
-        Assert.That(github["connected"]!.GetValue<bool>(), Is.True);
+        Assert.That(bob["connected"]!.GetValue<bool>(), Is.True);
     }
 
     [Test]
-    public void PullsAreEmptyOnceGitHubIsForgotten()
+    public void PullsAreEmptyOnceEveryMemberIsForgotten()
     {
         var backend = FakeServerTestComposition.Backend();
-        Json(backend, Delete("/api/task-source/github"));
+        Json(backend, Delete("/api/task-source/bob"));
 
         Assert.That(Json(backend, Get("/api/task-source/pulls")).AsArray(), Is.Empty);
     }
 
     [Test]
-    public void SavingATokenConnectsThatHost()
+    public void SavingATokenConnectsThatMember()
     {
         var backend = FakeServerTestComposition.Backend();
 
-        var source = Json(backend, Put("/api/task-source", """{"moduleId":"forgejo","endpointUrl":"https://git.example.test","token":"forgejo-token"}"""));
-        var forgejo = source["modules"]!.AsArray().Single(module => module!["moduleId"]!.GetValue<string>() == "forgejo")!;
+        var source = Json(backend, Put("/api/task-source", """{"workspaceId":"frank","moduleId":"forgejo","endpointUrl":"https://git.example.test","token":"forgejo-token"}"""));
+        var frank = source["identities"]!.AsArray().Single(identity => identity!["workspaceId"]!.GetValue<string>() == "frank")!;
         var repositories = Json(backend, Get("/api/task-source/repositories")).AsArray();
+        var forgejo = repositories.Single(row => row!["moduleId"]!.GetValue<string>() == "forgejo")!;
 
         Assert.Multiple(() =>
         {
-            Assert.That(forgejo["connected"]!.GetValue<bool>(), Is.True);
-            Assert.That(forgejo["endpointUrl"]!.GetValue<string>(), Is.EqualTo("https://git.example.test"));
-            Assert.That(repositories.Select(row => row!["moduleId"]!.GetValue<string>()), Does.Contain("forgejo"));
+            Assert.That(frank["connected"]!.GetValue<bool>(), Is.True);
+            Assert.That(frank["endpointUrl"]!.GetValue<string>(), Is.EqualTo("https://git.example.test"));
+            Assert.That(forgejo["members"]!.AsArray().Single()!["displayName"]!.GetValue<string>(), Is.EqualTo("Frank"));
         });
     }
 
     [Test]
-    public void ForgettingGitHubLeavesItsIssuesUnreadable()
+    public void ForgettingBobLeavesHisIssuesUnreadable()
     {
         var backend = FakeServerTestComposition.Backend();
 
-        Json(backend, Delete("/api/task-source/github"));
+        Json(backend, Delete("/api/task-source/bob"));
         var issues = Json(backend, Get("/api/task-source/issues")).AsArray();
 
         Assert.That(issues, Is.Empty);
@@ -126,7 +131,7 @@ public sealed class FakeBackendTaskSourceTests
     {
         var backend = FakeServerTestComposition.Backend();
 
-        var refused = Run(backend, Put("/api/task-source", """{"moduleId":"gitlab","endpointUrl":"https://gitlab.com","token":"token"}"""));
+        var refused = Run(backend, Put("/api/task-source", """{"workspaceId":"bob","moduleId":"gitlab","endpointUrl":"https://gitlab.com","token":"token"}"""));
 
         Assert.That(refused.Status, Is.EqualTo(409));
     }
@@ -136,7 +141,7 @@ public sealed class FakeBackendTaskSourceTests
     {
         var backend = FakeServerTestComposition.Backend();
 
-        var refused = Run(backend, Put("/api/task-source", """{"moduleId":"forgejo","endpointUrl":"https://git.example.test","token":" "}"""));
+        var refused = Run(backend, Put("/api/task-source", """{"workspaceId":"frank","moduleId":"forgejo","endpointUrl":"https://git.example.test","token":" "}"""));
 
         Assert.That(refused.Status, Is.EqualTo(409));
     }
@@ -146,24 +151,24 @@ public sealed class FakeBackendTaskSourceTests
     {
         var backend = FakeServerTestComposition.Backend();
 
-        var refused = Run(backend, Put("/api/task-source", """{"moduleId":"forgejo","endpointUrl":"git.example.test","token":"token"}"""));
+        var refused = Run(backend, Put("/api/task-source", """{"workspaceId":"frank","moduleId":"forgejo","endpointUrl":"git.example.test","token":"token"}"""));
 
         Assert.That(refused.Status, Is.EqualTo(409));
     }
 
     [Test]
-    public void ForgettingForgejoLeavesGitHubConnected()
+    public void ForgettingFrankLeavesBobConnected()
     {
         var backend = FakeServerTestComposition.Backend();
-        Json(backend, Put("/api/task-source", """{"moduleId":"forgejo","endpointUrl":"https://git.example.test","token":"forgejo-token"}"""));
+        Json(backend, Put("/api/task-source", """{"workspaceId":"frank","moduleId":"forgejo","endpointUrl":"https://git.example.test","token":"forgejo-token"}"""));
 
-        Json(backend, Delete("/api/task-source/forgejo"));
+        Json(backend, Delete("/api/task-source/frank"));
         var source = Json(backend, Get("/api/task-source"));
 
         Assert.Multiple(() =>
         {
-            Assert.That(source["modules"]!.AsArray().Single(module => module!["moduleId"]!.GetValue<string>() == "github")!["connected"]!.GetValue<bool>(), Is.True);
-            Assert.That(source["modules"]!.AsArray().Single(module => module!["moduleId"]!.GetValue<string>() == "forgejo")!["connected"]!.GetValue<bool>(), Is.False);
+            Assert.That(source["identities"]!.AsArray().Single(identity => identity!["workspaceId"]!.GetValue<string>() == "bob")!["connected"]!.GetValue<bool>(), Is.True);
+            Assert.That(source["identities"]!.AsArray().Single(identity => identity!["workspaceId"]!.GetValue<string>() == "frank")!["connected"]!.GetValue<bool>(), Is.False);
         });
     }
 

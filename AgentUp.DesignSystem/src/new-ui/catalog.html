@@ -54,7 +54,7 @@
       </aside>
     </article>
 
-    <article data-au-component="settings-panel" data-au-title="Settings panel" data-au-note="Interface switch, forge connection, capability modules, and chat. Each group has the same small headline." data-au-avalonia="Border" data-au-class="aun-settings">
+    <article data-au-component="settings-panel" data-au-title="Settings panel" data-au-note="Instance settings: the interface switch and capability modules. Each team member's own settings live on that member's Settings tab." data-au-avalonia="Border" data-au-class="aun-settings">
       <div class="aun-settings">
         <div class="aun-group">
           <div data-au-use="section-label" data-au-props="label=Interface"></div>
@@ -62,27 +62,6 @@
             <div class="aun-settings__row">
               <span class="aun-settings__id"><span class="aun-settings__name">Classic interface</span><span class="aun-settings__state">The previous workspace shell</span></span>
               <button class="aun-btn" type="button" data-au-action="use-classic">Use classic</button>
-            </div>
-          </div>
-        </div>
-        <div class="aun-group">
-          <div data-au-use="section-label" data-au-props="label=Forge connection"></div>
-          <div class="au-cluster">
-            <button class="au-app-tab au-app-tab--selected" type="button" data-au-action="forge-tab" data-au-id="github" data-au-selection="forgeTab:github:au-app-tab--selected">GitHub</button>
-            <button class="au-app-tab" type="button" data-au-action="forge-tab" data-au-id="forgejo" data-au-selection="forgeTab:forgejo:au-app-tab--selected">Forgejo</button>
-          </div>
-          <p class="aun-faint" data-au-text="forgeDetail">Paste the host URL and a personal access token. GitHub.com is https://github.com. A Forgejo instance is the origin you sign in at. The token needs access to repositories and pull requests, so Agent-Up can list every repository and read which reviews each pull request still needs.</p>
-          <div class="aun-settings__list">
-            <div class="aun-settings__row">
-              <input class="aun-input" type="url" placeholder="https://git.example.com" data-au-action="forge-endpoint" data-au-text="forgeEndpoint" />
-            </div>
-            <div class="aun-settings__row">
-              <input class="aun-input" type="password" placeholder="Personal access token" data-au-action="save-token" />
-              <button class="aun-btn aun-btn--primary" type="button" data-au-action="save-token">Save</button>
-            </div>
-            <div class="aun-settings__row" data-au-when="forgeConnected">
-              <span class="aun-settings__name">Connected</span>
-              <button class="aun-btn" type="button" data-au-action="forget-token">Forget</button>
             </div>
           </div>
         </div>
@@ -111,28 +90,86 @@
             </div>
           </div>
         </div>
-        <div class="aun-group" data-au-when="chatSettings">
-          <div data-au-use="section-label" data-au-props="label=Chat"></div>
-          <div class="au-cluster" data-au-slot="settingsWorkspaces" data-au-repeat="settings-workspace">
-            <button class="au-app-tab au-app-tab--selected" type="button">Bob</button>
-            <button class="au-app-tab" type="button">Frank</button>
+      </div>
+    </article>
+
+    <article data-au-component="member-settings" data-au-title="Member settings" data-au-note="One team member's settings: kind, autonomous loop, which agent they run, and their own host token. Uneditable agent properties stay off this page." data-au-avalonia="Border" data-au-class="aun-settings">
+      <div class="aun-settings">
+        <div class="aun-group">
+          <div data-au-use="section-label" data-au-props="label=Type"></div>
+          <div class="au-cluster">
+            <button class="au-app-tab au-app-tab--selected" type="button" data-au-action="member-kind" data-au-id="Author" data-au-selection="memberKind:Author:au-app-tab--selected">Author</button>
+            <button class="au-app-tab" type="button" data-au-action="member-kind" data-au-id="DevReviewer" data-au-selection="memberKind:DevReviewer:au-app-tab--selected">Dev reviewer</button>
+            <button class="au-app-tab" type="button" data-au-action="member-kind" data-au-id="PmReviewer" data-au-selection="memberKind:PmReviewer:au-app-tab--selected">PM reviewer</button>
           </div>
+        </div>
+        <div class="aun-group">
+          <div data-au-use="section-label" data-au-props="label=Agent"></div>
           <div class="aun-settings__list" data-au-slot="chatFields" data-au-repeat="settings-field">
             <div class="aun-settings__row">
-              <span class="aun-settings__id"><span class="aun-settings__name">Autonomy enabled</span><span class="aun-settings__state">Enable autonomy for this Server</span></span>
+              <span class="aun-settings__id"><span class="aun-settings__name">Autonomous</span><span class="aun-settings__state">Off</span></span>
               <button class="aun-btn" type="button">Enable</button>
+            </div>
+          </div>
+          <div data-au-when="opencodeSettings">
+            <p class="aun-faint">OpenCode talks to an Ollama-compatible endpoint. Endpoint and model are required; token is optional.</p>
+            <div class="aun-settings__list">
+              <div class="aun-settings__row">
+                <input class="aun-input" type="url" placeholder="http://localhost:11434" data-au-action="agent-endpoint" data-au-text="agentEndpoint" />
+              </div>
+              <div class="aun-settings__row">
+                <input class="aun-input" type="text" placeholder="Model" data-au-action="agent-model" data-au-text="agentModel" />
+              </div>
+              <div class="aun-settings__row">
+                <input class="aun-input" type="password" placeholder="Token (optional)" data-au-action="save-agent-settings" />
+                <button class="aun-btn aun-btn--primary" type="button" data-au-action="save-agent-settings">Save</button>
+              </div>
+            </div>
+          </div>
+          <div data-au-when="ollamaSettings">
+            <p class="aun-faint">The in-process PM agent talks to an Ollama-compatible /api/chat endpoint. Model is required; the URL defaults to http://127.0.0.1:11434.</p>
+            <div class="aun-settings__list">
+              <div class="aun-settings__row">
+                <input class="aun-input" type="url" placeholder="http://127.0.0.1:11434" data-au-action="agent-endpoint" data-au-text="agentEndpoint" />
+              </div>
+              <div class="aun-settings__row">
+                <input class="aun-input" type="text" placeholder="Model" data-au-action="agent-model" data-au-text="agentModel" />
+                <button class="aun-btn aun-btn--primary" type="button" data-au-action="save-agent-settings">Save</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="aun-group">
+          <div data-au-use="section-label" data-au-props="label=Forge"></div>
+          <div class="au-cluster">
+            <button class="au-app-tab au-app-tab--selected" type="button" data-au-action="forge-tab" data-au-id="github" data-au-selection="forgeTab:github:au-app-tab--selected">GitHub</button>
+            <button class="au-app-tab" type="button" data-au-action="forge-tab" data-au-id="forgejo" data-au-selection="forgeTab:forgejo:au-app-tab--selected">Forgejo</button>
+          </div>
+          <p class="aun-faint" data-au-text="forgeDetail">Paste the host URL and a personal access token for this team member. GitHub.com is https://github.com. A Forgejo instance is the origin you sign in at. The token needs access to repositories and pull requests, so Agent-Up can list every repository this member can see.</p>
+          <div class="aun-settings__list">
+            <div class="aun-settings__row">
+              <input class="aun-input" type="url" placeholder="https://git.example.com" data-au-action="forge-endpoint" data-au-text="forgeEndpoint" />
+            </div>
+            <div class="aun-settings__row">
+              <input class="aun-input" type="password" placeholder="Personal access token" data-au-action="save-token" />
+              <button class="aun-btn aun-btn--primary" type="button" data-au-action="save-token">Save</button>
+            </div>
+            <div class="aun-settings__row" data-au-when="forgeConnected">
+              <span class="aun-settings__name">Connected</span>
+              <button class="aun-btn" type="button" data-au-action="forget-token">Forget</button>
             </div>
           </div>
         </div>
       </div>
     </article>
 
-    <article data-au-component="agent-tabs" data-au-title="Agent tabs" data-au-note="Overview, Chat, Git, and Files, then one tab per application the open workspace declares. The application tabs come from that workspace; the three here are the Demo's samples." data-au-avalonia="Border" data-au-class="au-app-tab" data-au-states="selected=au-app-tab/au-app-tab--selected" data-au-state-examples="selected:1|Chat tab selected|The live ACP session is the primary selection when Chat is open.;selected:2|Git tab selected|Working-tree review is the primary selection when Git is open.;selected:3|Files tab selected|The whole clone is the primary selection when Files is open.;selected:4|Application tab selected|Storefront is the primary selection when the running app is open.">
+    <article data-au-component="agent-tabs" data-au-title="Agent tabs" data-au-note="Overview, Chat, Git, Files, and Settings, then one tab per application the open workspace declares. Settings is that member's type, loop, agent, and forge. The application tabs come from that workspace; the three here are the Demo's samples." data-au-avalonia="Border" data-au-class="au-app-tab" data-au-states="selected=au-app-tab/au-app-tab--selected" data-au-state-examples="selected:1|Chat tab selected|The live ACP session is the primary selection when Chat is open.;selected:2|Git tab selected|Working-tree review is the primary selection when Git is open.;selected:3|Files tab selected|The whole clone is the primary selection when Files is open.;selected:4|Settings tab selected|This member's type, loop, agent, and forge.;selected:5|Application tab selected|Storefront is the primary selection when the running app is open.">
       <div class="au-cluster">
         <button class="au-app-tab au-app-tab--selected" type="button" data-au-action="tab-overview" data-au-selection="selected:0:au-app-tab--selected">Overview</button>
         <button class="au-app-tab" type="button" data-au-action="tab-chat" data-au-selection="selected:1:au-app-tab--selected">Chat</button>
         <button class="au-app-tab" type="button" data-au-action="tab-git" data-au-selection="selected:2:au-app-tab--selected">Git</button>
         <button class="au-app-tab" type="button" data-au-action="tab-files" data-au-selection="selected:3:au-app-tab--selected">Files</button>
+        <button class="au-app-tab" type="button" data-au-action="tab-settings" data-au-selection="selected:4:au-app-tab--selected">Settings</button>
         <span class="au-tab-sep"></span>
         <span class="au-cluster" data-au-slot="applications" data-au-repeat="application-tab">
           <button class="au-app-tab" type="button"><span class="au-status-dot au-status-dot--healthy"></span> Storefront</button>
@@ -153,11 +190,11 @@
       </div>
     </article>
 
-    <article data-au-component="settings-workspace" data-au-title="Settings workspace" data-au-note="One workspace in Settings · Chat. The selected tab is the workspace whose agent and unattended loop are shown." data-au-avalonia="Button" data-au-class="au-app-tab">
-      <button class="au-app-tab" type="button" data-au-kind="1" data-au-action="settings-workspace" data-au-text="name"></button>
+    <article data-au-component="member-avatar" data-au-title="Member avatar" data-au-note="A round banner for one team member. Initials stand in until a portrait is stored." data-au-avalonia="Border" data-au-class="aun-avatar">
+      <span class="aun-avatar aun-avatar--sm" data-au-text="initials">BO</span>
     </article>
 
-    <article data-au-component="settings-field" data-au-title="Settings field" data-au-note="One chat property. Its control is greyed when the value cannot be changed. Nested rows are that property's own fields." data-au-avalonia="Border" data-au-class="aun-settings__field" data-au-parts="control">
+    <article data-au-component="settings-field" data-au-title="Settings field" data-au-note="One member setting: the autonomous toggle or one agent. Nested rows are that property's own fields." data-au-avalonia="Border" data-au-class="aun-settings__field" data-au-parts="control">
       <div class="aun-settings__field">
         <div class="aun-settings__row">
           <span class="aun-settings__id">
@@ -259,20 +296,24 @@
       </div>
     </article>
 
-    <article data-au-component="mobile-tabs-apps" data-au-title="Agent tabs, Apps" data-au-note="Apps, Git, Files, Chat. Apps selected. The accent underline is the catalog tab." data-au-avalonia="Border" data-au-class="au-tabs">
-      <nav class="au-tabs" aria-label="Agent sections"><button class="au-tab au-tab--selected" type="button" aria-selected="true" data-au-action="tab-apps" data-au-selection="section:0:au-tab--selected">Apps</button><button class="au-tab" type="button" data-au-action="tab-git" data-au-selection="section:1:au-tab--selected">Git</button><button class="au-tab" type="button" data-au-action="tab-files" data-au-selection="section:2:au-tab--selected">Files</button><button class="au-tab" type="button" data-au-action="tab-chat" data-au-selection="section:3:au-tab--selected">Chat</button></nav>
+    <article data-au-component="mobile-tabs-apps" data-au-title="Agent tabs, Apps" data-au-note="Apps, Git, Files, Chat, Settings. Apps selected. The accent underline is the catalog tab." data-au-avalonia="Border" data-au-class="au-tabs">
+      <nav class="au-tabs" aria-label="Agent sections"><button class="au-tab au-tab--selected" type="button" aria-selected="true" data-au-action="tab-apps" data-au-selection="section:0:au-tab--selected">Apps</button><button class="au-tab" type="button" data-au-action="tab-git" data-au-selection="section:1:au-tab--selected">Git</button><button class="au-tab" type="button" data-au-action="tab-files" data-au-selection="section:2:au-tab--selected">Files</button><button class="au-tab" type="button" data-au-action="tab-chat" data-au-selection="section:3:au-tab--selected">Chat</button><button class="au-tab" type="button" data-au-action="tab-settings" data-au-selection="section:4:au-tab--selected">Settings</button></nav>
     </article>
 
-    <article data-au-component="mobile-tabs-git" data-au-title="Agent tabs, Git" data-au-note="Apps, Git, Files, Chat. Git selected." data-au-avalonia="Border" data-au-class="au-tabs">
-      <nav class="au-tabs" aria-label="Agent sections"><button class="au-tab" type="button" data-au-action="tab-apps" data-au-selection="section:0:au-tab--selected">Apps</button><button class="au-tab au-tab--selected" type="button" aria-selected="true" data-au-action="tab-git" data-au-selection="section:1:au-tab--selected">Git</button><button class="au-tab" type="button" data-au-action="tab-files" data-au-selection="section:2:au-tab--selected">Files</button><button class="au-tab" type="button" data-au-action="tab-chat" data-au-selection="section:3:au-tab--selected">Chat</button></nav>
+    <article data-au-component="mobile-tabs-git" data-au-title="Agent tabs, Git" data-au-note="Apps, Git, Files, Chat, Settings. Git selected." data-au-avalonia="Border" data-au-class="au-tabs">
+      <nav class="au-tabs" aria-label="Agent sections"><button class="au-tab" type="button" data-au-action="tab-apps" data-au-selection="section:0:au-tab--selected">Apps</button><button class="au-tab au-tab--selected" type="button" aria-selected="true" data-au-action="tab-git" data-au-selection="section:1:au-tab--selected">Git</button><button class="au-tab" type="button" data-au-action="tab-files" data-au-selection="section:2:au-tab--selected">Files</button><button class="au-tab" type="button" data-au-action="tab-chat" data-au-selection="section:3:au-tab--selected">Chat</button><button class="au-tab" type="button" data-au-action="tab-settings" data-au-selection="section:4:au-tab--selected">Settings</button></nav>
     </article>
 
-    <article data-au-component="mobile-tabs-files" data-au-title="Agent tabs, Files" data-au-note="Apps, Git, Files, Chat. Files selected." data-au-avalonia="Border" data-au-class="au-tabs">
-      <nav class="au-tabs" aria-label="Agent sections"><button class="au-tab" type="button" data-au-action="tab-apps" data-au-selection="section:0:au-tab--selected">Apps</button><button class="au-tab" type="button" data-au-action="tab-git" data-au-selection="section:1:au-tab--selected">Git</button><button class="au-tab au-tab--selected" type="button" aria-selected="true" data-au-action="tab-files" data-au-selection="section:2:au-tab--selected">Files</button><button class="au-tab" type="button" data-au-action="tab-chat" data-au-selection="section:3:au-tab--selected">Chat</button></nav>
+    <article data-au-component="mobile-tabs-files" data-au-title="Agent tabs, Files" data-au-note="Apps, Git, Files, Chat, Settings. Files selected." data-au-avalonia="Border" data-au-class="au-tabs">
+      <nav class="au-tabs" aria-label="Agent sections"><button class="au-tab" type="button" data-au-action="tab-apps" data-au-selection="section:0:au-tab--selected">Apps</button><button class="au-tab" type="button" data-au-action="tab-git" data-au-selection="section:1:au-tab--selected">Git</button><button class="au-tab au-tab--selected" type="button" aria-selected="true" data-au-action="tab-files" data-au-selection="section:2:au-tab--selected">Files</button><button class="au-tab" type="button" data-au-action="tab-chat" data-au-selection="section:3:au-tab--selected">Chat</button><button class="au-tab" type="button" data-au-action="tab-settings" data-au-selection="section:4:au-tab--selected">Settings</button></nav>
     </article>
 
-    <article data-au-component="mobile-tabs-chat" data-au-title="Agent tabs, Chat" data-au-note="Apps, Git, Files, Chat. Chat selected." data-au-avalonia="Border" data-au-class="au-tabs">
-      <nav class="au-tabs" aria-label="Agent sections"><button class="au-tab" type="button" data-au-action="tab-apps" data-au-selection="section:0:au-tab--selected">Apps</button><button class="au-tab" type="button" data-au-action="tab-git" data-au-selection="section:1:au-tab--selected">Git</button><button class="au-tab" type="button" data-au-action="tab-files" data-au-selection="section:2:au-tab--selected">Files</button><button class="au-tab au-tab--selected" type="button" aria-selected="true" data-au-action="tab-chat" data-au-selection="section:3:au-tab--selected">Chat</button></nav>
+    <article data-au-component="mobile-tabs-chat" data-au-title="Agent tabs, Chat" data-au-note="Apps, Git, Files, Chat, Settings. Chat selected." data-au-avalonia="Border" data-au-class="au-tabs">
+      <nav class="au-tabs" aria-label="Agent sections"><button class="au-tab" type="button" data-au-action="tab-apps" data-au-selection="section:0:au-tab--selected">Apps</button><button class="au-tab" type="button" data-au-action="tab-git" data-au-selection="section:1:au-tab--selected">Git</button><button class="au-tab" type="button" data-au-action="tab-files" data-au-selection="section:2:au-tab--selected">Files</button><button class="au-tab au-tab--selected" type="button" aria-selected="true" data-au-action="tab-chat" data-au-selection="section:3:au-tab--selected">Chat</button><button class="au-tab" type="button" data-au-action="tab-settings" data-au-selection="section:4:au-tab--selected">Settings</button></nav>
+    </article>
+
+    <article data-au-component="mobile-tabs-settings" data-au-title="Agent tabs, Settings" data-au-note="Apps, Git, Files, Chat, Settings. Settings selected." data-au-avalonia="Border" data-au-class="au-tabs">
+      <nav class="au-tabs" aria-label="Agent sections"><button class="au-tab" type="button" data-au-action="tab-apps" data-au-selection="section:0:au-tab--selected">Apps</button><button class="au-tab" type="button" data-au-action="tab-git" data-au-selection="section:1:au-tab--selected">Git</button><button class="au-tab" type="button" data-au-action="tab-files" data-au-selection="section:2:au-tab--selected">Files</button><button class="au-tab" type="button" data-au-action="tab-chat" data-au-selection="section:3:au-tab--selected">Chat</button><button class="au-tab au-tab--selected" type="button" aria-selected="true" data-au-action="tab-settings" data-au-selection="section:4:au-tab--selected">Settings</button></nav>
     </article>
 
     <article data-au-component="mobile-tabbar" data-au-title="Command tabs" data-au-note="Team, Tasks, Settings. The phone bar is these three. Unselected icons sit at 55% opacity." data-au-avalonia="Border" data-au-class="au-mobile-tab-bar" data-au-states="selected=au-nav-tab/au-subtab--selected">
@@ -300,17 +341,24 @@
       </div>
     </article>
 
-    <article data-au-component="task-board" data-au-title="Task board" data-au-note="Repositories first, then one repository's three queues. Issues is that repository's queue. Dev review and PM review are inferred from its open pull requests. Desktop keeps the page title; the phone puts that title in its head." data-au-avalonia="Border" data-au-class="aun-task-board" data-au-parts="title">
+    <article data-au-component="task-board" data-au-title="Task board" data-au-note="Repositories first, then one repository's three queues. The open repository names who on the team can see it, as round initials. Issues is that repository's queue. Dev review and PM review are inferred from its open pull requests. Desktop keeps the page title; the phone puts that title in its head." data-au-avalonia="Border" data-au-class="aun-task-board" data-au-parts="title">
       <div class="aun-task-board">
         <div data-au-part="title" data-au-use="page-title" data-au-props="title=Tasks"></div>
         <div data-au-when="repoList">
           <div class="aun-group" data-au-slot="repos" data-au-repeat="task-repo"></div>
-          <p class="aun-faint" data-au-empty="repos">No repositories yet. Save a personal access token in Settings, on GitHub or Forgejo. It needs access to issues and pull requests.</p>
+          <p class="aun-faint" data-au-empty="repos">No repositories yet. Save a personal access token on a team member's Settings tab. It needs access to issues and pull requests.</p>
         </div>
         <div data-au-when="repoOpen">
           <div class="au-cluster">
             <button class="aun-btn" type="button" data-au-action="tasks-back">Back</button>
             <span class="aun-settings__name" data-au-text="repository">example/repository</span>
+            <span class="au-cluster aun-task-access" data-au-demo="access" data-au-slot="access" data-au-repeat="member-avatar">
+              <span class="aun-avatar aun-avatar--sm">BO</span>
+              <span class="aun-avatar aun-avatar--sm">FR</span>
+              <span class="aun-avatar aun-avatar--sm">HE</span>
+              <span class="aun-avatar aun-avatar--sm">LU</span>
+              <span class="aun-avatar aun-avatar--sm">MI</span>
+            </span>
           </div>
           <div class="au-cluster aun-task-tabs" role="tablist">
             <button class="au-app-tab au-app-tab--selected" type="button" data-au-action="tasks-issues" data-au-selection="tasksTab:issues:au-app-tab--selected">Issues</button>
@@ -432,20 +480,22 @@
       </div>
     </article>
 
-    <article data-au-component="task-repo" data-au-title="Task repository" data-au-note="One repository the stored token can see. Choosing it opens that repository's queues." data-au-avalonia="Border" data-au-class="aun-task-slot">
+    <article data-au-component="task-repo" data-au-title="Task repository" data-au-note="One repository any team member's token can see. Choosing it opens that repository's queues. The round banners are the members who can see it." data-au-avalonia="Border" data-au-class="aun-task-slot">
       <button class="aun-task-row" type="button" data-au-action="open-repo">
         <span class="aun-task-row__body">
           <span class="aun-task-row__title" data-au-text="name">example/repository</span>
           <span class="aun-task-row__repo" data-au-text="host">GitHub</span>
         </span>
+        <span class="au-cluster aun-task-access" data-au-slot="access" data-au-repeat="member-avatar"></span>
       </button>
     </article>
 
-    <article data-au-component="task-row" data-au-title="Task row" data-au-note="One task on the board. The first row of a group carries that group's label. A review row names its reviewer and revision and has no button: reviewers take reviews themselves. Dequeue, stop, and queue are the same button; the client names which action this row runs and the tone it takes: danger to take work away, primary to give it." data-au-avalonia="Border" data-au-class="aun-task-slot" data-au-parts="section agent" data-au-actions="dequeue queue stop">
+    <article data-au-component="task-row" data-au-title="Task row" data-au-note="One task on the board. The first row of a group carries that group's label. A review row names its reviewer and revision and has no button: reviewers take reviews themselves. Dequeue, stop, and queue are the same button; the client names which action this row runs and the tone it takes: danger to take work away, primary to give it. One assignee, when there is one, is the round initials on the row." data-au-avalonia="Border" data-au-class="aun-task-slot" data-au-parts="section agent assignee" data-au-actions="dequeue queue stop">
       <div class="aun-task-slot">
         <p class="au-field-label aun-task-slot__section" data-au-part="section" data-au-text="section">Queue · 2</p>
         <div class="aun-task-row" data-au-actions="queue stop">
           <span class="aun-task__grip" data-au-for="dequeue" aria-hidden="true"><span></span><span></span><span></span></span>
+          <span class="aun-avatar aun-avatar--sm" data-au-part="assignee" data-au-text="initials"></span>
           <span class="aun-task-row__body">
             <span class="aun-task-row__title" data-au-text="title"></span>
             <span class="aun-task-row__agent" data-au-part="agent" data-au-text="agent"></span>

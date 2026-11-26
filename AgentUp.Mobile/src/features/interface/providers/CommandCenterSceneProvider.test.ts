@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { TeamStanding } from '../models/TeamStanding';
-import { commandCenterScene, commandCenterSceneId, commandCenterServerLabel, fleetHeadline, moduleRow, prefillEndpoint, tasksTabFor, tokenSave } from './CommandCenterSceneProvider';
+import { agentSettingSave, commandCenterScene, commandCenterSceneId, commandCenterServerLabel, fleetHeadline, moduleRow, prefillEndpoint, tasksTabFor, tokenSave } from './CommandCenterSceneProvider';
 
 function standing(patch: Partial<TeamStanding> & Pick<TeamStanding, 'workspaceId' | 'displayName' | 'kind'>): TeamStanding {
   return {
@@ -47,6 +47,7 @@ test('the phone scene follows the catalog nav and the open agent', () => {
   assert.equal(commandCenterSceneId({ nav: 0, section: 'files', agentOpen: true }), 'mobile-agent-files');
   assert.equal(commandCenterSceneId({ nav: 0, section: 'file', agentOpen: true }), 'mobile-agent-file');
   assert.equal(commandCenterSceneId({ nav: 0, section: 'application', agentOpen: true }), 'mobile-application');
+  assert.equal(commandCenterSceneId({ nav: 0, section: 'settings', agentOpen: true }), 'mobile-agent-settings');
 });
 
 test('the fleet headline and lanes use the catalog copy and omit an empty lane', () => {
@@ -155,6 +156,52 @@ test('the board hands over every row with the action it offers, in no particular
 
   assert.deepEqual(scene.items.queue.map(item => [item.id, item.action]), [['w1', 'stop'], ['q1', 'dequeue'], ['o1', 'queue']]);
   assert.deepEqual(scene.items.queue.map(item => item.text?.agent), ['Bob', '', '']);
+  assert.deepEqual(scene.items.queue.map(item => item.text?.initials), ['BO', '', '']);
+  assert.equal(scene.items.queue[0]?.parts?.includes('assignee'), true);
+});
+
+test('one assignee is the round initials, from the holder, the target, or the host login', () => {
+  const scene = commandCenterScene({
+    surface: 'mobile', nav: 1, section: 'overview', agentOpen: false, serverLabel: 'Demo', openWorkspaceId: null,
+    team: [],
+    queue: [{
+      id: 'q1', owner: 'shop', repository: 'store', number: 51, title: 'Task 51', url: 'u',
+      targetWorkspaceId: 'frank', heldByWorkspaceId: null,
+    }],
+    working: [{
+      id: 'w1', owner: 'shop', repository: 'store', number: 44, title: 'Task 44', url: 'u',
+      targetWorkspaceId: null, heldByWorkspaceId: 'bob',
+    }],
+    offered: [{ id: 'o1', number: 57, title: 'Cart badge', url: 'u', assigneeLogin: 'hector' }],
+    names: new Map([['bob', 'Bob'], ['frank', 'Frank']]), flows: [],
+    validationsOpen: false, validationRunning: false, validationPassed: false, validationSummary: '',
+  });
+
+  assert.deepEqual(scene.items.queue.map(item => item.text?.initials), ['BO', 'FR', 'HE']);
+});
+
+test('auth tabs are one per team member and the open repository names who can see it', () => {
+  const scene = commandCenterScene({
+    surface: 'mobile', nav: 2, section: 'overview', agentOpen: false, serverLabel: 'Demo', openWorkspaceId: null,
+    team: [
+      standing({ workspaceId: 'bob', displayName: 'Bob', kind: 'idle' }),
+      standing({ workspaceId: 'frank', displayName: 'Frank', kind: 'idle' }),
+    ],
+    queue: [], working: [], offered: [], names: new Map(), flows: [],
+    authTab: 'frank',
+    repository: 'example/repository',
+    repositories: [{
+      id: 'github/example/repository',
+      name: 'example/repository',
+      host: 'GitHub',
+      members: [{ id: 'bob', name: 'Bob', initials: 'BO' }, { id: 'frank', name: 'Frank', initials: 'FR' }],
+    }],
+    validationsOpen: false, validationRunning: false, validationPassed: false, validationSummary: '',
+  });
+
+  assert.deepEqual(scene.items.authMembers.map(item => item.text?.name), ['Bob', 'Frank']);
+  assert.equal(scene.state.authTab, 'frank');
+  assert.deepEqual(scene.items.access.map(item => item.text?.initials), ['BO', 'FR']);
 });
 
 // The Tasks board has three queues; the open one is the scene's state, and each review queue is
@@ -216,6 +263,35 @@ test('GitHub prefills github.com and Save reads the host URL from every field', 
     token: 'secret',
     endpointUrl: 'https://git.example.test',
   });
+  assert.deepEqual(agentSettingSave({
+    'agent-endpoint': ' http://localhost:11434 ',
+    'agent-model': ' llama ',
+    'save-agent-settings': ' secret ',
+  }, 'ignored'), {
+    endpoint: 'http://localhost:11434',
+    model: 'llama',
+    token: 'secret',
+  });
+});
+
+test('member settings is a tab on the open team member', () => {
+  assert.equal(commandCenterSceneId({ nav: 0, section: 'settings', agentOpen: true }), 'mobile-agent-settings');
+  const scene = commandCenterScene({
+    surface: 'mobile', nav: 0, section: 'settings', agentOpen: true, serverLabel: 'Demo', openWorkspaceId: 'bob',
+    team: [standing({ workspaceId: 'bob', displayName: 'Bob', kind: 'idle' })],
+    queue: [], working: [], offered: [], names: new Map(), flows: [],
+    memberKind: 'PmReviewer',
+    boundAgent: 'ollama',
+    agentEndpoint: 'http://127.0.0.1:11434',
+    agentModel: 'llama',
+    validationsOpen: false, validationRunning: false, validationPassed: false, validationSummary: '',
+  });
+
+  assert.equal(scene.scene, 'mobile-agent-settings');
+  assert.equal(scene.state.memberKind, 'PmReviewer');
+  assert.equal(scene.state.ollamaSettings, '1');
+  assert.equal(scene.text.agentEndpoint, 'http://127.0.0.1:11434');
+  assert.equal(scene.text.agentModel, 'llama');
 });
 
 test('the settings scene shows the host URL for the selected forge', () => {

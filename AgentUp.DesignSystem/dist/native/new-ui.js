@@ -2624,6 +2624,12 @@ export const newUiTheme = Object.freeze({
       height: 52,
       fontSize: 14,
     }),
+    aunTaskAccess: Object.freeze({
+
+    }),
+    aunTaskAccess__aunAvatar: Object.freeze({
+
+    }),
     aunCard: Object.freeze({
       borderWidth: 1,
       borderColor: "#ffffff14",
