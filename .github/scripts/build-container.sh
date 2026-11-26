@@ -16,8 +16,11 @@ echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USERNAME" --password-stdin
 
 docker build . \
   -t "${IMAGE_BASE}:${VERSION}" \
-  -t "${IMAGE_BASE}:latest" \
   -f "./${COMPONENT}/Dockerfile"
 
 docker push "${IMAGE_BASE}:${VERSION}"
-docker push "${IMAGE_BASE}:latest"
+
+if [ "${AGENTUP_PUBLISH_LATEST:-1}" = "1" ]; then
+  docker tag "${IMAGE_BASE}:${VERSION}" "${IMAGE_BASE}:latest"
+  docker push "${IMAGE_BASE}:latest"
+fi

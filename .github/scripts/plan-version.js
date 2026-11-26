@@ -1,17 +1,46 @@
 'use strict';
 
 const fs = require('fs');
+const { listMergedTags, selectProductTag } = require('./plan-mobile-version.js');
 
-async function main() {
-  const run = process.env.GITHUB_RUN_NUMBER || '0';
-  const fallbackVersion = `0.0.0-ci.${run}`;
-  const isMain = process.env.GITHUB_REF === 'refs/heads/main';
+function isPositiveInteger(value) {
+  return /^[1-9][0-9]*$/.test(String(value || '').trim());
+}
 
-  if (!isMain) {
-    emit(fallbackVersion, false);
-    return;
+function planPrereleaseVersion({ tags, runNumber, runAttempt }) {
+  const selected = selectProductTag(tags);
+  const baseVersion = selected?.version || '0.0.0';
+  const run = String(runNumber || '').trim();
+  if (!isPositiveInteger(run)) {
+    throw new Error(`GITHUB_RUN_NUMBER is not a positive integer: ${run}`);
   }
 
+  const attemptRaw = String(runAttempt ?? '1').trim();
+  if (!isPositiveInteger(attemptRaw)) {
+    throw new Error(`GITHUB_RUN_ATTEMPT is not a positive integer: ${attemptRaw}`);
+  }
+
+  const attempt = Number(attemptRaw);
+  const suffix = attempt > 1 ? `.${attempt}` : '';
+  return {
+    baseVersion,
+    version: `${baseVersion}-${run}${suffix}`,
+  };
+}
+
+function emit(version, publish, prerelease) {
+  const outputFile = process.env.GITHUB_OUTPUT;
+  if (outputFile) {
+    fs.appendFileSync(
+      outputFile,
+      `version=${version}\npublish=${publish}\nprerelease=${prerelease}\n`,
+    );
+  }
+  console.log(`version=${version} publish=${publish} prerelease=${prerelease}`);
+}
+
+async function planMainVersion(run) {
+  const fallbackVersion = `0.0.0-ci.${run}`;
   const semanticReleaseModule = require('semantic-release');
   const semanticRelease = semanticReleaseModule.default || semanticReleaseModule;
   const result = await semanticRelease({
@@ -24,21 +53,38 @@ async function main() {
   });
 
   if (result?.nextRelease?.version) {
-    emit(result.nextRelease.version, true);
-  } else {
-    emit(fallbackVersion, false);
+    return { version: result.nextRelease.version, publish: true };
   }
+
+  return { version: fallbackVersion, publish: false };
 }
 
-function emit(version, publish) {
-  const outputFile = process.env.GITHUB_OUTPUT;
-  if (outputFile) {
-    fs.appendFileSync(outputFile, `version=${version}\npublish=${publish}\n`);
+async function main() {
+  const run = process.env.GITHUB_RUN_NUMBER || '0';
+  const isMain = process.env.GITHUB_REF === 'refs/heads/main';
+  const isPush = process.env.GITHUB_EVENT_NAME === 'push';
+
+  if (!isMain) {
+    const planned = planPrereleaseVersion({
+      tags: listMergedTags(),
+      runNumber: process.env.GITHUB_RUN_NUMBER,
+      runAttempt: process.env.GITHUB_RUN_ATTEMPT,
+    });
+    emit(planned.version, isPush, true);
+    return;
   }
-  console.log(`version=${version} publish=${publish}`);
+
+  const planned = await planMainVersion(run);
+  emit(planned.version, planned.publish, false);
 }
 
-main().catch(err => {
-  console.error(err.message);
-  process.exit(1);
-});
+module.exports = {
+  planPrereleaseVersion,
+};
+
+if (require.main === module) {
+  main().catch(err => {
+    console.error(err.message);
+    process.exit(1);
+  });
+}

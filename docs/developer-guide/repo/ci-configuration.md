@@ -17,7 +17,7 @@ This page lists the repository secrets and variables the Agent-Up CI workflow re
 <DocSpine>
 <DocBeat>Coverage uploads the Cobertura reports the local gate already produced</DocBeat>
 <DocBeat>Signing stays optional until the matching secrets and variables are set</DocBeat>
-<DocBeat>Release publishes on main when Conventional Commits warrant a version</DocBeat>
+<DocBeat>Release publishes a stable cut on main, and a GitHub prerelease on other branch pushes</DocBeat>
 </DocSpine>
 
 <DocContract label="Location">Settings → Secrets and variables → Actions</DocContract>
@@ -108,7 +108,7 @@ gpg --verify agent-up-ubuntu-linux-x64.deb.asc agent-up-ubuntu-linux-x64.deb
 
 The release job uses `GITHUB_TOKEN`, which GitHub provides automatically. No setup required.
 
-Releases only run on `main` when semantic-release determines a new version is warranted based on [Conventional Commits](https://www.conventionalcommits.org/).
+On `main`, Release runs when semantic-release determines a new version is warranted based on [Conventional Commits](https://www.conventionalcommits.org/). A push to any other branch publishes a GitHub prerelease whose version is the newest reachable `vX.Y.Z` tag plus `GITHUB_RUN_NUMBER`, with `GITHUB_RUN_ATTEMPT` appended after a dot only when the job is retried. That prerelease uses the same Docker Hub, Helm, and npm destinations, tags npm as `ci` instead of `latest`, does not push the Server image `:latest` tag, and skips JetBrains Marketplace.
 
 The same release publishes the Server image and `agent-up-helm` chart to Docker Hub. Create the public repositories `themassiveone/agent-up-server` and `themassiveone/agent-up-helm` on Docker Hub, then add a token with write access.
 
@@ -182,7 +182,7 @@ Event tags, error-only SDK policy, and injection paths are documented in
 
 ## JetBrains Marketplace
 
-JetBrains Marketplace publishing is optional. Create the Agent-Up plugin entry in JetBrains Marketplace once, then add a Marketplace token from the vendor profile. The release job publishes `Plugins/Jetbrains` through Gradle after the GitHub release succeeds, using the same planned release version that was injected into the release ZIP.
+JetBrains Marketplace publishing is optional. Create the Agent-Up plugin entry in JetBrains Marketplace once, then add a Marketplace token from the vendor profile. On `main`, the release job publishes `Plugins/Jetbrains` through Gradle after the GitHub release succeeds, using the same planned release version that was injected into the release ZIP. Branch prereleases skip the plugin.
 
 | Secret | Value |
 |---|---|
@@ -191,7 +191,7 @@ JetBrains Marketplace publishing is optional. Create the Agent-Up plugin entry i
 | `JETBRAINS_PLUGIN_PRIVATE_KEY` | Optional Base64-encoded plugin signing private key |
 | `JETBRAINS_PLUGIN_PRIVATE_KEY_PASSWORD` | Optional private-key password |
 
-If `JETBRAINS_MARKETPLACE_TOKEN` is not configured, CI still builds the plugin ZIP and attaches it to the GitHub release, but skips Marketplace publishing.
+If `JETBRAINS_MARKETPLACE_TOKEN` is not configured, a `main` release still builds the plugin ZIP and attaches it to the GitHub release, but skips Marketplace publishing.
 
 ## Repository Variables
 

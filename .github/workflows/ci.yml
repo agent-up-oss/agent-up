@@ -19,8 +19,9 @@ name: Agent-Up CI
 # renders the matrix with those verdicts on the run summary and fails when a leg failed or never
 # ran, so a green run means every declared leg ran and passed or was skipped for its declared
 # reason. It is the one check to require on pull requests. Release and Mobile release wait for it
-# and nothing else; Release runs on a push to main, Mobile release on a dispatch that names a
-# mobile channel, never both. Nothing waits for Source except them: a red suite or coverage miss
+# and nothing else; Release runs on a push (stable cut on main, GitHub prerelease on other
+# branches), Mobile release on a dispatch that names a mobile channel, never both. Nothing waits
+# for Source except them: a red suite or coverage miss
 # never hides what the behavior legs would have shown.
 #
 # Definition: docs/developer-guide/repo/ci.md.
@@ -28,7 +29,7 @@ name: Agent-Up CI
 on:
   push:
     branches:
-      - 'main'
+      - '**'
     tags-ignore:
       - android-v*
       - ios-v*
@@ -36,7 +37,7 @@ on:
     branches:
       - '**'
   # A dispatch runs the whole matrix. With a mobile channel it then ships the Mobile store
-  # binaries that run built; it never runs Release, which belongs to pushes to main.
+  # binaries that run built; it never runs Release, which belongs to pushes.
   workflow_dispatch:
     inputs:
       mobile-channel:
@@ -58,16 +59,14 @@ on:
           - android
           - ios
 
-# Runs on main share one group and never cancel, so every commit that can release is built.
-# A dispatch never cancels and is never cancelled: a second one on the same ref waits, so a store
-# upload is never cut off. Everywhere else the newest push wins: a branch run that a later push
-# has already superseded only holds runners that the push it belongs to is waiting for.
+# Push and dispatch runs never cancel: Release and Mobile release publish from those events, and a
+# superseded run must finish rather than leave a half-pushed version. Pull requests still cancel.
 concurrency:
   group: >-
     ${{ github.ref == 'refs/heads/main' && github.event_name != 'workflow_dispatch'
       && format('{0}-main-release', github.workflow)
       || format('{0}-{1}-{2}', github.workflow, github.event_name == 'workflow_dispatch' && 'dispatch' || 'run', github.ref) }}
-  cancel-in-progress: ${{ github.ref != 'refs/heads/main' && github.event_name != 'workflow_dispatch' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -83,6 +82,7 @@ jobs:
     outputs:
       version: ${{ steps.plan.outputs.version }}
       publish: ${{ steps.plan.outputs.publish }}
+      prerelease: ${{ steps.plan.outputs.prerelease }}
       plugin_changed: ${{ steps.plugin-changes.outputs.changed }}
       mobile_release_matrix: ${{ steps.mobile.outputs.matrix }}
     steps:
@@ -110,6 +110,10 @@ jobs:
         id: plugin-changes
         shell: bash
         run: |
+          if [ "${{ github.ref }}" != "refs/heads/main" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           if git diff --quiet "${{ github.event.before }}" "${{ github.sha }}" -- Plugins/; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
           else
@@ -1233,13 +1237,14 @@ jobs:
             --needs "$RUNNER_TEMP/needs.json" \
             --summary "$GITHUB_STEP_SUMMARY"
 
-  # Release runs only on a push to main. A dispatch, with or without a mobile channel, never
-  # reaches it.
+  # Release runs on a push when Plan says to publish. Main is the stable cut; any other branch
+  # is a GitHub prerelease on the same public destinations, without :latest or JetBrains.
+  # A dispatch, with or without a mobile channel, never reaches it.
   release:
     name: Release
     runs-on: ubuntu-latest
     needs: [behavior-matrix, version]
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.version.outputs.publish == 'true' }}
+    if: ${{ github.event_name == 'push' && needs.version.outputs.publish == 'true' }}
     permissions:
       actions: write
       contents: write
@@ -1256,6 +1261,7 @@ jobs:
           registry-url: https://registry.npmjs.org
 
       - name: Install release tooling
+        if: ${{ needs.version.outputs.prerelease != 'true' }}
         run: npm install
 
       - uses: azure/setup-helm@v5
@@ -1302,18 +1308,48 @@ jobs:
           INCLUDE_JETBRAINS_PLUGIN: ${{ needs.version.outputs.plugin_changed }}
         run: ./.github/scripts/upload-release-artifacts.sh "${{ needs.version.outputs.version }}"
 
+      - name: Require Docker Hub secrets
+        if: ${{ needs.version.outputs.prerelease == 'true' }}
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: bash .github/scripts/require-env.sh DOCKERHUB_USERNAME DOCKERHUB_TOKEN
+
       - name: Release
+        if: ${{ needs.version.outputs.prerelease != 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
         run: npx semantic-release
 
+      - name: Publish GitHub prerelease
+        if: ${{ needs.version.outputs.prerelease == 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: ./.github/scripts/publish-github-prerelease.sh "${{ needs.version.outputs.version }}"
+
+      - name: Publish Server container
+        if: ${{ needs.version.outputs.prerelease == 'true' }}
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+          AGENTUP_PUBLISH_LATEST: "0"
+        run: ./.github/scripts/build-container.sh AgentUp.Server agent-up-server "${{ needs.version.outputs.version }}"
+
+      - name: Publish Helm chart
+        if: ${{ needs.version.outputs.prerelease == 'true' }}
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: ./.github/scripts/publish-chart.sh "${{ needs.version.outputs.version }}"
+
       - name: Publish browser audit client to npm
         working-directory: AgentUp.WebAudit
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           RELEASE_VERSION: ${{ needs.version.outputs.version }}
+          NPM_DIST_TAG: ${{ needs.version.outputs.prerelease == 'true' && 'ci' || 'latest' }}
         run: |
           if [ -z "${NODE_AUTH_TOKEN:-}" ]; then
             echo "Skipping npm publish because NPM_TOKEN is not configured."
@@ -1329,7 +1365,7 @@ jobs:
             exit 0
           fi
 
-          npm publish --access public
+          npm publish --access public --tag "$NPM_DIST_TAG"
 
       - name: Publish JetBrains plugin to Marketplace
         if: ${{ needs.version.outputs.plugin_changed == 'true' }}
@@ -1348,9 +1384,9 @@ jobs:
           ./gradlew --no-daemon publishPlugin -PagentUpVersion="${{ needs.version.outputs.version }}"
 
   # Mobile release sits beside Release and waits for the same two things. It runs only on a
-  # dispatch that names a mobile channel, and Release only on a push to main, so one run never
-  # does both. It uploads the binaries the Mobile store legs built, verified against their
-  # checksums, rather than building again.
+  # dispatch that names a mobile channel, and Release only on a push, so one run never does both.
+  # It uploads the binaries the Mobile store legs built, verified against their checksums, rather
+  # than building again.
   # A static name: GitHub does not evaluate the matrix of a skipped job, and appends the
   # platform itself when the job runs, as "Mobile release (android)".
   mobile-release:
