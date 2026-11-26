@@ -74,6 +74,37 @@ public sealed class AgentSandboxE2ETests
         Assert.That(result.Output, Does.Contain("password=unset"));
     }
 
+    [Test]
+    public async Task AnAgentDoesNotSeeHostEtcOrADefaultRoute()
+    {
+        using var host = new Host();
+
+        var result = await host.RunAsync(
+            TeamMemberGrants.Author,
+            "test -e /etc/passwd && echo passwd-visible; test -e /usr/bin/curl && echo curl-visible; echo done");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Output, Does.Contain("done"));
+            Assert.That(result.Output, Does.Not.Contain("passwd-visible"));
+            Assert.That(result.Output, Does.Not.Contain("curl-visible"));
+        });
+    }
+
+    [Test]
+    public async Task AnAgentHasNoHostNetworkInterfaces()
+    {
+        using var host = new Host();
+
+        var result = await host.RunAsync(TeamMemberGrants.Author, "cat /proc/net/dev; echo done");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(result.Output, Does.Contain("done"));
+            Assert.That(result.Output, Does.Not.Match("eth|ens|enp|wlan"));
+        });
+    }
+
     private sealed class Host : IDisposable
     {
         private readonly string _root = Directory.CreateTempSubdirectory("agent-sandbox-e2e-").FullName;

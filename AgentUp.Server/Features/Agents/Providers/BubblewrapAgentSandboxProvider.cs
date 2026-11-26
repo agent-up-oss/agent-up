@@ -15,10 +15,24 @@ public sealed class BubblewrapAgentSandboxProvider : IAgentSandbox
     private const string NixRoot = "/nix";
     private const string NixDaemonSocket = "/nix/var/nix/daemon-socket";
 
-    private static readonly string[] SystemRootCandidates =
+    private static readonly string[] LibraryRootCandidates =
     [
-        "/usr", "/bin", "/sbin", "/lib", "/lib32", "/lib64", "/libx32", "/etc", "/opt",
-        "/run/current-system", "/run/systemd/resolve"
+        "/lib", "/lib32", "/lib64", "/libx32"
+    ];
+
+    private static readonly string[] SystemBinDirectories =
+    [
+        "/usr/bin", "/bin", "/usr/sbin", "/sbin"
+    ];
+
+    private static readonly string[] CertificateDirectories =
+    [
+        "/etc/ssl", "/etc/pki"
+    ];
+
+    private static readonly string[] ExtraReadOnlyVariables =
+    [
+        "AGENTUP_LOOP_INFERENCE_MODEL_ROOT", "AGENT_UP_DEV_ROOT"
     ];
 
     private static readonly string[] CertificateVariables = ["SSL_CERT_FILE", "NIX_SSL_CERT_FILE", "NODE_EXTRA_CA_CERTS"];
@@ -29,6 +43,9 @@ public sealed class BubblewrapAgentSandboxProvider : IAgentSandbox
     private readonly Func<IReadOnlyDictionary<string, string>> _serverEnvironment;
     private readonly string _root;
     private readonly bool _linux;
+    private readonly AgentLoopbackEndpoint? _loopback;
+    private readonly AgentModelProxyAccess? _proxy;
+    private readonly Func<string>? _loopbackBaseUrl;
 
     public BubblewrapAgentSandboxProvider(
         AgentCliHomeProvider home,
@@ -36,7 +53,10 @@ public sealed class BubblewrapAgentSandboxProvider : IAgentSandbox
         IAgentRuntimePathProvider? runtime = null,
         Func<IReadOnlyDictionary<string, string>>? serverEnvironment = null,
         string root = "/",
-        bool? linux = null)
+        bool? linux = null,
+        AgentLoopbackEndpoint? loopback = null,
+        AgentModelProxyAccess? proxy = null,
+        Func<string>? loopbackBaseUrl = null)
     {
         _linux = linux ?? OperatingSystem.IsLinux();
         _home = home;
@@ -44,6 +64,9 @@ public sealed class BubblewrapAgentSandboxProvider : IAgentSandbox
         _runtime = runtime;
         _serverEnvironment = serverEnvironment ?? ProcessEnvironment;
         _root = root;
+        _loopback = loopback;
+        _proxy = proxy;
+        _loopbackBaseUrl = loopbackBaseUrl;
     }
 
     public AgentSandboxLaunch Prepare(
@@ -53,11 +76,16 @@ public sealed class BubblewrapAgentSandboxProvider : IAgentSandbox
         TeamMemberGrants grants)
     {
         var server = _serverEnvironment();
+        var workspaceHome = _home.EnsureWorkspaceHome(worktree);
+        var agentEnvironment = new Dictionary<string, string>(environment, StringComparer.Ordinal)
+        {
+            ["HOME"] = workspaceHome
+        };
         if (!_linux)
             return new AgentSandboxLaunch(
                 command.FileName,
                 command.Arguments,
-                AgentSandboxLayout.Environment(server, environment),
+                AgentSandboxLayout.Environment(server, agentEnvironment),
                 Path.GetFullPath(worktree));
         // The agent's PATH carries the runtime prefixes the Server adds in front of its own.
         var path = environment.GetValueOrDefault("PATH") ?? server.GetValueOrDefault("PATH") ?? string.Empty;
@@ -74,45 +102,86 @@ public sealed class BubblewrapAgentSandboxProvider : IAgentSandbox
         // that has nobody else to write it.
         var daemon = Exists(NixDaemonSocket + "/socket");
         var inputs = new AgentSandboxInputs(
-            SystemRootCandidates.Where(Exists).ToArray(),
+            LibraryRootCandidates.Where(Exists).ToArray(),
             Exists(NixRoot) ? NixRoot : null,
             NixWritable: Exists(NixRoot) && !daemon,
             daemon ? NixDaemonSocket : null,
-            ReadOnlyPaths(executable, path, server),
-            _home.HomePath,
+            ReadOnlyPaths(executable, path, server, agentEnvironment),
+            workspaceHome,
             clone,
             GitDirectories(clone));
         var mounts = AgentSandboxLayout.Mounts(inputs, grants);
+        var prepared = AgentSandboxLayout.Environment(server, agentEnvironment);
+        if (_proxy is not null && LoopbackPort() is { } port)
+            prepared = AgentModelProxyEnvironment.Apply(prepared, LoopbackUrl(port), _proxy.Key);
 
+        var bridged = LoopbackBridge(executable, command.Arguments, out var agentExecutable);
         // No --die-with-parent: Linux delivers that signal when the forking *thread* exits, and
         // .NET forks from a thread-pool thread it later retires, which killed a live agent
         // mid-turn. The Server stops its agents itself.
         string[] arguments =
         [
-            "--unshare-pid", "--unshare-ipc", "--unshare-uts",
+            "--unshare-pid", "--unshare-ipc", "--unshare-uts", "--unshare-net",
             "--cap-drop", "ALL",
+            "--cap-add", "CAP_NET_ADMIN",
             "--dev", "/dev", "--proc", "/proc", "--tmpfs", "/tmp",
+            "--dir", "/etc",
+            .. CertificateBinds(),
             .. mounts.SelectMany(mount => new[] { mount.Writable ? "--bind" : "--ro-bind", mount.Path, mount.Path }),
             "--chdir", clone,
-            "--", executable,
-            .. command.Arguments
+            "--", agentExecutable,
+            .. bridged
         ];
         return new AgentSandboxLaunch(
             bwrap,
             arguments,
-            AgentSandboxLayout.Environment(server, environment),
+            prepared,
             clone);
     }
 
+    private IReadOnlyList<string> LoopbackBridge(string executable, IReadOnlyList<string> arguments, out string agentExecutable)
+    {
+        agentExecutable = executable;
+        if (_loopback is null || !File.Exists(_loopback.SocketPath) || LoopbackPort() is not { } port)
+            return arguments;
+        var wrapped = AgentSandboxLoopbackBridge.Wrap(_loopback.SocketPath, port, executable, arguments);
+        agentExecutable = wrapped[0];
+        return wrapped.Skip(1).ToArray();
+    }
+
+    private int? LoopbackPort()
+    {
+        var url = _loopbackBaseUrl?.Invoke();
+        if (string.IsNullOrWhiteSpace(url) || !Uri.TryCreate(url, UriKind.Absolute, out var uri))
+            return null;
+        return uri.Port;
+    }
+
+    private static string LoopbackUrl(int port) => $"http://127.0.0.1:{port}";
+
+    private IEnumerable<string> CertificateBinds()
+    {
+        foreach (var directory in CertificateDirectories.Where(Exists))
+        {
+            yield return "--ro-bind";
+            yield return directory;
+            yield return directory;
+        }
+    }
+
     /// <summary>
-    /// The tools the agent is given: the directories on the Server's PATH, the capability shells
-    /// it launches through, the runtime prefixes, the .NET runtime, certificate bundles, and the
-    /// package its own executable lives in.
+    /// The tools the agent is given: its own package, capability shells, runtime prefixes, the
+    /// .NET runtime, certificate bundles, and the Server process that bridges loopback. Host
+    /// <c>/usr/bin</c> is never mounted as a directory, so a coding agent does not inherit curl
+    /// and a shell from the Server host.
     /// </summary>
-    private IReadOnlyList<string> ReadOnlyPaths(string executable, string path, IReadOnlyDictionary<string, string> server)
+    private IReadOnlyList<string> ReadOnlyPaths(
+        string executable,
+        string path,
+        IReadOnlyDictionary<string, string> server,
+        IReadOnlyDictionary<string, string> agent)
     {
         var paths = new List<string>();
-        paths.AddRange(path.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries));
         paths.AddRange(_runtime?.PathPrefixes() ?? []);
         paths.Add(_capabilityShells);
         if (server.TryGetValue("DOTNET_ROOT", out var dotnet))
@@ -120,17 +189,48 @@ public sealed class BubblewrapAgentSandboxProvider : IAgentSandbox
         paths.AddRange(CertificateVariables
             .Where(server.ContainsKey)
             .Select(name => server[name]));
-        paths.Add(Path.GetDirectoryName(executable)!);
-        paths.Add(Path.GetDirectoryName(RealPath(executable))!);
-        paths.Add(PackageRoot(RealPath(executable)));
+        AddExecutableClosure(paths, executable);
+        paths.AddRange(new[] { "python3", "python" }
+            .Select(interpreter => Resolve(interpreter, path))
+            .Where(found => found is not null)
+            .Select(found => found!));
+
+        if (_loopback is not null)
+            paths.Add(_loopback.SocketPath);
+        if (File.Exists(_loopback?.SocketPath ?? ""))
+            paths.AddRange(AgentSandboxLoopbackBridge.HostMounts());
+        paths.AddRange(ExtraReadOnlyVariables
+            .Select(name => agent.TryGetValue(name, out var extra) || server.TryGetValue(name, out extra) ? extra : null)
+            .OfType<string>());
+
         return paths
+            .Where(candidate => !string.IsNullOrWhiteSpace(candidate))
             .Where(Path.IsPathRooted)
             .Select(Path.GetFullPath)
             .Where(Exists)
-            .Where(candidate => !UnderAny(candidate, SystemRootCandidates.Append(NixRoot)))
+            .Where(candidate => !UnderAny(candidate, LibraryRootCandidates.Append(NixRoot)))
             .Distinct(StringComparer.Ordinal)
             .ToArray();
     }
+
+    private static void AddExecutableClosure(List<string> paths, string executable)
+    {
+        paths.Add(executable);
+        var real = RealPath(executable);
+        paths.Add(real);
+        var directory = Path.GetDirectoryName(executable);
+        var realDirectory = Path.GetDirectoryName(real);
+        if (directory is not null && !IsSystemBin(directory))
+            paths.Add(directory);
+        if (realDirectory is not null && !IsSystemBin(realDirectory))
+            paths.Add(realDirectory);
+        var package = PackageRoot(real);
+        if (!IsSystemBin(package))
+            paths.Add(package);
+    }
+
+    private static bool IsSystemBin(string path)
+        => SystemBinDirectories.Any(bin => path.Equals(bin, StringComparison.Ordinal));
 
     /// <summary>
     /// An npm-installed CLI is a script whose code sits in its <c>node_modules</c> tree, often in
@@ -185,7 +285,9 @@ public sealed class BubblewrapAgentSandboxProvider : IAgentSandbox
 
     private bool Exists(string path)
     {
-        var onHost = Path.Join(_root, path);
+        var onHost = Path.Join(_root, path.TrimStart('/'));
+        if (_root == "/")
+            onHost = path;
         return Directory.Exists(onHost) || File.Exists(onHost);
     }
 

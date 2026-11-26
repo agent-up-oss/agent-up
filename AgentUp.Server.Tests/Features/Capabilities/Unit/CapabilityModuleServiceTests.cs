@@ -129,6 +129,16 @@ public sealed class CapabilityModuleServiceTests
     }
 
     [Test]
+    public void ReadSettings_returnsStoredSecretsForServerSideCallers()
+    {
+        var settings = new CapabilityModuleHarness.MemorySettings();
+        var service = CapabilityModuleHarness.CreateService(enabled: true, modules: [Configurable()], settings: settings);
+        service.UpdateSettings("opencode", new Dictionary<string, string?> { ["token"] = "sk-secret" });
+
+        Assert.That(service.ReadSettings("opencode")["token"], Is.EqualTo("sk-secret"));
+    }
+
+    [Test]
     public void UpdateSettings_never_returns_a_secret_but_says_one_is_stored()
     {
         var service = CapabilityModuleHarness.CreateService(enabled: true, modules: [Configurable()]);

@@ -46,7 +46,7 @@ public sealed class AgentSandboxLayoutTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(mounts.Where(mount => mount.Path is "/usr" or "/etc" or "/tools/bin").Select(mount => mount.Writable),
+            Assert.That(mounts.Where(mount => mount.Path is "/lib" or "/tools/bin").Select(mount => mount.Writable),
                 Is.All.False);
             Assert.That(mounts.Single(mount => mount.Path == "/data/agent-cli-home").Writable, Is.True);
             Assert.That(mounts.Select(mount => mount.Path), Does.Not.Contain("/data"),
@@ -95,9 +95,9 @@ public sealed class AgentSandboxLayoutTests
         Assert.Multiple(() =>
         {
             Assert.That(environment.Keys, Does.Not.Contain("AGENTUP_ADMIN_PASSWORD").And.Not.Contain("AGENTUP_EXTERNAL_SIGNING_KEY"));
+            Assert.That(environment.Keys, Does.Not.Contain("HTTPS_PROXY"));
             Assert.That(environment["PATH"], Is.EqualTo("/tools/bin:/usr/bin"), "the agent's own PATH wins");
             Assert.That(environment["HOME"], Is.EqualTo("/data/agent-cli-home"));
-            Assert.That(environment["HTTPS_PROXY"], Is.EqualTo("http://proxy"));
             Assert.That(environment["TMPDIR"], Is.EqualTo("/tmp"));
         });
     }
@@ -106,7 +106,7 @@ public sealed class AgentSandboxLayoutTests
         mounts.Select((mount, index) => (mount, index)).Single(pair => pair.mount.Path == path).index;
 
     private static AgentSandboxInputs Inputs(bool nixWritable = false) => new(
-        ["/usr", "/etc"],
+        ["/lib"],
         "/nix",
         nixWritable,
         "/nix/var/nix/daemon-socket",

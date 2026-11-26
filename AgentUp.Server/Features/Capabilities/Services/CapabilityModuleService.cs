@@ -169,6 +169,8 @@ public sealed class CapabilityModuleService(
     /// The agent's ACP process, wrapped in its own Nix shell merged with every enabled runtime's,
     /// so an agent can run the toolchains the workspace's applications use.
     /// </summary>
+    public IReadOnlyDictionary<string, string> ReadSettings(string id) => settings.Read(id);
+
     public CapabilityLaunchPlan? AgentLaunch(string id)
     {
         var agent = GetAgent(id);

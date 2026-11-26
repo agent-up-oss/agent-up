@@ -72,6 +72,32 @@ public sealed class AgentCliHomeProviderTests
     }
 
     [Test]
+    public void WorkspaceHome_isUniquePerWorktreeAndStaysUnderTheSharedHome()
+    {
+        var root = Directory.CreateTempSubdirectory("agent-cli-home-workspace");
+        try
+        {
+            var home = new AgentCliHomeProvider(root.FullName);
+            var first = home.EnsureWorkspaceHome(Path.Join(root.FullName, "clones", "one"));
+            var second = home.EnsureWorkspaceHome(Path.Join(root.FullName, "clones", "two"));
+            File.WriteAllText(Path.Join(home.HomePath, ".claude-oauth-token"), "sk-ant-oat01-secret");
+            var copy = home.EnsureWorkspaceHome(Path.Join(root.FullName, "clones", "one"));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(first, Is.Not.EqualTo(second));
+                Assert.That(first, Does.StartWith(home.HomePath));
+                Assert.That(second, Does.StartWith(home.HomePath));
+                Assert.That(File.ReadAllText(Path.Join(copy, ".claude-oauth-token")), Is.EqualTo("sk-ant-oat01-secret"));
+            });
+        }
+        finally
+        {
+            root.Delete(true);
+        }
+    }
+
+    [Test]
     public void IsUnderRoot_rejectsPathsOutsideTheDataDirectory()
     {
         var root = Directory.CreateTempSubdirectory("agent-cli-home-root");

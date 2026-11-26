@@ -87,7 +87,23 @@ public sealed class BubblewrapAgentSandboxProviderTests
     }
 
     [Test]
-    public void Prepare_neverMountsTheServerDataDirectoryOnlyTheAgentHome()
+    public void Prepare_neverMountsTheServerDataDirectoryOnlyTheWorkspaceAgentHome()
+    {
+        using var host = new SandboxHost(withBubblewrap: true);
+
+        var launch = host.Prepare(TeamMemberGrants.Author);
+        var workspaceHome = new AgentCliHomeProvider(host.Data).WorkspaceHome(host.Clone);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(launch.Arguments, Does.Not.Contain(host.Data));
+            Assert.That(BindOf(launch, workspaceHome), Is.EqualTo("--bind"));
+            Assert.That(launch.Environment["HOME"], Is.EqualTo(workspaceHome));
+        });
+    }
+
+    [Test]
+    public void Prepare_unsharesTheNetworkAndDoesNotBindHostEtc()
     {
         using var host = new SandboxHost(withBubblewrap: true);
 
@@ -95,8 +111,52 @@ public sealed class BubblewrapAgentSandboxProviderTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(launch.Arguments, Does.Not.Contain(host.Data));
-            Assert.That(BindOf(launch, Path.Join(host.Data, "agent-cli-home")), Is.EqualTo("--bind"));
+            Assert.That(launch.Arguments, Does.Contain("--unshare-net"));
+            Assert.That(BindOf(launch, "/etc"), Is.Null);
+            Assert.That(BindOf(launch, "/usr"), Is.Null);
+            Assert.That(launch.Arguments, Does.Contain("--dir"));
+        });
+    }
+
+    [Test]
+    public void Prepare_pointsModelHttpAtTheServerProxyWhenLoopbackIsReady()
+    {
+        using var host = new SandboxHost(withBubblewrap: true);
+        var loopback = new AgentLoopbackEndpoint(host.Data);
+        File.Create(loopback.SocketPath).Dispose();
+        var proxy = new AgentModelProxyAccess();
+        var sandbox = new BubblewrapAgentSandboxProvider(
+            new AgentCliHomeProvider(host.Data),
+            host.Data,
+            serverEnvironment: () => new Dictionary<string, string>
+            {
+                ["PATH"] = host.Tools,
+                ["AGENTUP_ADMIN_PASSWORD"] = "secret"
+            },
+            loopback: loopback,
+            proxy: proxy,
+            loopbackBaseUrl: () => "http://127.0.0.1:5001");
+
+        var launch = sandbox.Prepare(
+            new AgentCommand("opencode", ["acp"]),
+            new Dictionary<string, string>
+            {
+                ["OPENCODE_CONFIG_CONTENT"] =
+                    """{"provider":{"agent-up":{"options":{"baseURL":"http://ollama.test/v1"}}}}"""
+            },
+            host.Clone,
+            TeamMemberGrants.Author);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(launch.Arguments, Does.Contain(AgentSandboxLoopbackBridge.Flag));
+            Assert.That(launch.Environment["ANTHROPIC_BASE_URL"],
+                Does.Contain($"/api/agent-model/{proxy.Key}/claude"));
+            Assert.That(launch.Environment["OPENAI_BASE_URL"],
+                Does.Contain($"/api/agent-model/{proxy.Key}/codex/v1"));
+            Assert.That(launch.Environment["OPENCODE_CONFIG_CONTENT"],
+                Does.Contain($"/api/agent-model/{proxy.Key}/opencode/v1"));
+            Assert.That(launch.Environment["AGENT_UP_OPENCODE_API_KEY"], Is.EqualTo(proxy.Key));
         });
     }
 

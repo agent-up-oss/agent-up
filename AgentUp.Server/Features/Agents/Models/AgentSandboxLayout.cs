@@ -8,7 +8,7 @@ public sealed record AgentSandboxMount(string Path, bool Writable);
 /// is not listed here does not exist inside the sandbox, which is how the Server's data
 /// directory, other workspaces' clones and the service account's home stay out of reach.
 /// </summary>
-/// <param name="SystemRoots">Operating-system directories that exist on this host, such as <c>/usr</c> and <c>/etc</c>. Always read-only.</param>
+/// <param name="SystemRoots">Host library directories the dynamic linker needs, such as <c>/lib</c> and <c>/lib64</c>. Always read-only. Host <c>/etc</c> and <c>/usr</c> are not in this set.</param>
 /// <param name="Nix">The Nix store root, or null when the host has none.</param>
 /// <param name="NixWritable">True on a single-user Nix install with no daemon: <c>nix shell</c> then writes the store itself.</param>
 /// <param name="NixDaemonSocket">The daemon socket directory on a multi-user install, writable so the agent can ask the daemon to build.</param>
@@ -65,8 +65,7 @@ public static class AgentSandboxLayout
     {
         "PATH", "LANG", "LC_ALL", "LC_CTYPE", "TZ", "TERM", "USER", "LOGNAME",
         "SSL_CERT_FILE", "NIX_SSL_CERT_FILE", "NODE_EXTRA_CA_CERTS", "LOCALE_ARCHIVE",
-        "NIX_PATH", "NIX_REMOTE", "NIX_CONF_DIR", "DOTNET_ROOT",
-        "HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY", "http_proxy", "https_proxy", "no_proxy"
+        "NIX_PATH", "NIX_REMOTE", "NIX_CONF_DIR", "DOTNET_ROOT"
     };
 
     /// <summary>The environment the sandboxed agent starts with.</summary>

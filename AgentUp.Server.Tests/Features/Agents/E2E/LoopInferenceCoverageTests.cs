@@ -83,6 +83,7 @@ public sealed class LoopInferenceCoverageTests
     private static async Task<LoopRunResult> RunScenarioAsync(string agent, uint seed, string prompt)
     {
         var worktree = Directory.CreateTempSubdirectory("agent-up-loop-inference").FullName;
+        var data = Directory.CreateTempSubdirectory("agent-up-loop-inference-data").FullName;
         try
         {
             await File.WriteAllTextAsync(Path.Join(worktree, "README.md"), "loop coverage worktree\n");
@@ -102,9 +103,12 @@ public sealed class LoopInferenceCoverageTests
                     ["Agents:Codex:Arguments:1"] = "test-agent-infer"
                 }).Build());
             var events = new AgentEventService(new AgentEventFrameProvider());
+            IAgentSandbox? sandbox = OperatingSystem.IsLinux()
+                ? new BubblewrapAgentSandboxProvider(new AgentCliHomeProvider(data), data)
+                : null;
             await using var scheduling = new AgentSchedulingService(
                 new WorkspaceQueryController(registry),
-                new AgentProcessFactory(commands, NullLoggerFactory.Instance),
+                new AgentProcessFactory(commands, NullLoggerFactory.Instance, sandbox: sandbox),
                 commands,
                 new FakeSubscriptionLoginProvider(),
                 new LoopInferenceEnvironment(seed),
@@ -133,6 +137,12 @@ public sealed class LoopInferenceCoverageTests
             catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
             {
                 TestContext.Out.WriteLine($"Could not remove {worktree}: {exception.Message}");
+            }
+
+            try { Directory.Delete(data, recursive: true); }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+                TestContext.Out.WriteLine($"Could not remove {data}: {exception.Message}");
             }
         }
     }

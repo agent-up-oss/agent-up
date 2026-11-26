@@ -115,7 +115,7 @@ One leg per real dependency, so a red leg names what broke. Each leg runs one sc
 | Agent team on Forgejo | Forgejo, bubblewrap, Chromium | `run-agent-e2e.sh TeamForgejoE2E` |
 | Agent sandbox | bubblewrap | `run-agent-e2e.sh AgentSandboxE2E` |
 | Agent over MCP | bubblewrap, Chromium | `run-agent-e2e.sh AgentMcpE2E` |
-| Loop on CPU inference | pinned GGUF on llama.cpp | `run-loop-inference.sh` |
+| Loop on CPU inference | pinned GGUF on llama.cpp, bubblewrap | `run-loop-inference.sh` |
 | OpenCode on CPU inference | opencode-ai, test-model-server | `run-opencode-inference.sh` |
 | Runtime capabilities | Nix, Docker, Postgres | `run-runtime-capability-e2e.sh` |
 | Loop soak | none | `run-loop-soak.sh` |

@@ -46,17 +46,17 @@ The Server runs inside its Nix shell, which supplies bubblewrap. `BubblewrapAgen
 
 | Path | Author | Dev reviewer |
 |---|---|---|
-| `/usr`, `/etc`, `/lib*`, `/bin`, `/opt` | read-only | read-only |
+| `/lib*` | read-only | read-only |
 | `/nix` | read-only, daemon socket writable | read-only, daemon socket writable |
-| Server PATH entries, capability shells, `DOTNET_ROOT`, the agent's package | read-only | read-only |
-| Agent CLI home under the data directory | writable | writable |
+| Server PATH entries, capability shells, `DOTNET_ROOT`, the agent's package, local `python3` | read-only | read-only |
+| Per-workspace agent CLI home under the data directory | writable | writable |
 | Its clone | writable | read-only |
 | Its `.git` (both directories of a linked worktree) | read-only | read-only |
-| The rest of the data directory, other clones, the service account's home | absent | absent |
+| Host `/etc`, `/usr`, the rest of the data directory, other clones, the service account's home | absent | absent |
 
 A single-user Nix install has no daemon, so there `/nix` is writable for `nix shell`. The Server decides that from the daemon's socket file, not its directory, which installers leave on single-user hosts too.
 
-The agent is executed by the path found on `PATH`, not the symlink's target, and the target's directory is mounted beside it. `nix-shell` is a link to the multi-call `nix` binary, which reads its mode from `argv[0]`, so following the link ran capability shells as plain `nix`. The agent also gets a private `/tmp`, its own PID, IPC, and UTS namespaces, and no capabilities. Its environment is cleared to a short allowlist (locale, proxy, certificate, and Nix variables, `PATH`, `DOTNET_ROOT`) plus what the Server sets for it, so `AGENTUP_ADMIN_PASSWORD` and other Server secrets never reach it.
+The agent is executed by the path found on `PATH`, not the symlink's target, and the target's directory is mounted beside it. `nix-shell` is a link to the multi-call `nix` binary, which reads its mode from `argv[0]`, so following the link ran capability shells as plain `nix`. The agent also gets a private `/tmp`, its own PID, IPC, UTS, and network namespaces, and no capabilities except `CAP_NET_ADMIN` so the sandbox loopback can be brought up. It has no route to the host network. MCP and model HTTP for OpenCode, Claude, Codex, Cursor, and Ollama-compatible endpoints are forwarded by the Server over that loopback; OpenCode's stored token never enters the jail. Its environment is cleared to a short allowlist (locale, certificate, and Nix variables, `PATH`, `DOTNET_ROOT`) plus what the Server sets for it, so `AGENTUP_ADMIN_PASSWORD` and other Server secrets never reach it.
 
 A Linux host without bubblewrap fails the session start with that cause. bubblewrap is Linux only; on macOS the agent starts with the cleared environment but its filesystem is not confined, so the clone-level guarantee holds only on a Linux Server. Running the agent with the Server's own permissions instead would let a reviewer write the clone. In a container, bubblewrap needs unprivileged user namespaces; Ubuntu 24.04 hosts may need `kernel.apparmor_restrict_unprivileged_userns=0`.
 
