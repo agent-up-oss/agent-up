@@ -56,6 +56,7 @@ public sealed class AgentLoopbackEndpointTests
         var urls = AgentLoopbackEndpoint.CombineHostingUrls("http://127.0.0.1:5001", "/tmp/agent.sock");
 
         Assert.That(urls, Is.EqualTo(new[] { "http://127.0.0.1:5001", "http://unix:/tmp/agent.sock" }));
+        Assert.That(AgentLoopbackEndpoint.TcpHttpUrl(urls), Is.EqualTo("http://127.0.0.1:5001"));
     }
 
     [Test]

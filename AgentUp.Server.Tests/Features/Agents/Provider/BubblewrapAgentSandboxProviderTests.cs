@@ -103,6 +103,35 @@ public sealed class BubblewrapAgentSandboxProviderTests
     }
 
     [Test]
+    public void Prepare_mountsNonSystemPathDirectoriesSoAShimCanExecItsBinary()
+    {
+        using var host = new SandboxHost(withBubblewrap: true);
+        var packages = host.MakeDirectory("packages");
+        host.ExecutableFileIn(packages, "test-agent");
+        var server = new Dictionary<string, string>
+        {
+            ["PATH"] = string.Join(Path.PathSeparator, [host.Tools, packages, "/usr/bin"])
+        };
+        var provider = new BubblewrapAgentSandboxProvider(
+            new AgentCliHomeProvider(host.Data),
+            host.Data,
+            serverEnvironment: () => server,
+            linux: true);
+
+        var launch = provider.Prepare(
+            new AgentCommand("opencode", ["acp"]),
+            new Dictionary<string, string>(),
+            host.Clone,
+            TeamMemberGrants.Author);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(BindOf(launch, packages), Is.EqualTo("--ro-bind"));
+            Assert.That(BindOf(launch, "/usr/bin"), Is.Null);
+        });
+    }
+
+    [Test]
     public void Prepare_unsharesTheNetworkAndDoesNotBindHostEtc()
     {
         using var host = new SandboxHost(withBubblewrap: true);
@@ -328,6 +357,20 @@ public sealed class BubblewrapAgentSandboxProviderTests
         public string ExecutableFile(string name)
         {
             var path = Path.Join(Tools, name);
+            Executable(path);
+            return path;
+        }
+
+        public string MakeDirectory(string name)
+        {
+            var path = Path.Join(_root, name);
+            Directory.CreateDirectory(path);
+            return path;
+        }
+
+        public string ExecutableFileIn(string directory, string name)
+        {
+            var path = Path.Join(directory, name);
             Executable(path);
             return path;
         }

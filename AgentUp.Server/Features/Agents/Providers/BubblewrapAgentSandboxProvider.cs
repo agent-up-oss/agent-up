@@ -200,6 +200,7 @@ public sealed class BubblewrapAgentSandboxProvider : IAgentSandbox
     {
         var paths = new List<string>();
         paths.AddRange(_runtime?.PathPrefixes() ?? []);
+        paths.AddRange(PathEntries(path));
         paths.Add(_capabilityShells);
         if (server.TryGetValue("DOTNET_ROOT", out var dotnet))
             paths.Add(dotnet);
@@ -227,6 +228,17 @@ public sealed class BubblewrapAgentSandboxProvider : IAgentSandbox
             .Distinct(StringComparer.Ordinal)
             .ToArray();
     }
+
+    /// <summary>
+    /// Directories on the agent's PATH that are not host system bins. A shim that
+    /// <c>exec</c>s another binary needs that binary's directory mounted, not only the shim.
+    /// </summary>
+    private IEnumerable<string> PathEntries(string searchPath) =>
+        searchPath.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Where(Path.IsPathRooted)
+            .Select(Path.GetFullPath)
+            .Where(Exists)
+            .Where(candidate => !IsSystemBin(candidate) && candidate is not "/" and not "/usr" and not "/etc");
 
     private static void AddExecutableClosure(List<string> paths, string executable, string searchPath)
     {

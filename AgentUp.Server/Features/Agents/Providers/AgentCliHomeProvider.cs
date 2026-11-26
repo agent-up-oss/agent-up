@@ -19,8 +19,8 @@ public sealed class AgentCliHomeProvider
     public void Ensure() => Directory.CreateDirectory(HomePath);
 
     /// <summary>
-    /// A HOME directory for one workspace's ACP process. Session transcripts stay here so one
-    /// workspace cannot read another. Login credentials stay in <see cref="HomePath"/>.
+    /// A HOME directory for one workspace's ACP process and its subscription login. Session
+    /// transcripts and credentials stay here so one workspace cannot read another.
     /// </summary>
     public string WorkspaceHome(string worktree)
     {

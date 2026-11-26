@@ -1,4 +1,5 @@
 using AgentUp.Server.Composition;
+using AgentUp.Server.Features.Agents.Models;
 using AgentUp.Server.Shared.Providers;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Configuration;
@@ -64,7 +65,10 @@ internal sealed class DesktopStreamingServer : IAsyncDisposable
         app.MapControllers();
         await app.StartAsync();
 
-        var url = app.Urls.Single().TrimEnd('/') + "/";
+        var tcp = AgentLoopbackEndpoint.TcpHttpUrl(app.Urls)
+            ?? throw new InvalidOperationException(
+                $"The Server lost its TCP listener. urls={string.Join(';', app.Urls)}");
+        var url = tcp.TrimEnd('/') + "/";
         var baseUri = new Uri(url);
         return new DesktopStreamingServer(app, dataDir, baseUri, previousEnabled, previousAuth);
     }

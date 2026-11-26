@@ -187,7 +187,7 @@ public sealed class LoopInferenceCoverageTests
 
     private sealed class LoopInferenceEnvironment(uint seed) : IAgentProcessEnvironmentProvider
     {
-        public IReadOnlyDictionary<string, string> EnvironmentFor(string agent)
+        public IReadOnlyDictionary<string, string> EnvironmentFor(string agent, string worktree)
         {
             var environment = new Dictionary<string, string>(StringComparer.Ordinal)
             {

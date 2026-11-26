@@ -123,6 +123,6 @@ public sealed class OpencodeInferenceTests
 
     private sealed class NoExtraEnvironment : IAgentProcessEnvironmentProvider
     {
-        public IReadOnlyDictionary<string, string> EnvironmentFor(string agent) => new Dictionary<string, string>();
+        public IReadOnlyDictionary<string, string> EnvironmentFor(string agent, string worktree) => new Dictionary<string, string>();
     }
 }

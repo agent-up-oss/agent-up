@@ -11,5 +11,6 @@ public interface IAgentSubscriptionLoginProvider
         string methodId,
         Action<AgentLoginChallengeDto> onChallenge,
         AgentLoginInbox inbox,
+        string worktree,
         CancellationToken cancellationToken);
 }

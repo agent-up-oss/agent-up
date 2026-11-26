@@ -29,6 +29,7 @@ public sealed class AgentSubscriptionLoginProviderTests
                 "cursor_login",
                 value => challenge = value,
                 new AgentLoginInbox(),
+                "/worktree",
                 CancellationToken.None);
 
             Assert.Multiple(() =>
@@ -65,6 +66,7 @@ public sealed class AgentSubscriptionLoginProviderTests
                 "cursor_login",
                 value => challenge = value,
                 new AgentLoginInbox(),
+                "/worktree",
                 CancellationToken.None);
 
             Assert.Multiple(() =>
@@ -102,6 +104,7 @@ public sealed class AgentSubscriptionLoginProviderTests
                 "claude-login",
                 value => challenges.Add(value),
                 new AgentLoginInbox(),
+                "/worktree",
                 CancellationToken.None);
 
             var last = challenges[^1];
@@ -149,6 +152,7 @@ public sealed class AgentSubscriptionLoginProviderTests
                     if (value.CanSubmitCode) waiting.TrySetResult();
                 },
                 inbox,
+                "/worktree",
                 CancellationToken.None);
 
             await waiting.Task.WaitAsync(TimeSpan.FromSeconds(20));
@@ -183,6 +187,7 @@ public sealed class AgentSubscriptionLoginProviderTests
                 "cursor_login",
                 _ => { },
                 new AgentLoginInbox(),
+                "/worktree",
                 CancellationToken.None);
 
             Assert.Multiple(() =>
@@ -213,6 +218,7 @@ public sealed class AgentSubscriptionLoginProviderTests
                 "chatgpt",
                 value => challenge = value,
                 new AgentLoginInbox(),
+                "/worktree",
                 CancellationToken.None);
 
             Assert.Multiple(() =>
@@ -244,6 +250,7 @@ public sealed class AgentSubscriptionLoginProviderTests
                 "cursor_login",
                 _ => { },
                 new AgentLoginInbox(),
+                "/worktree",
                 CancellationToken.None);
 
             Assert.That(result.Succeeded, Is.False);
@@ -272,6 +279,7 @@ public sealed class AgentSubscriptionLoginProviderTests
                 "claude-login",
                 _ => { },
                 new AgentLoginInbox(),
+                "/worktree",
                 CancellationToken.None);
 
             Assert.Multiple(() =>
@@ -301,6 +309,7 @@ public sealed class AgentSubscriptionLoginProviderTests
                     "cursor_login",
                     _ => { },
                     new AgentLoginInbox(),
+                    "/worktree",
                     timeout.Token));
         }
         finally
@@ -319,6 +328,7 @@ public sealed class AgentSubscriptionLoginProviderTests
             "api-key",
             _ => { },
             new AgentLoginInbox(),
+            "/worktree",
             CancellationToken.None);
 
         Assert.That(result.Succeeded, Is.False);
@@ -335,6 +345,7 @@ public sealed class AgentSubscriptionLoginProviderTests
             "cursor_login",
             _ => { },
             new AgentLoginInbox(),
+            "/worktree",
             CancellationToken.None);
 
         Assert.That(result.Succeeded, Is.False);

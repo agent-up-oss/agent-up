@@ -4,5 +4,5 @@ namespace AgentUp.Server.Features.Agents.Interfaces;
 
 public interface IAgentProcessEnvironmentProvider
 {
-    IReadOnlyDictionary<string, string> EnvironmentFor(string agent);
+    IReadOnlyDictionary<string, string> EnvironmentFor(string agent, string worktree);
 }

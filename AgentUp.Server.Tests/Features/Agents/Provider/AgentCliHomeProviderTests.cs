@@ -122,16 +122,19 @@ public sealed class AgentCliHomeProviderTests
             store.Write("sk-ant-oat01-secret");
             var environment = new AgentProcessEnvironmentProvider(home, store);
 
-            var claude = environment.EnvironmentFor("claude");
-            var cursor = environment.EnvironmentFor("cursor");
+            var worktree = Path.Join(root.FullName, "clone");
+            Directory.CreateDirectory(worktree);
+            var workspaceHome = home.WorkspaceHome(worktree);
+            var claude = environment.EnvironmentFor("claude", worktree);
+            var cursor = environment.EnvironmentFor("cursor", worktree);
 
             Assert.Multiple(() =>
             {
-                Assert.That(claude["HOME"], Is.EqualTo(home.HomePath));
+                Assert.That(claude["HOME"], Is.EqualTo(workspaceHome));
                 Assert.That(claude["CLAUDE_CODE_OAUTH_TOKEN"], Is.EqualTo("sk-ant-oat01-secret"));
                 Assert.That(cursor.ContainsKey("CLAUDE_CODE_OAUTH_TOKEN"), Is.False);
-                Assert.That(cursor["HOME"], Is.EqualTo(home.HomePath),
-                    "Every agent CLI keeps its credentials under the Server data directory");
+                Assert.That(cursor["HOME"], Is.EqualTo(workspaceHome),
+                    "ACP and subscription login share the workspace CLI home");
             });
         }
         finally

@@ -49,7 +49,7 @@ The Server runs inside its Nix shell, which supplies bubblewrap. `BubblewrapAgen
 | `/lib*` | read-only | read-only |
 | `/nix` | read-only, daemon socket writable | read-only, daemon socket writable |
 | Server PATH entries, capability shells, `DOTNET_ROOT`, the agent's package, local `python3` | read-only | read-only |
-| Per-workspace agent CLI home under the data directory | writable | writable |
+| Per-workspace agent CLI home under the data directory (ACP and subscription login) | writable | writable |
 | Its clone | writable | read-only |
 | Its `.git` (both directories of a linked worktree) | read-only | read-only |
 | Host `/etc`, `/usr`, the rest of the data directory, other clones, the service account's home | absent | absent |

@@ -44,6 +44,13 @@ public sealed class AgentLoopbackEndpoint
         return parts;
     }
 
+    public static bool IsTcpHttp(string address) =>
+        address.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
+        && !address.Contains("://unix:", StringComparison.OrdinalIgnoreCase);
+
+    public static string? TcpHttpUrl(IEnumerable<string> urls) =>
+        urls.FirstOrDefault(IsTcpHttp);
+
     private static string RuntimeSocketPath()
     {
         var directory = Path.Join(Path.GetTempPath(), "al");
