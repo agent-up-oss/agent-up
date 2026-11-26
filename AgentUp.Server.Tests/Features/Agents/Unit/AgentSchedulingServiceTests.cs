@@ -440,7 +440,7 @@ public sealed class AgentSchedulingServiceTests
         Assert.Multiple(() => {
             Assert.That(first.Session!.SessionId, Is.EqualTo("session-1"));
             Assert.That(_process.WorkingDirectory, Is.EqualTo("/repo"));
-            Assert.That(_process.Environment!["HOME"], Is.EqualTo("/data/agent-cli-home"));
+            Assert.That(_process.Environment!["HOME"], Is.EqualTo("/data/agent-cli-home/workspaces/test"));
             Assert.That(_process.Methods, Is.EqualTo(new[] { "initialize", "session/new" }));
             Assert.That(_process.StopCalls, Is.EqualTo(0));
             Assert.That(second.Session!.SessionId, Is.EqualTo("session-1"));
@@ -1548,6 +1548,7 @@ internal sealed class FakeSubscriptionLoginProvider : IAgentSubscriptionLoginPro
         string methodId,
         Action<AgentLoginChallengeDto> onChallenge,
         AgentLoginInbox inbox,
+        string worktree,
         CancellationToken cancellationToken)
     {
         MethodId = methodId;
@@ -1589,8 +1590,8 @@ internal sealed class FakeSubscriptionLoginProvider : IAgentSubscriptionLoginPro
 
 internal sealed class FakeProcessEnvironmentProvider : IAgentProcessEnvironmentProvider
 {
-    public IReadOnlyDictionary<string, string> EnvironmentFor(string agent) =>
-        new Dictionary<string, string>(StringComparer.Ordinal) { ["HOME"] = "/data/agent-cli-home" };
+    public IReadOnlyDictionary<string, string> EnvironmentFor(string agent, string worktree) =>
+        new Dictionary<string, string>(StringComparer.Ordinal) { ["HOME"] = "/data/agent-cli-home/workspaces/test" };
 }
 
 internal sealed class FakeClaudeCredentialStore : IAgentClaudeCredentialStore

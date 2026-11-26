@@ -26,6 +26,9 @@ public sealed class CapabilityModulesController(CapabilityModuleService modules)
 
     public CapabilityLaunchPlan? AgentLaunch(string id) => modules.AgentLaunch(id);
 
+    /// <summary>Stored settings including secrets. For Server-side use, never returned to a client.</summary>
+    public IReadOnlyDictionary<string, string> ReadSettings(string id) => modules.ReadSettings(id);
+
     public IRuntimeCapability? GetRuntime(string id) => modules.GetRuntime(id);
 
     public IReadOnlyList<IRuntimeCapability> ListRuntimes() => modules.ListRuntimes();

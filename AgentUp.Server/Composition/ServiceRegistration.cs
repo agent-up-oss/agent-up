@@ -30,6 +30,7 @@ using AgentUp.Server.Features.Applications.Providers;
 using AgentUp.Server.Features.Applications.Services;
 using AgentUp.Server.Features.Agents.Controllers;
 using AgentUp.Server.Features.Agents.Interfaces;
+using AgentUp.Server.Features.Agents.Models;
 using AgentUp.Server.Features.Agents.Providers;
 using AgentUp.Server.Features.Agents.Services;
 using AgentUp.Server.Features.Audit.Controllers;
@@ -114,6 +115,9 @@ namespace AgentUp.Server.Composition;
 
 public static class ServiceRegistration
 {
+    public static bool TryRunSandboxBridge(IReadOnlyList<string> args, out int exitCode)
+        => AgentSandboxLoopbackBridge.TryRun(args, out exitCode);
+
     public static void Configure(WebApplicationBuilder builder, string dataDir)
     {
         ExternalBearerSigningKeyProvider.ValidateConfiguration(builder.Configuration);
@@ -219,10 +223,27 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<TeamMemberService>();
         builder.Services.AddSingleton<TeamMemberController>();
         builder.Services.AddSingleton<IInProcessToolHost, InProcessAgentToolService>();
+        var agentLoopback = new AgentLoopbackEndpoint(dataDir);
+        builder.Services.AddSingleton(agentLoopback);
+        if (OperatingSystem.IsLinux())
+        {
+            builder.WebHost.UseUrls(AgentLoopbackEndpoint.CombineHostingUrls(
+                builder.Configuration["urls"] ?? builder.Configuration["ASPNETCORE_URLS"],
+                agentLoopback.SocketPath).ToArray());
+            builder.Services.AddHostedService<AgentLoopbackSocketPermissionHost>();
+        }
+
+        builder.Services.AddSingleton<AgentModelProxyAccess>();
+        builder.Services.AddSingleton<IAgentModelProxyDestinations, AgentModelProxyDestinations>();
+        builder.Services.AddSingleton<AgentModelProxyForwarder>();
+        builder.Services.AddSingleton<AgentModelProxyService>();
         builder.Services.AddSingleton<IAgentSandbox>(provider => new BubblewrapAgentSandboxProvider(
             provider.GetRequiredService<AgentCliHomeProvider>(),
             dataDir,
-            provider.GetService<IAgentRuntimePathProvider>()));
+            provider.GetService<IAgentRuntimePathProvider>(),
+            loopback: provider.GetRequiredService<AgentLoopbackEndpoint>(),
+            proxy: provider.GetRequiredService<AgentModelProxyAccess>(),
+            loopbackBaseUrl: () => provider.GetRequiredService<AgentMcpServerProvider>().LoopbackBaseUrl()));
         builder.Services.AddSingleton<IAgentProcessFactory, AgentProcessFactory>();
         builder.Services.AddSingleton<AgentEventFrameProvider>();
         builder.Services.AddSingleton<AgentEventService>();

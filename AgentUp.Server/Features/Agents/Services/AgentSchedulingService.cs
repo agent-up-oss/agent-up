@@ -253,7 +253,7 @@ public sealed class AgentSchedulingService : IAsyncDisposable
             BindProcess(workspaceId, state, state.Process);
             try
             {
-                await state.Process.StartAsync(agentId, workspace.WorktreePath, environment.EnvironmentFor(agentId), cancellationToken);
+                await state.Process.StartAsync(agentId, workspace.WorktreePath, environment.EnvironmentFor(agentId, workspace.WorktreePath), cancellationToken);
                 await InitializeAsync(workspaceId, state, cancellationToken);
                 await CreateSessionAsync(state, cancellationToken);
                 SaveSession(workspaceId, state, workspace.Branch, $"New {DisplayName(agentId)} session");
@@ -331,7 +331,7 @@ public sealed class AgentSchedulingService : IAsyncDisposable
             BindProcess(workspaceId, state, state.Process);
             try
             {
-                await state.Process.StartAsync(saved.Agent, workspace.WorktreePath, environment.EnvironmentFor(saved.Agent), cancellationToken);
+                await state.Process.StartAsync(saved.Agent, workspace.WorktreePath, environment.EnvironmentFor(saved.Agent, workspace.WorktreePath), cancellationToken);
                 await InitializeAsync(workspaceId, state, cancellationToken);
                 var loaded = await state.Process.CallAsync("session/load", new { sessionId, cwd = workspace.WorktreePath, mcpServers = McpServers(state) }, cancellationToken);
                 var loadedSessionId = ReadOptionalSessionId(loaded);
@@ -423,6 +423,7 @@ public sealed class AgentSchedulingService : IAsyncDisposable
                     if (pending is not null) events.Publish(workspaceId, "state", pending);
                 },
                 inbox,
+                state.WorkingDirectory,
                 state.Lifetime.Token);
             if (!result.Succeeded)
             {
@@ -503,7 +504,7 @@ public sealed class AgentSchedulingService : IAsyncDisposable
         var next = processes.Create(state.Agent, workspaceId);
         state.Process = next;
         BindProcess(workspaceId, state, next);
-        await next.StartAsync(state.Agent, state.WorkingDirectory, environment.EnvironmentFor(state.Agent), state.Lifetime.Token);
+        await next.StartAsync(state.Agent, state.WorkingDirectory, environment.EnvironmentFor(state.Agent, state.WorkingDirectory), state.Lifetime.Token);
     }
 
     private void BindProcess(string workspaceId, AgentSessionState state, IAgentProcessProvider process)

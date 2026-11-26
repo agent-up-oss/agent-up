@@ -1,5 +1,5 @@
-using System.Security.Cryptography;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using System.Text;
 using AgentUp.InstallerConfig;
 using AgentUp.Server.Composition;
@@ -7,6 +7,9 @@ using AgentUp.Server.Features.ApplicationProxy.Controllers;
 using AgentUp.Server.Features.Authentication.Controllers;
 using AgentUp.Server.Features.Authentication.Interfaces;
 using Microsoft.AspNetCore.HttpOverrides;
+
+if (ServiceRegistration.TryRunSandboxBridge(args, out var bridgeExit))
+    Environment.Exit(bridgeExit);
 
 RepositoryDotEnv.LoadOptional();
 

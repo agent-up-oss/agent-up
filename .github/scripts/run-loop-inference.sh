@@ -58,6 +58,12 @@ if [ ! -f "$cached" ]; then
   fi
 fi
 
+if ! command -v bwrap >/dev/null 2>&1; then
+  "$root/.github/scripts/install-bubblewrap.sh"
+elif [ -e /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]; then
+  sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 >/dev/null || true
+fi
+
 export AGENTUP_LOOP_INFERENCE_AGENT="$agent"
 export AGENTUP_LOOP_INFERENCE_MODEL_ROOT="$models"
 export AGENTUP_LOOP_INFERENCE_SEED="${AGENTUP_LOOP_INFERENCE_SEED:-42}"

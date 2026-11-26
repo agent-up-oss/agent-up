@@ -29,6 +29,7 @@ public sealed class AgentSubscriptionLoginProvider(
         string methodId,
         Action<AgentLoginChallengeDto> onChallenge,
         AgentLoginInbox inbox,
+        string worktree,
         CancellationToken cancellationToken)
     {
         AgentLoginCommand login;
@@ -53,7 +54,7 @@ public sealed class AgentSubscriptionLoginProvider(
         };
         foreach (var argument in login.Arguments)
             start.ArgumentList.Add(argument);
-        foreach (var pair in environment.EnvironmentFor(agent))
+        foreach (var pair in environment.EnvironmentFor(agent, worktree))
             start.Environment[pair.Key] = pair.Value;
         foreach (var pair in login.Environment)
             start.Environment[pair.Key] = pair.Value;

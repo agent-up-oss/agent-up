@@ -1,4 +1,5 @@
 using System.Text.Json;
+using AgentUp.Server.Features.Agents.Models;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 
@@ -68,9 +69,7 @@ public sealed class AgentMcpServerProvider(IConfiguration configuration, IServer
         var configured = (configuration["urls"] ?? configuration["ASPNETCORE_URLS"] ?? "")
             .Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         var candidates = bound.Concat(configured).ToArray();
-        var chosen = candidates.FirstOrDefault(address => address.StartsWith("http://", StringComparison.OrdinalIgnoreCase))
-                     ?? candidates.FirstOrDefault()
-                     ?? Fallback;
+        var chosen = candidates.FirstOrDefault(AgentLoopbackEndpoint.IsTcpHttp) ?? Fallback;
         return Loopback(chosen);
     }
 

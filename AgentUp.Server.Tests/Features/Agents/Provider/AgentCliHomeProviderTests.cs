@@ -72,6 +72,32 @@ public sealed class AgentCliHomeProviderTests
     }
 
     [Test]
+    public void WorkspaceHome_isUniquePerWorktreeAndStaysUnderTheSharedHome()
+    {
+        var root = Directory.CreateTempSubdirectory("agent-cli-home-workspace");
+        try
+        {
+            var home = new AgentCliHomeProvider(root.FullName);
+            var first = home.EnsureWorkspaceHome(Path.Join(root.FullName, "clones", "one"));
+            var second = home.EnsureWorkspaceHome(Path.Join(root.FullName, "clones", "two"));
+            File.WriteAllText(Path.Join(home.HomePath, ".claude-oauth-token"), "sk-ant-oat01-secret");
+            var copy = home.EnsureWorkspaceHome(Path.Join(root.FullName, "clones", "one"));
+
+            Assert.Multiple(() =>
+            {
+                Assert.That(first, Is.Not.EqualTo(second));
+                Assert.That(first, Does.StartWith(home.HomePath));
+                Assert.That(second, Does.StartWith(home.HomePath));
+                Assert.That(File.ReadAllText(Path.Join(copy, ".claude-oauth-token")), Is.EqualTo("sk-ant-oat01-secret"));
+            });
+        }
+        finally
+        {
+            root.Delete(true);
+        }
+    }
+
+    [Test]
     public void IsUnderRoot_rejectsPathsOutsideTheDataDirectory()
     {
         var root = Directory.CreateTempSubdirectory("agent-cli-home-root");
@@ -96,16 +122,19 @@ public sealed class AgentCliHomeProviderTests
             store.Write("sk-ant-oat01-secret");
             var environment = new AgentProcessEnvironmentProvider(home, store);
 
-            var claude = environment.EnvironmentFor("claude");
-            var cursor = environment.EnvironmentFor("cursor");
+            var worktree = Path.Join(root.FullName, "clone");
+            Directory.CreateDirectory(worktree);
+            var workspaceHome = home.WorkspaceHome(worktree);
+            var claude = environment.EnvironmentFor("claude", worktree);
+            var cursor = environment.EnvironmentFor("cursor", worktree);
 
             Assert.Multiple(() =>
             {
-                Assert.That(claude["HOME"], Is.EqualTo(home.HomePath));
+                Assert.That(claude["HOME"], Is.EqualTo(workspaceHome));
                 Assert.That(claude["CLAUDE_CODE_OAUTH_TOKEN"], Is.EqualTo("sk-ant-oat01-secret"));
                 Assert.That(cursor.ContainsKey("CLAUDE_CODE_OAUTH_TOKEN"), Is.False);
-                Assert.That(cursor["HOME"], Is.EqualTo(home.HomePath),
-                    "Every agent CLI keeps its credentials under the Server data directory");
+                Assert.That(cursor["HOME"], Is.EqualTo(workspaceHome),
+                    "ACP and subscription login share the workspace CLI home");
             });
         }
         finally

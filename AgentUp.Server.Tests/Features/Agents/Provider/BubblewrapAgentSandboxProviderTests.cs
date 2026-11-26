@@ -87,7 +87,52 @@ public sealed class BubblewrapAgentSandboxProviderTests
     }
 
     [Test]
-    public void Prepare_neverMountsTheServerDataDirectoryOnlyTheAgentHome()
+    public void Prepare_neverMountsTheServerDataDirectoryOnlyTheWorkspaceAgentHome()
+    {
+        using var host = new SandboxHost(withBubblewrap: true);
+
+        var launch = host.Prepare(TeamMemberGrants.Author);
+        var workspaceHome = new AgentCliHomeProvider(host.Data).WorkspaceHome(host.Clone);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(launch.Arguments, Does.Not.Contain(host.Data));
+            Assert.That(BindOf(launch, workspaceHome), Is.EqualTo("--bind"));
+            Assert.That(launch.Environment["HOME"], Is.EqualTo(workspaceHome));
+        });
+    }
+
+    [Test]
+    public void Prepare_mountsNonSystemPathDirectoriesSoAShimCanExecItsBinary()
+    {
+        using var host = new SandboxHost(withBubblewrap: true);
+        var packages = host.MakeDirectory("packages");
+        host.ExecutableFileIn(packages, "test-agent");
+        var server = new Dictionary<string, string>
+        {
+            ["PATH"] = string.Join(Path.PathSeparator, [host.Tools, packages, "/usr/bin"])
+        };
+        var provider = new BubblewrapAgentSandboxProvider(
+            new AgentCliHomeProvider(host.Data),
+            host.Data,
+            serverEnvironment: () => server,
+            linux: true);
+
+        var launch = provider.Prepare(
+            new AgentCommand("opencode", ["acp"]),
+            new Dictionary<string, string>(),
+            host.Clone,
+            TeamMemberGrants.Author);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(BindOf(launch, packages), Is.EqualTo("--ro-bind"));
+            Assert.That(BindOf(launch, "/usr/bin"), Is.Null);
+        });
+    }
+
+    [Test]
+    public void Prepare_unsharesTheNetworkAndDoesNotBindHostEtc()
     {
         using var host = new SandboxHost(withBubblewrap: true);
 
@@ -95,8 +140,95 @@ public sealed class BubblewrapAgentSandboxProviderTests
 
         Assert.Multiple(() =>
         {
-            Assert.That(launch.Arguments, Does.Not.Contain(host.Data));
-            Assert.That(BindOf(launch, Path.Join(host.Data, "agent-cli-home")), Is.EqualTo("--bind"));
+            Assert.That(launch.Arguments, Does.Contain("--unshare-net"));
+            Assert.That(BindOf(launch, "/etc"), Is.Null);
+            Assert.That(BindOf(launch, "/usr"), Is.Null);
+            Assert.That(launch.Arguments, Does.Contain("--dir"));
+        });
+    }
+
+    [Test]
+    public void Prepare_pointsModelHttpAtTheServerProxyWhenLoopbackIsReady()
+    {
+        using var host = new SandboxHost(withBubblewrap: true);
+        var loopback = new AgentLoopbackEndpoint(host.Data);
+        File.Create(loopback.SocketPath).Dispose();
+        var proxy = new AgentModelProxyAccess();
+        var sandbox = new BubblewrapAgentSandboxProvider(
+            new AgentCliHomeProvider(host.Data),
+            host.Data,
+            serverEnvironment: () => new Dictionary<string, string>
+            {
+                ["PATH"] = host.Tools,
+                ["AGENTUP_ADMIN_PASSWORD"] = "secret"
+            },
+            loopback: loopback,
+            proxy: proxy,
+            loopbackBaseUrl: () => "http://127.0.0.1:5001");
+
+        var launch = sandbox.Prepare(
+            new AgentCommand("opencode", ["acp"]),
+            new Dictionary<string, string>
+            {
+                ["OPENCODE_CONFIG_CONTENT"] =
+                    """{"provider":{"agent-up":{"options":{"baseURL":"http://ollama.test/v1"}}}}"""
+            },
+            host.Clone,
+            TeamMemberGrants.Author);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(launch.Arguments, Does.Contain(AgentSandboxLoopbackBridge.Flag));
+            Assert.That(launch.Environment["ANTHROPIC_BASE_URL"],
+                Does.Contain($"/api/agent-model/{proxy.Key}/claude"));
+            Assert.That(launch.Environment["OPENAI_BASE_URL"],
+                Does.Contain($"/api/agent-model/{proxy.Key}/codex/v1"));
+            Assert.That(launch.Environment["OPENCODE_CONFIG_CONTENT"],
+                Does.Contain($"/api/agent-model/{proxy.Key}/opencode/v1"));
+            Assert.That(launch.Environment["AGENT_UP_OPENCODE_API_KEY"], Is.EqualTo(proxy.Key));
+            Assert.That(BindOf(launch, Path.GetDirectoryName(loopback.SocketPath)!), Is.EqualTo("--bind"));
+        });
+    }
+
+    [Test]
+    public void Prepare_leavesModelHttpAloneWhenTheLoopbackUrlIsUnusable()
+    {
+        using var host = new SandboxHost(withBubblewrap: true);
+        var loopback = new AgentLoopbackEndpoint(host.Data);
+        File.Create(loopback.SocketPath).Dispose();
+        var sandbox = new BubblewrapAgentSandboxProvider(
+            new AgentCliHomeProvider(host.Data),
+            host.Data,
+            serverEnvironment: () => new Dictionary<string, string> { ["PATH"] = host.Tools },
+            loopback: loopback,
+            proxy: new AgentModelProxyAccess(),
+            loopbackBaseUrl: () => "not-a-url");
+
+        var launch = sandbox.Prepare(
+            new AgentCommand("opencode", ["acp"]),
+            new Dictionary<string, string>(),
+            host.Clone,
+            TeamMemberGrants.Author);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(launch.Arguments, Does.Not.Contain(AgentSandboxLoopbackBridge.Flag));
+            Assert.That(launch.Environment.ContainsKey("ANTHROPIC_BASE_URL"), Is.False);
+        });
+    }
+
+    [Test]
+    public void TryReadShebang_rejectsAMissingFileAndAnEmptyInterpreter()
+    {
+        using var host = new SandboxHost(withBubblewrap: true);
+        var empty = host.Script("empty-shebang", "#!\n");
+        var plain = host.Script("plain", "echo\n");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(BubblewrapAgentSandboxProvider.TryReadShebang("/no/such/agent", out _, out _), Is.False);
+            Assert.That(BubblewrapAgentSandboxProvider.TryReadShebang(empty, out _, out _), Is.False);
+            Assert.That(BubblewrapAgentSandboxProvider.TryReadShebang(plain, out _, out _), Is.False);
         });
     }
 
@@ -141,6 +273,23 @@ public sealed class BubblewrapAgentSandboxProviderTests
             Assert.That(launch.FileName, Is.EqualTo("opencode"), "bubblewrap is Linux only, and no other host is refused");
             Assert.That(launch.Arguments, Is.EqualTo(new[] { "acp" }));
             Assert.That(launch.Environment.Keys, Does.Not.Contain("AGENTUP_ADMIN_PASSWORD"));
+        });
+    }
+
+    [Test]
+    public void Prepare_bindsAShebangInterpreterAndItsPathCommandWithoutTheSystemBinDirectory()
+    {
+        using var host = new SandboxHost(withBubblewrap: true);
+        var script = host.Script("cli", "#!/usr/bin/env node\n");
+        host.ExecutableFile("node");
+
+        var launch = host.Prepare(TeamMemberGrants.Author, command: "cli");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(BindOf(launch, "/usr/bin/env"), Is.EqualTo("--ro-bind"));
+            Assert.That(BindOf(launch, Path.Join(host.Tools, "node")), Is.EqualTo("--ro-bind"));
+            Assert.That(launch.Arguments, Does.Not.Contain("/usr/bin"));
         });
     }
 
@@ -237,6 +386,35 @@ public sealed class BubblewrapAgentSandboxProviderTests
                 new Dictionary<string, string> { ["OPENCODE_CONFIG_CONTENT"] = "{}" },
                 Clone,
                 grants);
+        }
+
+        public string Script(string name, string contents)
+        {
+            var path = Path.Join(Tools, name);
+            File.WriteAllText(path, contents);
+            File.SetUnixFileMode(path, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+            return path;
+        }
+
+        public string ExecutableFile(string name)
+        {
+            var path = Path.Join(Tools, name);
+            Executable(path);
+            return path;
+        }
+
+        public string MakeDirectory(string name)
+        {
+            var path = Path.Join(_root, name);
+            Directory.CreateDirectory(path);
+            return path;
+        }
+
+        public string ExecutableFileIn(string directory, string name)
+        {
+            var path = Path.Join(directory, name);
+            Executable(path);
+            return path;
         }
 
         public void Dispose() => Directory.Delete(_root, recursive: true);

@@ -8,14 +8,15 @@ public sealed class AgentProcessEnvironmentProvider(
     IAgentClaudeCredentialStore credentials,
     IAgentRuntimePathProvider? runtime = null) : IAgentProcessEnvironmentProvider
 {
-    public IReadOnlyDictionary<string, string> EnvironmentFor(string agent)
+    public IReadOnlyDictionary<string, string> EnvironmentFor(string agent, string worktree)
     {
         home.Ensure();
-        // HOME is redirected so every agent CLI keeps its credentials inside the Server data
-        // directory rather than in the service account's real home.
+        // ACP and subscription login share this workspace home so a credential the login CLI
+        // writes is the one the agent process reads. Session transcripts stay here too, which
+        // keeps one workspace from reading another.
         var environment = new Dictionary<string, string>(StringComparer.Ordinal)
         {
-            ["HOME"] = home.HomePath
+            ["HOME"] = home.EnsureWorkspaceHome(worktree)
         };
         var prefixes = runtime?.PathPrefixes() ?? [];
         if (prefixes.Count > 0)
