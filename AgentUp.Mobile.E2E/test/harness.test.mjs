@@ -199,6 +199,19 @@ test('native fill types the whole value in one shot so IME cannot reorder chunks
   assert.equal(fill.includes('chunk'), false);
 });
 
+test('native Connect waits for the typed fields and dismisses the iOS keyboard', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const source = await readFile(new URL('../detox/signIn.test.js', import.meta.url), 'utf8');
+  const connectTo = source.slice(
+    source.indexOf('async function connectTo('),
+    source.indexOf('async function fill('),
+  );
+  assert.match(connectTo, /waitUntilFieldHolds\('server-url-input', serverUrl\)/);
+  assert.match(connectTo, /waitUntilFieldHolds\('workspace-id-input', workspaceId\)/);
+  assert.match(connectTo, /tapReturnKey\(\)/);
+  assert.match(connectTo, /not\.toBeVisible\(\)\.withTimeout\(30_000\)/);
+});
+
 test('native pasted-code visits the provider before Open so the code exists before the browser takes the foreground', async () => {
   const { readFile } = await import('node:fs/promises');
   const source = await readFile(new URL('../detox/signIn.test.js', import.meta.url), 'utf8');
