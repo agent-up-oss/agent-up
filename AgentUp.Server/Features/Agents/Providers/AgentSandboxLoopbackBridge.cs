@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
@@ -11,6 +12,7 @@ namespace AgentUp.Server.Features.Agents.Providers;
 /// Server's Unix socket, so MCP and the model proxy still look like <c>127.0.0.1</c> to the
 /// agent after <c>--unshare-net</c>.
 /// </summary>
+[SuppressMessage("Interoperability", "CA1401:P/Invokes should not be visible", Justification = "A new network namespace has loopback down and .NET has no managed API to set IFF_UP; ioctl stays private in this provider.")]
 public static class AgentSandboxLoopbackBridge
 {
     public const string Flag = "--agent-sandbox-bridge";
@@ -147,11 +149,11 @@ public static class AgentSandboxLoopbackBridge
         using var socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
         var buffer = new byte[40];
         Encoding.ASCII.GetBytes("lo").CopyTo(buffer, 0);
-        if (Ioctl(socket.SafeHandle.DangerousGetHandle(), Siocgifflags, buffer) != 0)
+        if (Ioctl(socket.SafeHandle, Siocgifflags, buffer) != 0)
             return;
         var flags = (short)(BitConverter.ToInt16(buffer, 16) | IffUp | IffRunning);
         BitConverter.GetBytes(flags).CopyTo(buffer, 16);
-        _ = Ioctl(socket.SafeHandle.DangerousGetHandle(), Siocsifflags, buffer);
+        _ = Ioctl(socket.SafeHandle, Siocsifflags, buffer);
     }
 
     private const short IffUp = 1;
@@ -160,7 +162,7 @@ public static class AgentSandboxLoopbackBridge
     private const nuint Siocsifflags = 0x8914;
 
     [DllImport("libc", EntryPoint = "ioctl", SetLastError = true)]
-    private static extern int Ioctl(nint fileDescriptor, nuint request, byte[] argument);
+    private static extern int Ioctl(SafeHandle fileDescriptor, nuint request, byte[] argument);
 
     private static string Required(IReadOnlyList<string> args, string name)
     {

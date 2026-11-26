@@ -37,7 +37,8 @@ public sealed class AgentModelProxyHttpTests
         request.Content = new StringContent("""{"model":"qwen"}""", System.Text.Encoding.UTF8, "application/json");
         using var response = await client.SendAsync(request);
         var body = await response.Content.ReadAsStringAsync();
-        using var denied = await client.PostAsync($"/api/agent-model/deadbeef/opencode/v1/chat/completions", new StringContent("{}"));
+        using var deniedBody = new StringContent("{}");
+        using var denied = await client.PostAsync($"/api/agent-model/deadbeef/opencode/v1/chat/completions", deniedBody);
 
         Assert.Multiple(() =>
         {
