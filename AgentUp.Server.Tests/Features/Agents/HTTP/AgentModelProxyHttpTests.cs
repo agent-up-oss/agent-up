@@ -34,7 +34,8 @@ public sealed class AgentModelProxyHttpTests
 
         using var request = new HttpRequestMessage(HttpMethod.Post, $"/api/agent-model/{access.Key}/opencode/v1/chat/completions");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", access.Key);
-        request.Content = new StringContent("""{"model":"qwen"}""", System.Text.Encoding.UTF8, "application/json");
+        using var payload = new StringContent("""{"model":"qwen"}""", System.Text.Encoding.UTF8, "application/json");
+        request.Content = payload;
         using var response = await client.SendAsync(request);
         var body = await response.Content.ReadAsStringAsync();
         using var deniedBody = new StringContent("{}");
@@ -46,6 +47,29 @@ public sealed class AgentModelProxyHttpTests
             Assert.That(body, Is.EqualTo("{\"ok\":true}"));
             Assert.That(origin.Authorization, Is.EqualTo("Bearer sk-real"));
             Assert.That(denied.StatusCode, Is.EqualTo(HttpStatusCode.Unauthorized));
+        });
+    }
+
+    [Test]
+    public async Task Proxy_doesNotForwardTheSandboxKeyWhenOpencodeHasNoStoredToken()
+    {
+        await using var origin = await Origin.StartAsync();
+        var settings = new CapabilityModuleHarness.MemorySettings();
+        settings.Write("opencode", new Dictionary<string, string> { ["endpoint"] = origin.Url });
+        var access = new AgentModelProxyAccess();
+        await using var app = await StartProxyAsync(access, settings);
+        using var client = new HttpClient { BaseAddress = new Uri(app.Urls.Single()) };
+        using var request = new HttpRequestMessage(HttpMethod.Post, $"/api/agent-model/{access.Key}/opencode/v1/chat/completions");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", access.Key);
+        using var payload = new StringContent("""{"model":"qwen"}""", System.Text.Encoding.UTF8, "application/json");
+        request.Content = payload;
+
+        using var response = await client.SendAsync(request);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.That(origin.Authorization, Is.Empty);
         });
     }
 

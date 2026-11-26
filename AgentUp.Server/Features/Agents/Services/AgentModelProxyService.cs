@@ -38,7 +38,11 @@ public sealed class AgentModelProxyService(
 
         try
         {
-            await forwarder.ForwardAsync(context, destination, target.BearerToken);
+            await forwarder.ForwardAsync(
+                context,
+                destination,
+                target.BearerToken,
+                replaceIncomingAuthorization: string.Equals(capability, "opencode", StringComparison.OrdinalIgnoreCase));
         }
         catch (HttpRequestException)
         {
@@ -54,10 +58,14 @@ public sealed class AgentModelProxyService(
         }
     }
 
-    private static void WriteUnavailable(HttpContext context)
+    internal static void WriteUnavailable(HttpContext context)
     {
         if (context.Response.HasStarted)
+        {
+            context.Abort();
             return;
+        }
+
         context.Response.StatusCode = StatusCodes.Status502BadGateway;
         context.Response.Headers.CacheControl = "no-store";
     }

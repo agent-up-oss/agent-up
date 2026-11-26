@@ -96,12 +96,20 @@ public sealed class AgentSandboxE2ETests
     {
         using var host = new Host();
 
-        var result = await host.RunAsync(TeamMemberGrants.Author, "cat /proc/net/dev; echo done");
+        var result = await host.RunAsync(
+            TeamMemberGrants.Author,
+            "while read line; do echo \"$line\"; done < /proc/net/dev && echo done");
 
+        var names = result.Output.Split('\n')
+            .Select(line => line.Trim())
+            .Where(line => line.Contains(':') && !line.Contains("Inter-") && !line.StartsWith("face", StringComparison.Ordinal))
+            .Select(line => line.Split(':')[0].Trim())
+            .Where(name => name.Length > 0)
+            .ToArray();
         Assert.Multiple(() =>
         {
             Assert.That(result.Output, Does.Contain("done"));
-            Assert.That(result.Output, Does.Not.Match("eth|ens|enp|wlan"));
+            Assert.That(names, Is.EquivalentTo(new[] { "lo" }));
         });
     }
 

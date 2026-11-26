@@ -227,7 +227,9 @@ public static class ServiceRegistration
         builder.Services.AddSingleton(agentLoopback);
         if (OperatingSystem.IsLinux())
         {
-            builder.WebHost.ConfigureKestrel(options => options.ListenUnixSocket(agentLoopback.SocketPath));
+            builder.WebHost.UseUrls(AgentLoopbackEndpoint.CombineHostingUrls(
+                builder.Configuration["urls"] ?? builder.Configuration["ASPNETCORE_URLS"],
+                agentLoopback.SocketPath).ToArray());
             builder.Services.AddHostedService<AgentLoopbackSocketPermissionHost>();
         }
 

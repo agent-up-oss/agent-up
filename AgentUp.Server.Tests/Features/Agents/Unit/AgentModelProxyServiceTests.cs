@@ -3,6 +3,7 @@ using AgentUp.Server.Features.Agents.Models;
 using AgentUp.Server.Features.Agents.Providers;
 using AgentUp.Server.Features.Agents.Services;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Features;
 
 namespace AgentUp.Server.Tests.Features.Agents.Unit;
 
@@ -64,6 +65,23 @@ public sealed class AgentModelProxyServiceTests
         Assert.That(context.Response.StatusCode, Is.EqualTo(StatusCodes.Status502BadGateway));
     }
 
+    [Test]
+    public void WriteUnavailable_abortsAfterHeadersHaveStarted()
+    {
+        var context = new DefaultHttpContext();
+        var lifetime = new Lifetime();
+        context.Features.Set<IHttpResponseFeature>(new StartedResponse());
+        context.Features.Set<IHttpRequestLifetimeFeature>(lifetime);
+
+        AgentModelProxyService.WriteUnavailable(context);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(lifetime.Aborted, Is.True);
+            Assert.That(context.Response.StatusCode, Is.EqualTo(200));
+        });
+    }
+
     private sealed class FixedDestinations(AgentModelProxyTarget? target) : IAgentModelProxyDestinations
     {
         public AgentModelProxyTarget? Resolve(string capability) => target;
@@ -75,5 +93,23 @@ public sealed class AgentModelProxyServiceTests
             HttpRequestMessage request,
             CancellationToken cancellationToken) =>
             throw new HttpRequestException("origin down");
+    }
+
+    private sealed class StartedResponse : IHttpResponseFeature
+    {
+        public int StatusCode { get; set; } = 200;
+        public string? ReasonPhrase { get; set; }
+        public IHeaderDictionary Headers { get; set; } = new HeaderDictionary();
+        public Stream Body { get; set; } = new MemoryStream();
+        public bool HasStarted => true;
+        public void OnStarting(Func<object, Task> callback, object state) { }
+        public void OnCompleted(Func<object, Task> callback, object state) { }
+    }
+
+    private sealed class Lifetime : IHttpRequestLifetimeFeature
+    {
+        public bool Aborted { get; private set; }
+        public CancellationToken RequestAborted { get; set; }
+        public void Abort() => Aborted = true;
     }
 }

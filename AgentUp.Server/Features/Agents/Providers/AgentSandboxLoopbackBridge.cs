@@ -46,19 +46,31 @@ public static class AgentSandboxLoopbackBridge
         return [process];
     }
 
-    public static IReadOnlyList<string> HostMounts()
+    public static IReadOnlyList<string> HostMounts() => HostMounts(HostCommand());
+
+    internal static IReadOnlyList<string> HostMounts(IReadOnlyList<string> command)
     {
-        var command = HostCommand()
+        var rooted = command
             .Where(Path.IsPathRooted)
-            .SelectMany(part => new[] { part, Path.GetDirectoryName(part) })
+            .SelectMany(part =>
+            {
+                var directory = Path.GetDirectoryName(part);
+                return directory is null || IsSystemBin(directory)
+                    ? [part]
+                    : new[] { part, directory };
+            })
             .Where(candidate => !string.IsNullOrWhiteSpace(candidate))
             .Select(candidate => candidate!);
-        return command
+        return rooted
             .Append(AppContext.BaseDirectory.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar))
             .Select(Path.GetFullPath)
+            .Where(candidate => !IsSystemBin(candidate))
             .Distinct(StringComparer.Ordinal)
             .ToArray();
     }
+
+    private static bool IsSystemBin(string path) =>
+        path is "/usr/bin" or "/bin" or "/usr/sbin" or "/sbin";
 
     private static int Run(IReadOnlyList<string> args)
     {
@@ -112,8 +124,8 @@ public static class AgentSandboxLoopbackBridge
                 upstream.Connect(new UnixDomainSocketEndPoint(socketPath));
                 using var incoming = client.GetStream();
                 using var outgoing = new NetworkStream(upstream, ownsSocket: false);
-                var toUnix = new Thread(() => CopyOneWay(incoming, outgoing)) { IsBackground = true };
-                var toTcp = new Thread(() => CopyOneWay(outgoing, incoming)) { IsBackground = true };
+                var toUnix = new Thread(() => CopyOneWay(incoming, outgoing, () => ShutdownSend(upstream))) { IsBackground = true };
+                var toTcp = new Thread(() => CopyOneWay(outgoing, incoming, () => ShutdownSend(client.Client))) { IsBackground = true };
                 toUnix.Start();
                 toTcp.Start();
                 toUnix.Join();
@@ -126,16 +138,33 @@ public static class AgentSandboxLoopbackBridge
         }
     }
 
-    private static void CopyOneWay(Stream from, Stream to)
+    private static void CopyOneWay(Stream from, Stream to, Action complete)
     {
         try
         {
             from.CopyTo(to);
         }
-        catch (Exception exception) when (exception is IOException or ObjectDisposedException)
+        catch (Exception exception) when (exception is IOException or ObjectDisposedException or SocketException)
         {
             return;
         }
+        finally
+        {
+            try
+            {
+                complete();
+            }
+            catch (Exception exception) when (exception is SocketException or ObjectDisposedException)
+            {
+                Trace.WriteLine(exception);
+            }
+        }
+    }
+
+    private static void ShutdownSend(Socket socket)
+    {
+        if (socket.Connected)
+            socket.Shutdown(SocketShutdown.Send);
     }
 
     /// <summary>

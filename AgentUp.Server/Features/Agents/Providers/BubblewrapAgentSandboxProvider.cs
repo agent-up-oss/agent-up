@@ -189,7 +189,7 @@ public sealed class BubblewrapAgentSandboxProvider : IAgentSandbox
         paths.AddRange(CertificateVariables
             .Where(server.ContainsKey)
             .Select(name => server[name]));
-        AddExecutableClosure(paths, executable);
+        AddExecutableClosure(paths, executable, path);
         paths.AddRange(new[] { "python3", "python" }
             .Select(interpreter => Resolve(interpreter, path))
             .Where(found => found is not null)
@@ -198,7 +198,7 @@ public sealed class BubblewrapAgentSandboxProvider : IAgentSandbox
         if (_loopback is not null)
             paths.Add(_loopback.SocketPath);
         if (File.Exists(_loopback?.SocketPath ?? ""))
-            paths.AddRange(AgentSandboxLoopbackBridge.HostMounts());
+            paths.AddRange(AgentSandboxLoopbackBridge.HostMounts().Where(mount => !IsSystemBin(mount)));
         paths.AddRange(ExtraReadOnlyVariables
             .Select(name => agent.TryGetValue(name, out var extra) || server.TryGetValue(name, out extra) ? extra : null)
             .OfType<string>());
@@ -213,7 +213,7 @@ public sealed class BubblewrapAgentSandboxProvider : IAgentSandbox
             .ToArray();
     }
 
-    private static void AddExecutableClosure(List<string> paths, string executable)
+    private static void AddExecutableClosure(List<string> paths, string executable, string searchPath)
     {
         paths.Add(executable);
         var real = RealPath(executable);
@@ -227,6 +227,47 @@ public sealed class BubblewrapAgentSandboxProvider : IAgentSandbox
         var package = PackageRoot(real);
         if (!IsSystemBin(package))
             paths.Add(package);
+        AddShebang(paths, real, searchPath);
+    }
+
+    /// <summary>
+    /// Bind the interpreter a script names, not the directory that holds it. <c>#!/usr/bin/env node</c>
+    /// needs <c>/usr/bin/env</c> and <c>node</c> on PATH, not all of <c>/usr/bin</c>.
+    /// </summary>
+    private static void AddShebang(List<string> paths, string executable, string searchPath)
+    {
+        if (!TryReadShebang(executable, out var interpreter, out var argument))
+            return;
+        if (Path.IsPathRooted(interpreter))
+            paths.Add(interpreter);
+        if (string.IsNullOrWhiteSpace(argument))
+            return;
+        var resolved = Resolve(argument.Split(' ', 2, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)[0], searchPath);
+        if (resolved is not null)
+            paths.Add(resolved);
+    }
+
+    internal static bool TryReadShebang(string executable, out string interpreter, out string? argument)
+    {
+        interpreter = "";
+        argument = null;
+        if (!File.Exists(executable))
+            return false;
+        using var stream = File.OpenRead(executable);
+        var magic = new byte[2];
+        if (stream.Read(magic) < 2 || magic[0] != (byte)'#' || magic[1] != (byte)'!')
+            return false;
+        stream.Position = 0;
+        using var reader = new StreamReader(stream, System.Text.Encoding.UTF8, detectEncodingFromByteOrderMarks: false, bufferSize: 256, leaveOpen: false);
+        var line = reader.ReadLine();
+        if (line is null || !line.StartsWith("#!", StringComparison.Ordinal))
+            return false;
+        var parts = line[2..].Trim().Split(' ', 2, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (parts.Length == 0)
+            return false;
+        interpreter = parts[0];
+        argument = parts.Length > 1 ? parts[1] : null;
+        return true;
     }
 
     private static bool IsSystemBin(string path)

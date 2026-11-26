@@ -12,7 +12,7 @@ public sealed class AgentModelProxyForwarder : IDisposable
     private static readonly HashSet<string> HopByHop = new(StringComparer.OrdinalIgnoreCase)
     {
         "Connection", "Keep-Alive", "Proxy-Authenticate", "Proxy-Authorization",
-        "TE", "Trailers", "Transfer-Encoding", "Upgrade", "Host"
+        "TE", "Trailer", "Transfer-Encoding", "Upgrade", "Host"
     };
 
     private readonly HttpClient _client;
@@ -33,13 +33,18 @@ public sealed class AgentModelProxyForwarder : IDisposable
     public AgentModelProxyForwarder(HttpMessageHandler handler) =>
         _client = new HttpClient(handler, disposeHandler: true) { Timeout = TimeSpan.FromMinutes(10) };
 
-    public async Task ForwardAsync(HttpContext context, Uri destination, string? bearerToken)
+    public async Task ForwardAsync(
+        HttpContext context,
+        Uri destination,
+        string? bearerToken,
+        bool replaceIncomingAuthorization = false)
     {
         using var request = new HttpRequestMessage(new HttpMethod(context.Request.Method), destination);
         if (HasBody(context.Request.Method))
             request.Content = new StreamContent(context.Request.Body);
 
-        foreach (var header in context.Request.Headers.Where(header => !HopByHop.Contains(header.Key)))
+        var requestSkip = Exclusions(context.Request.Headers["Connection"]);
+        foreach (var header in context.Request.Headers.Where(header => !requestSkip.Contains(header.Key)))
             CopyRequestHeader(request, header);
 
         if (request.Content is not null
@@ -53,19 +58,36 @@ public sealed class AgentModelProxyForwarder : IDisposable
             request.Headers.Remove("x-api-key");
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", bearerToken);
         }
+        else if (replaceIncomingAuthorization)
+        {
+            request.Headers.Remove("Authorization");
+            request.Headers.Remove("x-api-key");
+        }
 
         using var response = await _client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, context.RequestAborted);
         context.Response.StatusCode = (int)response.StatusCode;
-        foreach (var header in response.Headers.Where(header => !HopByHop.Contains(header.Key)))
+        var responseSkip = Exclusions(response.Headers.TryGetValues("Connection", out var connection)
+            ? string.Join(",", connection)
+            : null);
+        foreach (var header in response.Headers.Where(header => !responseSkip.Contains(header.Key)))
             context.Response.Headers[header.Key] = header.Value.ToArray();
 
         if (response.Content is not null)
         {
-            foreach (var header in response.Content.Headers.Where(header => !HopByHop.Contains(header.Key)))
+            foreach (var header in response.Content.Headers.Where(header => !responseSkip.Contains(header.Key)))
                 context.Response.Headers[header.Key] = header.Value.ToArray();
 
             await response.Content.CopyToAsync(context.Response.Body, context.RequestAborted);
         }
+    }
+
+    private static HashSet<string> Exclusions(string? connection)
+    {
+        var skip = new HashSet<string>(HopByHop, StringComparer.OrdinalIgnoreCase);
+        if (string.IsNullOrWhiteSpace(connection))
+            return skip;
+        skip.UnionWith(connection.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+        return skip;
     }
 
     public void Dispose() => _client.Dispose();

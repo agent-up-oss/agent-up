@@ -43,6 +43,8 @@ public sealed class AgentMcpServerProviderTests
     [TestCase("http://+:5000", "http://127.0.0.1:5000")]
     [TestCase("http://[::]:5002", "http://127.0.0.1:5002")]
     [TestCase("http://localhost:5001;https://localhost:5443", "http://localhost:5001")]
+    [TestCase("http://unix:/tmp/agent.sock;http://127.0.0.1:5001", "http://127.0.0.1:5001")]
+    [TestCase("http://unix:/tmp/agent.sock", "http://127.0.0.1:5000")]
     [TestCase("", "http://127.0.0.1:5000")]
     public void LoopbackBaseUrl_turns_a_wildcard_binding_into_loopback(string urls, string expected)
     {

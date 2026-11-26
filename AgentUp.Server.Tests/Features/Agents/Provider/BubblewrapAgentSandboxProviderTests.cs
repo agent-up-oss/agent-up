@@ -205,6 +205,23 @@ public sealed class BubblewrapAgentSandboxProviderTests
     }
 
     [Test]
+    public void Prepare_bindsAShebangInterpreterAndItsPathCommandWithoutTheSystemBinDirectory()
+    {
+        using var host = new SandboxHost(withBubblewrap: true);
+        var script = host.Script("cli", "#!/usr/bin/env node\n");
+        host.ExecutableFile("node");
+
+        var launch = host.Prepare(TeamMemberGrants.Author, command: "cli");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(BindOf(launch, "/usr/bin/env"), Is.EqualTo("--ro-bind"));
+            Assert.That(BindOf(launch, Path.Join(host.Tools, "node")), Is.EqualTo("--ro-bind"));
+            Assert.That(launch.Arguments, Does.Not.Contain("/usr/bin"));
+        });
+    }
+
+    [Test]
     public void PackageRoot_isTheOutermostNodeModulesOfAnNpmCli()
     {
         Assert.Multiple(() =>
@@ -297,6 +314,21 @@ public sealed class BubblewrapAgentSandboxProviderTests
                 new Dictionary<string, string> { ["OPENCODE_CONFIG_CONTENT"] = "{}" },
                 Clone,
                 grants);
+        }
+
+        public string Script(string name, string contents)
+        {
+            var path = Path.Join(Tools, name);
+            File.WriteAllText(path, contents);
+            File.SetUnixFileMode(path, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+            return path;
+        }
+
+        public string ExecutableFile(string name)
+        {
+            var path = Path.Join(Tools, name);
+            Executable(path);
+            return path;
         }
 
         public void Dispose() => Directory.Delete(_root, recursive: true);
