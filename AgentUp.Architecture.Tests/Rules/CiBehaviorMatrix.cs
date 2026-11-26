@@ -115,6 +115,8 @@ public sealed class CiBehaviorMatrix
         Assert.Multiple(() =>
         {
             Assert.That(Scalar(release, "if"), Does.Contain("github.event_name == 'push'"), "Release must run only on a push.");
+            Assert.That(Scalar(release, "if"), Does.Not.Contain("refs/heads/main"),
+                "Release publishes a prerelease from every push, not only main.");
             Assert.That(Scalar(mobile, "if"), Does.Contain("github.event_name == 'workflow_dispatch'"), "Mobile release must run only on a dispatch.");
             Assert.That(Needs(mobile).Order(StringComparer.Ordinal), Is.EqualTo(Needs(release).Order(StringComparer.Ordinal)),
                 "Mobile release waits for exactly what Release waits for.");

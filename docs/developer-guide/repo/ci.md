@@ -16,7 +16,7 @@ This page is how Agent-Up CI is shaped and why. There is one job per domain, eac
 
 <DocContract label="Required check">Behavior matrix</DocContract>
 
-Everything runs from `.github/workflows/ci.yml` on pull requests, pushes to `main`, and dispatches, including the Android and iOS store builds and their release; see [Mobile store release](./mobile-store-release.md). Only `mobile-ios-certs.yaml`, the one-time Match bootstrap, is a separate workflow. Secrets and variables are on [CI Configuration](./ci-configuration.md).
+Everything runs from `.github/workflows/ci.yml` on pull requests, pushes, and dispatches, including the Android and iOS store builds and their release; see [Mobile store release](./mobile-store-release.md). Only `mobile-ios-certs.yaml`, the one-time Match bootstrap, is a separate workflow. Secrets and variables are on [CI Configuration](./ci-configuration.md).
 
 ## Domains
 
@@ -47,10 +47,11 @@ Long legs keep their steps in a composite action under `.github/actions/`, so a 
 
 Release and Mobile release sit on one tier and wait for the same two jobs, Behavior matrix and Plan.
 
-- **Release** runs on a push to `main` when Plan says to publish.
+- **Release** runs on a push when Plan says to publish. On `main` that is the stable semantic-release cut.
+- On any other branch it is a GitHub prerelease `{last-stable-tag}-{runNumber}`, with `.{runAttempt}` only on a retry, to the same GitHub, Docker Hub, Helm, and npm destinations. It does not move `:latest`, npm `@latest`, or GitHub latest, and it skips JetBrains Marketplace.
 - **Mobile release** runs on a `workflow_dispatch` whose `mobile-channel` is `beta` or `prod`. It has one leg per platform `mobile-platforms` names, and uploads the binaries the Mobile store legs built to Google Play and App Store Connect.
 
-A dispatch never reaches Release, and a push never reaches Mobile release. A dispatch with `mobile-channel: none` runs the matrix and ships nothing. A dispatch never cancels and is never cancelled; a second one on the same ref waits.
+A dispatch never reaches Release, and a push never reaches Mobile release. A dispatch with `mobile-channel: none` runs the matrix and ships nothing. Push and dispatch runs never cancel, so a Release or Mobile release is not cut off; a second one on the same ref waits. Pull requests still cancel. A branch with an open pull request runs the matrix twice: the push can Release, the pull_request cannot.
 
 ## The behavior matrix
 
