@@ -157,6 +157,7 @@ public sealed class BubblewrapAgentSandboxProviderTests
             Assert.That(launch.Environment["OPENCODE_CONFIG_CONTENT"],
                 Does.Contain($"/api/agent-model/{proxy.Key}/opencode/v1"));
             Assert.That(launch.Environment["AGENT_UP_OPENCODE_API_KEY"], Is.EqualTo(proxy.Key));
+            Assert.That(BindOf(launch, Path.GetDirectoryName(loopback.SocketPath)!), Is.EqualTo("--bind"));
         });
     }
 

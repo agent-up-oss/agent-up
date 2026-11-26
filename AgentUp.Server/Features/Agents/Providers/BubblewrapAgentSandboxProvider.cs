@@ -128,6 +128,7 @@ public sealed class BubblewrapAgentSandboxProvider : IAgentSandbox
             "--dir", "/etc",
             .. CertificateBinds(),
             .. mounts.SelectMany(mount => new[] { mount.Writable ? "--bind" : "--ro-bind", mount.Path, mount.Path }),
+            .. LoopbackBinds(),
             "--chdir", clone,
             "--", agentExecutable,
             .. bridged
@@ -158,6 +159,22 @@ public sealed class BubblewrapAgentSandboxProvider : IAgentSandbox
     }
 
     private static string LoopbackUrl(int port) => $"http://127.0.0.1:{port}";
+
+    /// <summary>
+    /// Connecting to a Unix socket needs write permission on the inode. A read-only bind of the
+    /// socket file leaves the bridge unable to reach Kestrel.
+    /// </summary>
+    private IEnumerable<string> LoopbackBinds()
+    {
+        if (_loopback is null || !File.Exists(_loopback.SocketPath))
+            yield break;
+        var directory = Path.GetDirectoryName(_loopback.SocketPath);
+        if (string.IsNullOrWhiteSpace(directory))
+            yield break;
+        yield return "--bind";
+        yield return directory;
+        yield return directory;
+    }
 
     private IEnumerable<string> CertificateBinds()
     {
@@ -195,8 +212,6 @@ public sealed class BubblewrapAgentSandboxProvider : IAgentSandbox
             .Where(found => found is not null)
             .Select(found => found!));
 
-        if (_loopback is not null)
-            paths.Add(_loopback.SocketPath);
         if (File.Exists(_loopback?.SocketPath ?? ""))
             paths.AddRange(AgentSandboxLoopbackBridge.HostMounts().Where(mount => !IsSystemBin(mount)));
         paths.AddRange(ExtraReadOnlyVariables
