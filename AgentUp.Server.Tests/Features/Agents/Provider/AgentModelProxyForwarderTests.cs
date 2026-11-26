@@ -47,6 +47,8 @@ public sealed class AgentModelProxyForwarderTests
 
     private sealed class RecordingHandler : HttpMessageHandler
     {
+        private HttpResponseMessage? _response;
+
         public Dictionary<string, string[]> Headers { get; } = new(StringComparer.OrdinalIgnoreCase);
 
         protected override Task<HttpResponseMessage> SendAsync(
@@ -55,7 +57,15 @@ public sealed class AgentModelProxyForwarderTests
         {
             foreach (var header in request.Headers)
                 Headers[header.Key] = header.Value.ToArray();
-            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NoContent));
+            _response = new HttpResponseMessage(HttpStatusCode.NoContent);
+            return Task.FromResult(_response);
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+                _response?.Dispose();
+            base.Dispose(disposing);
         }
     }
 }
