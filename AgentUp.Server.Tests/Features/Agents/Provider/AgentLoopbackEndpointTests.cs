@@ -60,6 +60,43 @@ public sealed class AgentLoopbackEndpointTests
     }
 
     [Test]
+    public void CombineHostingUrls_defaultsTcpWhenTheConfigurationIsEmpty()
+    {
+        var urls = AgentLoopbackEndpoint.CombineHostingUrls("http://unix:/tmp/old.sock", "/tmp/agent.sock");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(urls, Is.EqualTo(new[] { "http://127.0.0.1:5000", "http://unix:/tmp/agent.sock" }));
+            Assert.That(AgentLoopbackEndpoint.IsTcpHttp("HTTP://127.0.0.1:1"), Is.True);
+            Assert.That(AgentLoopbackEndpoint.IsTcpHttp("https://127.0.0.1:1"), Is.False);
+            Assert.That(AgentLoopbackEndpoint.TcpHttpUrl(["http://unix:/tmp/agent.sock"]), Is.Null);
+        });
+    }
+
+    [Test]
+    public void Constructor_throwsWhenEvenTheRuntimeSocketPathIsTooLong()
+    {
+        var previous = Environment.GetEnvironmentVariable("TMPDIR");
+        var tmp = Directory.CreateDirectory(Path.Join(
+            Path.GetTempPath(),
+            Guid.NewGuid().ToString("N"),
+            new string('t', AgentLoopbackEndpoint.UnixPathMaxBytes)));
+        try
+        {
+            Environment.SetEnvironmentVariable("TMPDIR", tmp.FullName);
+            var data = Directory.CreateDirectory(Path.Join(tmp.FullName, "data"));
+            Assert.That(
+                () => new AgentLoopbackEndpoint(data.FullName),
+                Throws.InvalidOperationException.With.Message.Contains("exceeds"));
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable("TMPDIR", previous);
+            tmp.Delete(true);
+        }
+    }
+
+    [Test]
     public void TryRun_ignoresOrdinaryServerArgs()
     {
         Assert.That(AgentSandboxLoopbackBridge.TryRun(["--urls=http://127.0.0.1:0"], out var exit), Is.False);
@@ -76,6 +113,25 @@ public sealed class AgentLoopbackEndpointTests
             Assert.That(mounts, Does.Contain("/usr/bin/dotnet"));
             Assert.That(mounts, Does.Not.Contain("/usr/bin"));
             Assert.That(mounts, Does.Contain("/opt/server"));
+        });
+    }
+
+    [Test]
+    public void HostCommand_usesDotnetExecWhenTheProcessIsTheDotnetHost()
+    {
+        var command = AgentSandboxLoopbackBridge.HostCommand("/usr/share/dotnet/dotnet");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(command, Is.EqualTo(new[]
+            {
+                "/usr/share/dotnet/dotnet",
+                "exec",
+                typeof(AgentSandboxLoopbackBridge).Assembly.Location
+            }));
+            Assert.That(
+                () => AgentSandboxLoopbackBridge.HostCommand(null),
+                Throws.InvalidOperationException.With.Message.Contains("process path"));
         });
     }
 

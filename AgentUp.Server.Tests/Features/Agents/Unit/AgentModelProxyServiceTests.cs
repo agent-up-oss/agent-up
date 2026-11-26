@@ -66,6 +66,42 @@ public sealed class AgentModelProxyServiceTests
     }
 
     [Test]
+    public async Task ForwardAsync_forwardsTheQueryStringOntoTheOrigin()
+    {
+        var access = new AgentModelProxyAccess();
+        var handler = new RecordingUriHandler();
+        using var forwarder = new AgentModelProxyForwarder(handler);
+        var service = new AgentModelProxyService(
+            access,
+            new FixedDestinations(new AgentModelProxyTarget("http://origin.test", null)),
+            forwarder);
+        var context = new DefaultHttpContext();
+        context.Request.Method = HttpMethods.Get;
+        context.Request.QueryString = new QueryString("?tag=qwen");
+        context.Response.Body = new MemoryStream();
+
+        await service.ForwardAsync(access.Key, "ollama", "api/tags", context);
+
+        Assert.That(handler.Uri, Is.EqualTo(new Uri("http://origin.test/api/tags?tag=qwen")));
+    }
+
+    [Test]
+    public async Task ForwardAsync_reportsUnavailableWhenTheOriginThrowsAnIoError()
+    {
+        var context = await ForwardWithHandler(new ThrowingHandler(new IOException("reset")));
+
+        Assert.That(context.Response.StatusCode, Is.EqualTo(StatusCodes.Status502BadGateway));
+    }
+
+    [Test]
+    public async Task ForwardAsync_reportsUnavailableWhenTheOriginTimesOut()
+    {
+        var context = await ForwardWithHandler(new ThrowingHandler(new TaskCanceledException("timeout")));
+
+        Assert.That(context.Response.StatusCode, Is.EqualTo(StatusCodes.Status502BadGateway));
+    }
+
+    [Test]
     public void WriteUnavailable_abortsAfterHeadersHaveStarted()
     {
         var context = new DefaultHttpContext();
@@ -87,12 +123,58 @@ public sealed class AgentModelProxyServiceTests
         public AgentModelProxyTarget? Resolve(string capability) => target;
     }
 
+    private static async Task<DefaultHttpContext> ForwardWithHandler(HttpMessageHandler handler)
+    {
+        var access = new AgentModelProxyAccess();
+        using var forwarder = new AgentModelProxyForwarder(handler);
+        var service = new AgentModelProxyService(
+            access,
+            new FixedDestinations(new AgentModelProxyTarget("http://origin.test", "sk")),
+            forwarder);
+        var context = new DefaultHttpContext();
+        context.Request.Method = HttpMethods.Get;
+        await service.ForwardAsync(access.Key, "opencode", "v1/models", context);
+        return context;
+    }
+
     private sealed class ThrowingHandler : HttpMessageHandler
     {
+        private readonly Exception _exception;
+
+        public ThrowingHandler()
+            : this(new HttpRequestException("origin down"))
+        {
+        }
+
+        public ThrowingHandler(Exception exception) => _exception = exception;
+
         protected override Task<HttpResponseMessage> SendAsync(
             HttpRequestMessage request,
             CancellationToken cancellationToken) =>
-            throw new HttpRequestException("origin down");
+            throw _exception;
+    }
+
+    private sealed class RecordingUriHandler : HttpMessageHandler
+    {
+        private HttpResponseMessage? _response;
+
+        public Uri? Uri { get; private set; }
+
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken)
+        {
+            Uri = request.RequestUri;
+            _response = new HttpResponseMessage(System.Net.HttpStatusCode.NoContent);
+            return Task.FromResult(_response);
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+                _response?.Dispose();
+            base.Dispose(disposing);
+        }
     }
 
     private sealed class StartedResponse : IHttpResponseFeature

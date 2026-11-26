@@ -39,4 +39,27 @@ public sealed class AgentModelProxyEnvironmentTests
     {
         Assert.That(AgentModelProxyEnvironment.RewriteOpencode("{}", "http://proxy/opencode"), Is.EqualTo("{}"));
     }
+
+    [Test]
+    public void RewriteOpencode_leavesInvalidJsonUnchanged()
+    {
+        Assert.That(AgentModelProxyEnvironment.RewriteOpencode("{", "http://proxy/opencode"), Is.EqualTo("{"));
+    }
+
+    [Test]
+    public void ProxiedBaseUrl_keepsAVendorPathAndDefaultsToV1()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(
+                AgentModelProxyEnvironment.ProxiedBaseUrl("http://ollama.test/v1", "http://proxy/opencode"),
+                Is.EqualTo("http://proxy/opencode/v1"));
+            Assert.That(
+                AgentModelProxyEnvironment.ProxiedBaseUrl("http://ollama.test/", "http://proxy/opencode"),
+                Is.EqualTo("http://proxy/opencode/v1"));
+            Assert.That(
+                AgentModelProxyEnvironment.ProxiedBaseUrl(null, "http://proxy/opencode"),
+                Is.EqualTo("http://proxy/opencode/v1"));
+        });
+    }
 }

@@ -52,6 +52,25 @@ public sealed class AgentModelProxyDestinationsTests
     }
 
     [Test]
+    public void Resolve_defaultsOllamaToLoopbackWhenTheHostIsMissingOrUnusable()
+    {
+        Assert.Multiple(() =>
+        {
+            Assert.That(Destinations().Resolve("ollama")!.Origin, Is.EqualTo("http://127.0.0.1:11434"));
+            Assert.That(Destinations(ollama: "not-a-url").Resolve("ollama")!.Origin, Is.EqualTo("http://127.0.0.1:11434"));
+        });
+    }
+
+    [Test]
+    public void Resolve_returnsNullWhenOpencodeHasNoUsableHttpEndpoint()
+    {
+        var settings = new CapabilityModuleHarness.MemorySettings();
+        settings.Write("opencode", new Dictionary<string, string> { ["endpoint"] = "ftp://models.test/v1" });
+
+        Assert.That(Destinations(settings).Resolve("opencode"), Is.Null);
+    }
+
+    [Test]
     public void Resolve_returnsNullForAnUnknownCapability()
     {
         Assert.That(Destinations().Resolve("missing"), Is.Null);

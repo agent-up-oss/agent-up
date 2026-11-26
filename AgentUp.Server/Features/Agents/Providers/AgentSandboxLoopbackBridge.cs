@@ -36,14 +36,15 @@ public static class AgentSandboxLoopbackBridge
     public static IReadOnlyList<string> Wrap(string socket, int port, string executable, IReadOnlyList<string> arguments)
         => [.. HostCommand(), Flag, "--socket", socket, "--port", $"{port}", "--", executable, .. arguments];
 
-    public static IReadOnlyList<string> HostCommand()
+    public static IReadOnlyList<string> HostCommand() => HostCommand(Environment.ProcessPath);
+
+    internal static IReadOnlyList<string> HostCommand(string? process)
     {
-        var process = Environment.ProcessPath
-            ?? throw new InvalidOperationException("The Server process path is unknown.");
-        var name = Path.GetFileNameWithoutExtension(process);
+        var path = process ?? throw new InvalidOperationException("The Server process path is unknown.");
+        var name = Path.GetFileNameWithoutExtension(path);
         if (name.Equals("dotnet", StringComparison.OrdinalIgnoreCase))
-            return [process, "exec", typeof(AgentSandboxLoopbackBridge).Assembly.Location];
-        return [process];
+            return [path, "exec", typeof(AgentSandboxLoopbackBridge).Assembly.Location];
+        return [path];
     }
 
     public static IReadOnlyList<string> HostMounts() => HostMounts(HostCommand());

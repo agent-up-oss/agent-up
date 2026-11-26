@@ -44,6 +44,24 @@ public sealed class AgentModelProxyHttpControllerTests
         Assert.That(controller.HttpContext.Response.StatusCode, Is.EqualTo(StatusCodes.Status401Unauthorized));
     }
 
+    [Test]
+    public async Task ForwardRoot_rejectsAKeyTheSandboxWasNotIssued()
+    {
+        var access = new AgentModelProxyAccess();
+        var service = new AgentModelProxyService(
+            access,
+            new FixedDestinations(new AgentModelProxyTarget("https://api.anthropic.com", null)),
+            new AgentModelProxyForwarder());
+        var controller = new AgentModelProxyHttpController(service)
+        {
+            ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() }
+        };
+
+        await controller.ForwardRoot("other", "ollama");
+
+        Assert.That(controller.HttpContext.Response.StatusCode, Is.EqualTo(StatusCodes.Status401Unauthorized));
+    }
+
     private sealed class FixedDestinations(AgentModelProxyTarget target) : IAgentModelProxyDestinations
     {
         public AgentModelProxyTarget? Resolve(string capability) => target;

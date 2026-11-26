@@ -191,6 +191,48 @@ public sealed class BubblewrapAgentSandboxProviderTests
     }
 
     [Test]
+    public void Prepare_leavesModelHttpAloneWhenTheLoopbackUrlIsUnusable()
+    {
+        using var host = new SandboxHost(withBubblewrap: true);
+        var loopback = new AgentLoopbackEndpoint(host.Data);
+        File.Create(loopback.SocketPath).Dispose();
+        var sandbox = new BubblewrapAgentSandboxProvider(
+            new AgentCliHomeProvider(host.Data),
+            host.Data,
+            serverEnvironment: () => new Dictionary<string, string> { ["PATH"] = host.Tools },
+            loopback: loopback,
+            proxy: new AgentModelProxyAccess(),
+            loopbackBaseUrl: () => "not-a-url");
+
+        var launch = sandbox.Prepare(
+            new AgentCommand("opencode", ["acp"]),
+            new Dictionary<string, string>(),
+            host.Clone,
+            TeamMemberGrants.Author);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(launch.Arguments, Does.Not.Contain(AgentSandboxLoopbackBridge.Flag));
+            Assert.That(launch.Environment.ContainsKey("ANTHROPIC_BASE_URL"), Is.False);
+        });
+    }
+
+    [Test]
+    public void TryReadShebang_rejectsAMissingFileAndAnEmptyInterpreter()
+    {
+        using var host = new SandboxHost(withBubblewrap: true);
+        var empty = host.Script("empty-shebang", "#!\n");
+        var plain = host.Script("plain", "echo\n");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(BubblewrapAgentSandboxProvider.TryReadShebang("/no/such/agent", out _, out _), Is.False);
+            Assert.That(BubblewrapAgentSandboxProvider.TryReadShebang(empty, out _, out _), Is.False);
+            Assert.That(BubblewrapAgentSandboxProvider.TryReadShebang(plain, out _, out _), Is.False);
+        });
+    }
+
+    [Test]
     public void Prepare_dropsServerSecretsFromTheAgentEnvironment()
     {
         using var host = new SandboxHost(withBubblewrap: true);

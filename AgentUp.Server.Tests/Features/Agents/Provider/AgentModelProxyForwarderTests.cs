@@ -45,11 +45,33 @@ public sealed class AgentModelProxyForwarderTests
         Assert.That(handler.Headers.Keys, Does.Not.Contain("Authorization"));
     }
 
+    [Test]
+    public async Task ForwardAsync_copiesAJsonContentTypeOntoTheOriginRequest()
+    {
+        var handler = new RecordingHandler();
+        using var forwarder = new AgentModelProxyForwarder(handler);
+        var context = new DefaultHttpContext();
+        context.Request.Method = HttpMethods.Post;
+        context.Request.ContentType = "application/json";
+        using var body = new MemoryStream("{}"u8.ToArray());
+        context.Request.Body = body;
+        context.Response.Body = new MemoryStream();
+
+        await forwarder.ForwardAsync(context, new Uri("http://origin.test/v1"), bearerToken: "sk");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(handler.ContentType, Is.EqualTo("application/json"));
+            Assert.That(handler.Headers["Authorization"], Is.EqualTo(new[] { "Bearer sk" }));
+        });
+    }
+
     private sealed class RecordingHandler : HttpMessageHandler
     {
         private HttpResponseMessage? _response;
 
         public Dictionary<string, string[]> Headers { get; } = new(StringComparer.OrdinalIgnoreCase);
+        public string? ContentType { get; private set; }
 
         protected override Task<HttpResponseMessage> SendAsync(
             HttpRequestMessage request,
@@ -57,7 +79,9 @@ public sealed class AgentModelProxyForwarderTests
         {
             foreach (var header in request.Headers)
                 Headers[header.Key] = header.Value.ToArray();
+            ContentType = request.Content?.Headers.ContentType?.MediaType;
             _response = new HttpResponseMessage(HttpStatusCode.NoContent);
+            _response.Headers.TryAddWithoutValidation("Connection", "close");
             return Task.FromResult(_response);
         }
 
