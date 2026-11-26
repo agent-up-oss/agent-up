@@ -29,6 +29,7 @@ CI replays every flow of both suites in Desktop · Journeys on a real Server and
 | Git history | Commit history | gap | gap |
 | Commits | Commit queue / proposal queue | gap | gap |
 | Agents | Agent availability, remedies, start a session, transcript | covered | covered |
+| Agent transcript sheet | Open a tool call, edit, or thought in a bottom sheet, drag it to full height, drag it down to close | n/a | gap |
 | Autonomous loop / checklist | Agent summary line opens Settings, where the precondition checklist is | covered | covered |
 | Autonomous loop / activate | Activate after a satisfied checklist, typed terminal | gap | gap |
 | Forge review / hosting | Hosting strip notInstalled with bootstrap remedy | covered | covered |
@@ -54,6 +55,7 @@ Every `n/a` is a surface that does not exist on that client:
 - **Browser isolation (Mobile).** The PWA does not host per-workspace Desktop-style WebView profiles.
 - **Example Web app (Mobile).** That journey is an Application-surface flow against a hosted HTTP app, not Mobile chrome.
 - **Example API (Mobile).** API-backed pages are Application-surface flows, not Mobile chrome.
+- **Agent transcript sheet (Desktop).** Desktop opens a transcript entry in place. The bottom sheet is Mobile chrome.
 - **Installer (Mobile).** LocalInstaller is a desktop dashboard. It is not a Mobile surface. Desktop stays `blocked by #527`.
 
 Workspace lifecycle is not `n/a` on Mobile: the Apps dashboard exposes Start workspace and Stop workspace.

@@ -15,6 +15,8 @@ import { MarkdownView } from './MarkdownView';
 import { Arrive, Reveal, useReducedMotion } from './Motion';
 import { followAfterScroll } from '../providers/MotionProvider';
 import { presentToolItem, ToolCallRow, WorkFoldRow } from './ToolCallRow';
+import { TranscriptItemSheet } from './TranscriptItemSheet';
+import { opensInSheet } from '../providers/SheetProvider';
 import {
   activityHint,
   afterPermissionDecision,
@@ -74,7 +76,8 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent, on
   const [context, setContext] = useState<SessionContext>({});
   const [permission, setPermission] = useState<AgentPermission | null>(null);
   const [hint, setHint] = useState<{ kind: AgentActivityKind; toolTitle?: string } | null>(null);
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  // The one transcript item open in a sheet, by id, so the sheet follows its streamed updates.
+  const [sheetItemId, setSheetItemId] = useState<string | null>(null);
   const [expandedRuns, setExpandedRuns] = useState<Record<string, boolean>>({});
   const [message, setMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -194,6 +197,11 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent, on
   const waiting = busy || session?.state === 'running' || Boolean(permission) || session?.state === 'authentication_required' || session?.state === 'authenticating';
   const blocks = useMemo(() => groupTranscript(items), [items]);
   const openWorkId = liveWorkId(blocks, session?.state === 'running' || Boolean(permission));
+  const liveBlock = blocks.find(block => block.type === 'work' && block.id === openWorkId);
+  const liveEntryId = liveBlock?.type === 'work' ? activeEntryId(liveBlock.items, true, activity.kind === 'thinking') : undefined;
+  const sheetItem = sheetItemId ? items.find(item => item.id === sheetItemId) : undefined;
+  const openSheet = useCallback((item: TranscriptItem) => { if (opensInSheet(item)) setSheetItemId(item.id); }, []);
+  const closeSheet = useCallback(() => setSheetItemId(null), []);
   // The transcript follows new output while the reader is at the end, and stays put once they scroll up.
   const scroll = useRef<ScrollViewInstance>(null);
   const following = useRef(true);
@@ -327,12 +335,9 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent, on
               }
               const live = block.id === openWorkId;
               const open = expandedRuns[block.id] ?? live;
-              const activeId = activeEntryId(block.items, live, activity.kind === 'thinking');
-              const renderItem = (item: TranscriptItem) => {
-                const active = item.id === activeId;
-                const thoughtOpen = isExpanded(item, active, expanded);
-                return <Arrive key={item.id}><TranscriptRow item={item} expanded={thoughtOpen} active={active} onToggle={() => setExpanded(current => ({ ...current, [item.id]: !isExpanded(item, active, current) }))} /></Arrive>;
-              };
+              const activeId = live ? liveEntryId : undefined;
+              // Sections unfold in place; the items inside them open in a sheet.
+              const renderItem = (item: TranscriptItem) => <Arrive key={item.id}><TranscriptRow item={item} active={item.id === activeId} onOpen={openSheet} /></Arrive>;
               return <Arrive key={block.id}><View style={styles.run} testID="agent-work">
                 {!live && <Pressable accessibilityRole="button" onPress={() => setExpandedRuns(current => ({ ...current, [block.id]: !open }))} style={styles.runHeader}><Text style={styles.runSummary}>{workSummary(block.items, block.duration)}</Text><Text style={styles.runSummary}>{open ? '▾' : '▸'}</Text></Pressable>}
                 <Reveal open={open}><View style={styles.runEntries}>{foldWork(block.items, item => presentToolItem(item).summary, activeId).map(entry =>
@@ -353,6 +358,7 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent, on
             })}</View>
           </View>}
           {error && <Text style={styles.error}>{error}</Text>}
+          {sheetItem && <TranscriptItemSheet item={sheetItem} live={sheetItem.id === liveEntryId} onClose={closeSheet} />}
           {session?.sessionId && <View style={styles.composer}>
             <TextInput accessibilityLabel="Message the agent" multiline value={message} onChangeText={setMessage} editable={composer.editable} placeholder={permission ? 'Choose an option to continue…' : 'Ask the agent…'} placeholderTextColor={agentUpTheme.colors.textFaint} style={styles.input}/>
             <Pressable accessibilityRole="button" accessibilityLabel={steering ? 'Steer' : 'Send'} disabled={sendBlocked || busy || !message.trim()} onPress={() => void send()} style={[styles.send, (sendBlocked || busy || !message.trim()) && styles.disabled]}>{busy ? <ActivityIndicator color={agentUpTheme.colors.onAccent} /> : <Text style={styles.sendText}>{steering ? 'Steer' : 'Send'}</Text>}</Pressable>
@@ -363,15 +369,15 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent, on
   </View>;
 }
 
-function TranscriptRow({ item, expanded, active, onToggle }: { item: TranscriptItem; expanded: boolean; active: boolean; onToggle: () => void }) {
+function TranscriptRow({ item, active, onOpen }: { item: TranscriptItem; active: boolean; onOpen: (item: TranscriptItem) => void }) {
   if (item.role === 'thought') {
-    // A thought is one line until it is opened, then its raw text as plain text.
-    return <Pressable accessibilityRole="button" onPress={onToggle} style={styles.thought}>
+    // A thought is one line, streaming in place while the agent is still thinking; tapping it opens the whole thought in a sheet.
+    return <Pressable testID={`agent-thought-${item.id}`} accessibilityRole="button" accessibilityHint="Opens the whole thought" onPress={() => onOpen(item)} style={styles.thought}>
       <Text style={styles.thoughtLabel}>{thoughtLabel(item, active)}</Text>
-      <Reveal open={expanded}><Text style={styles.thoughtBody}>{visibleText(item.text)}</Text></Reveal>
+      <Reveal open={active}><Text style={styles.thoughtBody}>{visibleText(item.text)}</Text></Reveal>
     </Pressable>;
   }
-  if (item.role === 'tool') return <ToolCallRow item={item} active={active} />;
+  if (item.role === 'tool') return <ToolCallRow item={item} active={active} onOpen={onOpen} />;
   if (item.role === 'plan') {
     return <View style={styles.work}><Text style={styles.role}>Plan</Text>{item.entries?.map(entry => <Text key={entry.content} style={styles.planEntry}>{statusMark(entry.status)} {entry.content}</Text>) ?? <Text style={styles.workBody}>{item.text}</Text>}</View>;
   }
@@ -379,10 +385,6 @@ function TranscriptRow({ item, expanded, active, onToggle }: { item: TranscriptI
   return <MarkdownView markdown={item.text} />;
 }
 
-function isExpanded(item: TranscriptItem, live: boolean, expanded: Record<string, boolean>) {
-  if (item.role !== 'thought') return true;
-  return expanded[item.id] ?? live;
-}
 function hasContext(context: SessionContext) { return Boolean(context.title || context.mode || context.usage || context.compacting); }
 function statusMark(status: string) { return status === 'completed' ? '✓' : status === 'in_progress' ? '●' : '○'; }
 function readError(value: unknown) { return value instanceof Error ? value.message : String(value); }

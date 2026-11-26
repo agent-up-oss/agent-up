@@ -180,7 +180,7 @@ function scalar(value: unknown): string | undefined {
   return undefined;
 }
 
-function parseObject(json?: string): Record<string, unknown> | undefined {
+export function parseObject(json?: string): Record<string, unknown> | undefined {
   if (!json?.trim()) return undefined;
   try {
     const value = JSON.parse(json);
@@ -191,7 +191,7 @@ function parseObject(json?: string): Record<string, unknown> | undefined {
 }
 
 /** `list_workspaces` and `listWorkspaces` both read "List workspaces". */
-function humanize(name: string): string {
+export function humanize(name: string): string {
   const words = name.replace(/([a-z0-9])([A-Z])/g, '$1 $2').split(/[_\-. ]+/).filter(Boolean);
   if (!words.length) return name;
   const sentence = words.map(word => word.toLowerCase()).join(' ');

@@ -972,6 +972,153 @@
   font-size: var(--au-font-size-ui-xs);
 }
 
+/* Bottom sheet (Mobile). One transcript item opened to read: a large rounded sheet over a scrim,
+ * a title you can read at arm's length, and the content as prose and code rather than a debug
+ * panel. Half height first, dragged up to full, dragged down to close. The sheet is the canvas
+ * black, not a tinted grey: a single white hairline along its top edge is what lifts it off the
+ * dimmed screen, and everything inside it is a neutral white layer. The close button means the
+ * gesture is never the only way out. */
+.au-sheet {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  color: var(--au-color-text-primary);
+  background: var(--au-color-canvas);
+  border: 1px solid var(--au-color-border-strong);
+  border-bottom: 0;
+  border-radius: 1.75rem 1.75rem 0 0;
+  box-shadow: var(--au-shadow-overlay);
+}
+.au-sheet-grabber {
+  width: 2.5rem;
+  height: 0.3125rem;
+  background: var(--au-color-border-strong);
+  border-radius: var(--au-radius-pill);
+}
+.au-sheet-grabber-row {
+  display: flex;
+  justify-content: center;
+  padding: var(--au-space-2) 0;
+}
+.au-sheet-header {
+  display: flex;
+  align-items: center;
+  gap: var(--au-space-3);
+  padding: var(--au-space-2) var(--au-space-5);
+}
+.au-sheet-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--au-space-4);
+  padding: var(--au-space-2) var(--au-space-5);
+}
+.au-sheet-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+}
+.au-sheet-title {
+  color: var(--au-color-text-primary);
+  font-size: var(--au-font-size-lg);
+  font-weight: var(--au-weight-semibold);
+}
+.au-sheet-close {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 2.75rem;
+  height: 2.75rem;
+  color: var(--au-color-text-primary);
+  background: var(--au-color-state-active);
+  border: 0;
+  border-radius: var(--au-radius-pill);
+}
+.au-sheet-close:hover { background: var(--au-color-border-strong); }
+.au-sheet-close-glyph {
+  color: var(--au-color-text-primary);
+  font-size: var(--au-font-size-lg);
+  font-weight: var(--au-weight-regular);
+}
+.au-sheet-status {
+  color: var(--au-color-text-muted);
+  font-size: var(--au-font-size-ui-md);
+  font-weight: var(--au-weight-ui);
+}
+.au-sheet-status--failed { color: var(--au-color-text-danger); }
+.au-sheet-status--running { color: var(--au-color-accent-soft); }
+.au-sheet-prose {
+  color: var(--au-color-text-secondary);
+  font-size: var(--au-font-size-md);
+  font-weight: var(--au-weight-regular);
+}
+/* Content sits on the sheet itself. There are no borders inside a sheet: the sheet's own hairline
+ * is the only line. A section is a quiet heading with its action, then the content. Details are
+ * label and value lines with no box. Code and diffs share one treatment - a soft, borderless
+ * rounded block - and failure is carried by the status line, never by a red frame. */
+.au-sheet-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--au-space-2);
+}
+.au-sheet-section-header {
+  display: flex;
+  align-items: center;
+  gap: var(--au-space-2);
+  padding: 0 var(--au-space-1);
+}
+.au-sheet-section-title {
+  flex: 1;
+  min-width: 0;
+  color: var(--au-color-text-muted);
+  font-size: var(--au-font-size-ui-md);
+  font-weight: var(--au-weight-ui-strong);
+}
+.au-sheet-section-action {
+  color: var(--au-color-text-secondary);
+  font-size: var(--au-font-size-ui-md);
+  font-weight: var(--au-weight-ui-strong);
+}
+.au-sheet-facts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--au-space-2);
+  padding: 0 var(--au-space-1);
+}
+.au-sheet-fact {
+  display: flex;
+  align-items: baseline;
+  gap: var(--au-space-4);
+}
+.au-sheet-fact-label {
+  width: 5.5rem;
+  color: var(--au-color-text-muted);
+  font-size: var(--au-font-size-sm);
+  font-weight: var(--au-weight-regular);
+}
+.au-sheet-fact-value {
+  color: var(--au-color-text-primary);
+  font-size: var(--au-font-size-sm);
+  font-weight: var(--au-weight-regular);
+}
+.au-sheet-block {
+  overflow: hidden;
+  background: var(--au-color-state-hover);
+  border: 0;
+  border-radius: var(--au-radius-lg);
+}
+.au-sheet-code {
+  padding: var(--au-space-3) var(--au-space-4);
+}
+.au-sheet-code-text {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--au-color-text-secondary);
+  font-family: var(--au-font-mono);
+  font-size: var(--au-font-size-xs);
+}
+
 /* Assembled screens. These layout classes compose catalog components into
  * Desktop and Mobile windows. Apps apply the same classes; they do not
  * restyle a second screenshot shell. */
@@ -1093,6 +1240,16 @@
   padding: 0;
 }
 .au-screen-overlay:has(.au-file-viewer--mobile) { padding: 1.25rem; }
+.au-screen-overlay:has(.au-sheet) {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 0;
+}
+.au-screen-overlay .au-sheet {
+  width: 100%;
+  height: 58%;
+}
 .au-screen-overlay .au-overlay-panel,
 .au-screen-overlay .au-file-viewer {
   width: min(100%, 64rem);

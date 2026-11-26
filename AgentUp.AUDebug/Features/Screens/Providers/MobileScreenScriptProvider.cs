@@ -42,6 +42,11 @@ public static class MobileScreenScriptProvider
     /// a step aimed at the dialog presses the button behind it; and the field below is
     /// labelled "Commit message", so without preferring exact over prefix it wins instead.
     /// </para>
+    /// <para>
+    /// Only when nothing starts with the text does a match anywhere in it count. A summary
+    /// line such as an agent transcript's "Worked for 13s · … · 1 failed" leads with a
+    /// duration that moves from run to run; its stable part sits at the end.
+    /// </para>
     /// </remarks>
     public static string Locate(string label)
         => $$"""
@@ -51,7 +56,8 @@ public static class MobileScreenScriptProvider
               const labelled = all.filter(node => (node.getAttribute('aria-label') || '').trim() === want);
               const read = node => ((node.getAttribute && node.getAttribute('aria-label')) || node.innerText || '').trim();
               const exact = labelled.length > 0 ? labelled : all.filter(node => read(node) === want);
-              const matches = exact.length > 0 ? exact : all.filter(node => read(node).startsWith(want));
+              const prefixed = exact.length > 0 ? exact : all.filter(node => read(node).startsWith(want));
+              const matches = prefixed.length > 0 ? prefixed : all.filter(node => read(node).includes(want));
               const innermost = matches.filter(node => !matches.some(other => other !== node && node.contains(other)));
               // Expo Router keeps the screens a route left mounted, only hidden, so the first match
               // in document order is often on a page nobody can see. Prefer one that has a box.

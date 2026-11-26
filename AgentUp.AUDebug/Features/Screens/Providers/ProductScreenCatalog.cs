@@ -42,6 +42,8 @@ public sealed class ProductScreenCatalog : IProductScreenCatalog
     private const string SecondPromoBannerPath = "apps/storefront/PromoBanner2.tsx";
     private const string ProductGridPath = "apps/storefront/ProductGrid.tsx";
     private const string OrdersPath = "apps/api/orders.ts";
+    private const string FailedWorkSection = "1 failed";
+    private const string FailedTestRun = "Run, npm test";
 
     public IReadOnlyList<string> Surfaces => [ProductSurface.Desktop, ProductSurface.Mobile];
 
@@ -199,17 +201,27 @@ public sealed class ProductScreenCatalog : IProductScreenCatalog
             ScreenStepDto.Tap("Settings", 2000),
             ScreenStepDto.Tap("Disable", 1500)
         ]),
-        // The agent chat, the application space and the workspace list are the three Mobile
-        // routes the design system documented no screen for. They come last because each
-        // navigates away from the workspace tabs the earlier routes depend on.
+        // The agent chat, its item sheet, the application space and the workspace list come
+        // last because each navigates away from the workspace tabs the earlier routes depend on.
         MobileScreen("agent", "Mobile agent chat",
         [
             ScreenStepDto.Navigate($"/workspace/{DebugLayout.DemoWorkspaceId}/agents"),
             ScreenStepDto.Tap("Open Codex", 2500),
             ScreenStepDto.Settle(1200)
         ]),
+        // Opens the work section holding the failed test run, then that run: only the lowest
+        // level opens a sheet, so the section unfolds in place first. Where the steering prompt
+        // lands moves the other sections' contents from run to run; the failed run never folds
+        // and its section is the only one that says "1 failed".
+        MobileScreen("agent-sheet", "Mobile agent item sheet",
+        [
+            ScreenStepDto.Tap(FailedWorkSection, 800),
+            ScreenStepDto.Tap(FailedTestRun, 1500)
+        ]),
         MobileScreen("application", "Mobile application space",
         [
+            // The sheet is a modal over the chat and outlives a client-side route change.
+            ScreenStepDto.Tap("Close", 800),
             ScreenStepDto.Navigate($"/workspace/{DebugLayout.DemoWorkspaceId}/application/Storefront", 4000)
         ]),
         MobileScreen("database", "Mobile database",

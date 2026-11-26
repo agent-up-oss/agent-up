@@ -32,6 +32,18 @@ public sealed class MobileScreenScriptProviderTests
     }
 
     [Test]
+    public void Locate_fallsBackToContainedTextOnlyWhenNothingStartsWithIt()
+    {
+        var script = MobileScreenScriptProvider.Locate("1 failed");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(script, Does.Contain("prefixed.length > 0 ? prefixed"));
+            Assert.That(script, Does.Contain("includes(want)"));
+        });
+    }
+
+    [Test]
     public void Locate_onlyReturnsAPointThatHitTestsToTheElement()
     {
         var script = MobileScreenScriptProvider.Locate("Close sidebar");

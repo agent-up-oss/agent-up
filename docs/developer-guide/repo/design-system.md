@@ -180,6 +180,15 @@ Desktop is the reference rendering:
   the selected tint plus a 2px accent rule. Code is preformatted so leading
   spaces and tabs stay visible. Do not dump a file into one text
   node, and do not paint syntax with accent green.
+- A Mobile bottom sheet is `.au-sheet`: canvas black with a 28px top radius
+  and one strong white hairline along its edge, never a tinted grey. That
+  hairline is the only line in a sheet. The header is one unit: a round
+  `.au-sheet-close`, the `.au-sheet-title` sentence and its `.au-sheet-status`
+  (danger only when failed). Content sits on the sheet with no borders of its
+  own: `.au-sheet-facts` label and value lines, and `.au-sheet-section`s whose
+  quiet heading and action sit above one soft borderless `.au-sheet-block` for
+  output or a diff. The assembled `mobile-agent-sheet` scene shows it over the
+  agent chat.
 - Radius scales with the object: `xs`/`sm` for controls, `md` for rows, buttons
   and inputs, `lg` for panels and cards, `xl` for panes and dialogs. An 8px
   corner reads rounded on a chip and square on a 900px pane.
