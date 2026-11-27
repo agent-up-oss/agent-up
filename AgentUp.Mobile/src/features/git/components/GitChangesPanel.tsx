@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { useServers } from '@/features/servers/controllers/ServersContext';
 import { isUnauthorized } from '@/features/servers/providers/ServerRequestProvider';
 import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
@@ -28,6 +28,8 @@ import {
   visibleChangeNodes,
 } from '../providers/GitChangeTreeProvider';
 import { GitChangeRow } from './GitChangeRow';
+import { GitChangeSheet } from './GitChangeSheet';
+import { gitChangeSheetCount, gitChangeSheetDetents, gitChangesUseSheet } from '../providers/GitChangeSheetProvider';
 import { GitConfirmDialog } from './GitConfirmDialog';
 import { GitFileViewer } from './GitFileViewer';
 import { gitWriteAllowed, gitWriteUnavailableMessage } from '@/features/entitlements/models/Entitlements';
@@ -44,6 +46,7 @@ export function GitChangesPanel({
   onMutated,
   onSelectedFilesChange,
   reloadNonce = 0,
+  header,
 }: {
   workspaceId?: string;
   mode?: 'overview' | 'review';
@@ -51,6 +54,8 @@ export function GitChangesPanel({
   onMutated?: () => void;
   onSelectedFilesChange?: (files: string[]) => void;
   reloadNonce?: number;
+  /** Overview only: what sits above the commit box, such as the branch toolbar and hosting row. */
+  header?: ReactNode;
 } = {}) {
   const { expireActiveCredential, activeServer } = useServers();
   const { server, selectedWorkspace } = useWorkspaces();
@@ -73,6 +78,8 @@ export function GitChangesPanel({
   const [canWrite, setCanWrite] = useState(true);
   const [diffPath, setDiffPath] = useState<string | null>(null);
   const [diffLoading, setDiffLoading] = useState(false);
+  const [pageHeight, setPageHeight] = useState(0);
+  const window = useWindowDimensions();
 
   const nodes = useMemo(() => flattenChangeTree(tree), [tree]);
   const visible = useMemo(() => visibleChangeNodes(nodes, collapsed), [nodes, collapsed]);
@@ -270,73 +277,52 @@ export function GitChangesPanel({
     </Pressable>
   );
 
-  return (
-    <View style={styles.panel}>
-      {!overview &&
-        <View style={styles.header}>
-          <View style={styles.titleRow}>
-            <Text style={styles.summary}>{selectedCount} of {fileCount} file(s) selected</Text>
-            {canDiscard &&
-              <Pressable onPress={() => {
-                setConfirm({
-                  copy: gitDiscardConfirmCopy(files),
-                  action: () => void runMutation(() => discardFiles(server!, workspaceId!, files), () => `Discarded ${files.length} file(s).`),
-                });
-              }}
-                style={styles.discardButton}>
-                <Text style={styles.discardText}>Discard</Text>
-              </Pressable>}
-          </View>
-        </View>}
-
-      {!overview && !!queue?.entries.length &&
-        <View accessibilityLabel="Agent proposal queue" style={styles.queue}>
-          <Text style={styles.queueTitle}>Agent proposal queue · generation {queue.generation}</Text>
-          {queue.entries.map((entry, index) =>
-            <View key={entry.id} style={styles.queueEntry}>
-              <Text numberOfLines={1} style={styles.queueMessage}>{index + 1}. {entry.message}</Text>
-              <Text style={styles.queueState}>{entry.state}</Text>
-            </View>)}
-        </View>}
-
+  const messages = (
+    <>
       {loading && <ActivityIndicator color={agentUpTheme.colors.accentSoft} />}
       {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
       {!!status && <Text style={styles.status}>{status}</Text>}
+    </>
+  );
 
-      <ScrollView style={overview ? styles.overviewTree : styles.tree} contentContainerStyle={styles.treeContent} keyboardShouldPersistTaps="handled">
-        {!loading && !error && nodes.length === 0 && selectedWorkspace &&
-          <Text style={styles.empty}>No uncommitted changes.</Text>}
-        {visible.map(node => {
-          const checked = node.isDirectory
-            ? isDirectorySelected(nodes, node, selected)
-            : selected.includes(node.path);
-          return (
-            <GitChangeRow
-              key={node.key}
-              node={node}
-              checked={checked}
-              open={!node.isDirectory && diffPath === node.path}
-              expanded={!collapsed.includes(node.path)}
-              onToggle={() => setSelected(current => toggleNodeSelection(nodes, node, current))}
-              onToggleExpand={() => setCollapsed(current => toggleDirectoryCollapsed(current, node.path))}
-              onOpenFile={() => void openDiff(node)}
-            />
-          );
-        })}
-      </ScrollView>
+  const rows = (
+    <>
+      {!loading && !error && nodes.length === 0 && selectedWorkspace &&
+        <Text style={styles.empty}>No uncommitted changes.</Text>}
+      {visible.map(node => {
+        const checked = node.isDirectory
+          ? isDirectorySelected(nodes, node, selected)
+          : selected.includes(node.path);
+        return (
+          <GitChangeRow
+            key={node.key}
+            node={node}
+            checked={checked}
+            open={!node.isDirectory && diffPath === node.path}
+            expanded={!collapsed.includes(node.path)}
+            onToggle={() => setSelected(current => toggleNodeSelection(nodes, node, current))}
+            onToggleExpand={() => setCollapsed(current => toggleDirectoryCollapsed(current, node.path))}
+            onOpenFile={() => void openDiff(node)}
+          />
+        );
+      })}
+    </>
+  );
 
-      {canWrite ? (
-        <View style={styles.footer}>
-          <Text style={styles.label}>Commit message</Text>
-          <TextInput accessibilityLabel="Commit message" multiline value={message} onChangeText={setMessage}
-            editable={!busy} placeholder="fix(App): correct the port probe" placeholderTextColor={agentUpTheme.colors.textFaint}
-            style={overview ? styles.overviewMessage : styles.messageInput} />
-          <View style={styles.actions}>{commitButton}</View>
-        </View>
-      ) : (
-        <Text style={styles.empty}>{gitWriteUnavailableMessage}</Text>
-      )}
+  const commitBox = canWrite ? (
+    <View style={styles.footer}>
+      <Text style={styles.label}>Commit message</Text>
+      <TextInput accessibilityLabel="Commit message" multiline value={message} onChangeText={setMessage}
+        editable={!busy} placeholder="fix(App): correct the port probe" placeholderTextColor={agentUpTheme.colors.textFaint}
+        style={overview ? styles.overviewMessage : styles.messageInput} />
+      <View style={styles.actions}>{commitButton}</View>
+    </View>
+  ) : (
+    <Text style={styles.empty}>{gitWriteUnavailableMessage}</Text>
+  );
 
+  const dialogs = (
+    <>
       <GitConfirmDialog
         copy={confirm?.copy ?? null}
         busy={busy}
@@ -360,6 +346,87 @@ export function GitChangesPanel({
             />}
         </View>
       </Modal>
+    </>
+  );
+
+  // The Git page on anything wider than a phone: what to commit first, then the change list in a
+  // pane of its own that scrolls.
+  if (overview && !gitChangesUseSheet(window.width)) {
+    return (
+      <ScrollView style={styles.page} contentContainerStyle={styles.wide} keyboardShouldPersistTaps="handled">
+        {header}
+        {messages}
+        {commitBox}
+        <View style={styles.wideSection}>
+          <View style={styles.wideHead}>
+            <Text accessibilityRole="header" style={styles.label}>Changes</Text>
+            <Text style={styles.summary}>{gitChangeSheetCount(selectedCount, fileCount)}</Text>
+          </View>
+          <ScrollView testID="git-change-list" style={styles.tree} contentContainerStyle={styles.treeContent} keyboardShouldPersistTaps="handled">
+            {rows}
+          </ScrollView>
+        </View>
+        {dialogs}
+      </ScrollView>
+    );
+  }
+
+  // The Git page on a phone: what to commit first, and the change list in a sheet resting on the
+  // bottom edge.
+  if (overview) {
+    const peek = pageHeight > 0 ? gitChangeSheetDetents(pageHeight).peek : 0;
+    return (
+      <View style={styles.page} onLayout={event => setPageHeight(event.nativeEvent.layout.height)}>
+        <ScrollView style={styles.page} contentContainerStyle={[styles.overviewContent, { paddingBottom: peek + 16 }]} keyboardShouldPersistTaps="handled">
+          {header}
+          {messages}
+          {commitBox}
+        </ScrollView>
+        {pageHeight > 0 &&
+          <GitChangeSheet pageHeight={pageHeight} count={gitChangeSheetCount(selectedCount, fileCount)}>
+            {rows}
+          </GitChangeSheet>}
+        {dialogs}
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.panel}>
+      <View style={styles.header}>
+        <View style={styles.titleRow}>
+          <Text style={styles.summary}>{selectedCount} of {fileCount} file(s) selected</Text>
+          {canDiscard &&
+            <Pressable onPress={() => {
+              setConfirm({
+                copy: gitDiscardConfirmCopy(files),
+                action: () => void runMutation(() => discardFiles(server!, workspaceId!, files), () => `Discarded ${files.length} file(s).`),
+              });
+            }}
+              style={styles.discardButton}>
+              <Text style={styles.discardText}>Discard</Text>
+            </Pressable>}
+        </View>
+      </View>
+
+      {!!queue?.entries.length &&
+        <View accessibilityLabel="Agent proposal queue" style={styles.queue}>
+          <Text style={styles.queueTitle}>Agent proposal queue · generation {queue.generation}</Text>
+          {queue.entries.map((entry, index) =>
+            <View key={entry.id} style={styles.queueEntry}>
+              <Text numberOfLines={1} style={styles.queueMessage}>{index + 1}. {entry.message}</Text>
+              <Text style={styles.queueState}>{entry.state}</Text>
+            </View>)}
+        </View>}
+
+      {messages}
+
+      <ScrollView style={styles.tree} contentContainerStyle={styles.treeContent} keyboardShouldPersistTaps="handled">
+        {rows}
+      </ScrollView>
+
+      {commitBox}
+      {dialogs}
     </View>
   );
 }
@@ -371,7 +438,7 @@ const styles = StyleSheet.create({
   discardButton: { ...auBox('button', 'buttonDanger', 'buttonCompact'), minHeight: 32, paddingHorizontal: 10, alignItems: 'center', justifyContent: 'center' },
   discardText: auText('button', 'buttonCompact'),
   summary: auText('muted'),
-  queue: { ...auBox('card'), gap: 6, padding: 10 },
+  queue: { ...auBox('card', 'gitQuiet'), gap: 6, padding: 10 },
   queueTitle: { ...auText('accent'), fontSize: 12, fontWeight: '800' },
   queueEntry: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
   queueMessage: { ...auText('workspaceName'), flex: 1, fontSize: 12 },
@@ -380,13 +447,19 @@ const styles = StyleSheet.create({
   error: { ...auText('badgeDanger'), lineHeight: 21 },
   status: { ...auText('accent'), lineHeight: 21 },
   tree: { flex: 1, minHeight: 80, ...auBox('gitChangeList') },
-  overviewTree: { flex: 1, minHeight: 120, ...auBox('gitChangeList') },
+  page: { flex: 1 },
+  // The page scrolls when a short window cannot hold the commit box and the list; the list keeps
+  // room for a few rows and scrolls on its own when the window is tall.
+  wide: { flexGrow: 1, padding: agentUpTheme.spacing[4], gap: 16 },
+  wideSection: { flex: 1, gap: 8, minHeight: 240 },
+  wideHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
+  overviewContent: { padding: agentUpTheme.spacing[4], gap: 16, width: '100%' },
   treeContent: { paddingVertical: 6, flexGrow: 1 },
   footer: { gap: 12, zIndex: 2 },
   actions: { flexDirection: 'row', gap: 8 },
   label: auText('fieldLabel'),
-  messageInput: { minHeight: 90, ...auBox('input'), ...auText('input'), textAlignVertical: 'top' },
-  overviewMessage: { minHeight: 72, ...auBox('input'), ...auText('input'), textAlignVertical: 'top' },
+  messageInput: { minHeight: 90, ...auBox('input', 'gitQuiet'), ...auText('input'), textAlignVertical: 'top' },
+  overviewMessage: { minHeight: 72, ...auBox('input', 'gitQuiet'), ...auText('input'), textAlignVertical: 'top' },
   button: { ...auBox('button'), flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   buttonText: auText('button'),
   insertionsOnPrimary: auText('gitInsertions', 'gitInsertionsOnPrimary'),

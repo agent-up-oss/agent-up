@@ -134,7 +134,7 @@ test('assembled Demo scenes insert Harbor Shop catalog HTML', () => {
   const mobileSignIn = assembled.scenes.find(scene => scene.id === 'mobile-sign-in');
   assert.ok(!mobileSignIn.html.includes('autofocus'));
   const mobileGit = assembled.scenes.find(scene => scene.id === 'mobile-git');
-  assert.ok(mobileGit.html.includes('<textarea class="au-input"'));
+  assert.ok(mobileGit.html.includes('<textarea class="au-input au-git-quiet"'));
   assert.ok(!mobileGit.html.includes('autofocus'));
   const validation = assembled.scenes.find(scene => scene.id === 'desktop-validation');
   assert.ok(validation.html.includes(components.storefront.html));

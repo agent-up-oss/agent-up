@@ -126,7 +126,7 @@ function checksStyle(tone: GitHostingCopy['checksTone']) {
 }
 
 const styles = StyleSheet.create({
-  row: { ...auBox('card'), gap: 6 },
+  row: { ...auBox('card', 'gitQuiet'), gap: 6 },
   title: auText('fieldLabel'),
   facts: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   muted: auText('muted'),

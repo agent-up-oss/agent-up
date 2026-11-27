@@ -282,14 +282,15 @@
 
 /* Git change list. Status color lives on the glyph, never the filename.
    Checkbox selection is many-of-many and stays neutral; the open file is the
-   primary selection (accent tint plus a 2px leading accent rule). */
+   primary selection (accent tint plus a 2px leading accent rule). The list is
+   the canvas black, read as a container through one faint hairline. */
 .au-git-change-list {
   flex: 1;
   min-height: 0;
   color: var(--au-color-text-primary);
-  background: var(--au-color-surface);
+  background: var(--au-color-canvas);
   border: 1px solid var(--au-color-border-subtle);
-  border-radius: var(--au-radius-lg);
+  border-radius: var(--au-radius-xl);
   padding: var(--au-space-1) 0;
 }
 .au-git-row {
@@ -1000,6 +1001,32 @@
   justify-content: center;
   padding: var(--au-space-2) 0;
 }
+/* The change sheet (Mobile Git). The change list rests in a sheet pinned to the bottom of the Git
+ * page: a quarter of the page shows the first rows, whose checkboxes work without opening it, and a
+ * drag up takes it to the full page. It has no half detent and does not close. It sits on the page
+ * rather than over a scrim, so it keeps the sheet's canvas and top hairline and drops the shadow. */
+.au-git-change-sheet {
+  box-shadow: none;
+}
+.au-git-change-sheet-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--au-space-3);
+  padding: 0 var(--au-space-5) var(--au-space-2) var(--au-space-5);
+}
+.au-git-change-sheet-title {
+  font-size: var(--au-font-size-ui-lg);
+  font-weight: var(--au-weight-ui-strong);
+  color: var(--au-color-text-primary);
+}
+.au-git-change-sheet-count {
+  font-size: var(--au-font-size-ui-sm);
+  color: var(--au-color-text-muted);
+}
+.au-git-change-sheet-list {
+  padding: 0 var(--au-space-2) var(--au-space-2) var(--au-space-2);
+}
 .au-sheet-header {
   display: flex;
   align-items: center;
@@ -1250,6 +1277,10 @@
   width: 100%;
   height: 58%;
 }
+.au-screen-mobile-body > .au-git-change-sheet {
+  flex: 0 0 auto;
+  margin: auto calc(-1 * var(--au-space-3)) calc(-1 * var(--au-space-3));
+}
 .au-screen-overlay .au-overlay-panel,
 .au-screen-overlay .au-file-viewer {
   width: min(100%, 64rem);
@@ -1306,6 +1337,14 @@
   height: var(--au-control-height);
 }
 .au-git-history { margin-left: auto; }
+/* Git and Files sit on the canvas black. A field, card or secondary button
+   there adds this class: no grey fill, one faint hairline. Green still marks
+   the primary action (Push, Commit) and nothing else. */
+.au-git-quiet {
+  background: var(--au-color-canvas);
+  border-color: var(--au-color-border-subtle);
+}
+.au-git-quiet:hover { background: var(--au-color-state-hover); }
 .au-git-heading {
   display: flex;
   flex-direction: column;
@@ -1333,6 +1372,7 @@
   min-height: 4.5rem;
   resize: none;
 }
+.au-git-commit--mobile { margin-top: 0; }
 .au-git-commit--mobile .au-input { min-height: 5.625rem; }
 .au-screen-pane .au-git-commit .au-button { justify-content: flex-start; }
 .au-git-log { flex: 1; min-height: 12rem; }

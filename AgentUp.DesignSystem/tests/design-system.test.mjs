@@ -960,8 +960,11 @@ test('new UI agent git assembles the client git pane', async () => {
   assert.match(mobile.html, /Changes/);
   assert.match(mobile.html, /Commit message/);
   assert.match(mobile.html, />Fetch</);
-  assert.match(mobile.html, /au-nav-icon/);
-  assert.match(mobile.html, /au-subtab--selected/);
+  // Inside a team member the back button leads out, so there is no bottom bar; the change list
+  // takes the bottom of the page as a sheet under the commit box.
+  assert.doesNotMatch(mobile.html, /au-nav-icon/);
+  assert.match(mobile.html, /au-git-change-sheet/);
+  assert.ok(mobile.html.indexOf('Commit message') < mobile.html.indexOf('au-git-change-sheet'));
   assert.equal(assembled.screens.find(item => item.id === 'team').mobileId, 'mobile-team');
 });
 

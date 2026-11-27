@@ -42,6 +42,8 @@ public sealed class ProductScreenCatalog : IProductScreenCatalog
     private const string SecondPromoBannerPath = "apps/storefront/PromoBanner2.tsx";
     private const string ProductGridPath = "apps/storefront/ProductGrid.tsx";
     private const string OrdersPath = "apps/api/orders.ts";
+    private const string ShowAllChanges = "Show all changes";
+    private const string ShowFewerChanges = "Show fewer changes";
     private const string FailedWorkSection = "1 failed";
     private const string FailedTestRun = "Run, npm test";
 
@@ -155,15 +157,21 @@ public sealed class ProductScreenCatalog : IProductScreenCatalog
             .. MobilePrompt(SecondPrompt, "Steer"),
             ScreenStepDto.Navigate($"/workspace/{DebugLayout.DemoWorkspaceId}/agents")
         ]),
+        // The change list rests in a sheet at a quarter of the page, under the commit box. The
+        // agent's files sit below that peek, so the route opens the sheet to select them and lets
+        // it back down, which is the page the screenshot shows.
         MobileScreen("git", "Mobile Git",
         [
             ScreenStepDto.Tap("Git", 2500),
+            ScreenStepDto.Tap(ShowAllChanges, 900),
             .. SelectAgentFiles(),
+            ScreenStepDto.Tap(ShowFewerChanges, 900),
             ScreenStepDto.Fill("Commit message", CommitMessage),
             ScreenStepDto.Settle(800)
         ]),
         MobileScreen("file-viewer", "Mobile file viewer",
         [
+            ScreenStepDto.Tap(ShowAllChanges, 900),
             ScreenStepDto.Tap($"Open {PromoBannerPath}", 2500)
         ]),
         // History comes before Review because opening Review assigns the agent's files into
@@ -171,6 +179,7 @@ public sealed class ProductScreenCatalog : IProductScreenCatalog
         MobileScreen("history", "Mobile Git history",
         [
             ScreenStepDto.Tap("Close file viewer", 1500),
+            ScreenStepDto.Tap(ShowFewerChanges, 900),
             // The panel repolls every 2.5s and clears the confirmation when it does, so the
             // confirm step follows immediately rather than after a settle.
             ScreenStepDto.Tap("Commit +2", 200),

@@ -415,10 +415,10 @@
     </article>
 
     <article data-au-component="mobile-git-body" data-au-title="Mobile Git slot" data-au-note="Git changes fill this slot. The catalog git pane is what the showcase shows." data-au-avalonia="Border" data-au-class="aun-wrap">
-      <div data-au-slot="changes">
+      <div class="aun-git-pane" data-au-slot="changes">
         <div data-au-use="git-toolbar-mobile"></div>
-        <div data-au-use="git-change-list"></div>
         <div data-au-use="git-commit-mobile"></div>
+        <div data-au-use="git-change-sheet"></div>
       </div>
     </article>
 
@@ -883,7 +883,6 @@
           <button class="au-button au-button--danger au-button--compact" type="button">Discard</button>
           <button class="au-button au-button--secondary au-button--compact au-git-history" type="button">History</button>
         </div>
-        <span class="au-field-label">Changes</span>
       </div>
     </article>
 
@@ -906,6 +905,60 @@
         <span class="au-field-label">Commit message</span>
         <textarea class="au-input" readonly>feat(storefront): add the weekly promo banner</textarea>
         <button class="au-button" type="button">Commit <span class="au-git-insertions au-git-insertions--on-primary">+2</span></button>
+      </div>
+    </article>
+
+    <article data-au-component="git-change-sheet" data-au-title="Mobile change sheet" data-au-note="Mobile only. The change list rests in a sheet at the bottom of the Git page, under the commit box. It opens at a quarter of the page, showing the first rows; their checkboxes work without opening it. Drag up or tap the grabber for the whole list, drag down to bring it back. There is no half detent, no scrim and no close: the list is always there. Wider than a phone there is no sheet; the change list pane scrolls under the commit box. The rows sit on the sheet with no pane of their own." data-au-avalonia="Border" data-au-class="au-git-change-sheet">
+      <div class="au-sheet au-git-change-sheet">
+        <div class="au-sheet-grabber-row"><span class="au-sheet-grabber"></span></div>
+        <div class="au-git-change-sheet-head">
+          <span class="au-git-change-sheet-title">Changes</span>
+          <span class="au-git-change-sheet-count">2 of 5 selected</span>
+        </div>
+        <div class="au-git-change-sheet-list">
+          <div class="au-git-row">
+            <span class="au-checkbox"></span>
+            <button class="au-git-tree-toggle au-git-tree-toggle--expanded" type="button">▾</button>
+            <span class="au-git-change-name au-git-change-name--directory">Changes</span>
+          </div>
+          <div class="au-git-row">
+            <span class="au-checkbox"></span>
+            <span class="au-git-tree-guide"></span>
+            <button class="au-git-tree-toggle au-git-tree-toggle--expanded" type="button">▾</button>
+            <span class="au-git-change-name au-git-change-name--directory">apps</span>
+          </div>
+          <div class="au-git-row">
+            <span class="au-checkbox"></span>
+            <span class="au-git-tree-guide"></span>
+            <span class="au-git-tree-guide"></span>
+            <button class="au-git-tree-toggle au-git-tree-toggle--expanded" type="button">▾</button>
+            <span class="au-git-change-name au-git-change-name--directory">storefront</span>
+          </div>
+          <div class="au-git-row">
+            <span class="au-checkbox"></span>
+            <span class="au-git-tree-guide"></span>
+            <span class="au-git-tree-guide"></span>
+            <span class="au-git-tree-guide"></span>
+            <span class="au-git-change-name">ProductGrid.tsx</span>
+            <span class="au-git-status au-git-status--modified">M</span>
+          </div>
+          <div class="au-git-row">
+            <span class="au-checkbox au-checkbox--checked"></span>
+            <span class="au-git-tree-guide"></span>
+            <span class="au-git-tree-guide"></span>
+            <span class="au-git-tree-guide"></span>
+            <span class="au-git-change-name">PromoBanner.tsx</span>
+            <span class="au-git-status au-git-status--added">+</span>
+          </div>
+          <div class="au-git-row">
+            <span class="au-checkbox au-checkbox--checked"></span>
+            <span class="au-git-tree-guide"></span>
+            <span class="au-git-tree-guide"></span>
+            <span class="au-git-tree-guide"></span>
+            <span class="au-git-change-name">PromoBanner2.tsx</span>
+            <span class="au-git-status au-git-status--added">+</span>
+          </div>
+        </div>
       </div>
     </article>
 

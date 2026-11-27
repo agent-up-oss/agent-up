@@ -128,7 +128,7 @@ export function FilesScreen({ workspaceId }: { workspaceId: string }) {
             accessibilityRole="button"
             accessibilityLabel="Reload files"
             onPress={() => void reload(treeRef.current)}
-            style={[styles.reload, auBox('browserButton')]}>
+            style={[styles.reload, auBox('browserButton', 'gitQuiet')]}>
             <Text style={auText('browserButton')}>↻</Text>
           </Pressable>
         </View>

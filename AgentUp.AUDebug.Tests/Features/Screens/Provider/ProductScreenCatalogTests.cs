@@ -64,6 +64,29 @@ public sealed class ProductScreenCatalogTests
     }
 
     [Test]
+    public void Catalog_opensTheMobileChangeSheetBeforeSelectingFilesBelowItsPeek()
+    {
+        var taps = new ProductScreenCatalog()
+            .Screens(ProductSurface.Mobile)
+            .Single(screen => screen.View == "git")
+            .Steps
+            .Where(step => step.Kind == ScreenStepKind.Tap)
+            .Select(step => step.Target ?? string.Empty)
+            .ToList();
+
+        var opened = taps.IndexOf("Show all changes");
+        var firstSelect = taps.FindIndex(target => target.StartsWith("Select ", StringComparison.Ordinal));
+        var closed = taps.IndexOf("Show fewer changes");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(opened, Is.GreaterThanOrEqualTo(0));
+            Assert.That(firstSelect, Is.GreaterThan(opened));
+            Assert.That(closed, Is.GreaterThan(firstSelect));
+        });
+    }
+
+    [Test]
     public void Catalog_leavesInnerMobilePagesByRoutingInsteadOfTheBackControl()
     {
         var taps = new ProductScreenCatalog()

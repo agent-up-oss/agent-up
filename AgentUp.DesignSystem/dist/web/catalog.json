@@ -1226,7 +1226,7 @@
         {
           "id": "git-toolbar-mobile",
           "title": "Mobile Git toolbar",
-          "note": "Mobile keeps the same actions and adds a compact new-branch control next to the branch field.",
+          "note": "Mobile keeps the same actions and adds a compact new-branch control next to the branch field. The branch field and secondary actions are au-git-quiet: canvas black with one faint hairline. Push keeps the accent.",
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
@@ -1242,16 +1242,16 @@
             "au-button",
             "au-button--secondary",
             "au-git-branch",
+            "au-git-quiet",
             "au-muted",
             "au-lifecycle-button",
             "au-git-actions",
             "au-browser-button",
             "au-button--compact",
             "au-button--danger",
-            "au-git-history",
-            "au-field-label"
+            "au-git-history"
           ],
-          "html": "<div class=\"au-git-toolbar\">\n        <div class=\"au-git-branch-row\">\n          <button class=\"au-button au-button--secondary au-git-branch\" type=\"button\">main <span class=\"au-muted\">▾</span></button>\n          <button class=\"au-lifecycle-button\" type=\"button\">+</button>\n        </div>\n        <div class=\"au-git-actions\">\n          <button class=\"au-browser-button\" type=\"button\">↻</button>\n          <button class=\"au-button au-button--secondary au-button--compact\" type=\"button\">Fetch</button>\n          <button class=\"au-button au-button--secondary au-button--compact\" type=\"button\">Pull</button>\n          <button class=\"au-button au-button--compact\" type=\"button\">Push</button>\n          <button class=\"au-button au-button--danger au-button--compact\" type=\"button\">Discard</button>\n          <button class=\"au-button au-button--secondary au-button--compact au-git-history\" type=\"button\">History</button>\n        </div>\n        <span class=\"au-field-label\">Changes</span>\n      </div>"
+          "html": "<div class=\"au-git-toolbar\">\n        <div class=\"au-git-branch-row\">\n          <button class=\"au-button au-button--secondary au-git-branch au-git-quiet\" type=\"button\">main <span class=\"au-muted\">▾</span></button>\n          <button class=\"au-lifecycle-button au-git-quiet\" type=\"button\">+</button>\n        </div>\n        <div class=\"au-git-actions\">\n          <button class=\"au-browser-button au-git-quiet\" type=\"button\">↻</button>\n          <button class=\"au-button au-button--secondary au-button--compact au-git-quiet\" type=\"button\">Fetch</button>\n          <button class=\"au-button au-button--secondary au-button--compact au-git-quiet\" type=\"button\">Pull</button>\n          <button class=\"au-button au-button--compact\" type=\"button\">Push</button>\n          <button class=\"au-button au-button--danger au-button--compact\" type=\"button\">Discard</button>\n          <button class=\"au-button au-button--secondary au-button--compact au-git-history au-git-quiet\" type=\"button\">History</button>\n        </div>\n      </div>"
         },
         {
           "id": "git-heading",
@@ -1311,11 +1311,48 @@
             "au-git-commit--mobile",
             "au-field-label",
             "au-input",
+            "au-git-quiet",
             "au-button",
             "au-git-insertions",
             "au-git-insertions--on-primary"
           ],
-          "html": "<div class=\"au-git-commit au-git-commit--mobile\">\n        <span class=\"au-field-label\">Commit message</span>\n        <textarea class=\"au-input\" readonly>feat(storefront): add the weekly promo banner</textarea>\n        <button class=\"au-button\" type=\"button\">Commit <span class=\"au-git-insertions au-git-insertions--on-primary\">+2</span></button>\n      </div>"
+          "html": "<div class=\"au-git-commit au-git-commit--mobile\">\n        <span class=\"au-field-label\">Commit message</span>\n        <textarea class=\"au-input au-git-quiet\" readonly>feat(storefront): add the weekly promo banner</textarea>\n        <button class=\"au-button\" type=\"button\">Commit <span class=\"au-git-insertions au-git-insertions--on-primary\">+2</span></button>\n      </div>"
+        },
+        {
+          "id": "git-change-sheet",
+          "title": "Mobile change sheet",
+          "note": "Mobile only. The change list rests in a sheet at the bottom of the Git page, under the commit box. It opens at a quarter of the page, showing the first rows; their checkboxes work without opening it. Drag up or tap the grabber for the whole list, drag down to bring it back. There is no half detent, no scrim and no close: the list is always there. Wider than a phone there is no sheet; the change list pane scrolls under the commit box. The rows sit on the sheet with no pane of their own.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
+          "rootClass": "au-git-change-sheet",
+          "classes": [
+            "au-sheet",
+            "au-git-change-sheet",
+            "au-sheet-grabber-row",
+            "au-sheet-grabber",
+            "au-git-change-sheet-head",
+            "au-git-change-sheet-title",
+            "au-git-change-sheet-count",
+            "au-git-change-sheet-list",
+            "au-git-row",
+            "au-checkbox",
+            "au-git-tree-toggle",
+            "au-git-tree-toggle--expanded",
+            "au-git-change-name",
+            "au-git-change-name--directory",
+            "au-git-tree-guide",
+            "au-git-status",
+            "au-git-status--modified",
+            "au-checkbox--checked",
+            "au-git-status--added"
+          ],
+          "html": "<div class=\"au-sheet au-git-change-sheet\">\n        <div class=\"au-sheet-grabber-row\"><span class=\"au-sheet-grabber\"></span></div>\n        <div class=\"au-git-change-sheet-head\">\n          <span class=\"au-git-change-sheet-title\">Changes</span>\n          <span class=\"au-git-change-sheet-count\">2 of 5 selected</span>\n        </div>\n        <div class=\"au-git-change-sheet-list\">\n          <div class=\"au-git-row\">\n            <span class=\"au-checkbox\"></span>\n            <button class=\"au-git-tree-toggle au-git-tree-toggle--expanded\" type=\"button\">▾</button>\n            <span class=\"au-git-change-name au-git-change-name--directory\">Changes</span>\n          </div>\n          <div class=\"au-git-row\">\n            <span class=\"au-checkbox\"></span>\n            <span class=\"au-git-tree-guide\"></span>\n            <button class=\"au-git-tree-toggle au-git-tree-toggle--expanded\" type=\"button\">▾</button>\n            <span class=\"au-git-change-name au-git-change-name--directory\">apps</span>\n          </div>\n          <div class=\"au-git-row\">\n            <span class=\"au-checkbox\"></span>\n            <span class=\"au-git-tree-guide\"></span>\n            <span class=\"au-git-tree-guide\"></span>\n            <button class=\"au-git-tree-toggle au-git-tree-toggle--expanded\" type=\"button\">▾</button>\n            <span class=\"au-git-change-name au-git-change-name--directory\">storefront</span>\n          </div>\n          <div class=\"au-git-row\">\n            <span class=\"au-checkbox\"></span>\n            <span class=\"au-git-tree-guide\"></span>\n            <span class=\"au-git-tree-guide\"></span>\n            <span class=\"au-git-tree-guide\"></span>\n            <span class=\"au-git-change-name\">ProductGrid.tsx</span>\n            <span class=\"au-git-status au-git-status--modified\">M</span>\n          </div>\n          <div class=\"au-git-row\">\n            <span class=\"au-checkbox au-checkbox--checked\"></span>\n            <span class=\"au-git-tree-guide\"></span>\n            <span class=\"au-git-tree-guide\"></span>\n            <span class=\"au-git-tree-guide\"></span>\n            <span class=\"au-git-change-name\">PromoBanner.tsx</span>\n            <span class=\"au-git-status au-git-status--added\">+</span>\n          </div>\n          <div class=\"au-git-row\">\n            <span class=\"au-checkbox au-checkbox--checked\"></span>\n            <span class=\"au-git-tree-guide\"></span>\n            <span class=\"au-git-tree-guide\"></span>\n            <span class=\"au-git-tree-guide\"></span>\n            <span class=\"au-git-change-name\">PromoBanner2.tsx</span>\n            <span class=\"au-git-status au-git-status--added\">+</span>\n          </div>\n        </div>\n      </div>"
         },
         {
           "id": "git-review",
