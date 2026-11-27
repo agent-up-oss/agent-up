@@ -27,8 +27,15 @@ export function GitChangeSheet({ pageHeight, count, children }: {
   const shown = useRef(new Animated.Value(detents.peek)).current;
   const [detent, setDetent] = useState<GitChangeSheetDetent>('peek');
   // The gesture handlers are made once, so they read the current values through refs.
-  const live = useRef({ detent: 'peek' as GitChangeSheetDetent, scrollTop: 0, start: 0, detents });
+  const live = useRef({ detent: 'peek' as GitChangeSheetDetent, scrollTop: 0, start: 0, height: detents.peek, detents });
   live.current.detents = detents;
+
+  // The height on screen, so a drag that interrupts a spring starts where the sheet is, not where
+  // it was heading.
+  useEffect(() => {
+    const id = shown.addListener(({ value }) => { live.current.height = value; });
+    return () => shown.removeListener(id);
+  }, [shown]);
 
   const rest = useCallback((target: GitChangeSheetDetent, velocity = 0) => {
     live.current.detent = target;
@@ -47,7 +54,9 @@ export function GitChangeSheet({ pageHeight, count, children }: {
 
   // A rotation, a keyboard or a resized window moves the detents; the sheet keeps its detent.
   useEffect(() => {
-    shown.setValue(gitChangeSheetHeight(live.current.detent, detents));
+    const height = gitChangeSheetHeight(live.current.detent, detents);
+    live.current.height = height;
+    shown.setValue(height);
   }, [detents, shown]);
 
   const makeResponder = useCallback((fromHeader: boolean) => {
@@ -57,8 +66,10 @@ export function GitChangeSheet({ pageHeight, count, children }: {
       onMoveShouldSetPanResponderCapture: (_, gesture) => takes(gesture.dx, gesture.dy),
       onMoveShouldSetPanResponder: (_, gesture) => takes(gesture.dx, gesture.dy),
       onPanResponderGrant: () => {
-        shown.stopAnimation();
-        live.current.start = gitChangeSheetHeight(live.current.detent, live.current.detents);
+        // A native-driven spring reports where it stopped through the callback; until then the
+        // last height the listener saw is the closest to what is on screen.
+        live.current.start = live.current.height;
+        shown.stopAnimation(value => { live.current.start = value; });
       },
       onPanResponderMove: (_, gesture) =>
         shown.setValue(gitChangeSheetDraggedHeight(live.current.start, gesture.dy, live.current.detents)),
