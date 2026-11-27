@@ -55,7 +55,7 @@ Every `n/a` is a surface that does not exist on that client:
 - **Browser isolation (Mobile).** The PWA does not host per-workspace Desktop-style WebView profiles.
 - **Example Web app (Mobile).** That journey is an Application-surface flow against a hosted HTTP app, not Mobile chrome.
 - **Example API (Mobile).** API-backed pages are Application-surface flows, not Mobile chrome.
-- **Agent transcript sheet (Desktop).** Desktop opens a transcript entry in place. The bottom sheet is Mobile chrome.
+- **Agent transcript sheet (Desktop).** Desktop opens a transcript entry in place. The bottom sheet is Mobile chrome on a phone-width surface; a wider Mobile web window unfolds in place like Desktop.
 - **Installer (Mobile).** LocalInstaller is a desktop dashboard. It is not a Mobile surface. Desktop stays `blocked by #527`.
 
 Workspace lifecycle is not `n/a` on Mobile: the Apps dashboard exposes Start workspace and Stop workspace.
