@@ -22,7 +22,8 @@ export function presentToolItem(item: TranscriptItem): ToolCallView {
 /**
  * One quiet row per tool call: status glyph, readable name, source, the argument that matters,
  * what an edit changed and how long the call took. The call being worked on shows its detail in
- * place while it runs; tapping any call opens its detail in a sheet.
+ * place while it runs. Tapping any call opens that detail: a sheet on a phone-width surface, in
+ * place on a wider one.
  */
 export function ToolCallRow({ item, active = false, onOpen }: { item: TranscriptItem; active?: boolean; onOpen: (item: TranscriptItem) => void }) {
   const view = presentToolItem(item);

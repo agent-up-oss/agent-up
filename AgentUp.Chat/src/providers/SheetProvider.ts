@@ -22,6 +22,16 @@ export const dragSlop = 6;
 export const flickVelocity = 0.9;
 /** How far past full a sheet follows the finger, as a fraction of the overshoot. */
 export const overshootResistance = 0.2;
+/**
+ * Largest common phone CSS width. A surface wider than this is past the mobile format: a tap
+ * unfolds the item in place instead of opening a sheet.
+ */
+export const compactLayoutWidth = 430;
+
+/** Whether this surface still uses a bottom sheet for a tapped tool call or thought. */
+export function usesSheet(width: number): boolean {
+  return width <= compactLayoutWidth;
+}
 
 /** Half and full heights for a window, below the status bar or notch. */
 export function sheetDetents(windowHeight: number, topInset: number): SheetDetents {
@@ -67,8 +77,9 @@ export function settleSheet(input: { height: number; velocity: number; from: She
 }
 
 /**
- * Whether a transcript item opens into a sheet. Only the lowest level does - a tool call, an edit,
- * a thought. Sections that group items unfold in place, and prose and plans are already in full.
+ * Whether a transcript item can open as a detail. Only the lowest level does - a tool call, an
+ * edit, a thought. Sections that group items unfold in place, and prose and plans are already in
+ * full. A phone-width surface opens that detail in a sheet; a wider one unfolds it in place.
  */
 export function opensInSheet(item: Pick<TranscriptItem, 'role'>): boolean {
   return item.role === 'tool' || item.role === 'thought';
