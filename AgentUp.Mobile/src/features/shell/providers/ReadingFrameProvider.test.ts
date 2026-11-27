@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { readingFrameSize } from './ReadingFrameProvider';
+import { readingFrameLayout, readingFrameSize } from './ReadingFrameProvider';
 
 test('a phone keeps the full viewport so the frame does not crop its height', () => {
   assert.deepEqual(readingFrameSize(390, 844), { width: 390, height: 844 });
@@ -25,4 +25,9 @@ test('an ultrawide window still uses a 4:3 frame of the window height', () => {
 
 test('a landscape phone still letterboxes to 4:3 of its height', () => {
   assert.deepEqual(readingFrameSize(844, 390), { width: 520, height: 390 });
+});
+
+test('an unmeasured viewport fills its parent instead of clipping to zero', () => {
+  assert.deepEqual(readingFrameLayout(0, 0), { kind: 'fill' });
+  assert.deepEqual(readingFrameLayout(1920, 1080), { kind: 'frame', width: 1440, height: 1080 });
 });
