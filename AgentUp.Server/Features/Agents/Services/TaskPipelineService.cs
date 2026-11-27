@@ -135,23 +135,25 @@ public sealed class TaskPipelineService(
 
             return TaskTurnPlan.Ready(TaskPrompts.ProductReviewer(role, task, addresses));
         }
-        var diff = await gitRead.GetDiffAsync(workspaceId, $"refs/remotes/origin/{task.Proposal.BaseBranch}", "HEAD", cancellationToken);
+        var diff = await gitRead.GetDiffAsync(workspaceId, $"refs/remotes/origin/{task.Proposal.BaseBranch}", "HEAD", cancellationToken) ?? "";
         return TaskTurnPlan.Ready(TaskPrompts.Reviewer(role, task, diff));
     }
 
     /// <summary>
     /// Names this reviewer on the proposal, so the host shows who the review is waiting on. The
-    /// author opened the proposal, so the request goes out with the author's credential; it is
-    /// repeated for every revision, because a push is a new request for the same reviewer. A host
-    /// that refuses only loses that marker, never the review.
+    /// author opened the proposal, so the request goes out with the author's credential; a host
+    /// pull Agent-Up did not open uses this reviewer's credential instead. It is repeated for
+    /// every revision, because a push is a new request for the same reviewer. A host that refuses
+    /// only loses that marker, never the review.
     /// </summary>
     private async Task RequestReviewAsync(string workspaceId, QueuedTask task, CancellationToken cancellationToken)
     {
-        if (task.HeldByWorkspaceId is not { } author || await forge.ReadAccountAsync(workspaceId, cancellationToken) is not { } reviewer)
+        var requester = task.HeldByWorkspaceId ?? workspaceId;
+        if (await forge.ReadAccountAsync(workspaceId, cancellationToken) is not { } reviewer)
             return;
         try
         {
-            await forge.RequestReviewAsync(author, task.Proposal!.Number, reviewer.Login, cancellationToken);
+            await forge.RequestReviewAsync(requester, task.Proposal!.Number, reviewer.Login, cancellationToken);
         }
         catch (HttpRequestException exception)
         {

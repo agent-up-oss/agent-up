@@ -429,6 +429,37 @@ public sealed class AutonomousWorkspaceServiceTests
     }
 
     [Test]
+    public async Task ActivateAsync_schedulesAReviewerWhenAHostPullAppearsWhileIdle()
+    {
+        var pipeline = new RecordingTaskPipeline();
+        var sync = new DeferredHostReviewSync();
+        var resume = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var waits = 0;
+        var host = await HostAsync(pipeline: pipeline, waitForWork: async token =>
+        {
+            waits++;
+            if (waits == 1)
+                await resume.Task.WaitAsync(token);
+            else
+                await Task.Delay(Timeout.Infinite, token);
+        }, hostReviews: sync);
+        await ReadyAsync(host);
+        host.Settings.Save(host.Settings.Get(host.WorkspaceId) with { Member = TeamMemberKind.DevReviewer });
+        sync.Queue = host.Proposals;
+        sync.Proposal = new AssignedProposal("42", "Product cards", "", DateTimeOffset.UtcNow, "https://example.test/42", 42);
+
+        await host.Autonomy.ActivateAsync(host.WorkspaceId, CancellationToken.None);
+        await WaitUntilAsync(() => waits == 1);
+        Assert.That(pipeline.Prepared, Is.Empty);
+        resume.SetResult();
+        await WaitUntilAsync(() => pipeline.Prepared.Count == 1);
+
+        Assert.That(pipeline.Prepared.Single(), Is.EqualTo(host.WorkspaceId));
+        host.Autonomy.Deactivate(host.WorkspaceId);
+        await host.DisposeAsync();
+    }
+
+    [Test]
     public async Task ActivateAsync_promptsWithThePipelinesPlanInAFreshSessionAndBlocksOnItsOutcome()
     {
         var pipeline = new RecordingTaskPipeline { Outcome = TaskTurnOutcome.Blocked("nothing_to_propose", "No file changed.") };
@@ -475,8 +506,13 @@ public sealed class AutonomousWorkspaceServiceTests
 
         public TaskTurnOutcome Outcome { get; init; } = TaskTurnOutcome.Done();
 
+        public List<string> Prepared { get; } = [];
+
         public Task<TaskTurnPlan> PrepareAsync(string workspaceId, AgentRoleDefinition role, AssignedIssue task, CancellationToken cancellationToken)
-            => Task.FromResult(Plan);
+        {
+            Prepared.Add(workspaceId);
+            return Task.FromResult(Plan);
+        }
 
         public Task<TaskTurnOutcome> FinishAsync(string workspaceId, AgentRoleDefinition role, AssignedIssue task, LoopRunResult result, CancellationToken cancellationToken)
             => Task.FromResult(Outcome);
@@ -522,7 +558,8 @@ public sealed class AutonomousWorkspaceServiceTests
         IEnabledCapabilityPackages? packages = null,
         IHostConnectionPresence? hostPresence = null,
         ITaskPipeline? pipeline = null,
-        Func<CancellationToken, Task>? waitForWork = null)
+        Func<CancellationToken, Task>? waitForWork = null,
+        IHostReviewSync? hostReviews = null)
     {
         var registry = new WorkspaceRegistry(
             new InMemoryWorkspaceRepository(),
@@ -577,7 +614,8 @@ public sealed class AutonomousWorkspaceServiceTests
             packages,
             hostPresence,
             pipeline,
-            waitForWork);
+            waitForWork,
+            hostReviews);
         return new Host(workspace.Id, workspaces, settings, process, issues, proposals, progress, autonomy, scheduling);
     }
 
@@ -696,6 +734,23 @@ public sealed class AutonomousWorkspaceServiceTests
 
         public Task CompleteAsync(string workspaceId, string issueId, CancellationToken cancellationToken) =>
             Task.CompletedTask;
+    }
+
+    private sealed class DeferredHostReviewSync : IHostReviewSync
+    {
+        public MemoryAssignedProposalQueue? Queue { get; set; }
+
+        public AssignedProposal? Proposal { get; set; }
+
+        public Task SyncAsync(string workspaceId, CancellationToken cancellationToken)
+        {
+            Calls++;
+            if (Calls >= 2 && Queue is not null && Proposal is not null)
+                Queue.Replace(workspaceId, [Proposal]);
+            return Task.CompletedTask;
+        }
+
+        public int Calls { get; private set; }
     }
 
     private sealed class RecordingAssignedIssueQueue : IAssignedIssueQueue

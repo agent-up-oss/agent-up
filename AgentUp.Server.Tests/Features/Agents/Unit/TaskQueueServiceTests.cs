@@ -378,6 +378,58 @@ public sealed class TaskQueueServiceTests
         Assert.That(queue.TryClaimReview("bob", TeamMemberKind.Author, "acme", "widgets", "1"), Is.False);
     }
 
+    [Test]
+    public void AdoptProposal_recordsAHostPullAsReviewWork()
+    {
+        var queue = Queue();
+
+        var adopted = queue.AdoptProposal(Task("42", 42) with
+        {
+            Proposal = new TaskProposal("42", "https://example.test/42", "feature", "main", 1, "aaa"),
+            BaseBranch = "main"
+        });
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(adopted.Stage, Is.EqualTo(TaskStage.InReview));
+            Assert.That(queue.AwaitingReview("hector", Dev, "acme", "widgets").Single().Id, Is.EqualTo("42"));
+        });
+    }
+
+    [Test]
+    public void AdoptProposal_returnsTheExistingTaskWhenTheSamePullIsAdoptedTwice()
+    {
+        var queue = Queue();
+        var first = queue.AdoptProposal(Task("42", 42) with
+        {
+            Proposal = new TaskProposal("42", "https://example.test/42", "feature", "main", 1)
+        });
+        var second = queue.AdoptProposal(Task("42", 42) with
+        {
+            Proposal = new TaskProposal("42", "https://example.test/42", "feature", "main", 1)
+        });
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(second.Id, Is.EqualTo(first.Id));
+            Assert.That(queue.List(), Has.Count.EqualTo(1));
+        });
+    }
+
+    [Test]
+    public void AdoptProposal_matchesAnExistingIssueByNumber()
+    {
+        var queue = Queue();
+        queue.Enqueue(Task("1", 1));
+
+        var adopted = queue.AdoptProposal(Task("pr-1", 1) with
+        {
+            Proposal = new TaskProposal("7", "https://example.test/7", "feature", "main", 1)
+        });
+
+        Assert.That(adopted.Id, Is.EqualTo("1"));
+    }
+
     // A failed check is feedback: the revision goes back to its author, but only the one it ran on.
     [Test]
     public void ChecksFailed_sendsTheRevisionUnderReviewBackToItsAuthor()

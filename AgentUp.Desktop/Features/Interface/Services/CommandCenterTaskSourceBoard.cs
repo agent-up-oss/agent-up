@@ -12,6 +12,8 @@ namespace AgentUp.Desktop.Features.Interface.Services;
 /// </summary>
 public sealed class CommandCenterTaskSourceBoard
 {
+    public const int RefreshSeconds = 30;
+
     public string AuthTab { get; private set; } = "";
 
     public string ForgeTab { get; private set; } = "github";
@@ -113,6 +115,13 @@ public sealed class CommandCenterTaskSourceBoard
     public async Task EnsureSourceAsync(TaskSourceViewModel? source)
     {
         if (SourceRequested || source is null)
+            return;
+        await RefreshSourceAsync(source);
+    }
+
+    public async Task RefreshSourceAsync(TaskSourceViewModel? source)
+    {
+        if (source is null)
             return;
         SourceRequested = true;
         await source.LoadAsync();

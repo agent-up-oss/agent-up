@@ -293,8 +293,10 @@ public static class ServiceRegistration
         builder.Services.AddSingleton<TrainingController>();
         // The loop draws from the picked queue, never from whatever the host happens to have open.
         builder.Services.AddSingleton<IAssignedIssueQueue, CuratedIssueQueue>();
-        // Reviewers are offered the picked tasks whose open revision they have not reviewed.
+        // Reviewers are offered the tasks whose open revision they have not reviewed, including
+        // host pull requests adopted on the idle wait.
         builder.Services.AddSingleton<IAssignedProposalQueue, CuratedProposalQueue>();
+        builder.Services.AddSingleton<IHostReviewSync, HostReviewQueueService>();
         builder.Services.AddSingleton<IReviewBrowser, WorkspaceReviewBrowserProvider>();
         builder.Services.AddSingleton<IReviewApplicationHost>(sp => new WorkspaceReviewApplicationProvider(
             sp.GetRequiredService<WorkspaceLifecycleController>(),
@@ -325,7 +327,9 @@ public static class ServiceRegistration
                 sp.GetRequiredService<IRoleToolFilter>(),
                 sp.GetService<IEnabledCapabilityPackages>(),
                 sp.GetService<IHostConnectionPresence>(),
-                sp.GetRequiredService<ITaskPipeline>()).ReconcileAfterRestart());
+                sp.GetRequiredService<ITaskPipeline>(),
+                waitForWork: null,
+                hostReviews: sp.GetService<IHostReviewSync>()).ReconcileAfterRestart());
         builder.Services.AddSingleton<LoopScenarioCatalog>();
         builder.Services.AddSingleton<LoopOutcomeBaselineStore>();
         builder.Services.AddSingleton<WorkspaceEventFrameProvider>();

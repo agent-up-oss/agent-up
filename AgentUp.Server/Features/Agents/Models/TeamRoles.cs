@@ -35,6 +35,22 @@ public static class TeamRoles
             _ => new(AuthorPrompt, [], RoleTriggerKind.IssueAssigned, RoleTerminationKind.ProposalOpened)
         };
 
+    /// <summary>The kind's default system prompt, ignoring any stored override.</summary>
+    public static string DefaultPrompt(TeamMemberKind member) => For(member, null).Prompt;
+
+    /// <summary>
+    /// The role the loop actually sends: the declared or default system prompt, then this
+    /// member's customization when it has one. Customization is not part of the stored role, so
+    /// a type change can replace the system prompt without touching it.
+    /// </summary>
+    public static AgentRoleDefinition Effective(AgentWorkspaceSettings settings)
+    {
+        var role = For(settings.Member, settings.Role);
+        return string.IsNullOrWhiteSpace(settings.Customization)
+            ? role
+            : role with { Prompt = $"{role.Prompt}\n\n{settings.Customization.Trim()}" };
+    }
+
     /// <summary>Whether this member kind reviews other members' work rather than writing its own.</summary>
     public static bool Reviews(TeamMemberKind member) => member is TeamMemberKind.DevReviewer or TeamMemberKind.PmReviewer;
 }
