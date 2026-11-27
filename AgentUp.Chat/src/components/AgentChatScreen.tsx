@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type ScrollViewInstance } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions, type ScrollViewInstance } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { ServerSession } from '@agent-up/server-client';
@@ -16,7 +16,7 @@ import { Arrive, Reveal, useReducedMotion } from './Motion';
 import { followAfterScroll } from '../providers/MotionProvider';
 import { presentToolItem, ToolCallRow, WorkFoldRow } from './ToolCallRow';
 import { TranscriptItemSheet } from './TranscriptItemSheet';
-import { opensInSheet } from '../providers/SheetProvider';
+import { opensInSheet, usesSheet } from '../providers/SheetProvider';
 import {
   activityHint,
   afterPermissionDecision,
@@ -26,6 +26,7 @@ import {
   groupTranscript,
   foldWork,
   activeEntryId,
+  workSectionIdForItem,
   endTurn,
   thoughtLabel,
   liveWorkId,
@@ -69,6 +70,8 @@ export type AgentChatScreenProps = {
 
 export function AgentChatScreen({ workspace, server, changesPanel, onPresent, onConfigurePolicy, loopControls = true }: AgentChatScreenProps) {
   const insets = useSafeAreaInsets();
+  const window = useWindowDimensions();
+  const sheetLayout = usesSheet(window.width);
   const [tab, setTab] = useState<AgentTab>('chat');
   const [session, setSession] = useState<AgentSession | null>(null);
   const [autonomy, setAutonomy] = useState<ServerAutonomy | null>(null);
@@ -78,6 +81,8 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent, on
   const [hint, setHint] = useState<{ kind: AgentActivityKind; toolTitle?: string } | null>(null);
   // The one transcript item open in a sheet, by id, so the sheet follows its streamed updates.
   const [sheetItemId, setSheetItemId] = useState<string | null>(null);
+  // Finished items the reader unfolded in place on a surface wider than a phone.
+  const [openedIds, setOpenedIds] = useState<Record<string, boolean>>({});
   const [expandedRuns, setExpandedRuns] = useState<Record<string, boolean>>({});
   const [message, setMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -199,9 +204,25 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent, on
   const openWorkId = liveWorkId(blocks, session?.state === 'running' || Boolean(permission));
   const liveBlock = blocks.find(block => block.type === 'work' && block.id === openWorkId);
   const liveEntryId = liveBlock?.type === 'work' ? activeEntryId(liveBlock.items, true, activity.kind === 'thinking') : undefined;
-  const sheetItem = sheetItemId ? items.find(item => item.id === sheetItemId) : undefined;
-  const openSheet = useCallback((item: TranscriptItem) => { if (opensInSheet(item)) setSheetItemId(item.id); }, []);
+  const sheetItem = sheetLayout && sheetItemId ? items.find(item => item.id === sheetItemId) : undefined;
+  const openItem = useCallback((item: TranscriptItem) => {
+    if (!opensInSheet(item)) return;
+    if (sheetLayout) {
+      setSheetItemId(item.id);
+      return;
+    }
+    setOpenedIds(current => ({ ...current, [item.id]: !current[item.id] }));
+  }, [sheetLayout]);
   const closeSheet = useCallback(() => setSheetItemId(null), []);
+  // A sheet already open when the window grows past phone width becomes an in-place expansion.
+  useEffect(() => {
+    if (sheetLayout || sheetItemId === null) return;
+    const id = sheetItemId;
+    setOpenedIds(current => ({ ...current, [id]: true }));
+    const sectionId = workSectionIdForItem(blocks, id);
+    if (sectionId) setExpandedRuns(current => ({ ...current, [sectionId]: true }));
+    setSheetItemId(null);
+  }, [sheetLayout, sheetItemId, blocks]);
   // The transcript follows new output while the reader is at the end, and stays put once they scroll up.
   const scroll = useRef<ScrollViewInstance>(null);
   const following = useRef(true);
@@ -336,13 +357,16 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent, on
               const live = block.id === openWorkId;
               const open = expandedRuns[block.id] ?? live;
               const activeId = live ? liveEntryId : undefined;
-              // Sections unfold in place; the items inside them open in a sheet.
-              const renderItem = (item: TranscriptItem) => <Arrive key={item.id}><TranscriptRow item={item} active={item.id === activeId} onOpen={openSheet} /></Arrive>;
+              // Sections unfold in place; the items inside them open in a sheet on a phone, in place when wider.
+              const renderItem = (item: TranscriptItem) => {
+                const itemLive = item.id === activeId;
+                return <Arrive key={item.id}><TranscriptRow item={item} live={itemLive} expanded={itemLive || Boolean(openedIds[item.id])} onOpen={openItem} /></Arrive>;
+              };
               return <Arrive key={block.id}><View style={styles.run} testID="agent-work">
                 {!live && <Pressable accessibilityRole="button" onPress={() => setExpandedRuns(current => ({ ...current, [block.id]: !open }))} style={styles.runHeader}><Text style={styles.runSummary}>{workSummary(block.items, block.duration)}</Text><Text style={styles.runSummary}>{open ? '▾' : '▸'}</Text></Pressable>}
                 <Reveal open={open}><View style={styles.runEntries}>{foldWork(block.items, item => presentToolItem(item).summary, activeId).map(entry =>
                   entry.type === 'fold'
-                    ? <WorkFoldRow key={entry.id} entry={entry} renderItem={renderItem} />
+                    ? <WorkFoldRow key={entry.id} entry={entry} renderItem={renderItem} keepOpen={entry.items.some(item => openedIds[item.id])} />
                     : renderItem(entry.item))}</View></Reveal>
               </View></Arrive>;
             })}
@@ -369,15 +393,15 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent, on
   </View>;
 }
 
-function TranscriptRow({ item, active, onOpen }: { item: TranscriptItem; active: boolean; onOpen: (item: TranscriptItem) => void }) {
+function TranscriptRow({ item, live, expanded, onOpen }: { item: TranscriptItem; live: boolean; expanded: boolean; onOpen: (item: TranscriptItem) => void }) {
   if (item.role === 'thought') {
-    // A thought is one line, streaming in place while the agent is still thinking; tapping it opens the whole thought in a sheet.
+    // A thought is one line, streaming in place while the agent is still thinking; tapping it opens the whole thought.
     return <Pressable testID={`agent-thought-${item.id}`} accessibilityRole="button" accessibilityHint="Opens the whole thought" onPress={() => onOpen(item)} style={styles.thought}>
-      <Text style={styles.thoughtLabel}>{thoughtLabel(item, active)}</Text>
-      <Reveal open={active}><Text style={styles.thoughtBody}>{visibleText(item.text)}</Text></Reveal>
+      <Text style={styles.thoughtLabel}>{thoughtLabel(item, live)}</Text>
+      <Reveal open={expanded}><Text style={styles.thoughtBody}>{visibleText(item.text)}</Text></Reveal>
     </Pressable>;
   }
-  if (item.role === 'tool') return <ToolCallRow item={item} active={active} onOpen={onOpen} />;
+  if (item.role === 'tool') return <ToolCallRow item={item} active={expanded} onOpen={onOpen} />;
   if (item.role === 'plan') {
     return <View style={styles.work}><Text style={styles.role}>Plan</Text>{item.entries?.map(entry => <Text key={entry.content} style={styles.planEntry}>{statusMark(entry.status)} {entry.content}</Text>) ?? <Text style={styles.workBody}>{item.text}</Text>}</View>;
   }
@@ -411,7 +435,7 @@ function TabButton({ label, active, onPress }: { label: string; active: boolean;
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: agentUpTheme.colors.canvas },
   content: { flex: 1 },
-  chat: { flex: 1, width: '100%', maxWidth: 720, alignSelf: 'center', padding: agentUpTheme.spacing[4], gap: 10 },
+  chat: { flex: 1, width: '100%', padding: agentUpTheme.spacing[4], gap: 10 },
   changesPane: { flex: 1, paddingHorizontal: agentUpTheme.spacing[5], paddingTop: agentUpTheme.spacing[4], paddingBottom: 8 },
   heading: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 },
   headingCopy: { flex: 1, minWidth: 0 },

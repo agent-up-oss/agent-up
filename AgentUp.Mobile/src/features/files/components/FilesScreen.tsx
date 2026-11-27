@@ -3,7 +3,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
 import { useServers } from '@/features/servers/controllers/ServersContext';
 import { isUnauthorized } from '@/features/servers/providers/ServerRequestProvider';
-import { WorkspaceTabs } from '@/features/shell/components/WorkspaceTabs';
+import { WorkspacePage } from '@/features/shell/components/WorkspacePage';
 import { useShellConfig } from '@/features/shell/hooks/useShellConfig';
 import { useWorkspaceHost } from '@/features/workspaces/controllers/WorkspaceHostContext';
 import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesContext';
@@ -118,7 +118,7 @@ export function FilesScreen({ workspaceId }: { workspaceId: string }) {
     );
 
   return (
-    <View style={styles.screen}>
+    <WorkspacePage workspaceId={workspaceId} active="files">
       <View style={styles.body}>
         <View style={[styles.toolbar, auBox('filesToolbar')]}>
           <Text style={auText('fieldLabel')}>Files</Text>
@@ -152,14 +152,12 @@ export function FilesScreen({ workspaceId }: { workspaceId: string }) {
             )}
         </View>
       </View>
-      <WorkspaceTabs workspaceId={workspaceId} active="files" />
-    </View>
+    </WorkspacePage>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: agentUpTheme.colors.canvas },
-  body: { flex: 1, padding: agentUpTheme.spacing[4], gap: 12, maxWidth: 672, width: '100%', alignSelf: 'center' },
+  body: { flex: 1, padding: agentUpTheme.spacing[4], gap: 12, width: '100%' },
   toolbar: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   root: { flex: 1, minWidth: 0 },
   reload: { alignItems: 'center', justifyContent: 'center' },

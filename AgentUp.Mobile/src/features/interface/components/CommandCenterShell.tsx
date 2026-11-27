@@ -7,6 +7,7 @@ import { FileEditorScreen } from '@/features/files/components/FileEditorScreen';
 import { FilesScreen } from '@/features/files/components/FilesScreen';
 import { GitOverviewScreen } from '@/features/git/components/GitOverviewScreen';
 import { useServers } from '@/features/servers/controllers/ServersContext';
+import { useReadingFrame } from '@/features/shell/components/ReadingFrame';
 import { AppShellProvider } from '@/features/shell/controllers/AppShellContext';
 import { WorkspaceDashboardScreen } from '@/features/workspaces/components/WorkspaceDashboardScreen';
 import { WorkspaceHostProvider, type WorkspaceHost, type WorkspacePlace } from '@/features/workspaces/controllers/WorkspaceHostContext';
@@ -76,6 +77,7 @@ export function CommandCenterShell() {
 function CommandCenterBinder() {
   const standing = useTeamStanding();
   const tasks = useTaskQueue();
+  const reading = useReadingFrame();
   const { activeServer, logout } = useServers();
   const { choose } = useInterfaceChoice();
   const { workspaces, refresh } = useWorkspaces();
@@ -458,6 +460,7 @@ function CommandCenterBinder() {
           items={model.items}
           state={model.state}
           content={content}
+          contentWidth={reading.layout.kind === 'column' ? reading.layout.width : undefined}
           onAction={onAction}
         />
       </View>

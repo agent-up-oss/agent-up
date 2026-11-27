@@ -20,3 +20,10 @@ test('a scene action names the catalog node when the row has no id', () => {
   const source = emitSceneNative({ scenes: [], templates: {}, contracts: [] });
   assert.match(source, /item\?\.id \?\? node\.id \?\? null/);
 });
+
+test('a wider web window constrains only the phone body to the reading column', () => {
+  const source = emitSceneNative({ scenes: [], templates: {}, contracts: [] });
+  assert.match(source, /aun-phone__body/);
+  assert.match(source, /model\?\.contentWidth/);
+  assert.match(source, /contentWidth/);
+});

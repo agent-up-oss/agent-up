@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { TranscriptItem } from '../models/AgentSession';
-import { draggedHeight, opensInSheet, presentSheet, settleSheet, sheetDetents, sheetTakesDrag, sheetTopGap } from './SheetProvider';
+import { compactLayoutWidth, draggedHeight, opensInSheet, presentSheet, settleSheet, sheetDetents, sheetTakesDrag, sheetTopGap, usesSheet } from './SheetProvider';
 
 const detents = { half: 400, full: 760 };
 
@@ -55,6 +55,16 @@ test('a flick down from full that already passed half closes', () => {
 
 test('only tool calls and thoughts open into a sheet', () => {
   assert.deepEqual((['tool', 'thought', 'plan', 'agent', 'user'] as const).map(role => opensInSheet({ role })), [true, true, false, false, false]);
+});
+
+test('a phone-width surface still uses a sheet', () => {
+  assert.equal(usesSheet(390), true);
+  assert.equal(usesSheet(compactLayoutWidth), true);
+});
+
+test('a surface wider than a phone unfolds a tapped item in place', () => {
+  assert.equal(usesSheet(compactLayoutWidth + 1), false);
+  assert.equal(usesSheet(1440), false);
 });
 
 test('a thought is titled by how long it took and needs no status', () => {

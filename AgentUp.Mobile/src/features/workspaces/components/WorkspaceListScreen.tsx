@@ -6,6 +6,7 @@ import { canCloneWorkspace } from '../providers/CloneInputProvider';
 import { cloneConfirmLabel, cloneRevisionLabel, isDerivedWorkspace, workspaceSubtitle } from '../providers/WorkspaceLabelProvider';
 import { orderWorkspaces } from '../providers/WorkspaceOrderProvider';
 import { statusDotStyle, workspaceLedState } from '../providers/WorkspaceStatusProvider';
+import { ReadingContent } from '@/features/shell/components/ReadingContent';
 import { PlanCard } from '@/features/entitlements/components/PlanCard';
 import { isFeatureAvailable, presentPlanCard, workspaceCreateFeature, workspaceCreateUnavailableMessage, type PlanCard as PlanCardModel } from '@/features/entitlements/models/Entitlements';
 import { getEntitlements } from '@/features/entitlements/providers/EntitlementsApiProvider';
@@ -66,6 +67,7 @@ export function WorkspaceListScreen() {
   const canConfirm = !cloning && canCloneWorkspace(repository, branch);
 
   return <SafeAreaView style={styles.screen}>
+    <ReadingContent>
     <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <View style={styles.headerRow}>
         <Text accessibilityRole="header" style={styles.title}>Workspaces</Text>
@@ -116,6 +118,7 @@ export function WorkspaceListScreen() {
         <Text style={styles.secondaryButtonText}>Reload</Text>
       </Pressable>
     </ScrollView>
+    </ReadingContent>
 
     <Modal visible={adding} transparent animationType="fade" onRequestClose={() => setAdding(false)}>
       <View style={styles.modalScrim}>

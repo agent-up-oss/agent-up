@@ -1,9 +1,9 @@
 import { useCallback, useMemo, useRef } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 import { AgentLoopSettingsSection } from '@/features/agents/components/AgentLoopSettingsSection';
 import { CapabilityModulesSection } from '@/features/capabilities/components/CapabilitiesScreen';
 import { InterfaceToggleRow } from '@/features/interface/components/InterfaceToggleRow';
-import { WorkspaceTabs } from '@/features/shell/components/WorkspaceTabs';
+import { WorkspacePage } from '@/features/shell/components/WorkspacePage';
 import { useShellConfig } from '@/features/shell/hooks/useShellConfig';
 import { agentUpTheme } from '@agent-up/design-system/native';
 
@@ -23,25 +23,21 @@ export function WorkspaceSettingsScreen({ workspaceId }: { workspaceId: string }
   useShellConfig(shellConfig);
 
   return (
-    <View style={styles.screen}>
+    <WorkspacePage workspaceId={workspaceId} active="settings">
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <InterfaceToggleRow />
         <AgentLoopSettingsSection workspaceId={workspaceId} />
         <CapabilityModulesSection onReload={bindReload} />
       </ScrollView>
-      <WorkspaceTabs workspaceId={workspaceId} active="settings" />
-    </View>
+    </WorkspacePage>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: agentUpTheme.colors.canvas },
   content: {
     padding: agentUpTheme.spacing[4],
     paddingBottom: agentUpTheme.spacing[8],
     gap: 16,
-    maxWidth: 672,
     width: '100%',
-    alignSelf: 'center',
   },
 });
