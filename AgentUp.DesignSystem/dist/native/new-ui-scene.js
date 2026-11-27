@@ -104,7 +104,11 @@ export function createNewUiScene(React, native) {
       });
       return h(View, { key, style: [paint(node.c, 'box', ctx.scope), layoutStyle(node)] }, rows);
     }
-    if (node.content && model.content && model.content[node.slot] != null) return model.content[node.slot];
+    if (node.content && model.content && model.content[node.slot] != null) {
+      const sized = measure(node.c, model);
+      if (!sized) return model.content[node.slot];
+      return h(View, { key, style: [sized, { flex: 1, minHeight: 0, maxWidth: '100%' }] }, model.content[node.slot]);
+    }
     const classes = [...(node.c ?? []), ...flagged(node, model, item)];
     if (node.tone && item?.action && node.tone[item.action]) classes.push(node.tone[item.action]);
     // A row's state names its host; a status dot inside it takes only a dot state.
@@ -173,7 +177,7 @@ export function createNewUiScene(React, native) {
         accessibilityRole: 'button',
         accessibilityLabel: node.label,
         onPress: () => model.onAction(action, actionId, drafts[action], { ...drafts }),
-        style: [box, measure(node.c), layoutStyle(node), { alignSelf: 'stretch' }, node.push ? { marginLeft: 'auto' } : null],
+        style: [box, measure(node.c, model), layoutStyle(node), { alignSelf: 'stretch' }, node.push ? { marginLeft: 'auto' } : null],
       }, body);
     }
     if (node.t === 'button' || action) {
@@ -208,13 +212,13 @@ export function createNewUiScene(React, native) {
     if (grows && node.layout === 'column' && !holdsSlot(node)) {
       return h(ScrollView, {
         key,
-        style: [{ flex: 1 }, box],
+        style: [{ flex: 1 }, box, measure(node.c, model)],
         contentContainerStyle: [flowStyle(node), { flexDirection: 'column' }],
       }, arranged);
     }
     return h(View, {
       key,
-      style: [box, measure(node.c), layoutStyle(node), grows ? { flex: 1, minHeight: 0 } : null, node.grow ? { flex: 1, minWidth: 0 } : null, node.push ? { marginLeft: 'auto' } : null],
+      style: [box, measure(node.c, model), layoutStyle(node), grows ? { flex: 1, minHeight: 0 } : null, node.grow ? { flex: 1, minWidth: 0 } : null, node.push ? { marginLeft: 'auto' } : null],
     }, arranged);
   }
   function layoutStyle(node) {
@@ -242,11 +246,15 @@ export function createNewUiScene(React, native) {
     if (flow.w === 'wrap') style.flexWrap = 'wrap';
     return style;
   }
-  function measure(classes) {
+  function measure(classes, model) {
     const names = classes ?? [];
-    // The catalog frames a phone at 390 by 844; on a device the scene fills its parent, which on
-    // a wider web window is the 4:3 reading frame.
+    // The catalog frames a phone at 390 by 844; on a device the scene fills its parent. A wider
+    // web window keeps head, dock, session, and tab bar full bleed and only the phone body at
+    // the 4:3 reading column.
     if (names.includes('aun-phone')) return { width: '100%', height: '100%' };
+    if (names.includes('aun-phone__body') && model?.contentWidth) {
+      return { width: model.contentWidth, maxWidth: '100%', alignSelf: 'center' };
+    }
     if (names.includes('aun-settings')) return { width: '100%' };
     if (names.includes('aun-state-map__root')) return { alignSelf: 'center', maxWidth: 256 };
     if (names.includes('aun-state-map__stem') || names.includes('aun-state-map__drop')) return { alignSelf: 'center' };
@@ -271,10 +279,10 @@ export function createNewUiScene(React, native) {
     return children;
   }
   /**
-   * @param {{ scene: string, text?: Record<string, string>, items?: Record<string, unknown[]>, state?: Record<string, string>, content?: Record<string, unknown>, onAction?: (name: string, id: string | null, text?: string, fields?: Record<string, string>) => void }} props
+   * @param {{ scene: string, text?: Record<string, string>, items?: Record<string, unknown[]>, state?: Record<string, string>, content?: Record<string, unknown>, contentWidth?: number, onAction?: (name: string, id: string | null, text?: string, fields?: Record<string, string>) => void }} props
    */
   return function NewUiScene(props) {
-    const { scene, text = {}, items = {}, state = {}, content = {}, onAction = () => {} } = props;
+    const { scene, text = {}, items = {}, state = {}, content = {}, contentWidth, onAction = () => {} } = props;
     const scope = text.memberId ?? '';
     if (scope !== draftScope) {
       draftScope = scope;
@@ -283,7 +291,7 @@ export function createNewUiScene(React, native) {
     }
     const tree = newUiSceneDocument.scenes[scene];
     if (!tree) return null;
-    const model = { text, items, state, content, onAction };
+    const model = { text, items, state, content, onAction, contentWidth };
     return h(View, { style: { flex: 1 } }, tree.map((node, index) => render(node, model, null, index)));
   };
 }

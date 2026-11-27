@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { WorkspaceTabs } from '@/features/shell/components/WorkspaceTabs';
+import { WorkspacePage } from '@/features/shell/components/WorkspacePage';
 import { useWorkspaceHost } from '../controllers/WorkspaceHostContext';
 import { useShellConfig } from '@/features/shell/hooks/useShellConfig';
 import type { Workspace, WorkspaceApplication } from '../models/Workspace';
@@ -84,7 +84,7 @@ export function WorkspaceDashboardScreen({ workspace }: WorkspaceDashboardScreen
   }, [exporting, server, workspace.displayName, workspace.id]);
 
   return (
-    <View style={styles.screen}>
+    <WorkspacePage workspaceId={workspace.id} active="apps">
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.lifecycleRow}>
           <Pressable
@@ -134,8 +134,7 @@ export function WorkspaceDashboardScreen({ workspace }: WorkspaceDashboardScreen
               ))}
           </View>}
       </ScrollView>
-      <WorkspaceTabs workspaceId={workspace.id} active="apps" />
-    </View>
+    </WorkspacePage>
   );
 }
 
@@ -156,7 +155,6 @@ function ApplicationRow({ application, onPress }: { application: WorkspaceApplic
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: agentUpTheme.colors.canvas },
   content: { padding: agentUpTheme.spacing[4], paddingBottom: agentUpTheme.spacing[8], gap: 16, width: '100%' },
   lifecycleRow: { ...auBox('workspace'), flexDirection: 'row', alignItems: 'center', gap: agentUpTheme.spacing[2] },
   lifecycleButton: { ...auBox('lifecycleButton'), alignItems: 'center', justifyContent: 'center' },

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ReadingContent } from '@/features/shell/components/ReadingContent';
 import { useShellConfig } from '@/features/shell/hooks/useShellConfig';
 import { useWorkspaces } from '../controllers/WorkspacesContext';
 import { CloneWorkspaceDialog } from './WorkspaceDialogs';
@@ -67,6 +68,7 @@ export function WorkspaceEmptyScreen() {
 
   return (
     <>
+      <ReadingContent>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.card}>
           <Text accessibilityRole="header" style={styles.title}>No workspaces</Text>
@@ -84,6 +86,7 @@ export function WorkspaceEmptyScreen() {
         {/* With no workspace there is no Settings tab, so the interface switch lives here too. */}
         <View style={styles.toggle}><InterfaceToggleRow /></View>
       </ScrollView>
+      </ReadingContent>
 
       <CloneWorkspaceDialog
         visible={adding}

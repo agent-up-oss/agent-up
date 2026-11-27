@@ -8,7 +8,7 @@ import {
   type ServerAutonomy,
 } from '@agent-up/chat';
 import { boundAgentActionLabel, formatLoopLine, loopSettingsSummary } from '@/features/agents/providers/LoopLineProvider';
-import { WorkspaceTabs } from '@/features/shell/components/WorkspaceTabs';
+import { WorkspacePage } from '@/features/shell/components/WorkspacePage';
 import { useWorkspaceHost } from '@/features/workspaces/controllers/WorkspaceHostContext';
 import { useShellConfig } from '@/features/shell/hooks/useShellConfig';
 import { useServers } from '@/features/servers/controllers/ServersContext';
@@ -68,7 +68,7 @@ export function AgentsOverviewScreen({ workspaceId }: { workspaceId: string }) {
   const openChat = () => host.open({ kind: 'agent' });
 
   return (
-    <View style={styles.screen}>
+    <WorkspacePage workspaceId={workspaceId} active="agents">
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
         {loopSummary && (
@@ -107,13 +107,11 @@ export function AgentsOverviewScreen({ workspaceId }: { workspaceId: string }) {
           </Pressable>
         )}
       </ScrollView>
-      <WorkspaceTabs workspaceId={workspaceId} active="agents" />
-    </View>
+    </WorkspacePage>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: agentUpTheme.colors.canvas },
   content: { padding: agentUpTheme.spacing[4], paddingBottom: agentUpTheme.spacing[8], gap: 16, width: '100%' },
   section: { gap: 10 },
   sectionTitle: auText('fieldLabel'),

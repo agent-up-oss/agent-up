@@ -5,6 +5,7 @@ import { gitWriteAllowed } from '@/features/entitlements/models/Entitlements';
 import { getEntitlements } from '@/features/entitlements/providers/EntitlementsApiProvider';
 import { useServers } from '@/features/servers/controllers/ServersContext';
 import { isUnauthorized } from '@/features/servers/providers/ServerRequestProvider';
+import { ReadingContent } from '@/features/shell/components/ReadingContent';
 import { useShellConfig } from '@/features/shell/hooks/useShellConfig';
 import { useWorkspaceHost } from '@/features/workspaces/controllers/WorkspaceHostContext';
 import { useWorkspaces } from '@/features/workspaces/controllers/WorkspacesContext';
@@ -147,6 +148,7 @@ export function FileEditorScreen({
   const notice = missing ? fileNotice(null) : file && !hasContent ? fileNotice(file) : null;
 
   return (
+    <ReadingContent>
     <View style={styles.screen}>
       <View style={[styles.page, auBox('fileEditor')]}>
         <View style={[styles.header, auBox('fileViewerHeader')]}>
@@ -244,6 +246,7 @@ export function FileEditorScreen({
         </View>
       </View>
     </View>
+    </ReadingContent>
   );
 }
 

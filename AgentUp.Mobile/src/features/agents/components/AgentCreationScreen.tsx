@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { getAgent, scheduleAgent, unbindAgent, type AgentDescriptor } from '@agent-up/chat';
+import { ReadingContent } from '@/features/shell/components/ReadingContent';
 import { useWorkspaceInnerShell } from '@/features/shell/hooks/useWorkspaceInnerShell';
 import { useShellConfig } from '@/features/shell/hooks/useShellConfig';
 import { useServers } from '@/features/servers/controllers/ServersContext';
@@ -60,6 +61,7 @@ export function AgentCreationScreen({ workspaceId }: { workspaceId: string }) {
   };
 
   return (
+    <ReadingContent>
     <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         {!!error && <Text accessibilityRole="alert" style={styles.error}>{error}</Text>}
@@ -85,6 +87,7 @@ export function AgentCreationScreen({ workspaceId }: { workspaceId: string }) {
         })}
       </ScrollView>
     </View>
+    </ReadingContent>
   );
 }
 
