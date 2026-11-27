@@ -49,7 +49,14 @@ export function gitChangeSheetTakesDrag(input: { detent: GitChangeSheetDetent; s
 
 /** The height the sheet shows while a finger drags it from `start` by `dy` (down is positive). */
 export function gitChangeSheetDraggedHeight(start: number, dy: number, detents: GitChangeSheetDetents): number {
-  const raw = start - dy;
+  // A drag can start where a spring stopped past a detent. That height is already resisted, so it
+  // goes back to the finger's coordinate before the move is added, or it would be resisted twice.
+  const origin = start < detents.peek
+    ? detents.peek - (detents.peek - start) / changeSheetOvershootResistance
+    : start > detents.full
+      ? detents.full + (start - detents.full) / changeSheetOvershootResistance
+      : start;
+  const raw = origin - dy;
   if (raw < detents.peek) return detents.peek - (detents.peek - raw) * changeSheetOvershootResistance;
   if (raw > detents.full) return detents.full + (raw - detents.full) * changeSheetOvershootResistance;
   return raw;

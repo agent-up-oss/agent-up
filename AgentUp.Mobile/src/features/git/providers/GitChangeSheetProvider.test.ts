@@ -72,3 +72,12 @@ test('only a phone-width window rests the change list in a sheet', () => {
   assert.equal(gitChangesUseSheet(768), false);
   assert.equal(gitChangesUseSheet(1440), false);
 });
+
+test('a drag that starts past a detent follows the finger instead of resisting twice', () => {
+  const at = (start: number, dy: number) => Math.round(gitChangeSheetDraggedHeight(start, dy, detents));
+  assert.equal(at(190, 0), 190);
+  assert.equal(at(190, 20), 186);
+  assert.equal(at(820, 0), 820);
+  assert.equal(at(820, 50), 810);
+  assert.equal(at(820, 200), 700);
+});

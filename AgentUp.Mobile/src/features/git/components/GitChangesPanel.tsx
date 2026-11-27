@@ -353,7 +353,7 @@ export function GitChangesPanel({
   // pane of its own that scrolls.
   if (overview && !gitChangesUseSheet(window.width)) {
     return (
-      <View style={styles.wide}>
+      <ScrollView style={styles.page} contentContainerStyle={styles.wide} keyboardShouldPersistTaps="handled">
         {header}
         {messages}
         {commitBox}
@@ -367,7 +367,7 @@ export function GitChangesPanel({
           </ScrollView>
         </View>
         {dialogs}
-      </View>
+      </ScrollView>
     );
   }
 
@@ -448,8 +448,10 @@ const styles = StyleSheet.create({
   status: { ...auText('accent'), lineHeight: 21 },
   tree: { flex: 1, minHeight: 80, ...auBox('gitChangeList') },
   page: { flex: 1 },
-  wide: { flex: 1, padding: agentUpTheme.spacing[4], gap: 16 },
-  wideSection: { flex: 1, gap: 8, minHeight: 0 },
+  // The page scrolls when a short window cannot hold the commit box and the list; the list keeps
+  // room for a few rows and scrolls on its own when the window is tall.
+  wide: { flexGrow: 1, padding: agentUpTheme.spacing[4], gap: 16 },
+  wideSection: { flex: 1, gap: 8, minHeight: 240 },
   wideHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
   overviewContent: { padding: agentUpTheme.spacing[4], gap: 16, width: '100%' },
   treeContent: { paddingVertical: 6, flexGrow: 1 },
