@@ -1008,6 +1008,9 @@ test('a New UI scene publishes the slots, states, and actions a command center b
   assert.ok(memberSettings.actions.includes('member-kind'));
   assert.ok(memberSettings.actions.includes('save-token'));
   assert.ok(memberSettings.actions.includes('save-agent-settings'));
+  assert.ok(memberSettings.actions.includes('save-prompts'));
+  assert.ok(memberSettings.actions.includes('confirm-overwrite'));
+  assert.ok(memberSettings.actions.includes('cancel-overwrite'));
   assert.ok(memberSettings.slots.some(slot => slot.name === 'chatFields' && slot.repeat === 'settings-field'));
   const phoneMember = manifest.scenes.find(scene => scene.id === 'mobile-agent-settings');
   assert.ok(phoneMember.actions.includes('tab-settings'));

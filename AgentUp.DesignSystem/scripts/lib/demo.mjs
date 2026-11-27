@@ -104,8 +104,11 @@ export function applyDemo(catalog, demo) {
   board.html = withoutWhen(withoutWhen(withoutWhen(board.html, 'devTab'), 'pmTab'), 'repoList');
   const memberSettings = byId.get('member-settings');
   memberSettings.html = withoutWhen(
-    withoutWhen(withoutWhen(memberSettings.html, 'forgeConnected'), 'opencodeSettings'),
-    'ollamaSettings',
+    withoutWhen(
+      withoutWhen(withoutWhen(memberSettings.html, 'forgeConnected'), 'opencodeSettings'),
+      'ollamaSettings',
+    ),
+    'promptOverwrite',
   );
   fill('member-overview', 'overview', memberOverview(demo));
   const open = demo.open;

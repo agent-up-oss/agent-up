@@ -77,6 +77,10 @@ public partial class CommandCenterView : UserControl
             })
             .DisposeWith(_subscriptions);
         WatchAgent(main.Agent);
+        Observable.Interval(TimeSpan.FromSeconds(CommandCenterTaskSourceBoard.RefreshSeconds))
+            .ObserveOn(RxApp.MainThreadScheduler)
+            .Subscribe(_tick => { _ = RefreshTasksAsync(center); })
+            .DisposeWith(_subscriptions);
         Watch(main.SubTabs);
         Watch(center.Tasks?.Queue);
         Watch(center.Tasks?.Working);
@@ -179,7 +183,11 @@ public partial class CommandCenterView : UserControl
             main.Agent.MemberKind,
             main.Agent.BoundAgent ?? "",
             AgentSettingValue(main.Modules, main.Agent.BoundAgent, "endpoint"),
-            AgentSettingValue(main.Modules, main.Agent.BoundAgent, "model")));
+            AgentSettingValue(main.Modules, main.Agent.BoundAgent, "model"),
+            main.Agent.SystemPrompt,
+            main.Agent.CustomizationPrompt,
+            main.Agent.DefaultSystemPrompt,
+            main.Agent.PromptOverwrite));
         if (center.SceneId is "agent-settings")
             binding.State["chatSettings"] = "1";
         var stamp = Stamp(center.SceneId, binding);
@@ -484,7 +492,34 @@ public partial class CommandCenterView : UserControl
                 main.Agent.CancelLoopCommand.Execute().Subscribe();
                 break;
             case "member-kind":
-                if (!string.IsNullOrEmpty(action.Id)) main.Agent.SetMemberKindCommand.Execute(action.Id).Subscribe();
+                if (string.IsNullOrEmpty(action.Id) || action.Id == main.Agent.MemberKind)
+                    break;
+                if (main.Agent.PromptOverwrite)
+                {
+                    main.Agent.BeginKindChange(action.Id);
+                    Apply();
+                    break;
+                }
+                var draft = Field(action, "system-prompt") ?? main.Agent.SystemPrompt;
+                if (CommandCenterScene.SystemPromptWasCustomized(draft, main.Agent.DefaultSystemPrompt))
+                {
+                    main.Agent.BeginKindChange(action.Id);
+                    Apply();
+                    break;
+                }
+                _ = ChangeKindAsync(main, action);
+                break;
+            case "save-prompts":
+                main.Agent.SavePromptsCommand.Execute((
+                    Field(action, "system-prompt") ?? main.Agent.SystemPrompt,
+                    Field(action, "customization-prompt") ?? main.Agent.CustomizationPrompt)).Subscribe();
+                break;
+            case "confirm-overwrite":
+                _ = ConfirmKindChangeAsync(main, action);
+                break;
+            case "cancel-overwrite":
+                main.Agent.CancelKindChange();
+                Apply();
                 break;
             case "save-agent-settings":
                 _ = SaveAgentSettingsAsync(main, action);
@@ -607,6 +642,14 @@ public partial class CommandCenterView : UserControl
         Apply();
     }
 
+    private async Task RefreshTasksAsync(CommandCenterViewModel center)
+    {
+        await _board.RefreshSourceAsync(center.TaskSource);
+        if (_board.OpenOwner is not null)
+            await _board.LoadOpenRepositoryAsync(center.Tasks, center.TaskSource);
+        Apply();
+    }
+
     private void WatchAgent(AgentChatViewModel agent)
     {
         Watch(agent.Preconditions);
@@ -615,6 +658,9 @@ public partial class CommandCenterView : UserControl
         {
             if (args.PropertyName is nameof(AgentChatViewModel.BoundAgent)
                 or nameof(AgentChatViewModel.MemberKind)
+                or nameof(AgentChatViewModel.SystemPrompt)
+                or nameof(AgentChatViewModel.CustomizationPrompt)
+                or nameof(AgentChatViewModel.PromptOverwrite)
                 or nameof(AgentChatViewModel.Loop)
                 or nameof(AgentChatViewModel.IsBusy)
                 or nameof(AgentChatViewModel.CanEnableAutonomy)
@@ -651,6 +697,23 @@ public partial class CommandCenterView : UserControl
             .FirstOrDefault(setting => setting.Key == key);
         return field?.Value ?? "";
     }
+
+    private async Task ChangeKindAsync(MainViewModel main, NewUiActionEventArgs action)
+    {
+        if (string.IsNullOrEmpty(action.Id))
+            return;
+        await main.Agent.ChangeKindAsync(action.Id, Field(action, "customization-prompt") ?? main.Agent.CustomizationPrompt);
+        Apply();
+    }
+
+    private async Task ConfirmKindChangeAsync(MainViewModel main, NewUiActionEventArgs action)
+    {
+        await main.Agent.ConfirmKindChangeAsync(Field(action, "customization-prompt") ?? main.Agent.CustomizationPrompt);
+        Apply();
+    }
+
+    private static string? Field(NewUiActionEventArgs action, string name) =>
+        action.Fields is not null && action.Fields.TryGetValue(name, out var value) ? value : null;
 
     private static IReadOnlyList<CommandCenterSettingSlot> ChatSettingsOf(AgentChatViewModel agent)
         => CommandCenterScene.ChatFields(new CommandCenterChatSettings(

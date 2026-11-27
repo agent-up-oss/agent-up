@@ -3,7 +3,10 @@ using AgentUp.Server.Features.Agents.Models;
 
 namespace AgentUp.Server.Features.Agents.DTOs;
 
-public sealed record TeamMemberRequest([Required] TeamMemberKind Kind);
+public sealed record TeamMemberRequest(
+    [Required] TeamMemberKind Kind,
+    string? SystemPrompt = null,
+    string? CustomizationPrompt = null);
 
 public sealed record TeamMemberDto(
     TeamMemberKind Kind,
@@ -12,4 +15,7 @@ public sealed record TeamMemberDto(
     bool ControlsBrowser,
     bool SubmitsReviews,
     AgentFixtureKind Fixture,
-    IReadOnlyList<string> OperationPermissions);
+    IReadOnlyList<string> OperationPermissions,
+    string SystemPrompt = "",
+    string? CustomizationPrompt = null,
+    string DefaultSystemPrompt = "");

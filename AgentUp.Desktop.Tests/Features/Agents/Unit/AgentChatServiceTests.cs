@@ -98,10 +98,15 @@ internal sealed class FakeAgentApiProvider : IAgentApiProvider
     public string? MemberKind { get; private set; }
     public Task<TeamMemberDto?> GetMemberAsync(string workspaceId, CancellationToken cancellationToken)
         => Task.FromResult<TeamMemberDto?>(new TeamMemberDto("Author"));
-    public Task<TeamMemberDto?> PutMemberAsync(string workspaceId, string kind, CancellationToken cancellationToken)
+    public Task<TeamMemberDto?> PutMemberAsync(
+        string workspaceId,
+        string kind,
+        CancellationToken cancellationToken,
+        string? systemPrompt = null,
+        string? customizationPrompt = null)
     {
         MemberKind = kind;
-        return Task.FromResult<TeamMemberDto?>(new TeamMemberDto(kind));
+        return Task.FromResult<TeamMemberDto?>(new TeamMemberDto(kind, systemPrompt ?? "", customizationPrompt));
     }
     public async IAsyncEnumerable<AgentEventDto> EventsAsync(string workspaceId, long after, [EnumeratorCancellation] CancellationToken cancellationToken) { await Task.CompletedTask; yield break; }
 }

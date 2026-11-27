@@ -45,7 +45,25 @@ public sealed class AgentApiClient : IAgentApiProvider
     public async Task PutLoopActivationAsync(string workspaceId, bool active, CancellationToken cancellationToken) { using var response = await _http.PutAsJsonAsync(Root(workspaceId) + "/autonomy", new { active }, cancellationToken); await EnsureSuccessAsync(response, cancellationToken); }
     public async Task<AgentLoopStatusDto?> GetLoopAsync(string workspaceId, CancellationToken cancellationToken) { using var response = await _http.GetAsync(Root(workspaceId) + "/loop", cancellationToken); if (response.StatusCode == HttpStatusCode.NotFound) return null; await EnsureSuccessAsync(response, cancellationToken); return await response.Content.ReadFromJsonAsync<AgentLoopStatusDto>(Options, cancellationToken); }
     public async Task<TeamMemberDto?> GetMemberAsync(string workspaceId, CancellationToken cancellationToken) { using var response = await _http.GetAsync(Root(workspaceId) + "/member", cancellationToken); if (response.StatusCode == HttpStatusCode.NotFound) return null; await EnsureSuccessAsync(response, cancellationToken); return await response.Content.ReadFromJsonAsync<TeamMemberDto>(Options, cancellationToken); }
-    public async Task<TeamMemberDto?> PutMemberAsync(string workspaceId, string kind, CancellationToken cancellationToken) { using var response = await _http.PutAsJsonAsync(Root(workspaceId) + "/member", new { kind }, cancellationToken); await EnsureSuccessAsync(response, cancellationToken); return await response.Content.ReadFromJsonAsync<TeamMemberDto>(Options, cancellationToken); }
+    public async Task<TeamMemberDto?> PutMemberAsync(
+        string workspaceId,
+        string kind,
+        CancellationToken cancellationToken,
+        string? systemPrompt = null,
+        string? customizationPrompt = null)
+    {
+        var payload = new Dictionary<string, string?> { ["kind"] = kind };
+        if (systemPrompt is not null)
+            payload["systemPrompt"] = systemPrompt;
+        if (customizationPrompt is not null)
+            payload["customizationPrompt"] = customizationPrompt;
+        using var response = await _http.PutAsJsonAsync(
+            Root(workspaceId) + "/member",
+            payload,
+            cancellationToken);
+        await EnsureSuccessAsync(response, cancellationToken);
+        return await response.Content.ReadFromJsonAsync<TeamMemberDto>(Options, cancellationToken);
+    }
 
     public async IAsyncEnumerable<AgentEventDto> EventsAsync(string workspaceId, long after, [EnumeratorCancellation] CancellationToken cancellationToken)
     {

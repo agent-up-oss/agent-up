@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { TeamStanding } from '../models/TeamStanding';
-import { agentSettingSave, commandCenterScene, commandCenterSceneId, commandCenterServerLabel, fleetHeadline, moduleRow, prefillEndpoint, tasksTabFor, tokenSave } from './CommandCenterSceneProvider';
+import { agentSettingSave, commandCenterScene, commandCenterSceneId, commandCenterServerLabel, fleetHeadline, moduleRow, prefillEndpoint, systemPromptWasCustomized, TASK_SOURCE_REFRESH_MS, tasksTabFor, tokenSave } from './CommandCenterSceneProvider';
 
 function standing(patch: Partial<TeamStanding> & Pick<TeamStanding, 'workspaceId' | 'displayName' | 'kind'>): TeamStanding {
   return {
@@ -292,6 +292,25 @@ test('member settings is a tab on the open team member', () => {
   assert.equal(scene.state.ollamaSettings, '1');
   assert.equal(scene.text.agentEndpoint, 'http://127.0.0.1:11434');
   assert.equal(scene.text.agentModel, 'llama');
+});
+
+test('member settings bind prompts and warn only when the system prompt was edited', () => {
+  const scene = commandCenterScene({
+    surface: 'mobile', nav: 0, section: 'settings', agentOpen: true, serverLabel: 'Demo', openWorkspaceId: 'bob',
+    team: [standing({ workspaceId: 'bob', displayName: 'Bob', kind: 'idle' })],
+    queue: [], working: [], offered: [], names: new Map(), flows: [],
+    systemPrompt: 'Ship the cards.',
+    customizationPrompt: 'Keep the comma.',
+    promptOverwrite: true,
+    validationsOpen: false, validationRunning: false, validationPassed: false, validationSummary: '',
+  });
+
+  assert.equal(scene.text.systemPrompt, 'Ship the cards.');
+  assert.equal(scene.text.customizationPrompt, 'Keep the comma.');
+  assert.equal(scene.state.promptOverwrite, '1');
+  assert.equal(systemPromptWasCustomized('Ship the cards.', 'Edit the files.'), true);
+  assert.equal(systemPromptWasCustomized('Edit the files.', 'Edit the files.'), false);
+  assert.equal(TASK_SOURCE_REFRESH_MS, 30_000);
 });
 
 test('the settings scene shows the host URL for the selected forge', () => {

@@ -98,7 +98,11 @@ public sealed record CommandCenterSceneInput(
     string MemberKind = "Author",
     string BoundAgent = "",
     string AgentEndpoint = "",
-    string AgentModel = "");
+    string AgentModel = "",
+    string SystemPrompt = "",
+    string CustomizationPrompt = "",
+    string DefaultSystemPrompt = "",
+    bool PromptOverwrite = false);
 
 /// <summary>One application of the open workspace, as its tab shows it.</summary>
 public sealed record CommandCenterApplicationSlot(string Name, bool Running);
@@ -159,6 +163,10 @@ public static class CommandCenterScene
             binding.State["authMember"] = "1";
         }
         binding.State["memberKind"] = input.MemberKind.Length > 0 ? input.MemberKind : "Author";
+        binding.Text["systemPrompt"] = input.SystemPrompt;
+        binding.Text["customizationPrompt"] = input.CustomizationPrompt;
+        if (input.PromptOverwrite)
+            binding.State["promptOverwrite"] = "1";
         binding.Text["agentEndpoint"] = input.AgentEndpoint;
         binding.Text["agentModel"] = input.AgentModel;
         if (string.Equals(input.BoundAgent, "opencode", StringComparison.OrdinalIgnoreCase))
@@ -506,6 +514,14 @@ public static class CommandCenterScene
             return saved.Trim();
         return moduleId.Equals("github", StringComparison.OrdinalIgnoreCase) ? GithubDotCom : "";
     }
+
+    /// <summary>
+    /// Whether the draft system prompt is no longer this kind's default. A type change then
+    /// warns, because the Server replaces that prompt with the new kind's default.
+    /// </summary>
+    public static bool SystemPromptWasCustomized(string? draft, string? defaultPrompt) =>
+        !string.IsNullOrWhiteSpace(draft)
+        && !string.Equals(draft.Trim(), defaultPrompt?.Trim(), StringComparison.Ordinal);
 
     /// <summary>
     /// Token and host URL the Save button should send. The scene keeps one field per action, so

@@ -808,7 +808,10 @@
         "status": 200,
         "body": "object",
         "keys": [
-          "kind"
+          "customizationPrompt",
+          "defaultSystemPrompt",
+          "kind",
+          "systemPrompt"
         ]
       },
       "server": {
@@ -816,11 +819,14 @@
         "body": "object",
         "keys": [
           "controlsBrowser",
+          "customizationPrompt",
+          "defaultSystemPrompt",
           "fixture",
           "kind",
           "operationPermissions",
           "readsRepository",
           "submitsReviews",
+          "systemPrompt",
           "writesRepository"
         ]
       }

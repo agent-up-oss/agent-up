@@ -15,8 +15,8 @@ public sealed class AgentChatViewModel : ReactiveObject
 {
     private readonly AgentsController _controller;
     private readonly CapabilityModulesController? _modules;
-    private string? _workspaceId, _selectedAgent, _boundAgent, _sessionId, _message, _error, _sessionTitle, _mode, _usage, _permissionTitle, _permissionDetail, _hintKind, _hintTool, _loginUrl, _loginCode, _loginInstructions, _loginCodeInput, _memberKind;
-    private bool _canCollectLoginCode, _canSubmitLoginCode;
+    private string? _workspaceId, _selectedAgent, _boundAgent, _sessionId, _message, _error, _sessionTitle, _mode, _usage, _permissionTitle, _permissionDetail, _hintKind, _hintTool, _loginUrl, _loginCode, _loginInstructions, _loginCodeInput, _memberKind, _systemPrompt, _customizationPrompt, _defaultSystemPrompt, _pendingMemberKind;
+    private bool _canCollectLoginCode, _canSubmitLoginCode, _promptOverwrite;
     private AgentLoopStatusDto? _loop;
     private CancellationTokenSource? _loopPoll;
     private Task? _loopPollLoop;
@@ -40,6 +40,11 @@ public sealed class AgentChatViewModel : ReactiveObject
     public string? BoundAgent { get => _boundAgent; private set => this.RaiseAndSetIfChanged(ref _boundAgent, value); }
     public AgentLoopStatusDto? Loop { get => _loop; private set => this.RaiseAndSetIfChanged(ref _loop, value); }
     public string MemberKind { get => _memberKind ?? "Author"; private set => this.RaiseAndSetIfChanged(ref _memberKind, value); }
+    public string SystemPrompt { get => _systemPrompt ?? ""; private set => this.RaiseAndSetIfChanged(ref _systemPrompt, value); }
+    public string CustomizationPrompt { get => _customizationPrompt ?? ""; private set => this.RaiseAndSetIfChanged(ref _customizationPrompt, value); }
+    public string DefaultSystemPrompt { get => _defaultSystemPrompt ?? ""; private set => this.RaiseAndSetIfChanged(ref _defaultSystemPrompt, value); }
+    public bool PromptOverwrite { get => _promptOverwrite; private set => this.RaiseAndSetIfChanged(ref _promptOverwrite, value); }
+    public string? PendingMemberKind { get => _pendingMemberKind; private set => this.RaiseAndSetIfChanged(ref _pendingMemberKind, value); }
     public ObservableCollection<AutonomyPreconditionDto> Preconditions { get; } = [];
     public bool HasAutonomy => Preconditions.Count > 0;
     public bool CanEnableAutonomy =>
@@ -154,6 +159,7 @@ public sealed class AgentChatViewModel : ReactiveObject
     public ReactiveCommand<Unit, Unit> ActivateLoopCommand { get; }
     public ReactiveCommand<Unit, Unit> CancelLoopCommand { get; }
     public ReactiveCommand<string, Unit> SetMemberKindCommand { get; }
+    public ReactiveCommand<(string SystemPrompt, string CustomizationPrompt), Unit> SavePromptsCommand { get; }
 
     public AgentChatViewModel(AgentsController controller, CapabilityModulesController? modules = null)
     {
@@ -171,6 +177,7 @@ public sealed class AgentChatViewModel : ReactiveObject
         ActivateLoopCommand = ReactiveCommand.CreateFromTask(ActivateLoopAsync);
         CancelLoopCommand = ReactiveCommand.CreateFromTask(CancelLoopAsync);
         SetMemberKindCommand = ReactiveCommand.CreateFromTask<string>(SetMemberKindAsync);
+        SavePromptsCommand = ReactiveCommand.CreateFromTask<(string, string)>(SavePromptsAsync);
         Transcript.CollectionChanged += (_, _) => this.RaisePropertyChanged(nameof(HasMessages));
         Sessions.CollectionChanged += (_, _) => this.RaisePropertyChanged(nameof(HasNoSavedSessions));
         Preconditions.CollectionChanged += (_, _) => NotifyLoopSurface();
@@ -188,7 +195,7 @@ public sealed class AgentChatViewModel : ReactiveObject
         await StopLoopPollAsync();
         Transcript.Clear();
         _currentRun = null;
-        PermissionOptions.Clear(); AuthenticationOptions.Clear(); SelectedAgent = null; BoundAgent = null; MemberKind = "Author"; Loop = null; State = "idle"; Error = null; Agents.Clear(); Sessions.Clear(); Preconditions.Clear();
+        PermissionOptions.Clear(); AuthenticationOptions.Clear(); SelectedAgent = null; BoundAgent = null; ApplyMember(null); Loop = null; State = "idle"; Error = null; Agents.Clear(); Sessions.Clear(); Preconditions.Clear();
         SessionTitle = Mode = Usage = PermissionTitle = PermissionDetail = LoginUrl = LoginCode = LoginInstructions = LoginCodeInput = _hintKind = _hintTool = null;
         CanCollectLoginCode = CanSubmitLoginCode = false;
         NotifyComputedChatState();
@@ -269,12 +276,39 @@ public sealed class AgentChatViewModel : ReactiveObject
         ApplyAutonomy(await _controller.GetAutonomyAsync(id, CancellationToken.None));
         TryStartLoopPoll();
     });
-    private async Task SetMemberKindAsync(string kind) => await RunAsync(async id =>
+    private async Task SetMemberKindAsync(string kind) => await ChangeKindAsync(kind, CustomizationPrompt);
+    private async Task SavePromptsAsync((string SystemPrompt, string CustomizationPrompt) prompts) => await RunAsync(async id =>
+        ApplyMember(await _controller.PutMemberAsync(id, MemberKind, CancellationToken.None, prompts.SystemPrompt, prompts.CustomizationPrompt)));
+    public void BeginKindChange(string kind)
     {
-        var member = await _controller.PutMemberAsync(id, kind, CancellationToken.None);
-        if (member is not null)
-            MemberKind = member.Kind;
-    });
+        PendingMemberKind = kind;
+        PromptOverwrite = true;
+    }
+    public void CancelKindChange()
+    {
+        PendingMemberKind = null;
+        PromptOverwrite = false;
+    }
+    public async Task ChangeKindAsync(string kind, string? customizationPrompt) => await RunAsync(async id =>
+        ApplyMember(await _controller.PutMemberAsync(id, kind, CancellationToken.None, customizationPrompt: customizationPrompt ?? CustomizationPrompt)));
+    public async Task ConfirmKindChangeAsync(string? customizationPrompt)
+    {
+        var kind = PendingMemberKind;
+        if (string.IsNullOrEmpty(kind))
+            return;
+        PromptOverwrite = false;
+        PendingMemberKind = null;
+        await ChangeKindAsync(kind, customizationPrompt);
+    }
+    private void ApplyMember(TeamMemberDto? member)
+    {
+        MemberKind = member?.Kind ?? "Author";
+        SystemPrompt = member?.SystemPrompt ?? "";
+        CustomizationPrompt = member?.CustomizationPrompt ?? "";
+        DefaultSystemPrompt = member?.DefaultSystemPrompt ?? "";
+        PromptOverwrite = false;
+        PendingMemberKind = null;
+    }
     private async Task LoadMemberAsync(int generation)
     {
         if (_workspaceId is null) return;
@@ -282,12 +316,12 @@ public sealed class AgentChatViewModel : ReactiveObject
         {
             var member = await _controller.GetMemberAsync(_workspaceId, CancellationToken.None);
             if (generation != _loadGeneration) return;
-            MemberKind = member?.Kind ?? "Author";
+            ApplyMember(member);
         }
         catch (Exception exception) when (exception is HttpRequestException or JsonException or InvalidOperationException or TaskCanceledException)
         {
             if (generation == _loadGeneration)
-                MemberKind = "Author";
+                ApplyMember(null);
         }
     }
     private async Task ActivateLoopAsync() => await RunAsync(async id =>

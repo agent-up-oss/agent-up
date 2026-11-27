@@ -878,6 +878,25 @@ public sealed class FakeBackendServiceTests
             Assert.That(refused.Status, Is.EqualTo(409));
             Assert.That(missing.Status, Is.EqualTo(404));
             Assert.That(unknown.Status, Is.EqualTo(404));
+            Assert.That(before["systemPrompt"]!.GetValue<string>(), Does.StartWith("Edit the files"));
+            Assert.That(before["defaultSystemPrompt"]!.GetValue<string>(), Is.EqualTo(before["systemPrompt"]!.GetValue<string>()));
+        });
+    }
+
+    [Test]
+    public void Handle_memberPromptsKeepCustomizationWhenTheKindChanges()
+    {
+        var backend = FakeServerTestComposition.Backend();
+        Json(backend, Put("/api/workspaces/bob/agent/member", """{"kind":"Author","systemPrompt":"Ship the cards.","customizationPrompt":"Keep the comma."}"""));
+
+        var changed = Json(backend, Put("/api/workspaces/bob/agent/member", """{"kind":"DevReviewer"}"""));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(changed["kind"]!.GetValue<string>(), Is.EqualTo("DevReviewer"));
+            Assert.That(changed["systemPrompt"]!.GetValue<string>(), Does.StartWith("Check that the change"));
+            Assert.That(changed["customizationPrompt"]!.GetValue<string>(), Is.EqualTo("Keep the comma."));
+            Assert.That(changed["defaultSystemPrompt"]!.GetValue<string>(), Is.EqualTo(changed["systemPrompt"]!.GetValue<string>()));
         });
     }
 

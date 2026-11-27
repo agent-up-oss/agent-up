@@ -525,6 +525,69 @@ public sealed class AgentChatViewModelTests
     }
 
     [Test]
+    public async Task SavePromptsCommand_storesBothPromptsOnTheSameKind()
+    {
+        var fake = new ChatApiFake { Member = new TeamMemberDto("Author", "Edit the files.", null, "Edit the files.") };
+        var view = CreateView(fake);
+        await view.LoadAsync("ws-1");
+
+        await view.SavePromptsCommand.Execute(("Ship the cards.", "Keep the comma.")).FirstAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(fake.LastMemberKind, Is.EqualTo("Author"));
+            Assert.That(fake.LastSystemPrompt, Is.EqualTo("Ship the cards."));
+            Assert.That(fake.LastCustomizationPrompt, Is.EqualTo("Keep the comma."));
+            Assert.That(view.SystemPrompt, Is.EqualTo("Ship the cards."));
+            Assert.That(view.CustomizationPrompt, Is.EqualTo("Keep the comma."));
+        });
+        await view.LoadAsync(null);
+    }
+
+    [Test]
+    public async Task ChangeKindAsync_omitsTheSystemPromptAndKeepsDraftCustomization()
+    {
+        var fake = new ChatApiFake { Member = new TeamMemberDto("Author", "Edit the files.", null, "Edit the files.") };
+        var view = CreateView(fake);
+        await view.LoadAsync("ws-1");
+
+        await view.ChangeKindAsync("DevReviewer", "Keep the comma.");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(fake.LastMemberKind, Is.EqualTo("DevReviewer"));
+            Assert.That(fake.LastSystemPrompt, Is.Null);
+            Assert.That(fake.LastCustomizationPrompt, Is.EqualTo("Keep the comma."));
+            Assert.That(view.MemberKind, Is.EqualTo("DevReviewer"));
+        });
+        await view.LoadAsync(null);
+    }
+
+    [Test]
+    public async Task ConfirmKindChange_putsThePendingKindAndKeepsCustomization()
+    {
+        var fake = new ChatApiFake
+        {
+            Member = new TeamMemberDto("Author", "Ship the cards.", "Keep the comma.", "Edit the files."),
+        };
+        var view = CreateView(fake);
+        await view.LoadAsync("ws-1");
+        view.BeginKindChange("DevReviewer");
+
+        await view.ConfirmKindChangeAsync("Keep the comma.");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(view.PromptOverwrite, Is.False);
+            Assert.That(fake.LastMemberKind, Is.EqualTo("DevReviewer"));
+            Assert.That(fake.LastSystemPrompt, Is.Null);
+            Assert.That(fake.LastCustomizationPrompt, Is.EqualTo("Keep the comma."));
+            Assert.That(view.MemberKind, Is.EqualTo("DevReviewer"));
+        });
+        await view.LoadAsync(null);
+    }
+
+    [Test]
     public async Task EnableAutonomyCommand_persistsServerEnablement()
     {
         var fake = new ChatApiFake();
@@ -1244,6 +1307,8 @@ internal sealed class ChatApiFake : IAgentApiProvider
 
     public TeamMemberDto? Member { get; set; }
     public string? LastMemberKind { get; private set; }
+    public string? LastSystemPrompt { get; private set; }
+    public string? LastCustomizationPrompt { get; private set; }
     public Exception? MemberFailure { get; set; }
 
     public Task<TeamMemberDto?> GetMemberAsync(string workspaceId, CancellationToken cancellationToken)
@@ -1251,10 +1316,17 @@ internal sealed class ChatApiFake : IAgentApiProvider
             ? Task.FromResult(Member)
             : Task.FromException<TeamMemberDto?>(MemberFailure);
 
-    public Task<TeamMemberDto?> PutMemberAsync(string workspaceId, string kind, CancellationToken cancellationToken)
+    public Task<TeamMemberDto?> PutMemberAsync(
+        string workspaceId,
+        string kind,
+        CancellationToken cancellationToken,
+        string? systemPrompt = null,
+        string? customizationPrompt = null)
     {
         LastMemberKind = kind;
-        Member = new TeamMemberDto(kind);
+        LastSystemPrompt = systemPrompt;
+        LastCustomizationPrompt = customizationPrompt;
+        Member = new TeamMemberDto(kind, systemPrompt ?? Member?.SystemPrompt ?? "", customizationPrompt ?? Member?.CustomizationPrompt, Member?.DefaultSystemPrompt ?? "");
         return Task.FromResult<TeamMemberDto?>(Member);
     }
 

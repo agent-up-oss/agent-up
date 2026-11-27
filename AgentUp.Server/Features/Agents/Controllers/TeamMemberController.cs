@@ -11,6 +11,8 @@ public sealed class TeamMemberController(TeamMemberService members)
 
     public AgentActionResult Set(string workspaceId, TeamMemberKind kind) => members.Set(workspaceId, kind);
 
+    public AgentActionResult Set(string workspaceId, TeamMemberRequest request) => members.Set(workspaceId, request);
+
     /// <summary>Null when the workspace may raise review threads; otherwise why not.</summary>
     public string? ReviewRefusal(string workspaceId) => members.ReviewRefusal(workspaceId);
 

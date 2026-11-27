@@ -27,6 +27,8 @@ public sealed class FakeBackendService
     private bool _autonomyEnabled;
     /// <summary>Team member kind per workspace. Missing is Author.</summary>
     private readonly Dictionary<string, string> _memberKinds = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, string> _memberSystemPrompts = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, string> _memberCustomizations = new(StringComparer.OrdinalIgnoreCase);
     private long _agentSequence;
 
     public const int StartPhaseMilliseconds = 10000;
@@ -67,6 +69,8 @@ public sealed class FakeBackendService
             _loopGeneration++;
             _tokens.Clear();
             _memberKinds.Clear();
+            _memberSystemPrompts.Clear();
+            _memberCustomizations.Clear();
             _tokens["bob"] = ("github", "https://github.com", "demo");
             CancelLifecycle();
             CaptureTemplates();
@@ -662,8 +666,7 @@ public sealed class FakeBackendService
         {
             if (FindWorkspace(workspaceId) is null)
                 return NotFound();
-            var kind = _memberKinds.GetValueOrDefault(workspaceId, "Author");
-            return Json(new JsonObject { ["kind"] = kind });
+            return Json(MemberDocument(workspaceId, _memberKinds.GetValueOrDefault(workspaceId, "Author")));
         }
     }
 
@@ -676,10 +679,63 @@ public sealed class FakeBackendService
             var kind = ReadJsonString(body, "kind")?.Trim();
             if (kind is not ("Author" or "DevReviewer" or "PmReviewer"))
                 return new FakeBackendResponseDto(409, "application/json", """{"detail":"Choose Author, Dev reviewer, or PM reviewer."}""");
+            var previous = _memberKinds.GetValueOrDefault(workspaceId, "Author");
             _memberKinds[workspaceId] = kind;
-            return Json(new JsonObject { ["kind"] = kind });
+            if (previous != kind)
+                _memberSystemPrompts.Remove(workspaceId);
+            else
+            {
+                var prompt = ReadJsonString(body, "systemPrompt");
+                if (prompt is not null)
+                {
+                    if (prompt == DefaultSystemPrompt(kind))
+                        _memberSystemPrompts.Remove(workspaceId);
+                    else
+                        _memberSystemPrompts[workspaceId] = prompt;
+                }
+            }
+            var customization = ReadJsonString(body, "customizationPrompt");
+            if (customization is not null)
+            {
+                if (customization.Length == 0)
+                    _memberCustomizations.Remove(workspaceId);
+                else
+                    _memberCustomizations[workspaceId] = customization;
+            }
+            return Json(MemberDocument(workspaceId, kind));
         }
     }
+
+    private JsonObject MemberDocument(string workspaceId, string kind)
+    {
+        var defaults = DefaultSystemPrompt(kind);
+        return new JsonObject
+        {
+            ["kind"] = kind,
+            ["systemPrompt"] = _memberSystemPrompts.GetValueOrDefault(workspaceId, defaults),
+            ["customizationPrompt"] = _memberCustomizations.GetValueOrDefault(workspaceId, ""),
+            ["defaultSystemPrompt"] = defaults,
+        };
+    }
+
+    private static string DefaultSystemPrompt(string kind) => kind switch
+    {
+        "DevReviewer" =>
+            "Check that the change does what the issue asks and nothing else, and look for bugs. The diff above is the whole change, so you can review it directly; you cannot change files. " +
+            "You may start the workspace with start_workspace to check that it runs. " +
+            "Submit your review with submit_review: verdict approve or request_changes, a summary, and a finding at the file and line of each problem. " +
+            "Without that tool, reply with your review and a last line that is exactly VERDICT: APPROVE or VERDICT: REQUEST_CHANGES.",
+        "PmReviewer" =>
+            "You are the product reviewer on this team. You review what a user would see, not the code. " +
+            "The revision under review is already running: open it in the browser, try what the issue asks for, and judge whether it does it. " +
+            "Take a browser_screenshot of anything wrong. If you cannot do what the issue asks through the interface, request changes. " +
+            "Submit your review with submit_review: verdict approve or request_changes, what you tried and saw, and the screenshot artifact ids. " +
+            "Without that tool, finish with your review and a last line that is exactly VERDICT: APPROVE or VERDICT: REQUEST_CHANGES.",
+        _ =>
+            "Edit the files in this repository to make this change, and update the tests to match. " +
+            "Agent-Up commits, pushes and proposes your change for review, so never commit or push yourself. " +
+            "When you are done, call submit_work with a short summary of what you changed, or reply with that summary.",
+    };
 
     private static JsonObject Precondition(string id, bool satisfied, string remedy) => new()
     {

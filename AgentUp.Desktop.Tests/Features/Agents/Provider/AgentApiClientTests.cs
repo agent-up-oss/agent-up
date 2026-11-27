@@ -174,6 +174,25 @@ public sealed class AgentApiClientTests
             Assert.That(handler.Uri!.PathAndQuery, Is.EqualTo("/api/workspaces/ws%201/agent/member"));
             Assert.That(loaded!.Kind, Is.EqualTo("DevReviewer"));
             Assert.That(saved!.Kind, Is.EqualTo("DevReviewer"));
+            Assert.That(handler.LastRequestBody, Is.EqualTo("{\"kind\":\"PmReviewer\"}"));
+        });
+    }
+
+    [Test]
+    public async Task PutMemberAsync_sendsEditedPromptsWhenTheyAreSet()
+    {
+        const string body = "{\"kind\":\"Author\"}";
+        using var handler = new AgentHandler(HttpStatusCode.OK, body, mediaType: "application/json");
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://localhost") };
+        var client = new AgentApiClient(http);
+
+        await client.PutMemberAsync("ws 1", "Author", CancellationToken.None, "Ship the cards.", "Keep the comma.");
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(handler.LastRequestBody, Does.Contain("\"kind\":\"Author\""));
+            Assert.That(handler.LastRequestBody, Does.Contain("\"systemPrompt\":\"Ship the cards.\""));
+            Assert.That(handler.LastRequestBody, Does.Contain("\"customizationPrompt\":\"Keep the comma.\""));
         });
     }
 
@@ -222,12 +241,14 @@ public sealed class AgentApiClientTests
 internal sealed class AgentHandler(HttpStatusCode status = HttpStatusCode.OK, string? body = null, bool eventStream = false, string? mediaType = null) : HttpMessageHandler
 {
     public Uri? Uri { get; private set; }
-    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    public string? LastRequestBody { get; private set; }
+    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         Uri = request.RequestUri;
+        LastRequestBody = request.Content is null ? null : await request.Content.ReadAsStringAsync(cancellationToken);
         var text = body ?? "id: 5\nevent: state\ndata: {\"sequence\":5,\"type\":\"state\",\"payload\":{},\"timestamp\":\"2026-01-01T00:00:00Z\"}\n\n";
         var responseMediaType = mediaType ?? (eventStream || body is null ? "text/event-stream" : "application/problem+json");
-        return Task.FromResult(HttpTestResponses.Text(status, text, responseMediaType));
+        return HttpTestResponses.Text(status, text, responseMediaType);
     }
 }
 

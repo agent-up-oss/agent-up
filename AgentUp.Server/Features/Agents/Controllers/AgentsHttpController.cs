@@ -69,17 +69,17 @@ public sealed class AgentsHttpController(
 
     [HttpPut("member")]
     public IActionResult PutMember(string workspaceId, TeamMemberRequest request) =>
-        MemberResult(this, members, workspaceId, request.Kind);
+        MemberResult(this, members, workspaceId, request);
 
     private static IActionResult MemberResult(
         ControllerBase controller,
         TeamMemberController? members,
         string workspaceId,
-        TeamMemberKind kind)
+        TeamMemberRequest request)
     {
         if (members is null)
             return controller.Problem(statusCode: 409, title: "Agent operation failed", detail: "Team members are not configured.");
-        var result = members.Set(workspaceId, kind);
+        var result = members.Set(workspaceId, request);
         if (!result.Found) return controller.NotFound();
         return result.Error is null
             ? controller.Ok(members.Describe(workspaceId))
