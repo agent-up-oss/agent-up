@@ -41,7 +41,15 @@
       <header class="aun-phone__head" data-au-slot="head"></header>
       <div data-au-slot="tabs"></div>
       <div class="aun-phone__body" data-au-slot="body"></div>
-      <div data-au-slot="nav"></div>
+    </div>
+  </section>
+
+  <!-- A member page that lays itself out to the edges, such as Git with its change sheet. -->
+  <section data-au-layout="mobile-agent-page">
+    <div data-au-use="phone">
+      <header class="aun-phone__head" data-au-slot="head"></header>
+      <div data-au-slot="tabs"></div>
+      <div class="aun-phone__body aun-phone__body--page" data-au-slot="body"></div>
     </div>
   </section>
 
@@ -141,35 +149,30 @@
     <div data-au-region="head" data-au-use="mobile-agent-head"></div>
     <div data-au-region="tabs" data-au-use="mobile-tabs-apps"></div>
     <div data-au-region="body" data-au-use="mobile-apps-body"></div>
-    <div data-au-region="nav" data-au-use="mobile-tabbar" data-au-state="selected:0"></div>
   </section>
 
   <section data-au-scene="mobile-chat" data-au-platform="mobile" data-au-view="chat" data-au-title="Agent · Chat" data-au-layout="mobile-agent">
     <div data-au-region="head" data-au-use="mobile-agent-head"></div>
     <div data-au-region="tabs" data-au-use="mobile-tabs-chat"></div>
     <div data-au-region="body" data-au-use="mobile-chat"></div>
-    <div data-au-region="nav" data-au-use="mobile-tabbar" data-au-state="selected:0"></div>
   </section>
 
-  <section data-au-scene="mobile-agent-git" data-au-platform="mobile" data-au-view="git" data-au-title="Agent · Git" data-au-layout="mobile-agent">
+  <section data-au-scene="mobile-agent-git" data-au-platform="mobile" data-au-view="git" data-au-title="Agent · Git" data-au-layout="mobile-agent-page">
     <div data-au-region="head" data-au-use="mobile-agent-head"></div>
     <div data-au-region="tabs" data-au-use="mobile-tabs-git"></div>
     <div data-au-region="body" data-au-use="mobile-git-body"></div>
-    <div data-au-region="nav" data-au-use="mobile-tabbar" data-au-state="selected:0"></div>
   </section>
 
   <section data-au-scene="mobile-agent-files" data-au-platform="mobile" data-au-view="files" data-au-title="Agent · Files" data-au-layout="mobile-agent">
     <div data-au-region="head" data-au-use="mobile-agent-head"></div>
     <div data-au-region="tabs" data-au-use="mobile-tabs-files"></div>
     <div data-au-region="body" data-au-use="mobile-files-body"></div>
-    <div data-au-region="nav" data-au-use="mobile-tabbar" data-au-state="selected:0"></div>
   </section>
 
   <section data-au-scene="mobile-agent-settings" data-au-platform="mobile" data-au-view="member-settings" data-au-title="Agent · Settings" data-au-layout="mobile-agent">
     <div data-au-region="head" data-au-use="mobile-agent-head"></div>
     <div data-au-region="tabs" data-au-use="mobile-tabs-settings"></div>
     <div data-au-region="body" data-au-use="member-settings"></div>
-    <div data-au-region="nav" data-au-use="mobile-tabbar" data-au-state="selected:0"></div>
   </section>
 
   <section data-au-scene="mobile-agent-file" data-au-platform="mobile" data-au-view="file" data-au-title="Agent · File" data-au-layout="mobile-command">

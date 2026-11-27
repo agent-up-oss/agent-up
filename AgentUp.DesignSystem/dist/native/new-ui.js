@@ -1472,6 +1472,30 @@ export const newUiTheme = Object.freeze({
       paddingBottom: 8,
       paddingLeft: 0,
     }),
+    gitChangeSheet: Object.freeze({
+
+    }),
+    gitChangeSheetHead: Object.freeze({
+      paddingTop: 0,
+      paddingRight: 20,
+      paddingBottom: 8,
+      paddingLeft: 20,
+    }),
+    gitChangeSheetTitle: Object.freeze({
+      fontSize: 14,
+      fontWeight: '600',
+      color: "#f5fbf7",
+    }),
+    gitChangeSheetCount: Object.freeze({
+      fontSize: 12,
+      color: "#8a9a92",
+    }),
+    gitChangeSheetList: Object.freeze({
+      paddingTop: 0,
+      paddingRight: 8,
+      paddingBottom: 8,
+      paddingLeft: 8,
+    }),
     sheetHeader: Object.freeze({
       paddingTop: 8,
       paddingRight: 20,
@@ -1718,6 +1742,9 @@ export const newUiTheme = Object.freeze({
     }),
     gitCommit__input: Object.freeze({
       minHeight: 72,
+    }),
+    gitCommitMobile: Object.freeze({
+      marginTop: 0,
     }),
     gitCommitMobile__input: Object.freeze({
       minHeight: 90,
@@ -3161,6 +3188,19 @@ export const newUiTheme = Object.freeze({
     }),
     aunPhoneDock: Object.freeze({
 
+    }),
+    aunPhoneBodyPage: Object.freeze({
+      paddingTop: 0,
+      paddingRight: 0,
+      paddingBottom: 0,
+      paddingLeft: 0,
+    }),
+    aunGitPane: Object.freeze({
+      minHeight: 0,
+      paddingTop: 16,
+      paddingRight: 16,
+      paddingBottom: 0,
+      paddingLeft: 16,
     }),
     mobileTabBar__navIcon: Object.freeze({
       opacity: 0.55,

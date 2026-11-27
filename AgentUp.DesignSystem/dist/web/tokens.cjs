@@ -1257,6 +1257,26 @@ const agentUpTheme = Object.freeze({
       paddingHorizontal: 0,
       paddingVertical: 8,
     }),
+    gitChangeSheet: Object.freeze({
+
+    }),
+    gitChangeSheetHead: Object.freeze({
+      paddingHorizontal: 20,
+      paddingVertical: 0,
+    }),
+    gitChangeSheetTitle: Object.freeze({
+      fontSize: 14,
+      fontWeight: '600',
+      color: "#f5fbf7",
+    }),
+    gitChangeSheetCount: Object.freeze({
+      fontSize: 12,
+      color: "#8a9a92",
+    }),
+    gitChangeSheetList: Object.freeze({
+      paddingHorizontal: 8,
+      paddingVertical: 0,
+    }),
     sheetHeader: Object.freeze({
       paddingHorizontal: 20,
       paddingVertical: 8,
@@ -1375,6 +1395,9 @@ const agentUpTheme = Object.freeze({
       borderColor: "#ffffff14",
     }),
     gitCommit: Object.freeze({
+
+    }),
+    gitCommitMobile: Object.freeze({
 
     }),
     gitLog: Object.freeze({

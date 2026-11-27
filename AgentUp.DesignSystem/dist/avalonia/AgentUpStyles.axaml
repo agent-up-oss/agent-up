@@ -2405,6 +2405,27 @@
   <Style Selector="TextBlock.au-sheet-grabber-row">
     <Setter Property="Padding" Value="0,8"/>
   </Style>
+  <Style Selector="Border.au-git-change-sheet-head">
+    <Setter Property="Padding" Value="20,0,20,8"/>
+  </Style>
+  <Style Selector="TextBlock.au-git-change-sheet-head">
+    <Setter Property="Padding" Value="20,0,20,8"/>
+  </Style>
+  <Style Selector="TextBlock.au-git-change-sheet-title">
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiLg}"/>
+    <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-git-change-sheet-count">
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+  </Style>
+  <Style Selector="Border.au-git-change-sheet-list">
+    <Setter Property="Padding" Value="8,0,8,8"/>
+  </Style>
+  <Style Selector="TextBlock.au-git-change-sheet-list">
+    <Setter Property="Padding" Value="8,0,8,8"/>
+  </Style>
   <Style Selector="Border.au-sheet-header">
     <Setter Property="Padding" Value="20,8"/>
   </Style>

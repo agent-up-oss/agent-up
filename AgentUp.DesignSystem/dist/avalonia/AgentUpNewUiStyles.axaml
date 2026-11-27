@@ -2964,6 +2964,36 @@
   <Style Selector="TextBlock.au-sheet-grabber-row">
     <Setter Property="Padding" Value="0,8,0,8"/>
   </Style>
+  <Style Selector="Border.au-git-change-sheet-head">
+    <Setter Property="Padding" Value="20,0,20,8"/>
+  </Style>
+  <Style Selector="TextBlock.au-git-change-sheet-head">
+    <Setter Property="Padding" Value="20,0,20,8"/>
+  </Style>
+  <Style Selector="TextBlock.au-git-change-sheet-title">
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiLg}"/>
+    <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+  </Style>
+  <Style Selector="Border.au-git-change-sheet-title">
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiLg}"/>
+    <Setter Property="TextElement.FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-git-change-sheet-count">
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+  </Style>
+  <Style Selector="Border.au-git-change-sheet-count">
+    <Setter Property="TextElement.FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
+    <Setter Property="TextElement.Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+  </Style>
+  <Style Selector="Border.au-git-change-sheet-list">
+    <Setter Property="Padding" Value="8,0,8,8"/>
+  </Style>
+  <Style Selector="TextBlock.au-git-change-sheet-list">
+    <Setter Property="Padding" Value="8,0,8,8"/>
+  </Style>
   <Style Selector="Border.au-sheet-header">
     <Setter Property="Padding" Value="20,8,20,8"/>
   </Style>
@@ -3268,6 +3298,12 @@
   </Style>
   <Style Selector="Border.au-git-commit TextBox.au-input">
     <Setter Property="MinHeight" Value="72"/>
+  </Style>
+  <Style Selector="Border.au-git-commit--mobile">
+    <Setter Property="Margin" Value="0,0,0,0"/>
+  </Style>
+  <Style Selector="TextBlock.au-git-commit--mobile">
+    <Setter Property="Margin" Value="0,0,0,0"/>
   </Style>
   <Style Selector="Border.au-git-commit--mobile TextBox.au-input">
     <Setter Property="MinHeight" Value="90"/>
@@ -5452,6 +5488,20 @@
   <Style Selector="TextBlock.aun-phone__body">
     <Setter Property="MinHeight" Value="0"/>
     <Setter Property="Padding" Value="16,16,16,16"/>
+  </Style>
+  <Style Selector="Border.aun-phone__body--page">
+    <Setter Property="Padding" Value="0,0,0,0"/>
+  </Style>
+  <Style Selector="TextBlock.aun-phone__body--page">
+    <Setter Property="Padding" Value="0,0,0,0"/>
+  </Style>
+  <Style Selector="Border.aun-git-pane">
+    <Setter Property="MinHeight" Value="0"/>
+    <Setter Property="Padding" Value="16,16,16,0"/>
+  </Style>
+  <Style Selector="TextBlock.aun-git-pane">
+    <Setter Property="MinHeight" Value="0"/>
+    <Setter Property="Padding" Value="16,16,16,0"/>
   </Style>
   <Style Selector="Border.au-mobile-tab-bar Border.au-nav-icon">
     <Setter Property="Opacity" Value="0.55"/>
