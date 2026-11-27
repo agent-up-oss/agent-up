@@ -27,7 +27,7 @@ export function GitChangeSheet({ pageHeight, count, children }: {
   const shown = useRef(new Animated.Value(detents.peek)).current;
   const [detent, setDetent] = useState<GitChangeSheetDetent>('peek');
   // The gesture handlers are made once, so they read the current values through refs.
-  const live = useRef({ detent: 'peek' as GitChangeSheetDetent, scrollTop: 0, start: 0, height: detents.peek, detents });
+  const live = useRef({ detent: 'peek' as GitChangeSheetDetent, scrollTop: 0, start: 0, height: detents.peek, grant: 0, moved: false, detents });
   live.current.detents = detents;
 
   // The height on screen, so a drag that interrupts a spring starts where the sheet is, not where
@@ -68,11 +68,19 @@ export function GitChangeSheet({ pageHeight, count, children }: {
       onPanResponderGrant: () => {
         // A native-driven spring reports where it stopped through the callback; until then the
         // last height the listener saw is the closest to what is on screen.
+        // It is ignored once this drag has moved, or once a later drag has begun, so a late
+        // callback never moves a baseline the finger is already following.
+        const grant = ++live.current.grant;
+        live.current.moved = false;
         live.current.start = live.current.height;
-        shown.stopAnimation(value => { live.current.start = value; });
+        shown.stopAnimation(value => {
+          if (grant === live.current.grant && !live.current.moved) live.current.start = value;
+        });
       },
-      onPanResponderMove: (_, gesture) =>
-        shown.setValue(gitChangeSheetDraggedHeight(live.current.start, gesture.dy, live.current.detents)),
+      onPanResponderMove: (_, gesture) => {
+        live.current.moved = true;
+        shown.setValue(gitChangeSheetDraggedHeight(live.current.start, gesture.dy, live.current.detents));
+      },
       onPanResponderRelease: (_, gesture) => {
         const height = gitChangeSheetDraggedHeight(live.current.start, gesture.dy, live.current.detents);
         rest(settleGitChangeSheet({ height, velocity: gesture.vy, detents: live.current.detents }), gesture.vy);
