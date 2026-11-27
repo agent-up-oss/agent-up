@@ -642,7 +642,7 @@ export function createNewUiScene(React, native) {
       // The stem ends in a dot (\`::after\` on the web).
       return h(View, { key, style: { alignSelf: 'center', alignItems: 'center', height: 20 } },
         h(View, { style: [box, { height: 16 }] }),
-        h(View, { style: { width: 8, height: 8, marginTop: -4, borderRadius: 4, backgroundColor: newUiTheme.colors.textFaint } }));
+        h(View, { style: { width: 5, height: 5, marginTop: -3, borderRadius: 3, backgroundColor: newUiTheme.colors.borderStrong } }));
     }
     const inner = { scope: [...ctx.scope, ...classes.map(bindingName)], ink };
     // A block that holds nothing but words is one line of copy, painted by its own class.
