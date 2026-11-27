@@ -7,6 +7,7 @@ import {
   applyPresentedUpdate,
   groupTranscript,
   liveWorkId,
+  workSectionIdForItem,
   activeEntryId,
   workCounts,
   parsePermission,
@@ -284,6 +285,14 @@ test('consecutive finished edits, reads and thoughts fold into one count line, a
   assert.equal(work?.type === 'work' && work.duration, '14s', 'from the prompt to the last step of the work');
   assert.equal(thoughtLabel(items[1]!, false), 'Thought for 4s');
   assert.equal(thoughtLabel(items[1]!, true), 'Thinking');
+});
+
+test('a sheet handoff finds the work section that holds the open item', () => {
+  const thought: TranscriptItem = { id: 'th', role: 'thought', text: 'Checking' };
+  const blocks = groupTranscript([userMessageItem(1, { text: 'Go' }), thought]);
+  const work = blocks.find(block => block.type === 'work');
+  assert.equal(workSectionIdForItem(blocks, 'th'), work?.type === 'work' ? work.id : undefined);
+  assert.equal(workSectionIdForItem(blocks, 'missing'), undefined);
 });
 
 test('a steering turn that follows with no prompt gets its own reply instead of joining the last one', () => {

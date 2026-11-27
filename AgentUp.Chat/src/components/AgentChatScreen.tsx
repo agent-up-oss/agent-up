@@ -26,6 +26,7 @@ import {
   groupTranscript,
   foldWork,
   activeEntryId,
+  workSectionIdForItem,
   endTurn,
   thoughtLabel,
   liveWorkId,
@@ -218,8 +219,10 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent, on
     if (sheetLayout || sheetItemId === null) return;
     const id = sheetItemId;
     setOpenedIds(current => ({ ...current, [id]: true }));
+    const sectionId = workSectionIdForItem(blocks, id);
+    if (sectionId) setExpandedRuns(current => ({ ...current, [sectionId]: true }));
     setSheetItemId(null);
-  }, [sheetLayout, sheetItemId]);
+  }, [sheetLayout, sheetItemId, blocks]);
   // The transcript follows new output while the reader is at the end, and stays put once they scroll up.
   const scroll = useRef<ScrollViewInstance>(null);
   const following = useRef(true);
@@ -355,12 +358,15 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent, on
               const open = expandedRuns[block.id] ?? live;
               const activeId = live ? liveEntryId : undefined;
               // Sections unfold in place; the items inside them open in a sheet on a phone, in place when wider.
-              const renderItem = (item: TranscriptItem) => <Arrive key={item.id}><TranscriptRow item={item} active={item.id === activeId || Boolean(openedIds[item.id])} onOpen={openItem} /></Arrive>;
+              const renderItem = (item: TranscriptItem) => {
+                const itemLive = item.id === activeId;
+                return <Arrive key={item.id}><TranscriptRow item={item} live={itemLive} expanded={itemLive || Boolean(openedIds[item.id])} onOpen={openItem} /></Arrive>;
+              };
               return <Arrive key={block.id}><View style={styles.run} testID="agent-work">
                 {!live && <Pressable accessibilityRole="button" onPress={() => setExpandedRuns(current => ({ ...current, [block.id]: !open }))} style={styles.runHeader}><Text style={styles.runSummary}>{workSummary(block.items, block.duration)}</Text><Text style={styles.runSummary}>{open ? '▾' : '▸'}</Text></Pressable>}
                 <Reveal open={open}><View style={styles.runEntries}>{foldWork(block.items, item => presentToolItem(item).summary, activeId).map(entry =>
                   entry.type === 'fold'
-                    ? <WorkFoldRow key={entry.id} entry={entry} renderItem={renderItem} />
+                    ? <WorkFoldRow key={entry.id} entry={entry} renderItem={renderItem} keepOpen={entry.items.some(item => openedIds[item.id])} />
                     : renderItem(entry.item))}</View></Reveal>
               </View></Arrive>;
             })}
@@ -387,15 +393,15 @@ export function AgentChatScreen({ workspace, server, changesPanel, onPresent, on
   </View>;
 }
 
-function TranscriptRow({ item, active, onOpen }: { item: TranscriptItem; active: boolean; onOpen: (item: TranscriptItem) => void }) {
+function TranscriptRow({ item, live, expanded, onOpen }: { item: TranscriptItem; live: boolean; expanded: boolean; onOpen: (item: TranscriptItem) => void }) {
   if (item.role === 'thought') {
     // A thought is one line, streaming in place while the agent is still thinking; tapping it opens the whole thought.
     return <Pressable testID={`agent-thought-${item.id}`} accessibilityRole="button" accessibilityHint="Opens the whole thought" onPress={() => onOpen(item)} style={styles.thought}>
-      <Text style={styles.thoughtLabel}>{thoughtLabel(item, active)}</Text>
-      <Reveal open={active}><Text style={styles.thoughtBody}>{visibleText(item.text)}</Text></Reveal>
+      <Text style={styles.thoughtLabel}>{thoughtLabel(item, live)}</Text>
+      <Reveal open={expanded}><Text style={styles.thoughtBody}>{visibleText(item.text)}</Text></Reveal>
     </Pressable>;
   }
-  if (item.role === 'tool') return <ToolCallRow item={item} active={active} onOpen={onOpen} />;
+  if (item.role === 'tool') return <ToolCallRow item={item} active={expanded} onOpen={onOpen} />;
   if (item.role === 'plan') {
     return <View style={styles.work}><Text style={styles.role}>Plan</Text>{item.entries?.map(entry => <Text key={entry.content} style={styles.planEntry}>{statusMark(entry.status)} {entry.content}</Text>) ?? <Text style={styles.workBody}>{item.text}</Text>}</View>;
   }
