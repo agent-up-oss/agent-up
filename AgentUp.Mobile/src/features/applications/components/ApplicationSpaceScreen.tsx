@@ -15,6 +15,7 @@ import { isDatabaseApplication } from '@/features/database/providers/DatabaseExp
 import { ValidationDock } from '@/features/validation/components/ValidationDock';
 import { showsValidationChrome } from '@/features/validation/providers/ValidationPanelProvider';
 import type { ValidationReplayHost } from '@/features/validation/providers/ValidationReplayProvider';
+import { ReadingContent } from '@/features/shell/components/ReadingContent';
 import { useWorkspaceInnerShell } from '@/features/shell/hooks/useWorkspaceInnerShell';
 import { useShellConfig } from '@/features/shell/hooks/useShellConfig';
 
@@ -95,42 +96,52 @@ export function ApplicationSpaceScreen({ workspace, applicationName, showValidat
   if (applicationKind === 'Desktop') {
     if (viewerError) {
       return (
-        <View style={styles.center}>
-          <Text style={styles.error}>Could not open the desktop application: {viewerError}</Text>
-        </View>
+        <ReadingContent>
+          <View style={styles.center}>
+            <Text style={styles.error}>Could not open the desktop application: {viewerError}</Text>
+          </View>
+        </ReadingContent>
       );
     }
     if (!viewerUrl) {
       return (
-        <View style={styles.center}>
-          <ActivityIndicator color={agentUpTheme.colors.accent} />
-          <Text style={styles.status}>Connecting to the desktop application...</Text>
-        </View>
+        <ReadingContent>
+          <View style={styles.center}>
+            <ActivityIndicator color={agentUpTheme.colors.accent} />
+            <Text style={styles.status}>Connecting to the desktop application...</Text>
+          </View>
+        </ReadingContent>
       );
     }
-    return <View style={styles.desktop}><DesktopStreamView url={viewerUrl} /></View>;
+    return <ReadingContent><View style={styles.desktop}><DesktopStreamView url={viewerUrl} /></View></ReadingContent>;
   }
 
   if (database) {
-    return <DatabaseExplorerScreen workspaceId={workspace.id} applicationName={applicationName} />;
+    return (
+      <ReadingContent>
+        <DatabaseExplorerScreen workspaceId={workspace.id} applicationName={applicationName} />
+      </ReadingContent>
+    );
   }
 
   return (
     <View style={styles.container}>
-      <View style={styles.browser}>
-        {!source && !error && (
-          <View style={styles.center}>
-            <ActivityIndicator color={agentUpTheme.colors.accent} />
-            <Text style={styles.status}>Opening the application…</Text>
-          </View>
-        )}
-        {!!error && (
-          <View style={styles.center}>
-            <Text accessibilityRole="alert" style={styles.error}>{error}</Text>
-          </View>
-        )}
-        {source && <RemoteBrowser ref={browserRef} source={source} />}
-      </View>
+      <ReadingContent>
+        <View style={styles.browser}>
+          {!source && !error && (
+            <View style={styles.center}>
+              <ActivityIndicator color={agentUpTheme.colors.accent} />
+              <Text style={styles.status}>Opening the application…</Text>
+            </View>
+          )}
+          {!!error && (
+            <View style={styles.center}>
+              <Text accessibilityRole="alert" style={styles.error}>{error}</Text>
+            </View>
+          )}
+          {source && <RemoteBrowser ref={browserRef} source={source} />}
+        </View>
+      </ReadingContent>
       {showValidation && (
         <ValidationDock
           workspaceId={workspace.id}

@@ -7,6 +7,7 @@ import {
   type PermissionRuleKind,
 } from '@agent-up/chat';
 import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
+import { ReadingContent } from '@/features/shell/components/ReadingContent';
 import { useWorkspaceInnerShell } from '@/features/shell/hooks/useWorkspaceInnerShell';
 import { useShellConfig } from '@/features/shell/hooks/useShellConfig';
 import { useServers } from '@/features/servers/controllers/ServersContext';
@@ -80,6 +81,7 @@ export function AgentPermissionPolicyScreen({ workspaceId }: { workspaceId: stri
   };
 
   return (
+    <ReadingContent>
     <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content}>
         <Text style={styles.intro}>Choose what the agent may do without asking. Anything not allowed here is blocked.</Text>
@@ -112,12 +114,13 @@ export function AgentPermissionPolicyScreen({ workspaceId }: { workspaceId: stri
         </Pressable>}
       </ScrollView>
     </View>
+    </ReadingContent>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: agentUpTheme.colors.canvas },
-  content: { padding: agentUpTheme.spacing[4], gap: 12, maxWidth: 672, width: '100%', alignSelf: 'center' },
+  content: { padding: agentUpTheme.spacing[4], gap: 12, width: '100%' },
   intro: auText('muted'),
   choice: { ...auBox('choice'), gap: 4 },
   selected: { borderColor: agentUpTheme.colors.accent },

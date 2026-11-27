@@ -1,5 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 import { GitHistoryPanel } from './GitHistoryPanel';
+import { ReadingContent } from '@/features/shell/components/ReadingContent';
 import { useShellConfig } from '@/features/shell/hooks/useShellConfig';
 import { useWorkspaceInnerShell } from '@/features/shell/hooks/useWorkspaceInnerShell';
 import { agentUpTheme } from '@agent-up/design-system/native';
@@ -8,9 +9,11 @@ import { agentUpTheme } from '@agent-up/design-system/native';
 export function GitHistoryScreen({ workspaceId }: { workspaceId: string }) {
   useShellConfig(useWorkspaceInnerShell(workspaceId, 'History', GIT));
   return (
-    <View style={styles.screen}>
-      <GitHistoryPanel workspaceId={workspaceId} />
-    </View>
+    <ReadingContent>
+      <View style={styles.screen}>
+        <GitHistoryPanel workspaceId={workspaceId} />
+      </View>
+    </ReadingContent>
   );
 }
 

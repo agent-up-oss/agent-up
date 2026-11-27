@@ -1142,6 +1142,31 @@ test('prompt drafts reset when the team member changes', async () => {
   assert.equal(prompt(mount('lucy', 'B')).props.defaultValue, 'B');
 });
 
+test('a wider web window keeps phone chrome full bleed and only the body at the reading column', async () => {
+  const { createNewUiScene } = await import(new URL('./dist/native/new-ui-scene.js', root));
+  const h = (type, props, ...children) => ({ type, props: props ?? {}, children: children.flat() });
+  const React = { createElement: h };
+  const Scene = createNewUiScene(React, { View: 'View', Text: 'Text', Pressable: 'Pressable', ScrollView: 'ScrollView' });
+  const flatten = style => Object.assign({}, ...[style].flat(Infinity).filter(Boolean));
+  const walk = (node, visit) => {
+    if (!node || typeof node !== 'object') return;
+    visit(node);
+    for (const child of node.children ?? []) walk(child, visit);
+  };
+  const tree = Scene({ scene: 'mobile-team', contentWidth: 1440 });
+  const bodies = [];
+  const phones = [];
+  walk(tree, node => {
+    if (node.type !== 'View' && node.type !== 'ScrollView') return;
+    const style = flatten(node.props.style);
+    if (style.width === 1440 && style.alignSelf === 'center') bodies.push(style);
+    if (style.width === '100%' && style.height === '100%') phones.push(style);
+  });
+  assert.equal(phones.length > 0, true);
+  assert.equal(bodies.length, 1);
+  assert.equal(bodies[0].maxWidth, '100%');
+});
+
 test('the New UI Avalonia sheet styles what the scene draws, the way the CSS does', async () => {
   const sheet = await readFile(new URL('./dist/avalonia/AgentUpNewUiStyles.axaml', root), 'utf8');
   const classic = await readFile(new URL('./dist/avalonia/AgentUpStyles.axaml', root), 'utf8');

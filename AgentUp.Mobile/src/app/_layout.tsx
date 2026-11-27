@@ -6,6 +6,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ServersProvider } from '@/features/servers/controllers/ServersContext';
 import { WorkspacesProvider } from '@/features/workspaces/controllers/WorkspacesContext';
 import { InterfaceProvider } from '@/features/interface/controllers/InterfaceContext';
+import { ReadingFrame } from '@/features/shell/components/ReadingFrame';
 import { initializeSentry } from '@/features/telemetry/providers/SentryTelemetryInit';
 import { agentUpTheme } from '@agent-up/design-system/native';
 
@@ -18,17 +19,19 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider style={styles.safeArea}>
       <StatusBar style="light" />
-      <ServersProvider>
-        <WorkspacesProvider>
-          <InterfaceProvider>
-            <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: agentUpTheme.colors.canvas } }}>
-              <Stack.Screen name="index" />
-              <Stack.Screen name="connect" />
-              <Stack.Screen name="(main)" />
-            </Stack>
-          </InterfaceProvider>
-        </WorkspacesProvider>
-      </ServersProvider>
+      <ReadingFrame>
+        <ServersProvider>
+          <WorkspacesProvider>
+            <InterfaceProvider>
+              <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: agentUpTheme.colors.canvas } }}>
+                <Stack.Screen name="index" />
+                <Stack.Screen name="connect" />
+                <Stack.Screen name="(main)" />
+              </Stack>
+            </InterfaceProvider>
+          </WorkspacesProvider>
+        </ServersProvider>
+      </ReadingFrame>
     </SafeAreaProvider>
   );
 }

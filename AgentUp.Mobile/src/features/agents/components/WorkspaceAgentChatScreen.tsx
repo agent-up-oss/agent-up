@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { AgentChatScreen } from '@agent-up/chat';
+import { ReadingContent } from '@/features/shell/components/ReadingContent';
 import { useShellConfig } from '@/features/shell/hooks/useShellConfig';
 import { useWorkspaceInnerShell } from '@/features/shell/hooks/useWorkspaceInnerShell';
 import { useWorkspaceHost } from '@/features/workspaces/controllers/WorkspaceHostContext';
@@ -29,13 +30,15 @@ export function WorkspaceAgentChatScreen({
   useShellConfig(config);
 
   return (
-    <AgentChatScreen
-      workspace={{ id: workspaceId, displayName }}
-      server={server}
-      onPresent={present}
-      onConfigurePolicy={() => host.open({ kind: 'agentPolicy' })}
-      loopControls={loopControls}
-    />
+    <ReadingContent>
+      <AgentChatScreen
+        workspace={{ id: workspaceId, displayName }}
+        server={server}
+        onPresent={present}
+        onConfigurePolicy={() => host.open({ kind: 'agentPolicy' })}
+        loopControls={loopControls}
+      />
+    </ReadingContent>
   );
 }
 

@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { WorkspaceBranchPicker } from './WorkspaceBranchPicker';
 import { GitChangesPanel } from './GitChangesPanel';
 import { GitHostingRow } from './GitHostingRow';
-import { WorkspaceTabs } from '@/features/shell/components/WorkspaceTabs';
+import { WorkspacePage } from '@/features/shell/components/WorkspacePage';
 import { useWorkspaceHost } from '@/features/workspaces/controllers/WorkspaceHostContext';
 import { useShellConfig } from '@/features/shell/hooks/useShellConfig';
 import { agentUpTheme, auText } from '@agent-up/design-system/native';
@@ -22,7 +22,7 @@ export function GitOverviewScreen({ workspaceId }: { workspaceId: string }) {
   useShellConfig(shellConfig);
 
   return (
-    <View style={styles.screen}>
+    <WorkspacePage workspaceId={workspaceId} active="git">
       <View style={styles.body}>
         <WorkspaceBranchPicker
           workspaceId={workspaceId}
@@ -43,14 +43,12 @@ export function GitOverviewScreen({ workspaceId }: { workspaceId: string }) {
           />
         </View>
       </View>
-      <WorkspaceTabs workspaceId={workspaceId} active="git" />
-    </View>
+    </WorkspacePage>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: agentUpTheme.colors.canvas },
-  body: { flex: 1, padding: agentUpTheme.spacing[4], gap: 16, maxWidth: 672, width: '100%', alignSelf: 'center' },
+  body: { flex: 1, padding: agentUpTheme.spacing[4], gap: 16, width: '100%' },
   section: { flex: 1, gap: 8, minHeight: 0 },
   sectionTitle: auText('fieldLabel'),
 });

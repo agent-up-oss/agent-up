@@ -22,7 +22,8 @@ export function presentToolItem(item: TranscriptItem): ToolCallView {
 /**
  * One quiet row per tool call: status glyph, readable name, source, the argument that matters,
  * what an edit changed and how long the call took. The call being worked on shows its detail in
- * place while it runs; tapping any call opens its detail in a sheet.
+ * place while it runs. Tapping any call opens that detail: a sheet on a phone-width surface, in
+ * place on a wider one.
  */
 export function ToolCallRow({ item, active = false, onOpen }: { item: TranscriptItem; active?: boolean; onOpen: (item: TranscriptItem) => void }) {
   const view = presentToolItem(item);
@@ -83,16 +84,17 @@ function ToolCallDetail({ item }: { item: TranscriptItem }) {
 }
 
 /** Consecutive finished edits, reads, searches and thoughts as one count line that opens to them. */
-export function WorkFoldRow({ entry, renderItem }: { entry: Extract<WorkEntry, { type: 'fold' }>; renderItem: (item: TranscriptItem) => React.ReactNode }) {
+export function WorkFoldRow({ entry, renderItem, keepOpen = false }: { entry: Extract<WorkEntry, { type: 'fold' }>; renderItem: (item: TranscriptItem) => React.ReactNode; keepOpen?: boolean }) {
   const [open, setOpen] = useState(false);
+  const shown = open || keepOpen;
   return <View style={styles.wrap}>
     <Pressable testID={`agent-tool-group-${entry.id}`} accessibilityRole="button" accessibilityLabel={[entry.title, entry.summary].filter(Boolean).join(', ')} onPress={() => setOpen(current => !current)} style={styles.row}>
       <Text style={styles.glyph}>✓</Text>
       <Text style={styles.title}>{entry.title}</Text>
       <Text style={styles.summary} numberOfLines={1} ellipsizeMode="tail">{entry.summary}</Text>
-      <Text style={styles.duration}>{open ? '⌄' : '›'}</Text>
+      <Text style={styles.duration}>{shown ? '⌄' : '›'}</Text>
     </Pressable>
-    <Reveal open={open}><View style={[styles.detail, styles.group]}>{entry.items.map(renderItem)}</View></Reveal>
+    <Reveal open={shown}><View style={[styles.detail, styles.group]}>{entry.items.map(renderItem)}</View></Reveal>
   </View>;
 }
 
