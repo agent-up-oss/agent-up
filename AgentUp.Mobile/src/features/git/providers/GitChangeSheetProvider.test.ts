@@ -7,6 +7,7 @@ import {
   gitChangeSheetDraggedHeight,
   gitChangeSheetHeight,
   gitChangeSheetTakesDrag,
+  gitChangesUseSheet,
   settleGitChangeSheet,
 } from './GitChangeSheetProvider';
 
@@ -63,4 +64,11 @@ test('a flick goes its way and a flick down never closes the sheet', () => {
 test('the heading counts what the next commit takes', () => {
   assert.equal(gitChangeSheetCount(2, 5), '2 of 5 selected');
   assert.equal(gitChangeSheetCount(0, 0), 'No changes');
+});
+
+test('only a phone-width window rests the change list in a sheet', () => {
+  assert.equal(gitChangesUseSheet(390), true);
+  assert.equal(gitChangesUseSheet(430), true);
+  assert.equal(gitChangesUseSheet(768), false);
+  assert.equal(gitChangesUseSheet(1440), false);
 });

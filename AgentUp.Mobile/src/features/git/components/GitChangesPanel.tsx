@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { useServers } from '@/features/servers/controllers/ServersContext';
 import { isUnauthorized } from '@/features/servers/providers/ServerRequestProvider';
 import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
@@ -29,7 +29,7 @@ import {
 } from '../providers/GitChangeTreeProvider';
 import { GitChangeRow } from './GitChangeRow';
 import { GitChangeSheet } from './GitChangeSheet';
-import { gitChangeSheetCount, gitChangeSheetDetents } from '../providers/GitChangeSheetProvider';
+import { gitChangeSheetCount, gitChangeSheetDetents, gitChangesUseSheet } from '../providers/GitChangeSheetProvider';
 import { GitConfirmDialog } from './GitConfirmDialog';
 import { GitFileViewer } from './GitFileViewer';
 import { gitWriteAllowed, gitWriteUnavailableMessage } from '@/features/entitlements/models/Entitlements';
@@ -79,6 +79,7 @@ export function GitChangesPanel({
   const [diffPath, setDiffPath] = useState<string | null>(null);
   const [diffLoading, setDiffLoading] = useState(false);
   const [pageHeight, setPageHeight] = useState(0);
+  const window = useWindowDimensions();
 
   const nodes = useMemo(() => flattenChangeTree(tree), [tree]);
   const visible = useMemo(() => visibleChangeNodes(nodes, collapsed), [nodes, collapsed]);
@@ -348,7 +349,30 @@ export function GitChangesPanel({
     </>
   );
 
-  // The Git page: what to commit first, and the change list in a sheet resting on the bottom edge.
+  // The Git page on anything wider than a phone: what to commit first, then the change list in a
+  // pane of its own that scrolls.
+  if (overview && !gitChangesUseSheet(window.width)) {
+    return (
+      <View style={styles.wide}>
+        {header}
+        {messages}
+        {commitBox}
+        <View style={styles.wideSection}>
+          <View style={styles.wideHead}>
+            <Text accessibilityRole="header" style={styles.label}>Changes</Text>
+            <Text style={styles.summary}>{gitChangeSheetCount(selectedCount, fileCount)}</Text>
+          </View>
+          <ScrollView testID="git-change-list" style={styles.tree} contentContainerStyle={styles.treeContent} keyboardShouldPersistTaps="handled">
+            {rows}
+          </ScrollView>
+        </View>
+        {dialogs}
+      </View>
+    );
+  }
+
+  // The Git page on a phone: what to commit first, and the change list in a sheet resting on the
+  // bottom edge.
   if (overview) {
     const peek = pageHeight > 0 ? gitChangeSheetDetents(pageHeight).peek : 0;
     return (
@@ -424,7 +448,10 @@ const styles = StyleSheet.create({
   status: { ...auText('accent'), lineHeight: 21 },
   tree: { flex: 1, minHeight: 80, ...auBox('gitChangeList') },
   page: { flex: 1 },
-  overviewContent: { padding: agentUpTheme.spacing[4], gap: 16, maxWidth: 672, width: '100%', alignSelf: 'center' },
+  wide: { flex: 1, padding: agentUpTheme.spacing[4], gap: 16 },
+  wideSection: { flex: 1, gap: 8, minHeight: 0 },
+  wideHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
+  overviewContent: { padding: agentUpTheme.spacing[4], gap: 16, width: '100%' },
   treeContent: { paddingVertical: 6, flexGrow: 1 },
   footer: { gap: 12, zIndex: 2 },
   actions: { flexDirection: 'row', gap: 8 },

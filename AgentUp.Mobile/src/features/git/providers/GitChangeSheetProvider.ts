@@ -1,3 +1,5 @@
+import { usesSheet } from '@agent-up/chat/providers/SheetProvider';
+
 /**
  * Geometry and gesture decisions for the change sheet on the Mobile Git page. The change list rests
  * in a sheet pinned to the bottom of the page: a peek of about a quarter of the page, whose rows stay
@@ -65,4 +67,13 @@ export function settleGitChangeSheet(input: { height: number; velocity: number; 
 export function gitChangeSheetCount(selected: number, total: number): string {
   if (total === 0) return 'No changes';
   return `${selected} of ${total} selected`;
+}
+
+/**
+ * Whether the Git page rests its change list in a sheet. Only a phone-width window does, at the
+ * same width where the chat stops opening sheets; anything wider lists the changes in a scrolling
+ * pane under the commit box.
+ */
+export function gitChangesUseSheet(windowWidth: number): boolean {
+  return usesSheet(windowWidth);
 }
