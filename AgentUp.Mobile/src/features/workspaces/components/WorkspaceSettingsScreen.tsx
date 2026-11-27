@@ -40,8 +40,6 @@ const styles = StyleSheet.create({
     padding: agentUpTheme.spacing[4],
     paddingBottom: agentUpTheme.spacing[8],
     gap: 16,
-    maxWidth: 672,
     width: '100%',
-    alignSelf: 'center',
   },
 });

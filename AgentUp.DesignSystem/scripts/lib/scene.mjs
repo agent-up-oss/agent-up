@@ -759,9 +759,10 @@ export function createNewUiScene(React, native) {
   }
   function measure(classes) {
     const names = classes ?? [];
-    // The catalog frames a phone at 390 by 844; on a device the scene is the screen.
+    // The catalog frames a phone at 390 by 844; on a device the scene fills its parent, which on
+    // a wider web window is the 4:3 reading frame.
     if (names.includes('aun-phone')) return { width: '100%', height: '100%' };
-    if (names.includes('aun-settings')) return { alignSelf: 'center', width: '100%', maxWidth: 576 };
+    if (names.includes('aun-settings')) return { width: '100%' };
     if (names.includes('aun-state-map__root')) return { alignSelf: 'center', maxWidth: 256 };
     if (names.includes('aun-state-map__stem') || names.includes('aun-state-map__drop')) return { alignSelf: 'center' };
     return null;
