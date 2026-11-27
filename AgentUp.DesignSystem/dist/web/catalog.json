@@ -1226,7 +1226,7 @@
         {
           "id": "git-toolbar-mobile",
           "title": "Mobile Git toolbar",
-          "note": "Mobile keeps the same actions and adds a compact new-branch control next to the branch field.",
+          "note": "Mobile keeps the same actions and adds a compact new-branch control next to the branch field. The branch field and secondary actions are au-git-quiet: canvas black with one faint hairline. Push keeps the accent.",
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
@@ -1242,6 +1242,7 @@
             "au-button",
             "au-button--secondary",
             "au-git-branch",
+            "au-git-quiet",
             "au-muted",
             "au-lifecycle-button",
             "au-git-actions",
@@ -1251,7 +1252,7 @@
             "au-git-history",
             "au-field-label"
           ],
-          "html": "<div class=\"au-git-toolbar\">\n        <div class=\"au-git-branch-row\">\n          <button class=\"au-button au-button--secondary au-git-branch\" type=\"button\">main <span class=\"au-muted\">▾</span></button>\n          <button class=\"au-lifecycle-button\" type=\"button\">+</button>\n        </div>\n        <div class=\"au-git-actions\">\n          <button class=\"au-browser-button\" type=\"button\">↻</button>\n          <button class=\"au-button au-button--secondary au-button--compact\" type=\"button\">Fetch</button>\n          <button class=\"au-button au-button--secondary au-button--compact\" type=\"button\">Pull</button>\n          <button class=\"au-button au-button--compact\" type=\"button\">Push</button>\n          <button class=\"au-button au-button--danger au-button--compact\" type=\"button\">Discard</button>\n          <button class=\"au-button au-button--secondary au-button--compact au-git-history\" type=\"button\">History</button>\n        </div>\n        <span class=\"au-field-label\">Changes</span>\n      </div>"
+          "html": "<div class=\"au-git-toolbar\">\n        <div class=\"au-git-branch-row\">\n          <button class=\"au-button au-button--secondary au-git-branch au-git-quiet\" type=\"button\">main <span class=\"au-muted\">▾</span></button>\n          <button class=\"au-lifecycle-button au-git-quiet\" type=\"button\">+</button>\n        </div>\n        <div class=\"au-git-actions\">\n          <button class=\"au-browser-button au-git-quiet\" type=\"button\">↻</button>\n          <button class=\"au-button au-button--secondary au-button--compact au-git-quiet\" type=\"button\">Fetch</button>\n          <button class=\"au-button au-button--secondary au-button--compact au-git-quiet\" type=\"button\">Pull</button>\n          <button class=\"au-button au-button--compact\" type=\"button\">Push</button>\n          <button class=\"au-button au-button--danger au-button--compact\" type=\"button\">Discard</button>\n          <button class=\"au-button au-button--secondary au-button--compact au-git-history au-git-quiet\" type=\"button\">History</button>\n        </div>\n        <span class=\"au-field-label\">Changes</span>\n      </div>"
         },
         {
           "id": "git-heading",
@@ -1311,11 +1312,12 @@
             "au-git-commit--mobile",
             "au-field-label",
             "au-input",
+            "au-git-quiet",
             "au-button",
             "au-git-insertions",
             "au-git-insertions--on-primary"
           ],
-          "html": "<div class=\"au-git-commit au-git-commit--mobile\">\n        <span class=\"au-field-label\">Commit message</span>\n        <textarea class=\"au-input\" readonly>feat(storefront): add the weekly promo banner</textarea>\n        <button class=\"au-button\" type=\"button\">Commit <span class=\"au-git-insertions au-git-insertions--on-primary\">+2</span></button>\n      </div>"
+          "html": "<div class=\"au-git-commit au-git-commit--mobile\">\n        <span class=\"au-field-label\">Commit message</span>\n        <textarea class=\"au-input au-git-quiet\" readonly>feat(storefront): add the weekly promo banner</textarea>\n        <button class=\"au-button\" type=\"button\">Commit <span class=\"au-git-insertions au-git-insertions--on-primary\">+2</span></button>\n      </div>"
         },
         {
           "id": "git-review",

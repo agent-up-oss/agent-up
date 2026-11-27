@@ -500,19 +500,19 @@ Storefront listening on WEB_PORT</pre>
         </div>
       </div>
     </article>
-    <article data-au-component="git-toolbar-mobile" data-au-title="Mobile Git toolbar" data-au-note="Mobile keeps the same actions and adds a compact new-branch control next to the branch field." data-au-avalonia="Border" data-au-class="au-git-toolbar">
+    <article data-au-component="git-toolbar-mobile" data-au-title="Mobile Git toolbar" data-au-note="Mobile keeps the same actions and adds a compact new-branch control next to the branch field. The branch field and secondary actions are au-git-quiet: canvas black with one faint hairline. Push keeps the accent." data-au-avalonia="Border" data-au-class="au-git-toolbar">
       <div class="au-git-toolbar">
         <div class="au-git-branch-row">
-          <button class="au-button au-button--secondary au-git-branch" type="button">main <span class="au-muted">▾</span></button>
-          <button class="au-lifecycle-button" type="button">+</button>
+          <button class="au-button au-button--secondary au-git-branch au-git-quiet" type="button">main <span class="au-muted">▾</span></button>
+          <button class="au-lifecycle-button au-git-quiet" type="button">+</button>
         </div>
         <div class="au-git-actions">
-          <button class="au-browser-button" type="button">↻</button>
-          <button class="au-button au-button--secondary au-button--compact" type="button">Fetch</button>
-          <button class="au-button au-button--secondary au-button--compact" type="button">Pull</button>
+          <button class="au-browser-button au-git-quiet" type="button">↻</button>
+          <button class="au-button au-button--secondary au-button--compact au-git-quiet" type="button">Fetch</button>
+          <button class="au-button au-button--secondary au-button--compact au-git-quiet" type="button">Pull</button>
           <button class="au-button au-button--compact" type="button">Push</button>
           <button class="au-button au-button--danger au-button--compact" type="button">Discard</button>
-          <button class="au-button au-button--secondary au-button--compact au-git-history" type="button">History</button>
+          <button class="au-button au-button--secondary au-button--compact au-git-history au-git-quiet" type="button">History</button>
         </div>
         <span class="au-field-label">Changes</span>
       </div>
@@ -532,7 +532,7 @@ Storefront listening on WEB_PORT</pre>
     <article data-au-component="git-commit-mobile" data-au-title="Mobile commit box" data-au-note="Mobile labels the field and puts the selected-file count on the primary button in on-accent." data-au-avalonia="Border" data-au-class="au-git-commit">
       <div class="au-git-commit au-git-commit--mobile">
         <span class="au-field-label">Commit message</span>
-        <textarea class="au-input" readonly>feat(storefront): add the weekly promo banner</textarea>
+        <textarea class="au-input au-git-quiet" readonly>feat(storefront): add the weekly promo banner</textarea>
         <button class="au-button" type="button">Commit <span class="au-git-insertions au-git-insertions--on-primary">+2</span></button>
       </div>
     </article>

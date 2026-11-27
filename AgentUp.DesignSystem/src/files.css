@@ -40,7 +40,7 @@
   min-width: 1.25rem;
   padding: 0 var(--au-space-1);
   color: var(--au-color-status-info);
-  background: var(--au-color-surface-raised);
+  background: var(--au-color-state-hover);
   border-radius: var(--au-radius-sm);
   font-family: var(--au-font-mono);
   font-size: var(--au-font-size-ui-xs);

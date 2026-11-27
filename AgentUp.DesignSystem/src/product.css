@@ -282,14 +282,15 @@
 
 /* Git change list. Status color lives on the glyph, never the filename.
    Checkbox selection is many-of-many and stays neutral; the open file is the
-   primary selection (accent tint plus a 2px leading accent rule). */
+   primary selection (accent tint plus a 2px leading accent rule). The list is
+   the canvas black, read as a container through one faint hairline. */
 .au-git-change-list {
   flex: 1;
   min-height: 0;
   color: var(--au-color-text-primary);
-  background: var(--au-color-surface);
+  background: var(--au-color-canvas);
   border: 1px solid var(--au-color-border-subtle);
-  border-radius: var(--au-radius-lg);
+  border-radius: var(--au-radius-xl);
   padding: var(--au-space-1) 0;
 }
 .au-git-row {
@@ -1306,6 +1307,14 @@
   height: var(--au-control-height);
 }
 .au-git-history { margin-left: auto; }
+/* Git and Files sit on the canvas black. A field, card or secondary button
+   there adds this class: no grey fill, one faint hairline. Green still marks
+   the primary action (Push, Commit) and nothing else. */
+.au-git-quiet {
+  background: var(--au-color-canvas);
+  border-color: var(--au-color-border-subtle);
+}
+.au-git-quiet:hover { background: var(--au-color-state-hover); }
 .au-git-heading {
   display: flex;
   flex-direction: column;
