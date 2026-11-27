@@ -582,7 +582,7 @@ public sealed class GithubApiProviderTests
     public async Task ListPullRequestsAsync_readsRequestedReviewersAndReviews()
     {
         var handler = Recorded(
-            ("GET /repos/acme/widgets/pulls?state=open&sort=updated&direction=desc&per_page=20", """
+            ("GET /repos/acme/widgets/pulls?state=open&sort=updated&direction=desc&per_page=100&page=1", """
                 [{"id":9,"number":42,"title":"Product cards","html_url":"https://github.com/acme/widgets/pull/42","body":"Ship the cards.","head":{"ref":"feature","sha":"aaa"},"base":{"ref":"main"},"requested_reviewers":[{"login":"hector"}]}]
                 """),
             ("GET /repos/acme/widgets/pulls/42/reviews?per_page=100", """
@@ -600,6 +600,26 @@ public sealed class GithubApiProviderTests
             Assert.That(pulls.Single().BaseRef, Is.EqualTo("main"));
             Assert.That(pulls.Single().HeadSha, Is.EqualTo("aaa"));
             Assert.That(pulls.Single().Body, Is.EqualTo("Ship the cards."));
+            Assert.That(pulls.Single().HeadOwner, Is.Null);
+        });
+    }
+
+    [Test]
+    public async Task ListPullRequestsAsync_readsTheHeadRepositoryOwnerAndFollowsPages()
+    {
+        var handler = Recorded(
+            ($"GET /repos/acme/widgets/pulls?state=open&sort=updated&direction=desc&per_page=100&page=1", PullPage(1, 100)),
+            ($"GET /repos/acme/widgets/pulls?state=open&sort=updated&direction=desc&per_page=100&page=2", """
+                [{"id":101,"number":101,"title":"Forked","html_url":"https://github.com/acme/widgets/pull/101","head":{"ref":"topic","sha":"bbb","repo":{"owner":{"login":"harbor"}}},"base":{"ref":"main"}}]
+                """));
+
+        var pulls = await new GithubForgeCapability(handler).ListPullRequestsAsync(Request());
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(pulls, Has.Count.EqualTo(101));
+            Assert.That(pulls[^1].HeadOwner, Is.EqualTo("harbor"));
+            Assert.That(handler.Requests.Count(key => key.Contains("/pulls?", StringComparison.Ordinal)), Is.EqualTo(2));
         });
     }
 
@@ -694,7 +714,17 @@ public sealed class GithubApiProviderTests
     public async Task ListPullRequestsAsync_returnsEmptyWhenThePayloadIsNotAnArray()
     {
         var pulls = await new GithubForgeCapability(Recorded(
-                ("GET /repos/acme/widgets/pulls?state=open&sort=updated&direction=desc&per_page=20", "{}")))
+                ("GET /repos/acme/widgets/pulls?state=open&sort=updated&direction=desc&per_page=100&page=1", "{}")))
+            .ListPullRequestsAsync(Request());
+
+        Assert.That(pulls, Is.Empty);
+    }
+
+    [Test]
+    public async Task ListPullRequestsAsync_returnsEmptyWhenThePageIsEmpty()
+    {
+        var pulls = await new GithubForgeCapability(Recorded(
+                ("GET /repos/acme/widgets/pulls?state=open&sort=updated&direction=desc&per_page=100&page=1", "[]")))
             .ListPullRequestsAsync(Request());
 
         Assert.That(pulls, Is.Empty);
@@ -704,7 +734,7 @@ public sealed class GithubApiProviderTests
     public async Task ListPullRequestsAsync_keepsAPullWhenItsReviewsCannotBeRead()
     {
         var handler = Recorded(
-            ("GET /repos/acme/widgets/pulls?state=open&sort=updated&direction=desc&per_page=20", """
+            ("GET /repos/acme/widgets/pulls?state=open&sort=updated&direction=desc&per_page=100&page=1", """
                 [{"id":9,"number":42,"title":"Product cards","html_url":"https://github.com/acme/widgets/pull/42"}]
                 """));
         handler.Statuses["GET /repos/acme/widgets/pulls/42/reviews?per_page=100"] = HttpStatusCode.InternalServerError;
@@ -728,6 +758,10 @@ public sealed class GithubApiProviderTests
     private static RecordedHandler Recorded() => Recorded(Array.Empty<(string Key, string Body)>());
 
     private static ForgeRequest Request() => new("token", "acme", "widgets", "topic");
+
+    private static string PullPage(int start, int count) =>
+        "[" + string.Join(",", Enumerable.Range(start, count).Select(number =>
+            $$"""{"id":{{number}},"number":{{number}},"title":"p{{number}}","html_url":"https://github.com/acme/widgets/pull/{{number}}"}""")) + "]";
 
     private static RecordedHandler Recorded(params (string Key, string Body)[] responses)
         => new(responses.ToDictionary(pair => pair.Key, pair => pair.Body, StringComparer.Ordinal));

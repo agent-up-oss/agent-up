@@ -48,8 +48,9 @@ import {
   applyMemberIfCurrent,
   commandCenterScene,
   commandCenterServerLabel,
+  memberKindChange,
   prefillEndpoint,
-  systemPromptWasCustomized,
+  promptSave,
   TASK_SOURCE_REFRESH_MS,
   tasksTabFor,
   tokenSave,
@@ -129,6 +130,12 @@ function CommandCenterBinder() {
   // Member Settings reads this workspace's agent, loop, and kind.
   useEffect(() => {
     if (!activeServer || !chatWorkspace || !memberSettingsOpen) return;
+    setMemberLoadedFor(null);
+    setSystemPrompt('');
+    setCustomizationPrompt('');
+    setDefaultSystemPrompt('');
+    setPromptOverwrite(false);
+    setPendingMemberKind(null);
     let live = true;
     Promise.all([
       getAgent(activeServer, chatWorkspace),
@@ -378,16 +385,18 @@ function CommandCenterBinder() {
       if (name === 'enable-agent' && id) { changeChat(enableAgentCapability(activeServer, id)); return; }
       if (name === 'start-bound' && chatSession?.boundAgent) { changeChat(scheduleAgent(activeServer, chatWorkspace, chatSession.boundAgent)); return; }
       if (name === 'member-kind' && id) {
-        if (id === memberKind || memberLoadedFor !== chatWorkspace) return;
-        const draft = fields?.['system-prompt'] ?? systemPrompt;
-        if (promptOverwrite || systemPromptWasCustomized(draft, defaultSystemPrompt)) {
+        if (memberLoadedFor !== chatWorkspace) return;
+        const drafts = promptSave(fields, systemPrompt, customizationPrompt);
+        const change = memberKindChange(id, memberKind, promptOverwrite, drafts.systemPrompt, defaultSystemPrompt);
+        if (change === 'none') return;
+        if (change === 'confirm') {
           setPendingMemberKind(id);
           setPromptOverwrite(true);
           return;
         }
         const requested = chatWorkspace;
         changeChat(putMember(activeServer, chatWorkspace, id, fetch, {
-          customizationPrompt: fields?.['customization-prompt'] ?? customizationPrompt,
+          customizationPrompt: drafts.customizationPrompt,
         }).then(member => {
           if (member && applyMemberIfCurrent(requested, chatWorkspaceRef.current)) applyMember(member);
         }));
@@ -396,9 +405,10 @@ function CommandCenterBinder() {
       if (name === 'save-prompts') {
         if (memberLoadedFor !== chatWorkspace) return;
         const requested = chatWorkspace;
+        const drafts = promptSave(fields, systemPrompt, customizationPrompt);
         changeChat(putMember(activeServer, chatWorkspace, memberKind, fetch, {
-          systemPrompt: fields?.['system-prompt'] ?? systemPrompt,
-          customizationPrompt: fields?.['customization-prompt'] ?? customizationPrompt,
+          systemPrompt: drafts.systemPrompt,
+          customizationPrompt: drafts.customizationPrompt,
         }).then(member => {
           if (member && applyMemberIfCurrent(requested, chatWorkspaceRef.current)) applyMember(member);
         }));
@@ -408,10 +418,11 @@ function CommandCenterBinder() {
         if (memberLoadedFor !== chatWorkspace) return;
         const kind = pendingMemberKind;
         const requested = chatWorkspace;
+        const drafts = promptSave(fields, systemPrompt, customizationPrompt);
         setPromptOverwrite(false);
         setPendingMemberKind(null);
         changeChat(putMember(activeServer, chatWorkspace, kind, fetch, {
-          customizationPrompt: fields?.['customization-prompt'] ?? customizationPrompt,
+          customizationPrompt: drafts.customizationPrompt,
         }).then(member => {
           if (member && applyMemberIfCurrent(requested, chatWorkspaceRef.current)) applyMember(member);
         }));

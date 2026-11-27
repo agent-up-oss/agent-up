@@ -102,7 +102,8 @@ public sealed record ForgePullRequest(
     string? HeadRef = null,
     string? BaseRef = null,
     string? HeadSha = null,
-    string? Body = null);
+    string? Body = null,
+    string? HeadOwner = null);
 
 /// <summary>
 /// What a personal access token can do for the task list. Both have to be true before the token

@@ -901,6 +901,26 @@ public sealed class FakeBackendServiceTests
     }
 
     [Test]
+    public void Handle_memberPromptsRestoreTheKindDefaultAndClearEmptyCustomization()
+    {
+        var backend = FakeServerTestComposition.Backend();
+        var saved = Json(backend, Put("/api/workspaces/bob/agent/member", """{"kind":"Author","systemPrompt":"Ship the cards.","customizationPrompt":"Keep the comma."}"""));
+        var defaults = saved["defaultSystemPrompt"]!.GetValue<string>();
+        Json(backend, Put("/api/workspaces/bob/agent/member", $$"""{"kind":"Author","systemPrompt":{{System.Text.Json.JsonSerializer.Serialize(defaults)}},"customizationPrompt":""}"""));
+
+        var restored = Json(backend, Get("/api/workspaces/bob/agent/member"));
+        var pm = Json(backend, Put("/api/workspaces/bob/agent/member", """{"kind":"PmReviewer"}"""));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(restored["systemPrompt"]!.GetValue<string>(), Is.EqualTo(defaults));
+            Assert.That(restored["customizationPrompt"]!.GetValue<string>(), Is.EqualTo(""));
+            Assert.That(pm["kind"]!.GetValue<string>(), Is.EqualTo("PmReviewer"));
+            Assert.That(pm["systemPrompt"]!.GetValue<string>(), Does.StartWith("You are the product reviewer"));
+        });
+    }
+
+    [Test]
     public void Handle_autonomyLoopRoutesReturnNotFoundForUnknownWorkspaces()
     {
         var backend = FakeServerTestComposition.Backend();

@@ -91,6 +91,32 @@ export function systemPromptWasCustomized(draft: string | null | undefined, defa
   return current.length > 0 && current !== (defaultPrompt?.trim() ?? '');
 }
 
+/** Whether a type tab should do nothing, ask before replacing a customized system prompt, or apply. */
+export function memberKindChange(
+  requested: string | null | undefined,
+  currentKind: string,
+  promptOverwrite: boolean,
+  draftSystemPrompt: string | null | undefined,
+  defaultSystemPrompt: string | null | undefined,
+): 'none' | 'confirm' | 'apply' {
+  if (!requested || requested === currentKind) return 'none';
+  return promptOverwrite || systemPromptWasCustomized(draftSystemPrompt, defaultSystemPrompt)
+    ? 'confirm'
+    : 'apply';
+}
+
+/** System and customization drafts the Save and type-change actions should send. */
+export function promptSave(
+  fields: Record<string, string> | undefined,
+  systemFallback: string,
+  customizationFallback: string,
+): { systemPrompt: string; customizationPrompt: string } {
+  return {
+    systemPrompt: fields?.['system-prompt'] ?? systemFallback,
+    customizationPrompt: fields?.['customization-prompt'] ?? customizationFallback,
+  };
+}
+
 /** Whether a member PUT still belongs to the Settings workspace that requested it. */
 export function applyMemberIfCurrent(requested: string | null, current: string | null): boolean {
   return requested !== null && requested === current;

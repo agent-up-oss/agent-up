@@ -65,6 +65,42 @@ public sealed class TeamMemberServiceTests
     }
 
     [Test]
+    public async Task Set_keepsANonDefaultTriggerWhenThePromptMatchesTheDefault()
+    {
+        var host = await HostAsync();
+        host.Settings.Save(JsonAgentWorkspaceSettingsRepository.Empty(host.WorkspaceId) with
+        {
+            Role = new AgentRoleDefinition(
+                TeamRoles.AuthorPrompt,
+                [],
+                RoleTriggerKind.ProposalAwaitingReview,
+                RoleTerminationKind.ProposalOpened),
+        });
+
+        host.Members.Set(host.WorkspaceId, new TeamMemberRequest(TeamMemberKind.Author, TeamRoles.AuthorPrompt));
+
+        Assert.That(host.Settings.Get(host.WorkspaceId).Role!.Trigger, Is.EqualTo(RoleTriggerKind.ProposalAwaitingReview));
+    }
+
+    [Test]
+    public async Task Set_keepsStoredToolsWhenThePromptMatchesTheDefault()
+    {
+        var host = await HostAsync();
+        host.Settings.Save(JsonAgentWorkspaceSettingsRepository.Empty(host.WorkspaceId) with
+        {
+            Role = new AgentRoleDefinition(
+                TeamRoles.AuthorPrompt,
+                ["submit_work"],
+                RoleTriggerKind.IssueAssigned,
+                RoleTerminationKind.ProposalOpened),
+        });
+
+        host.Members.Set(host.WorkspaceId, new TeamMemberRequest(TeamMemberKind.Author, TeamRoles.AuthorPrompt));
+
+        Assert.That(host.Settings.Get(host.WorkspaceId).Role!.Tools, Is.EqualTo(new[] { "submit_work" }));
+    }
+
+    [Test]
     public async Task Set_replacesAModifiedSystemPromptWhenTheKindChangesAndKeepsCustomization()
     {
         var host = await HostAsync();

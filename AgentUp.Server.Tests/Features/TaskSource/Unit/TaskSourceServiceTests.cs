@@ -344,7 +344,9 @@ public sealed class TaskSourceServiceTests
             Assert.That(pulls.Single().Reviews.Single().Standing, Is.EqualTo("reviewing"));
             Assert.That(pulls.Single().Reviews.Single().Kind, Is.EqualTo("devReviewer"));
             Assert.That(pulls.Single().HeadRef, Is.EqualTo("feature"));
+            Assert.That(pulls.Single().HeadSha, Is.EqualTo("aaa"));
             Assert.That(pulls.Single().Body, Is.EqualTo("Ship the cards."));
+            Assert.That(pulls.Single().HeadOwner, Is.Null);
             Assert.That(forge.LastEndpointUrl, Is.EqualTo("https://github.com"));
         });
     }

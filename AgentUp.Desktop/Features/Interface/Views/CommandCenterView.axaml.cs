@@ -492,27 +492,31 @@ public partial class CommandCenterView : UserControl
                 main.Agent.CancelLoopCommand.Execute().Subscribe();
                 break;
             case "member-kind":
-                if (string.IsNullOrEmpty(action.Id) || action.Id == main.Agent.MemberKind)
-                    break;
-                if (main.Agent.PromptOverwrite)
+                var kindPrompts = CommandCenterScene.PromptSave(
+                    action.Fields,
+                    main.Agent.SystemPrompt,
+                    main.Agent.CustomizationPrompt);
+                switch (CommandCenterScene.MemberKindChange(
+                    action.Id,
+                    main.Agent.MemberKind,
+                    main.Agent.PromptOverwrite,
+                    kindPrompts.SystemPrompt,
+                    main.Agent.DefaultSystemPrompt))
                 {
-                    main.Agent.BeginKindChange(action.Id);
-                    Apply();
-                    break;
+                    case "confirm":
+                        main.Agent.BeginKindChange(action.Id!);
+                        Apply();
+                        break;
+                    case "apply":
+                        _ = ChangeKindAsync(main, action);
+                        break;
                 }
-                var draft = Field(action, "system-prompt") ?? main.Agent.SystemPrompt;
-                if (CommandCenterScene.SystemPromptWasCustomized(draft, main.Agent.DefaultSystemPrompt))
-                {
-                    main.Agent.BeginKindChange(action.Id);
-                    Apply();
-                    break;
-                }
-                _ = ChangeKindAsync(main, action);
                 break;
             case "save-prompts":
-                main.Agent.SavePromptsCommand.Execute((
-                    Field(action, "system-prompt") ?? main.Agent.SystemPrompt,
-                    Field(action, "customization-prompt") ?? main.Agent.CustomizationPrompt)).Subscribe();
+                main.Agent.SavePromptsCommand.Execute(CommandCenterScene.PromptSave(
+                    action.Fields,
+                    main.Agent.SystemPrompt,
+                    main.Agent.CustomizationPrompt)).Subscribe();
                 break;
             case "confirm-overwrite":
                 _ = ConfirmKindChangeAsync(main, action);
@@ -642,7 +646,7 @@ public partial class CommandCenterView : UserControl
         Apply();
     }
 
-    private async Task RefreshTasksAsync(CommandCenterViewModel center)
+    internal async Task RefreshTasksAsync(CommandCenterViewModel center)
     {
         await _board.RefreshSourceAsync(center.TaskSource);
         if (_board.OpenOwner is not null)

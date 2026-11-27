@@ -525,6 +525,31 @@ public static class CommandCenterScene
         && !string.Equals(draft.Trim(), defaultPrompt?.Trim(), StringComparison.Ordinal);
 
     /// <summary>
+    /// Whether a type tab should do nothing, ask before replacing a customized system prompt,
+    /// or apply the new kind immediately.
+    /// </summary>
+    public static string MemberKindChange(
+        string? requested,
+        string currentKind,
+        bool promptOverwrite,
+        string? draftSystemPrompt,
+        string? defaultSystemPrompt)
+    {
+        if (string.IsNullOrEmpty(requested) || requested == currentKind)
+            return "none";
+        return promptOverwrite || SystemPromptWasCustomized(draftSystemPrompt, defaultSystemPrompt)
+            ? "confirm"
+            : "apply";
+    }
+
+    /// <summary>System and customization drafts the Save and type-change actions should send.</summary>
+    public static (string SystemPrompt, string CustomizationPrompt) PromptSave(
+        IReadOnlyDictionary<string, string>? fields,
+        string systemFallback,
+        string customizationFallback)
+        => (Read(fields, "system-prompt") ?? systemFallback, Read(fields, "customization-prompt") ?? customizationFallback);
+
+    /// <summary>
     /// Token and host URL the Save button should send. The scene keeps one field per action, so
     /// Save reads every field rather than only the one named save-token.
     /// </summary>

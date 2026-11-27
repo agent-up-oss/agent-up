@@ -199,12 +199,18 @@ public sealed class TaskSourceService(
             pull.Title,
             pull.Url,
             PullRequestReviewInference.For(pull, members.KindByLogin, members.Kinds)
-                .Select(review => new TaskSourceReviewDto(review.Kind, review.Standing, review.Login, review.Verdict))
+                .Select(review => new TaskSourceReviewDto(
+                    review.Kind,
+                    review.Standing,
+                    review.Login,
+                    review.Verdict,
+                    review.CommitId))
                 .ToArray(),
             pull.HeadRef,
             pull.BaseRef,
             pull.HeadSha,
-            pull.Body)).ToArray();
+            pull.Body,
+            pull.HeadOwner)).ToArray();
     }
 
     private TaskSourceIdentityDto Identity(TaskSourcePerson person, HashSet<string> enabled)

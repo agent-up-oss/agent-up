@@ -333,6 +333,28 @@ public sealed class CommandCenterSceneTests
     }
 
     [Test]
+    public void MemberKindChange_asksBeforeReplacingACustomizedSystemPrompt()
+    {
+        var fields = new Dictionary<string, string>
+        {
+            ["system-prompt"] = "Ship the cards.",
+            ["customization-prompt"] = "Keep the comma.",
+        };
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(CommandCenterScene.MemberKindChange(null, "Author", false, "Ship the cards.", "Edit the files."), Is.EqualTo("none"));
+            Assert.That(CommandCenterScene.MemberKindChange("Author", "Author", false, "Ship the cards.", "Edit the files."), Is.EqualTo("none"));
+            Assert.That(CommandCenterScene.MemberKindChange("DevReviewer", "Author", false, "Edit the files.", "Edit the files."), Is.EqualTo("apply"));
+            Assert.That(CommandCenterScene.MemberKindChange("DevReviewer", "Author", false, "Ship the cards.", "Edit the files."), Is.EqualTo("confirm"));
+            Assert.That(CommandCenterScene.MemberKindChange("DevReviewer", "Author", true, "Edit the files.", "Edit the files."), Is.EqualTo("confirm"));
+            Assert.That(CommandCenterScene.PromptSave(fields, "fallback", "also").SystemPrompt, Is.EqualTo("Ship the cards."));
+            Assert.That(CommandCenterScene.PromptSave(fields, "fallback", "also").CustomizationPrompt, Is.EqualTo("Keep the comma."));
+            Assert.That(CommandCenterScene.PromptSave(null, "fallback", "also").SystemPrompt, Is.EqualTo("fallback"));
+        });
+    }
+
+    [Test]
     public void Member_settings_show_Ollama_fields_for_the_in_process_PM_agent()
     {
         var binding = CommandCenterScene.Bind(Input([], "agent-settings") with { BoundAgent = "ollama" });

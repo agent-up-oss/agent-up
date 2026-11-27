@@ -13,6 +13,8 @@ namespace AgentUp.Capabilities.Github.Features.GithubCapability.Providers;
 public sealed class GithubApiProvider(HttpMessageHandler? handler = null, string? apiBaseUrl = null)
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
+    private const int PullPageSize = 100;
+    private const int PullPageLimit = 10;
     private readonly string _apiBaseUrl = GithubHostConfigurationProvider.ApiBase(apiBaseUrl);
 
     public async Task<ForgeHostSnapshot> ReadAsync(ForgeRequest request, CancellationToken cancellationToken)
@@ -359,41 +361,56 @@ public sealed class GithubApiProvider(HttpMessageHandler? handler = null, string
         CancellationToken cancellationToken)
     {
         using var client = CreateClient(request.Token, request.EndpointUrl);
-        var pulls = await client.GetFromJsonAsync<JsonElement>(
-            $"repos/{request.Owner}/{request.Repository}/pulls?state=open&sort=updated&direction=desc&per_page=20",
-            Json,
-            cancellationToken);
-        if (pulls.ValueKind != JsonValueKind.Array)
-            return [];
-
         var listed = new List<ForgePullRequest>();
-        foreach (var pull in pulls.EnumerateArray())
+        for (var page = 1; page <= PullPageLimit; page++)
         {
-            var number = pull.GetProperty("number").GetRawText();
-            IReadOnlyList<ForgeReview> reviews;
-            try
+            var pulls = await client.GetFromJsonAsync<JsonElement>(
+                $"repos/{request.Owner}/{request.Repository}/pulls?state=open&sort=updated&direction=desc&per_page={PullPageSize}&page={page}",
+                Json,
+                cancellationToken);
+            if (pulls.ValueKind != JsonValueKind.Array || pulls.GetArrayLength() == 0)
+                break;
+            foreach (var pull in pulls.EnumerateArray())
             {
-                reviews = await ReadReviewsAsync(client, request, number, cancellationToken);
+                var item = await ReadListedPullAsync(client, request, pull, cancellationToken);
+                listed.Add(item);
             }
-            catch (HttpRequestException)
-            {
-                reviews = [];
-            }
-
-            listed.Add(new ForgePullRequest(
-                pull.GetProperty("id").GetRawText(),
-                pull.GetProperty("number").GetInt32(),
-                pull.GetProperty("title").GetString() ?? "",
-                pull.GetProperty("html_url").GetString() ?? "",
-                Logins(pull, "requested_reviewers"),
-                reviews,
-                Nested(pull, "head", "ref"),
-                Nested(pull, "base", "ref"),
-                Nested(pull, "head", "sha"),
-                pull.TryGetProperty("body", out var body) ? body.GetString() : null));
+            if (pulls.GetArrayLength() < PullPageSize)
+                break;
         }
 
         return listed;
+    }
+
+    private static async Task<ForgePullRequest> ReadListedPullAsync(
+        HttpClient client,
+        ForgeRequest request,
+        JsonElement pull,
+        CancellationToken cancellationToken)
+    {
+        var number = pull.GetProperty("number").GetRawText();
+        IReadOnlyList<ForgeReview> reviews;
+        try
+        {
+            reviews = await ReadReviewsAsync(client, request, number, cancellationToken);
+        }
+        catch (HttpRequestException)
+        {
+            reviews = [];
+        }
+
+        return new ForgePullRequest(
+            pull.GetProperty("id").GetRawText(),
+            pull.GetProperty("number").GetInt32(),
+            pull.GetProperty("title").GetString() ?? "",
+            pull.GetProperty("html_url").GetString() ?? "",
+            Logins(pull, "requested_reviewers"),
+            reviews,
+            Nested(pull, "head", "ref"),
+            Nested(pull, "base", "ref"),
+            Nested(pull, "head", "sha"),
+            pull.TryGetProperty("body", out var body) ? body.GetString() : null,
+            NestedOwner(pull, "head"));
     }
 
     public async Task<ForgeTokenAccess> ReadTokenAccessAsync(
@@ -474,6 +491,17 @@ public sealed class GithubApiProvider(HttpMessageHandler? handler = null, string
         && node.TryGetProperty(field, out var value)
             ? value.GetString()
             : null;
+
+    private static string? NestedOwner(JsonElement pull, string side)
+    {
+        if (!pull.TryGetProperty(side, out var node) || node.ValueKind != JsonValueKind.Object)
+            return null;
+        if (!node.TryGetProperty("repo", out var repo) || repo.ValueKind != JsonValueKind.Object)
+            return null;
+        if (!repo.TryGetProperty("owner", out var owner) || owner.ValueKind != JsonValueKind.Object)
+            return null;
+        return owner.TryGetProperty("login", out var login) ? login.GetString() : null;
+    }
 
     private HttpClient CreateClient(string token, string? endpointUrl = null)
     {

@@ -3,7 +3,12 @@ using AgentUp.Sdk.Forge;
 namespace AgentUp.Server.Features.TaskSource.Services;
 
 /// <summary>One kind of review inferred from a pull request.</summary>
-public sealed record InferredReview(string Kind, string Standing, string? Login, string? Verdict);
+public sealed record InferredReview(
+    string Kind,
+    string Standing,
+    string? Login,
+    string? Verdict,
+    string? CommitId = null);
 
 /// <summary>
 /// Which reviews a pull request still needs, read from the pull request itself.
@@ -47,10 +52,15 @@ public static class PullRequestReviewInference
             .Where(review => kindByLogin.TryGetValue(review.Login, out var mapped) && mapped == kind)
             .OrderBy(review => review.SubmittedAt)
             .LastOrDefault(review => IsDecisive(review.State));
-        if (decisive is not null)
+        if (decisive is not null && CoversHead(pull.HeadSha, decisive.CommitId))
         {
             var approved = decisive.State.Contains("APPROV", StringComparison.OrdinalIgnoreCase);
-            return new InferredReview(kind, "reviewed", decisive.Login, approved ? "Approved" : "Changes requested");
+            return new InferredReview(
+                kind,
+                "reviewed",
+                decisive.Login,
+                approved ? "Approved" : "Changes requested",
+                decisive.CommitId);
         }
 
         var requested = pull.RequestedReviewers.FirstOrDefault(login =>
@@ -58,6 +68,19 @@ public static class PullRequestReviewInference
         return requested is not null
             ? new InferredReview(kind, "reviewing", requested, null)
             : new InferredReview(kind, "waiting", null, null);
+    }
+
+    /// <summary>
+    /// A verdict only settles the current head. A missing commit on the review does not cover a
+    /// named head, so a later push is offered again. A pull that cannot name its head still
+    /// treats the latest decisive review as covering, because there is nothing newer to compare.
+    /// </summary>
+    private static bool CoversHead(string? headSha, string? commitId)
+    {
+        if (string.IsNullOrWhiteSpace(headSha))
+            return true;
+        return !string.IsNullOrWhiteSpace(commitId)
+            && string.Equals(headSha, commitId, StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool IsDecisive(string state) =>

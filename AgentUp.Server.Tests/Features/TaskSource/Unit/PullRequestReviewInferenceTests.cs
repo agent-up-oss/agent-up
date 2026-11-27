@@ -65,6 +65,46 @@ public sealed class PullRequestReviewInferenceTests
         }));
     }
 
-    private static ForgePullRequest Pull(IReadOnlyList<string> requested, IReadOnlyList<ForgeReview> reviews) =>
-        new("42", 42, "Product cards", "https://example.test/42", requested, reviews);
+    [Test]
+    public void ADecisiveReviewOnTheCurrentHeadSettlesTheKind()
+    {
+        var reviews = PullRequestReviewInference.For(
+            Pull([], [new ForgeReview("hector", "APPROVED", DateTimeOffset.UnixEpoch, "aaa")], "aaa"),
+            Team,
+            ["devReviewer"]);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(reviews.Single().Standing, Is.EqualTo("reviewed"));
+            Assert.That(reviews.Single().CommitId, Is.EqualTo("aaa"));
+        });
+    }
+
+    [Test]
+    public void ADecisiveReviewOnAnEarlierShaLeavesTheKindWaiting()
+    {
+        var reviews = PullRequestReviewInference.For(
+            Pull([], [new ForgeReview("hector", "APPROVED", DateTimeOffset.UnixEpoch, "old")], "aaa"),
+            Team,
+            ["devReviewer"]);
+
+        Assert.That(reviews.Single().Standing, Is.EqualTo("waiting"));
+    }
+
+    [Test]
+    public void ADecisiveReviewWithoutACommitDoesNotCoverANamedHead()
+    {
+        var reviews = PullRequestReviewInference.For(
+            Pull([], [new ForgeReview("hector", "APPROVED", DateTimeOffset.UnixEpoch)], "aaa"),
+            Team,
+            ["devReviewer"]);
+
+        Assert.That(reviews.Single().Standing, Is.EqualTo("waiting"));
+    }
+
+    private static ForgePullRequest Pull(
+        IReadOnlyList<string> requested,
+        IReadOnlyList<ForgeReview> reviews,
+        string? headSha = null) =>
+        new("42", 42, "Product cards", "https://example.test/42", requested, reviews, HeadSha: headSha);
 }

@@ -59,7 +59,7 @@ public sealed class HostReviewQueueServiceTests
                 "Product cards",
                 "https://example.test/42",
                 [],
-                [new ForgeReview("hector", "APPROVED", DateTimeOffset.UnixEpoch)],
+                [new ForgeReview("hector", "APPROVED", DateTimeOffset.UnixEpoch, "aaa")],
                 "feature",
                 "main",
                 "aaa"));
@@ -80,7 +80,7 @@ public sealed class HostReviewQueueServiceTests
                 "Product cards",
                 "https://example.test/42",
                 ["lucy"],
-                [new ForgeReview("hector", "APPROVED", DateTimeOffset.UnixEpoch)],
+                [new ForgeReview("hector", "APPROVED", DateTimeOffset.UnixEpoch, "aaa")],
                 "feature",
                 "main",
                 "aaa"),
@@ -112,6 +112,128 @@ public sealed class HostReviewQueueServiceTests
         Assert.That(host.Queue.List(), Is.Empty);
     }
 
+    [Test]
+    public async Task SyncAsync_opensANewRevisionWhenThisKindReviewedAnEarlierSha()
+    {
+        var host = await HostAsync(
+            TeamMemberKind.DevReviewer,
+            new ForgePullRequest(
+                "42",
+                42,
+                "Product cards",
+                "https://example.test/42",
+                [],
+                [new ForgeReview("hector", "APPROVED", DateTimeOffset.UnixEpoch, "old")],
+                "feature",
+                "main",
+                "aaa"));
+
+        await host.Sync.SyncAsync(host.WorkspaceId, CancellationToken.None);
+
+        var adopted = host.Queue.List().Single();
+        Assert.Multiple(() =>
+        {
+            Assert.That(adopted.Proposal!.Head, Is.EqualTo("aaa"));
+            Assert.That(host.Queue.AwaitingReview(host.WorkspaceId, TeamMemberKind.DevReviewer, "acme", "widgets"), Has.Count.EqualTo(1));
+        });
+    }
+
+    [Test]
+    public async Task SyncAsync_skipsAPullWhoseHeadLivesOnAnotherRepository()
+    {
+        var host = await HostAsync(
+            TeamMemberKind.DevReviewer,
+            Pull("feature", "main", "aaa") with { HeadOwner = "harbor" });
+
+        await host.Sync.SyncAsync(host.WorkspaceId, CancellationToken.None);
+
+        Assert.That(host.Queue.List(), Is.Empty);
+    }
+
+    [Test]
+    public async Task SyncAsync_doesNothingWhenTheWorkspaceHasNoForgeRemote()
+    {
+        var host = await HostAsync(TeamMemberKind.DevReviewer, Pull("feature", "main", "aaa"), hasRemote: false);
+
+        await host.Sync.SyncAsync(host.WorkspaceId, CancellationToken.None);
+
+        Assert.That(host.Queue.List(), Is.Empty);
+    }
+
+    [Test]
+    public async Task SyncAsync_doesNothingWhenTheIdentityIsNotConnected()
+    {
+        var host = await HostAsync(TeamMemberKind.DevReviewer, Pull("feature", "main", "aaa"), connect: false);
+
+        await host.Sync.SyncAsync(host.WorkspaceId, CancellationToken.None);
+
+        Assert.That(host.Queue.List(), Is.Empty);
+    }
+
+    [Test]
+    public async Task SyncAsync_skipsAPullThatDoesNotNeedThisKind()
+    {
+        var host = await HostAsync(
+            TeamMemberKind.DevReviewer,
+            new ForgePullRequest(
+                "42",
+                42,
+                "Product cards",
+                "https://example.test/42",
+                ["lucy"],
+                [],
+                "feature",
+                "main",
+                "aaa"),
+            new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["hector"] = "devReviewer",
+                ["lucy"] = "pmReviewer",
+            },
+            ["devReviewer", "pmReviewer"]);
+
+        await host.Sync.SyncAsync(host.WorkspaceId, CancellationToken.None);
+
+        Assert.That(host.Queue.List(), Is.Empty);
+    }
+
+    [Test]
+    public async Task SyncAsync_adoptsAPullThatCannotNameItsHeadSha()
+    {
+        var host = await HostAsync(TeamMemberKind.DevReviewer, Pull("feature", "main", null));
+
+        await host.Sync.SyncAsync(host.WorkspaceId, CancellationToken.None);
+
+        Assert.That(host.Queue.List().Single().Proposal!.Head, Is.Null);
+    }
+
+    [Test]
+    public async Task SyncAsync_copiesARequestChangesReviewFromTheOtherKind()
+    {
+        var host = await HostAsync(
+            TeamMemberKind.PmReviewer,
+            new ForgePullRequest(
+                "42",
+                42,
+                "Product cards",
+                "https://example.test/42",
+                ["lucy"],
+                [new ForgeReview("hector", "CHANGES_REQUESTED", DateTimeOffset.UnixEpoch, "aaa")],
+                "feature",
+                "main",
+                "aaa"),
+            new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["hector"] = "devReviewer",
+                ["lucy"] = "pmReviewer",
+            },
+            ["devReviewer", "pmReviewer"]);
+
+        await host.Sync.SyncAsync(host.WorkspaceId, CancellationToken.None);
+
+        Assert.That(host.Queue.List().Single().Reviews!.Single().Verdict, Is.EqualTo(TaskReviewVerdict.RequestChanges));
+    }
+
     private static ForgePullRequest Pull(string? head, string? @base, string? sha) =>
         new("42", 42, "Product cards", "https://example.test/42", [], [], head, @base, sha, "Ship the cards.");
 
@@ -119,7 +241,9 @@ public sealed class HostReviewQueueServiceTests
         TeamMemberKind kind,
         ForgePullRequest pull,
         IReadOnlyDictionary<string, string>? kindByLogin = null,
-        IReadOnlyCollection<string>? kinds = null)
+        IReadOnlyCollection<string>? kinds = null,
+        bool connect = true,
+        bool hasRemote = true)
     {
         var workspaces = new WorkspaceQueryController(ServerTestComposition.CreateRegistry());
         var workspace = await workspaces.RegisterAsync(ServerDomain.Workspace().Build());
@@ -135,11 +259,15 @@ public sealed class HostReviewQueueServiceTests
                 kindByLogin ?? new Dictionary<string, string> { ["hector"] = "devReviewer" },
                 kinds ?? ["devReviewer"]),
             new FixedTaskSourceIdentities(new TaskSourcePerson(workspace.Id, "Hector")));
-        await source.SaveAsync(
-            new SaveTaskSourceTokenRequest(workspace.Id, "github", "https://github.com", "token"),
-            CancellationToken.None);
+        if (connect)
+        {
+            await source.SaveAsync(
+                new SaveTaskSourceTokenRequest(workspace.Id, "github", "https://github.com", "token"),
+                CancellationToken.None);
+        }
         var queue = new TaskQueueService(new MemoryTaskQueueStore());
-        var remotes = new FixedForgeGitRemoteResolver(new ForgeGitRemote("acme", "widgets", "main", "https://github.com/acme/widgets.git"));
+        var remotes = new FixedForgeGitRemoteResolver(
+            hasRemote ? new ForgeGitRemote("acme", "widgets", "main", "https://github.com/acme/widgets.git") : null);
         var forgeController = new ForgeController(new ForgeService(
             workspaces,
             packages,
@@ -154,7 +282,10 @@ public sealed class HostReviewQueueServiceTests
             new HostReviewQueueService(queue, new TaskSourceController(source), forgeController, settings));
     }
 
-    private sealed record Host(string WorkspaceId, TaskQueueService Queue, HostReviewQueueService Sync);
+    private sealed record Host(
+        string WorkspaceId,
+        TaskQueueService Queue,
+        HostReviewQueueService Sync);
 
     private sealed class MemoryTaskQueueStore : ITaskQueueStore
     {

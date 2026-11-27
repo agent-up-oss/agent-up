@@ -10,9 +10,10 @@ namespace AgentUp.Server.Features.Agents.Services;
 /// <summary>
 /// Adopts open host pull requests into the Server queue so an idle reviewer can take them.
 /// Only the workspace's own repository is considered, because checkout happens in that clone.
-/// A pull that already has a decisive review of this kind, or that cannot name its branches,
-/// is left alone. Other kinds' completed host reviews travel with the adopted task so a
-/// later kind does not offer that work again.
+/// A pull that already has a decisive review of this kind on the current head, that cannot
+/// name its branches, or whose head lives on another repository, is left alone. Other kinds'
+/// completed reviews of that same head travel with the adopted task so those kinds are not
+/// offered again. A later push leaves those reviews behind, so every kind is asked again.
 /// </summary>
 public sealed class HostReviewQueueService(
     TaskQueueService queue,
@@ -33,15 +34,7 @@ public sealed class HostReviewQueueService(
         if (identity is not { Connected: true, ModuleId.Length: > 0 })
             return;
 
-        IReadOnlyList<TaskSourcePullDto> pulls;
-        try
-        {
-            pulls = await source.ListPullsAsync(identity.ModuleId, repository.Owner, repository.Repository, cancellationToken);
-        }
-        catch (Exception failure) when (failure is HttpRequestException or TaskCanceledException)
-        {
-            return;
-        }
+        var pulls = await source.ListPullsAsync(identity.ModuleId, repository.Owner, repository.Repository, cancellationToken);
 
         var reviewKind = kind == TeamMemberKind.DevReviewer ? "devReviewer" : "pmReviewer";
         foreach (var pull in pulls)
@@ -50,6 +43,8 @@ public sealed class HostReviewQueueService(
             if (review is null || review.Standing == "reviewed")
                 continue;
             if (string.IsNullOrWhiteSpace(pull.HeadRef) || string.IsNullOrWhiteSpace(pull.BaseRef))
+                continue;
+            if (!string.Equals(pull.HeadOwner ?? repository.Owner, repository.Owner, StringComparison.OrdinalIgnoreCase))
                 continue;
             var adopted = queue.AdoptProposal(ToTask(repository, pull));
             if (pull.HeadSha is { Length: > 0 })

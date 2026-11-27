@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { TeamStanding } from '../models/TeamStanding';
-import { agentSettingSave, applyMemberIfCurrent, commandCenterScene, commandCenterSceneId, commandCenterServerLabel, fleetHeadline, moduleRow, prefillEndpoint, systemPromptWasCustomized, TASK_SOURCE_REFRESH_MS, tasksTabFor, tokenSave } from './CommandCenterSceneProvider';
+import { agentSettingSave, applyMemberIfCurrent, commandCenterScene, commandCenterSceneId, commandCenterServerLabel, fleetHeadline, memberKindChange, moduleRow, prefillEndpoint, promptSave, systemPromptWasCustomized, TASK_SOURCE_REFRESH_MS, tasksTabFor, tokenSave } from './CommandCenterSceneProvider';
 
 function standing(patch: Partial<TeamStanding> & Pick<TeamStanding, 'workspaceId' | 'displayName' | 'kind'>): TeamStanding {
   return {
@@ -314,6 +314,16 @@ test('member settings bind prompts and warn only when the system prompt was edit
   assert.equal(applyMemberIfCurrent('bob', 'bob'), true);
   assert.equal(applyMemberIfCurrent('bob', 'lucy'), false);
   assert.equal(TASK_SOURCE_REFRESH_MS, 30_000);
+});
+
+test('member kind change asks before replacing a customized system prompt', () => {
+  assert.equal(memberKindChange('', 'Author', false, 'Ship the cards.', 'Edit the files.'), 'none');
+  assert.equal(memberKindChange('Author', 'Author', false, 'Ship the cards.', 'Edit the files.'), 'none');
+  assert.equal(memberKindChange('DevReviewer', 'Author', false, 'Edit the files.', 'Edit the files.'), 'apply');
+  assert.equal(memberKindChange('DevReviewer', 'Author', false, 'Ship the cards.', 'Edit the files.'), 'confirm');
+  assert.equal(memberKindChange('DevReviewer', 'Author', true, 'Edit the files.', 'Edit the files.'), 'confirm');
+  assert.equal(promptSave({ 'system-prompt': 'Ship the cards.', 'customization-prompt': 'Keep the comma.' }, 'fallback', 'also').systemPrompt, 'Ship the cards.');
+  assert.equal(promptSave(undefined, 'fallback', 'also').customizationPrompt, 'also');
 });
 
 test('the settings scene shows the host URL for the selected forge', () => {

@@ -593,6 +593,67 @@ public sealed class AgentChatViewModelTests
     }
 
     [Test]
+    public async Task CancelKindChange_clearsThePendingKindWithoutPutting()
+    {
+        var fake = new ChatApiFake { Member = new TeamMemberDto("Author", "Edit the files.", null, "Edit the files.") };
+        var view = CreateView(fake);
+        await view.LoadAsync("ws-1");
+        view.BeginKindChange("DevReviewer");
+
+        view.CancelKindChange();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(view.PromptOverwrite, Is.False);
+            Assert.That(view.PendingMemberKind, Is.Null);
+            Assert.That(fake.LastMemberKind, Is.Null);
+        });
+        await view.LoadAsync(null);
+    }
+
+    [Test]
+    public async Task ConfirmKindChange_doesNothingWithoutAPendingKind()
+    {
+        var fake = new ChatApiFake { Member = new TeamMemberDto("Author", "Edit the files.", null, "Edit the files.") };
+        var view = CreateView(fake);
+        await view.LoadAsync("ws-1");
+
+        await view.ConfirmKindChangeAsync("Keep the comma.");
+
+        Assert.That(fake.LastMemberKind, Is.Null);
+        await view.LoadAsync(null);
+    }
+
+    [Test]
+    public async Task ChangeKindAsync_doesNotApplyAMemberAfterTheWorkspaceHasChanged()
+    {
+        var hang = new TaskCompletionSource<bool>();
+        var started = new TaskCompletionSource<bool>();
+        var fake = new ChatApiFake
+        {
+            Member = new TeamMemberDto("Author", "Edit the files.", null, "Edit the files."),
+            MemberHang = hang,
+            MemberStarted = started,
+        };
+        var view = CreateView(fake);
+        await view.LoadAsync("ws-1");
+        var changing = view.ChangeKindAsync("DevReviewer", "Keep the comma.");
+        await started.Task;
+
+        fake.Member = new TeamMemberDto("PmReviewer", "You are the product reviewer", "Keep the comma.", "You are the product reviewer");
+        await view.LoadAsync("ws-2");
+        hang.SetResult(true);
+        await changing;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(view.MemberKind, Is.EqualTo("PmReviewer"));
+            Assert.That(view.SystemPrompt, Is.EqualTo("You are the product reviewer"));
+        });
+        await view.LoadAsync(null);
+    }
+
+    [Test]
     public async Task ConfirmKindChange_putsThePendingKindAndKeepsCustomization()
     {
         var fake = new ChatApiFake
