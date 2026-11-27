@@ -192,6 +192,13 @@ export function liveWorkId(blocks: TranscriptBlock[], running = true): string | 
   return last?.type === 'work' ? last.id : undefined;
 }
 
+/** The work section that holds a transcript item, so a sheet handoff can keep that section open. */
+export function workSectionIdForItem(blocks: TranscriptBlock[], itemId: string): string | undefined {
+  for (const block of blocks) {
+    if (block.type === 'work' && block.items.some(item => item.id === itemId)) return block.id;
+  }
+}
+
 export function groupTranscript(items: TranscriptItem[]): TranscriptBlock[] {
   // One pass with no per-turn buffers: this runs on every streamed event over the whole transcript.
   const blocks: TranscriptBlock[] = [];
