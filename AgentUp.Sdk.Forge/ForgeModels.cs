@@ -98,7 +98,11 @@ public sealed record ForgePullRequest(
     string Title,
     string Url,
     IReadOnlyList<string> RequestedReviewers,
-    IReadOnlyList<ForgeReview> Reviews);
+    IReadOnlyList<ForgeReview> Reviews,
+    string? HeadRef = null,
+    string? BaseRef = null,
+    string? HeadSha = null,
+    string? Body = null);
 
 /// <summary>
 /// What a personal access token can do for the task list. Both have to be true before the token

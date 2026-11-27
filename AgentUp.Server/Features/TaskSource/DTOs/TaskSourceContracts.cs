@@ -43,7 +43,11 @@ public sealed record TaskSourcePullDto(
     int Number,
     string Title,
     string Url,
-    IReadOnlyList<TaskSourceReviewDto> Reviews);
+    IReadOnlyList<TaskSourceReviewDto> Reviews,
+    string? HeadRef = null,
+    string? BaseRef = null,
+    string? HeadSha = null,
+    string? Body = null);
 
 /// <summary>
 /// One kind of review a pull request still needs or has already received.

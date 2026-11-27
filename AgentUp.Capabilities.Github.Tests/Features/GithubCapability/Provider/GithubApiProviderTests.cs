@@ -583,7 +583,7 @@ public sealed class GithubApiProviderTests
     {
         var handler = Recorded(
             ("GET /repos/acme/widgets/pulls?state=open&sort=updated&direction=desc&per_page=20", """
-                [{"id":9,"number":42,"title":"Product cards","html_url":"https://github.com/acme/widgets/pull/42","requested_reviewers":[{"login":"hector"}]}]
+                [{"id":9,"number":42,"title":"Product cards","html_url":"https://github.com/acme/widgets/pull/42","body":"Ship the cards.","head":{"ref":"feature","sha":"aaa"},"base":{"ref":"main"},"requested_reviewers":[{"login":"hector"}]}]
                 """),
             ("GET /repos/acme/widgets/pulls/42/reviews?per_page=100", """
                 [{"user":{"login":"lucy"},"state":"APPROVED","submitted_at":"2026-01-02T00:00:00Z"}]
@@ -596,6 +596,10 @@ public sealed class GithubApiProviderTests
             Assert.That(pulls.Single().RequestedReviewers, Is.EqualTo(new[] { "hector" }));
             Assert.That(pulls.Single().Reviews.Single().Login, Is.EqualTo("lucy"));
             Assert.That(pulls.Single().Reviews.Single().State, Is.EqualTo("APPROVED"));
+            Assert.That(pulls.Single().HeadRef, Is.EqualTo("feature"));
+            Assert.That(pulls.Single().BaseRef, Is.EqualTo("main"));
+            Assert.That(pulls.Single().HeadSha, Is.EqualTo("aaa"));
+            Assert.That(pulls.Single().Body, Is.EqualTo("Ship the cards."));
         });
     }
 

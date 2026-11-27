@@ -200,7 +200,11 @@ public sealed class TaskSourceService(
             pull.Url,
             PullRequestReviewInference.For(pull, members.KindByLogin, members.Kinds)
                 .Select(review => new TaskSourceReviewDto(review.Kind, review.Standing, review.Login, review.Verdict))
-                .ToArray())).ToArray();
+                .ToArray(),
+            pull.HeadRef,
+            pull.BaseRef,
+            pull.HeadSha,
+            pull.Body)).ToArray();
     }
 
     private TaskSourceIdentityDto Identity(TaskSourcePerson person, HashSet<string> enabled)

@@ -508,7 +508,11 @@ public sealed class ForgejoApiProvider(HttpMessageHandler? handler = null, strin
                 pull.GetProperty("title").GetString() ?? "",
                 pull.GetProperty("html_url").GetString() ?? "",
                 Logins(pull, "requested_reviewers"),
-                reviews));
+                reviews,
+                Nested(pull, "head", "ref"),
+                Nested(pull, "base", "ref"),
+                Nested(pull, "head", "sha"),
+                pull.TryGetProperty("body", out var description) ? description.GetString() : null));
         }
 
         return listed;
@@ -595,6 +599,13 @@ public sealed class ForgejoApiProvider(HttpMessageHandler? handler = null, strin
             .Where(login => login.Length > 0)
             .ToArray();
     }
+
+    private static string? Nested(JsonElement pull, string side, string field) =>
+        pull.TryGetProperty(side, out var node)
+        && node.ValueKind == JsonValueKind.Object
+        && node.TryGetProperty(field, out var value)
+            ? value.GetString()
+            : null;
 
     private HttpClient CreateClient(string token, string? endpointUrl = null)
     {
