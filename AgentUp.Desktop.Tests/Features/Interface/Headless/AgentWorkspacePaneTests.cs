@@ -11,6 +11,7 @@ using AgentUp.Desktop.Features.Interface.Controllers;
 using AgentUp.Desktop.Features.Interface.Providers;
 using AgentUp.Desktop.Features.Interface.Services;
 using AgentUp.Desktop.Features.Interface.ViewModels;
+using AgentUp.Desktop.Features.Interface.Views;
 using AgentUp.Desktop.Features.Ports.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.ViewModels;
 using AgentUp.Desktop.Features.Workspaces.Views;
@@ -116,6 +117,69 @@ public sealed class AgentWorkspacePaneTests
         await HeadlessExtensions.FlushAsync();
 
         Assert.That(main.Agent.BoundAgent, Is.EqualTo("opencode"));
+        window.Close();
+    }
+
+    [AvaloniaTest]
+    public async Task Member_settings_save_prompts_and_refresh_open_tasks()
+    {
+        var window = await LaunchDemoCommandCenterAsync();
+        var main = (MainViewModel)window.DataContext!;
+        await OpenMemberSettingsAsync(main.CommandCenter!);
+        await WaitAsync(() => window.GetVisualDescendants().OfType<TextBox>()
+            .Any(box => box.PlaceholderText == "System prompt"));
+        window.GetVisualDescendants().OfType<TextBox>().First(box => box.PlaceholderText == "System prompt")
+            .Text = "Ship the cards.";
+        await ClickControlIntoViewAsync(window, VisibleButtonNamed(window, "Save prompts"));
+        await WaitAsync(() => main.Agent.SystemPrompt == "Ship the cards.");
+        var page = window.FindControl<CommandCenterView>("CommandCenterPage")!;
+        await page.RefreshTasksAsync(main.CommandCenter!);
+
+        Assert.That(main.Agent.SystemPrompt, Is.EqualTo("Ship the cards."));
+        window.Close();
+    }
+
+    [AvaloniaTest]
+    public async Task Member_settings_warn_before_overwriting_a_custom_system_prompt()
+    {
+        var window = await LaunchDemoCommandCenterAsync();
+        var main = (MainViewModel)window.DataContext!;
+        await OpenMemberSettingsAsync(main.CommandCenter!);
+        await WaitAsync(() => window.GetVisualDescendants().OfType<TextBox>()
+            .Any(box => box.PlaceholderText == "System prompt"));
+        window.GetVisualDescendants().OfType<TextBox>().First(box => box.PlaceholderText == "System prompt")
+            .Text = "Ship the cards.";
+        await ClickControlIntoViewAsync(window, AppTabNamed(window, "Dev reviewer"));
+        await HeadlessExtensions.FlushAsync();
+        Assert.That(main.Agent.PromptOverwrite, Is.True);
+        await ClickControlIntoViewAsync(window, VisibleButtonNamed(window, "Change type"));
+        await WaitAsync(() => main.Agent.MemberKind == "DevReviewer");
+
+        Assert.That(main.Agent.MemberKind, Is.EqualTo("DevReviewer"));
+        window.Close();
+    }
+
+    [AvaloniaTest]
+    public async Task Member_settings_keep_the_current_type_when_overwrite_is_cancelled()
+    {
+        var window = await LaunchDemoCommandCenterAsync();
+        var main = (MainViewModel)window.DataContext!;
+        await OpenMemberSettingsAsync(main.CommandCenter!);
+        await WaitAsync(() => window.GetVisualDescendants().OfType<TextBox>()
+            .Any(box => box.PlaceholderText == "System prompt"));
+        window.GetVisualDescendants().OfType<TextBox>().First(box => box.PlaceholderText == "System prompt")
+            .Text = "Ship the cards.";
+        await ClickControlIntoViewAsync(window, AppTabNamed(window, "Dev reviewer"));
+        await HeadlessExtensions.FlushAsync();
+        Assert.That(main.Agent.PromptOverwrite, Is.True);
+        await ClickControlIntoViewAsync(window, VisibleButtonNamed(window, "Keep editing"));
+        await HeadlessExtensions.FlushAsync();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(main.Agent.PromptOverwrite, Is.False);
+            Assert.That(main.Agent.MemberKind, Is.EqualTo("Author"));
+        });
         window.Close();
     }
 
@@ -425,6 +489,8 @@ public sealed class AgentWorkspacePaneTests
         await WaitAsync(() => ButtonTexts(window).Any(text => text.Contains("example/repository")));
         await window.ClickControlAsync(ButtonContaining(window, "example/repository"));
         await WaitAsync(() => ButtonTexts(window).Contains("Back"));
+        var page = window.FindControl<CommandCenterView>("CommandCenterPage")!;
+        await page.RefreshTasksAsync(center);
         await window.ClickControlAsync(VisibleButtonNamed(window, "Dev review"));
         await window.ClickControlAsync(VisibleButtonNamed(window, "PM review"));
         var queue = window.GetVisualDescendants().OfType<Button>().FirstOrDefault(button => button.IsVisible && ButtonText(button) == "Queue");

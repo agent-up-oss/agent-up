@@ -311,12 +311,13 @@ function nodeFrom(tag) {
   }
   const flags = data(tag.attrs, 'flags');
   if (flags) node.flags = flags.split(/\s+/).filter(Boolean).map(entry => entry.split(':'));
-  if (tag.name === 'input') {
+  if (tag.name === 'input' || tag.name === 'textarea') {
     const value = attr(tag.attrs, 'value');
     if (value) node.x = decode(value);
     const placeholder = attr(tag.attrs, 'placeholder');
     if (placeholder) node.placeholder = decode(placeholder);
     if ((attr(tag.attrs, 'type') || '') === 'password') node.secret = true;
+    if (tag.name === 'textarea') node.multiline = true;
   }
   if (data(tag.attrs, 'kind') === '1') node.kindHost = true;
   const layout = layoutOf(node.c ?? []);
@@ -585,6 +586,7 @@ export function createNewUiScene(React, native) {
   const { View, Text, Pressable, ScrollView, Icon, TextInput } = native;
   const drafts = {};
   const bound = {};
+  let draftScope = '';
   const h = React.createElement;
   // The page sets the ink on the web (.aun sets color); a React Native Text has none of its own.
   const root = { scope: [], ink: { color: newUiTheme.colors.textPrimary } };
@@ -655,8 +657,8 @@ export function createNewUiScene(React, native) {
     const children = childNodes.map((child, index) => render(child, model, item, index, inner)).filter(child => child != null);
     const action = node.action ? (item?.action || node.action) : null;
     const actionId = item?.id ?? node.id ?? null;
-    if (node.t === 'input') {
-      if (!TextInput) return h(View, { key, style: [box, { minHeight: 36 }] });
+    if (node.t === 'input' || node.t === 'textarea') {
+      if (!TextInput) return h(View, { key, style: [box, { minHeight: node.multiline === true ? 80 : 36 }] });
       const fieldValue = textValue ?? node.x ?? '';
       if (node.action && node.text) {
         if (bound[node.action] !== fieldValue) {
@@ -671,8 +673,10 @@ export function createNewUiScene(React, native) {
         defaultValue: (node.action ? drafts[node.action] : undefined) ?? fieldValue,
         placeholder: node.placeholder,
         secureTextEntry: node.secret === true,
+        multiline: node.multiline === true,
+        textAlignVertical: node.multiline === true ? 'top' : undefined,
         onChangeText: (value) => { if (node.action) drafts[node.action] = value; },
-        style: [box, ink, { flexGrow: 1, minWidth: 0 }],
+        style: [box, ink, { flexGrow: 1, minWidth: 0 }, node.multiline === true ? { minHeight: 80 } : null],
       });
     }
     const block = !inlineTags.has(node.t) && (!node.flow || node.flow.d === 'column');
@@ -785,6 +789,12 @@ export function createNewUiScene(React, native) {
    */
   return function NewUiScene(props) {
     const { scene, text = {}, items = {}, state = {}, content = {}, onAction = () => {} } = props;
+    const scope = text.memberId ?? '';
+    if (scope !== draftScope) {
+      draftScope = scope;
+      for (const key of Object.keys(drafts)) delete drafts[key];
+      for (const key of Object.keys(bound)) delete bound[key];
+    }
     const tree = newUiSceneDocument.scenes[scene];
     if (!tree) return null;
     const model = { text, items, state, content, onAction };
@@ -852,6 +862,7 @@ public sealed class NewUiScene : UserControl
     private readonly Dictionary<string, string> _drafts = new(StringComparer.Ordinal);
     private readonly Dictionary<string, string> _bound = new(StringComparer.Ordinal);
     private string _scene = "";
+    private string _draftScope = "";
     private bool _applying;
 
     public event EventHandler<NewUiActionEventArgs>? ActionInvoked;
@@ -864,6 +875,13 @@ public sealed class NewUiScene : UserControl
         IReadOnlyDictionary<string, IReadOnlyList<NewUiSlotItem>> items,
         IReadOnlyDictionary<string, string> state)
     {
+        var scope = text.TryGetValue("memberId", out var memberId) ? memberId : "";
+        if (scope != _draftScope)
+        {
+            _draftScope = scope;
+            _drafts.Clear();
+            _bound.Clear();
+        }
         _scene = scene;
         _text.Clear();
         foreach (var pair in text) _text[pair.Key] = pair.Value;
@@ -1035,7 +1053,7 @@ public sealed class NewUiScene : UserControl
             && !(_state.TryGetValue("app", out var appName) && appName == appSelection[1]))
             classes.Remove(appSelection[2]);
         var action = string.IsNullOrEmpty(node.Action) ? null : (item?.Action ?? node.Action);
-        if (node.T == "input" && !string.IsNullOrEmpty(node.Action))
+        if ((node.T == "input" || node.T == "textarea") && !string.IsNullOrEmpty(node.Action))
             return Field(node);
         if (node.T == "input")
             return AddressField(text, classes);
@@ -1609,6 +1627,9 @@ public sealed class NewUiScene : UserControl
             MinWidth = 0,
             PlaceholderText = node.Placeholder ?? "",
             PasswordChar = node.Secret == true ? '•' : default,
+            AcceptsReturn = node.Multiline == true,
+            TextWrapping = node.Multiline == true ? TextWrapping.Wrap : TextWrapping.NoWrap,
+            MinHeight = node.Multiline == true ? 80 : 0,
             Text = _drafts.TryGetValue(action, out var draft) ? draft : boundValue,
         };
         box.TextChanged += (_, _) => _drafts[action] = box.Text ?? "";
@@ -1783,6 +1804,7 @@ internal sealed class SceneNode
     public List<string>? For { get; set; }
     public string? Empty { get; set; }
     public bool? Secret { get; set; }
+    public bool? Multiline { get; set; }
     public string? Placeholder { get; set; }
     public SceneFlow? Flow { get; set; }
     public List<SceneNode>? K { get; set; }

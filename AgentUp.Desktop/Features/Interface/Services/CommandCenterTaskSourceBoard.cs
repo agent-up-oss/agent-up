@@ -12,6 +12,8 @@ namespace AgentUp.Desktop.Features.Interface.Services;
 /// </summary>
 public sealed class CommandCenterTaskSourceBoard
 {
+    public const int RefreshSeconds = 30;
+
     public string AuthTab { get; private set; } = "";
 
     public string ForgeTab { get; private set; } = "github";
@@ -114,6 +116,13 @@ public sealed class CommandCenterTaskSourceBoard
     {
         if (SourceRequested || source is null)
             return;
+        await RefreshSourceAsync(source);
+    }
+
+    public async Task RefreshSourceAsync(TaskSourceViewModel? source)
+    {
+        if (source is null)
+            return;
         SourceRequested = true;
         await source.LoadAsync();
         await source.LoadRepositoriesAsync();
@@ -152,10 +161,15 @@ public sealed class CommandCenterTaskSourceBoard
             return;
         }
 
+        var module = OpenModule;
+        var owner = OpenOwner;
+        var name = OpenName;
         try
         {
-            var pulls = await source.PullsAsync(OpenModule, OpenOwner, OpenName);
-            var repo = $"{OpenOwner}/{OpenName}";
+            var pulls = await source.PullsAsync(module, owner, name);
+            if (OpenModule != module || OpenOwner != owner || OpenName != name)
+                return;
+            var repo = $"{owner}/{name}";
             DevPulls = CommandCenterScene.ReviewRows(pulls, "devReviewer", repo);
             PmPulls = CommandCenterScene.ReviewRows(pulls, "pmReviewer", repo);
         }

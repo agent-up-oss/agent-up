@@ -1008,6 +1008,9 @@ test('a New UI scene publishes the slots, states, and actions a command center b
   assert.ok(memberSettings.actions.includes('member-kind'));
   assert.ok(memberSettings.actions.includes('save-token'));
   assert.ok(memberSettings.actions.includes('save-agent-settings'));
+  assert.ok(memberSettings.actions.includes('save-prompts'));
+  assert.ok(memberSettings.actions.includes('confirm-overwrite'));
+  assert.ok(memberSettings.actions.includes('cancel-overwrite'));
   assert.ok(memberSettings.slots.some(slot => slot.name === 'chatFields' && slot.repeat === 'settings-field'));
   const phoneMember = manifest.scenes.find(scene => scene.id === 'mobile-agent-settings');
   assert.ok(phoneMember.actions.includes('tab-settings'));
@@ -1104,6 +1107,39 @@ test('the scene owns the board: groups, labels, grips, tones, and the empty copy
   assert.equal(background(buttons.find(button => button.props.accessibilityLabel === 'Stop')), newUiTheme.components.aunBtnDanger.backgroundColor);
   assert.equal(texts(board).some(word => word.startsWith('Nothing is queued')), false);
   assert.equal(texts(mount({ queue: [] })).some(word => word.startsWith('Nothing is queued')), true);
+});
+
+test('prompt drafts reset when the team member changes', async () => {
+  const { createNewUiScene } = await import(new URL('./dist/native/new-ui-scene.js', root));
+  const h = (type, props, ...children) => ({ type, props: props ?? {}, children: children.flat() });
+  const React = { createElement: h };
+  const Scene = createNewUiScene(React, {
+    View: 'View',
+    Text: 'Text',
+    Pressable: 'Pressable',
+    ScrollView: 'ScrollView',
+    TextInput: 'TextInput',
+  });
+  const walk = (node, visit) => {
+    if (!node || typeof node !== 'object') return;
+    visit(node);
+    for (const child of node.children ?? []) walk(child, visit);
+  };
+  const prompt = tree => {
+    let found;
+    walk(tree, node => {
+      if (node.type === 'TextInput' && node.props.placeholder === 'System prompt') found = node;
+    });
+    return found;
+  };
+  const mount = (memberId, systemPrompt) => Scene({
+    scene: 'mobile-agent-settings',
+    text: { memberId, systemPrompt },
+    state: { memberKind: 'Author' },
+  });
+  prompt(mount('bob', 'A')).props.onChangeText('edited');
+  assert.equal(prompt(mount('bob', 'A')).props.defaultValue, 'edited');
+  assert.equal(prompt(mount('lucy', 'B')).props.defaultValue, 'B');
 });
 
 test('the New UI Avalonia sheet styles what the scene draws, the way the CSS does', async () => {

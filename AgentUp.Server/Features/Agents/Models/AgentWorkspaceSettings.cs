@@ -9,4 +9,5 @@ public sealed record AgentWorkspaceSettings(
     AssignedIssueOrder QueueOrder,
     LoopStatusSnapshot? Loop,
     int StandingPolicyReplies = 2,
-    TeamMemberKind Member = TeamMemberKind.Author);
+    TeamMemberKind Member = TeamMemberKind.Author,
+    string? Customization = null);

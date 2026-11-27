@@ -140,6 +140,28 @@
           </div>
         </div>
         <div class="aun-group">
+          <div data-au-use="section-label" data-au-props="label=Prompts"></div>
+          <p class="aun-faint">The system prompt is this member kind's default until you change it. Customization stays when the type changes.</p>
+          <div class="aun-settings__list">
+            <div class="aun-settings__row">
+              <textarea class="aun-input aun-textarea" data-au-action="system-prompt" data-au-text="systemPrompt" rows="8" placeholder="System prompt"></textarea>
+            </div>
+            <div class="aun-settings__row">
+              <textarea class="aun-input aun-textarea" data-au-action="customization-prompt" data-au-text="customizationPrompt" rows="4" placeholder="Customization"></textarea>
+            </div>
+            <div class="aun-settings__row">
+              <button class="aun-btn aun-btn--primary" type="button" data-au-action="save-prompts">Save prompts</button>
+            </div>
+          </div>
+          <div data-au-when="promptOverwrite">
+            <p class="aun-faint">Changing this member's type replaces the modified system prompt with the default for the new type. Customization stays.</p>
+            <div class="au-cluster">
+              <button class="aun-btn aun-btn--primary" type="button" data-au-action="confirm-overwrite">Change type</button>
+              <button class="aun-btn" type="button" data-au-action="cancel-overwrite">Keep editing</button>
+            </div>
+          </div>
+        </div>
+        <div class="aun-group">
           <div data-au-use="section-label" data-au-props="label=Forge"></div>
           <div class="au-cluster">
             <button class="au-app-tab au-app-tab--selected" type="button" data-au-action="forge-tab" data-au-id="github" data-au-selection="forgeTab:github:au-app-tab--selected">GitHub</button>

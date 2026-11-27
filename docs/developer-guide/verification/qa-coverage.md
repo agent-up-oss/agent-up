@@ -31,6 +31,7 @@ CI replays every flow of both suites in Desktop · Journeys on a real Server and
 | Agents | Agent availability, remedies, start a session, transcript | covered | covered |
 | Agent transcript sheet | Open a tool call, edit, or thought in a bottom sheet, drag it to full height, drag it down to close | n/a | gap |
 | Autonomous loop / checklist | Agent summary line opens Settings, where the precondition checklist is | covered | covered |
+| Team member / prompts | Edit system and customization prompts on member Settings; warn before a type change overwrites a modified system prompt | gap | gap |
 | Autonomous loop / activate | Activate after a satisfied checklist, typed terminal | gap | gap |
 | Forge review / hosting | Hosting strip notInstalled with bootstrap remedy | covered | covered |
 | Forge review / proposal | Open a proposal, checks, review threads | gap | gap |

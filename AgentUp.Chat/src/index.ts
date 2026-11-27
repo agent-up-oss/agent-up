@@ -38,3 +38,4 @@ export {
   getPermissionPolicy,
   putPermissionPolicy,
 } from './providers/AgentApiProvider';
+export type { TeamMember } from './providers/AgentApiProvider';

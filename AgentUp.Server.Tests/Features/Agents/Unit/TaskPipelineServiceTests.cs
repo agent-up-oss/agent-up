@@ -153,6 +153,30 @@ public sealed class TaskPipelineServiceTests
         Assert.That(team.Forge.TeamWrites, Is.EqualTo(new[] { "bob-token: review !42 -> lucy" }));
     }
 
+    [Test]
+    public async Task PrepareAsync_namesTheReviewerWithItsOwnCredentialWhenTheProposalHasNoAuthor()
+    {
+        var team = await TaskTeamComposition.ComposeAsync(null);
+        team.Queue.AdoptProposal(new QueuedTask(
+            "42",
+            "acme",
+            "widgets",
+            42,
+            "Product cards",
+            "",
+            "https://example.test/42",
+            DateTimeOffset.UnixEpoch,
+            Stage: TaskStage.InReview,
+            Proposal: new TaskProposal("42", "https://example.test/42", "feature", "main", 1, "aaa"),
+            BaseBranch: "main"));
+        team.Forge.TeamWrites.Clear();
+        var adopted = ServerDomain.Issue().Numbered(42).Titled("Product cards").Build();
+
+        await team.Pipeline.PrepareAsync(team.Lucy, Reviewer, adopted, CancellationToken.None);
+
+        Assert.That(team.Forge.TeamWrites, Is.EqualTo(new[] { "lucy-token: review !42 -> lucy" }));
+    }
+
     // Everything the host said comes back to the author: findings at their lines, failing checks, comments.
     [Test]
     public async Task PrepareAsync_givesAnAuthorSentBackEveryFindingAndFailingCheck()

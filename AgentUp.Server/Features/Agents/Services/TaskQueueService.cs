@@ -48,6 +48,33 @@ public sealed class TaskQueueService
         }
     }
 
+    /// <summary>
+    /// Records a host pull request as review work. Authors still wait on picked issues; a PR
+    /// opened on the host still needs a reviewer even when nobody picked the issue first.
+    /// Matching an existing task by id, issue number, or proposal number returns that task.
+    /// </summary>
+    public QueuedTask AdoptProposal(QueuedTask task)
+    {
+        lock (_gate)
+        {
+            var existing = _tasks.FirstOrDefault(item =>
+                string.Equals(item.Owner, task.Owner, StringComparison.OrdinalIgnoreCase)
+                && string.Equals(item.Repository, task.Repository, StringComparison.OrdinalIgnoreCase)
+                && (item.Id == task.Id
+                    || item.Number == task.Number
+                    || (item.Proposal is not null
+                        && task.Proposal is not null
+                        && item.Proposal.Number == task.Proposal.Number)));
+            if (existing is not null)
+                return existing;
+
+            var adopted = task with { Stage = TaskStage.InReview };
+            _tasks.Add(adopted);
+            Persist();
+            return adopted;
+        }
+    }
+
     /// <summary>Takes an issue back out. A task somebody is carrying is not removed silently.</summary>
     public bool Remove(string owner, string repository, string id, bool evenWhenHeld = false)
     {

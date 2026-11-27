@@ -7,11 +7,12 @@ using AgentUp.Server.Features.Git.Controllers;
 namespace AgentUp.Server.Features.Agents.Providers;
 
 /// <summary>
-/// What a reviewer is offered: the picked tasks on its own repository whose open revision needs a
+/// What a reviewer is offered: the tasks on its own repository whose open revision needs a
 /// review of the reviewer's kind - dev or product - and that are either still free or already
 /// this reviewer's. The host only knows that a number of approvals is required; which kinds are
-/// still owed is the Server's to infer from the reviews already given. The queue is the record,
-/// so a reviewer never reviews a proposal nobody picked.
+/// still owed is the Server's to infer from the reviews already given. Host pull requests that
+/// still need this kind of review are adopted into the queue before listing, so a reviewer is
+/// scheduled even when nobody picked the issue first.
 /// A review is triggered by a push: before answering, the reviewer fetches every proposed branch
 /// with its own credential, and a branch whose head moved - whoever pushed it - is a new revision
 /// in front of every reviewer.

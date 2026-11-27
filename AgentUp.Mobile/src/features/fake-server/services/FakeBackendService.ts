@@ -183,6 +183,8 @@ export class FakeBackendService {
   private autonomyEnabled = false;
   private readonly permissionPolicies = new Map<string, unknown[]>();
   private readonly memberKinds = new Map<string, string>();
+  private readonly memberSystemPrompts = new Map<string, string>();
+  private readonly memberCustomizations = new Map<string, string>();
   /** Messages sent while the Demo run plays, keyed by workspace; present only while it plays. */
   private readonly steering = new Map<string, string[]>();
   private cancelLifecycle: (() => void) | null = null;
@@ -215,6 +217,8 @@ export class FakeBackendService {
     this.autonomyEnabled = false;
     this.permissionPolicies.clear();
     this.memberKinds.clear();
+    this.memberSystemPrompts.clear();
+    this.memberCustomizations.clear();
     this.loopGeneration += 1;
     this.tokens.clear();
     this.tokens.set('bob', { module: 'github', endpoint: 'https://github.com', token: 'demo' });
@@ -872,7 +876,7 @@ export class FakeBackendService {
 
   private memberKind(workspaceId: string) {
     if (!this.findWorkspace(workspaceId)) return notFound();
-    return json({ kind: this.memberKinds.get(workspaceId) ?? 'Author' });
+    return json(this.memberDocument(workspaceId, this.memberKinds.get(workspaceId) ?? 'Author'));
   }
 
   private setMemberKind(workspaceId: string, body: string | null) {
@@ -881,8 +885,32 @@ export class FakeBackendService {
     if (kind !== 'Author' && kind !== 'DevReviewer' && kind !== 'PmReviewer') {
       return { status: 409, contentType: 'application/json', body: JSON.stringify({ detail: 'Choose Author, Dev reviewer, or PM reviewer.' }) };
     }
+    const previous = this.memberKinds.get(workspaceId) ?? 'Author';
     this.memberKinds.set(workspaceId, kind);
-    return json({ kind });
+    if (previous !== kind) this.memberSystemPrompts.delete(workspaceId);
+    else {
+      const prompt = readJsonString(body, 'systemPrompt');
+      if (prompt !== null) {
+        if (prompt === defaultSystemPrompt(kind)) this.memberSystemPrompts.delete(workspaceId);
+        else this.memberSystemPrompts.set(workspaceId, prompt);
+      }
+    }
+    const customization = readJsonString(body, 'customizationPrompt');
+    if (customization !== null) {
+      if (customization.length === 0) this.memberCustomizations.delete(workspaceId);
+      else this.memberCustomizations.set(workspaceId, customization);
+    }
+    return json(this.memberDocument(workspaceId, kind));
+  }
+
+  private memberDocument(workspaceId: string, kind: string) {
+    const defaults = defaultSystemPrompt(kind);
+    return {
+      kind,
+      systemPrompt: this.memberSystemPrompts.get(workspaceId) ?? defaults,
+      customizationPrompt: this.memberCustomizations.get(workspaceId) ?? '',
+      defaultSystemPrompt: defaults,
+    };
   }
 
   private autonomyStatus(workspaceId?: string) {
@@ -1530,6 +1558,25 @@ function renderFakeReviewReport(workspace: WorkspaceRecord): string {
 
 function problem(status: number, title: string, detail: string): FakeBackendResponse {
   return { status, contentType: 'application/problem+json', body: JSON.stringify({ title, detail, status }) };
+}
+
+function defaultSystemPrompt(kind: string): string {
+  if (kind === 'DevReviewer') {
+    return 'Check that the change does what the issue asks and nothing else, and look for bugs. The diff above is the whole change, so you can review it directly; you cannot change files. '
+      + 'You may start the workspace with start_workspace to check that it runs. '
+      + 'Submit your review with submit_review: verdict approve or request_changes, a summary, and a finding at the file and line of each problem. '
+      + 'Without that tool, reply with your review and a last line that is exactly VERDICT: APPROVE or VERDICT: REQUEST_CHANGES.';
+  }
+  if (kind === 'PmReviewer') {
+    return 'You are the product reviewer on this team. You review what a user would see, not the code. '
+      + 'The revision under review is already running: open it in the browser, try what the issue asks for, and judge whether it does it. '
+      + 'Take a browser_screenshot of anything wrong. If you cannot do what the issue asks through the interface, request changes. '
+      + 'Submit your review with submit_review: verdict approve or request_changes, what you tried and saw, and the screenshot artifact ids. '
+      + 'Without that tool, finish with your review and a last line that is exactly VERDICT: APPROVE or VERDICT: REQUEST_CHANGES.';
+  }
+  return 'Edit the files in this repository to make this change, and update the tests to match. '
+    + 'Agent-Up commits, pushes and proposes your change for review, so never commit or push yourself. '
+    + 'When you are done, call submit_work with a short summary of what you changed, or reply with that summary.';
 }
 
 function notFound(): FakeBackendResponse {

@@ -33,7 +33,7 @@ internal sealed class StubForgeCapability : IForgeCapability
 
     public IReadOnlyList<ForgeRepository> Repositories { get; init; } = [];
 
-    public IReadOnlyList<ForgePullRequest> PullRequests { get; init; } = [];
+    public IReadOnlyList<ForgePullRequest> PullRequests { get; set; } = [];
 
     public Exception? ReadFailure { get; set; }
 

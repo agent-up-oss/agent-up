@@ -328,7 +328,7 @@ public sealed class TaskSourceServiceTests
             Issues = [new ForgeIssue("I-7", 7, "Cart badge", "", DateTimeOffset.UnixEpoch, DateTimeOffset.UnixEpoch, "https://example.test/7", "bob")],
             PullRequests =
             [
-                new ForgePullRequest("42", 42, "Product cards", "https://example.test/42", ["hector"], []),
+                new ForgePullRequest("42", 42, "Product cards", "https://example.test/42", ["hector"], [], "feature", "main", "aaa", "Ship the cards."),
             ],
         };
         var service = Service(forge, team: new FixedTeam(new Dictionary<string, string> { ["hector"] = "devReviewer" }, ["devReviewer"]));
@@ -343,6 +343,10 @@ public sealed class TaskSourceServiceTests
             Assert.That(issues.Single().AssigneeLogin, Is.EqualTo("bob"));
             Assert.That(pulls.Single().Reviews.Single().Standing, Is.EqualTo("reviewing"));
             Assert.That(pulls.Single().Reviews.Single().Kind, Is.EqualTo("devReviewer"));
+            Assert.That(pulls.Single().HeadRef, Is.EqualTo("feature"));
+            Assert.That(pulls.Single().HeadSha, Is.EqualTo("aaa"));
+            Assert.That(pulls.Single().Body, Is.EqualTo("Ship the cards."));
+            Assert.That(pulls.Single().HeadOwner, Is.Null);
             Assert.That(forge.LastEndpointUrl, Is.EqualTo("https://github.com"));
         });
     }

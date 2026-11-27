@@ -310,6 +310,51 @@ public sealed class CommandCenterSceneTests
     }
 
     [Test]
+    public void Member_settings_bind_prompts_and_the_overwrite_warning()
+    {
+        var binding = CommandCenterScene.Bind(Input([], "agent-settings") with
+        {
+            OpenWorkspaceId = "bob",
+            SystemPrompt = "Ship the cards.",
+            CustomizationPrompt = "Keep the comma.",
+            PromptOverwrite = true,
+        });
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(binding.Text["memberId"], Is.EqualTo("bob"));
+            Assert.That(binding.Text["systemPrompt"], Is.EqualTo("Ship the cards."));
+            Assert.That(binding.Text["customizationPrompt"], Is.EqualTo("Keep the comma."));
+            Assert.That(binding.State["promptOverwrite"], Is.EqualTo("1"));
+            Assert.That(CommandCenterScene.SystemPromptWasCustomized("Ship the cards.", "Edit the files."), Is.True);
+            Assert.That(CommandCenterScene.SystemPromptWasCustomized("Edit the files.", "Edit the files."), Is.False);
+            Assert.That(CommandCenterTaskSourceBoard.RefreshSeconds, Is.EqualTo(30));
+        });
+    }
+
+    [Test]
+    public void MemberKindChange_asksBeforeReplacingACustomizedSystemPrompt()
+    {
+        var fields = new Dictionary<string, string>
+        {
+            ["system-prompt"] = "Ship the cards.",
+            ["customization-prompt"] = "Keep the comma.",
+        };
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(CommandCenterScene.MemberKindChange(null, "Author", false, "Ship the cards.", "Edit the files."), Is.EqualTo("none"));
+            Assert.That(CommandCenterScene.MemberKindChange("Author", "Author", false, "Ship the cards.", "Edit the files."), Is.EqualTo("none"));
+            Assert.That(CommandCenterScene.MemberKindChange("DevReviewer", "Author", false, "Edit the files.", "Edit the files."), Is.EqualTo("apply"));
+            Assert.That(CommandCenterScene.MemberKindChange("DevReviewer", "Author", false, "Ship the cards.", "Edit the files."), Is.EqualTo("confirm"));
+            Assert.That(CommandCenterScene.MemberKindChange("DevReviewer", "Author", true, "Edit the files.", "Edit the files."), Is.EqualTo("confirm"));
+            Assert.That(CommandCenterScene.PromptSave(fields, "fallback", "also").SystemPrompt, Is.EqualTo("Ship the cards."));
+            Assert.That(CommandCenterScene.PromptSave(fields, "fallback", "also").CustomizationPrompt, Is.EqualTo("Keep the comma."));
+            Assert.That(CommandCenterScene.PromptSave(null, "fallback", "also").SystemPrompt, Is.EqualTo("fallback"));
+        });
+    }
+
+    [Test]
     public void Member_settings_show_Ollama_fields_for_the_in_process_PM_agent()
     {
         var binding = CommandCenterScene.Bind(Input([], "agent-settings") with { BoundAgent = "ollama" });

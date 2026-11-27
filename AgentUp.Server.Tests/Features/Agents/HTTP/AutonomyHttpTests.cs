@@ -343,6 +343,31 @@ public sealed class AutonomyHttpTests
             Assert.That(member.WritesRepository, Is.True);
             Assert.That(member.SubmitsReviews, Is.False);
             Assert.That(member.Fixture, Is.EqualTo(AgentFixtureKind.CodingAgent));
+            Assert.That(member.SystemPrompt, Is.EqualTo(TeamRoles.AuthorPrompt));
+            Assert.That(member.DefaultSystemPrompt, Is.EqualTo(TeamRoles.AuthorPrompt));
+        });
+    }
+
+    [Test]
+    public async Task PutMember_replacesAModifiedSystemPromptWhenTheKindChangesAndKeepsCustomization()
+    {
+        await using var host = await HostAsync();
+        var workspace = await host.RegisterAsync();
+        using var customized = await host.Client.PutAsJsonAsync(
+            $"/api/workspaces/{workspace.Id}/agent/member",
+            new { kind = "Author", systemPrompt = "Ship the cards.", customizationPrompt = "Keep the comma." });
+
+        using var changed = await host.Client.PutAsJsonAsync(
+            $"/api/workspaces/{workspace.Id}/agent/member",
+            new { kind = "DevReviewer" });
+        var member = await changed.Content.ReadFromJsonAsync<TeamMemberDto>(Json);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(customized.StatusCode, Is.EqualTo(HttpStatusCode.OK));
+            Assert.That(member!.Kind, Is.EqualTo(TeamMemberKind.DevReviewer));
+            Assert.That(member.SystemPrompt, Is.EqualTo(TeamRoles.DevReviewerPrompt));
+            Assert.That(member.CustomizationPrompt, Is.EqualTo("Keep the comma."));
         });
     }
 

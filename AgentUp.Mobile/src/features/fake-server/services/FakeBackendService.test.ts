@@ -779,6 +779,24 @@ test('the Demo serves the workspace files a folder at a time and saves an edit i
   assert.ok(changes.root.files.some((file: { path: string }) => file.path === 'README.md'));
 });
 
+test('member prompts default per kind and keep customization when the kind changes', () => {
+  const service = backend();
+  const before = json(service, 'GET', '/api/workspaces/bob/agent/member');
+  json(service, 'PUT', '/api/workspaces/bob/agent/member', JSON.stringify({
+    kind: 'Author',
+    systemPrompt: 'Ship the cards.',
+    customizationPrompt: 'Keep the comma.',
+  }));
+  const changed = json(service, 'PUT', '/api/workspaces/bob/agent/member', JSON.stringify({ kind: 'DevReviewer' }));
+
+  assert.equal(before.kind, 'Author');
+  assert.match(before.systemPrompt, /^Edit the files/);
+  assert.equal(changed.kind, 'DevReviewer');
+  assert.match(changed.systemPrompt, /^Check that the change/);
+  assert.equal(changed.customizationPrompt, 'Keep the comma.');
+  assert.equal(changed.defaultSystemPrompt, changed.systemPrompt);
+});
+
 test('the Demo refuses a stale save with a conflict', () => {
   const service = backend();
 

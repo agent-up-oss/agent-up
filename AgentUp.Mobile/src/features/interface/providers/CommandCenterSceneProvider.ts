@@ -68,6 +68,9 @@ export type CommandCenterSceneInput = {
   boundAgent?: string | null;
   agentEndpoint?: string;
   agentModel?: string;
+  systemPrompt?: string;
+  customizationPrompt?: string;
+  promptOverwrite?: boolean;
   flows: CommandCenterFlowSlot[];
   modules?: CommandCenterModuleSlot[];
   /** Member Settings: the autonomous toggle and this member's agents. */
@@ -79,6 +82,45 @@ export type CommandCenterSceneInput = {
 };
 
 export type TasksTab = 'issues' | 'dev' | 'pm';
+
+export const TASK_SOURCE_REFRESH_MS = 30_000;
+
+/** Whether the draft system prompt is no longer this kind's default. A type change then warns. */
+export function systemPromptWasCustomized(draft: string | null | undefined, defaultPrompt: string | null | undefined): boolean {
+  const current = draft?.trim() ?? '';
+  return current.length > 0 && current !== (defaultPrompt?.trim() ?? '');
+}
+
+/** Whether a type tab should do nothing, ask before replacing a customized system prompt, or apply. */
+export function memberKindChange(
+  requested: string | null | undefined,
+  currentKind: string,
+  promptOverwrite: boolean,
+  draftSystemPrompt: string | null | undefined,
+  defaultSystemPrompt: string | null | undefined,
+): 'none' | 'confirm' | 'apply' {
+  if (!requested || requested === currentKind) return 'none';
+  return promptOverwrite || systemPromptWasCustomized(draftSystemPrompt, defaultSystemPrompt)
+    ? 'confirm'
+    : 'apply';
+}
+
+/** System and customization drafts the Save and type-change actions should send. */
+export function promptSave(
+  fields: Record<string, string> | undefined,
+  systemFallback: string,
+  customizationFallback: string,
+): { systemPrompt: string; customizationPrompt: string } {
+  return {
+    systemPrompt: fields?.['system-prompt'] ?? systemFallback,
+    customizationPrompt: fields?.['customization-prompt'] ?? customizationFallback,
+  };
+}
+
+/** Whether a member PUT still belongs to the Settings workspace that requested it. */
+export function applyMemberIfCurrent(requested: string | null, current: string | null): boolean {
+  return requested !== null && requested === current;
+}
 
 /** The board's tab a scene action opens, or null when the action is not a tab. */
 export function tasksTabFor(action: string): TasksTab | null {
@@ -123,6 +165,9 @@ export function commandCenterScene(input: CommandCenterSceneInput): CommandCente
     forgeEndpoint: input.forgeEndpoint ?? '',
     agentEndpoint: input.agentEndpoint ?? '',
     agentModel: input.agentModel ?? '',
+    memberId: input.openWorkspaceId ?? input.authTab ?? '',
+    systemPrompt: input.systemPrompt ?? '',
+    customizationPrompt: input.customizationPrompt ?? '',
   };
   const state: Record<string, string> = {
     selected: scene === 'mobile-tasks' ? '1' : scene === 'mobile-settings' ? '2' : '0',
@@ -138,6 +183,7 @@ export function commandCenterScene(input: CommandCenterSceneInput): CommandCente
   }
   if (input.forgeConnected) state.forgeConnected = '1';
   state.memberKind = input.memberKind || 'Author';
+  if (input.promptOverwrite) state.promptOverwrite = '1';
   if (input.boundAgent === 'opencode') state.opencodeSettings = '1';
   if (input.boundAgent === 'ollama') state.ollamaSettings = '1';
   if (input.repository) state.repoOpen = '1';

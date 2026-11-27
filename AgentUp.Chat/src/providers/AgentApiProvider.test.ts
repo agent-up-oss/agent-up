@@ -332,8 +332,14 @@ test('member kind is read and written on the workspace agent', async () => {
 
   assert.equal(read?.kind, 'DevReviewer');
   assert.equal(written?.kind, 'DevReviewer');
+  const customized = await putMember(server, 'ws /1', 'Author', request as typeof fetch, {
+    systemPrompt: 'Ship the cards.',
+    customizationPrompt: 'Keep the comma.',
+  });
+  assert.equal(customized?.kind, 'DevReviewer');
   assert.deepEqual(calls, [
     { url: 'https://server.example/api/workspaces/ws%20%2F1/agent/member', method: 'GET', body: undefined },
     { url: 'https://server.example/api/workspaces/ws%20%2F1/agent/member', method: 'PUT', body: '{"kind":"DevReviewer"}' },
+    { url: 'https://server.example/api/workspaces/ws%20%2F1/agent/member', method: 'PUT', body: '{"kind":"Author","systemPrompt":"Ship the cards.","customizationPrompt":"Keep the comma."}' },
   ]);
 });

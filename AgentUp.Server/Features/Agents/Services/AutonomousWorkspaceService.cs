@@ -23,10 +23,11 @@ public sealed class AutonomousWorkspaceService(
     IEnabledCapabilityPackages? packages = null,
     IHostConnectionPresence? host = null,
     ITaskPipeline? pipeline = null,
-    Func<CancellationToken, Task>? waitForWork = null)
+    Func<CancellationToken, Task>? waitForWork = null,
+    IHostReviewSync? hostReviews = null)
 {
     private readonly ConcurrentDictionary<string, CancellationTokenSource> _runs = new(StringComparer.Ordinal);
-    private readonly Func<CancellationToken, Task> _waitForWork = waitForWork ?? (token => Task.Delay(TimeSpan.FromSeconds(15), token));
+    private readonly Func<CancellationToken, Task> _waitForWork = waitForWork ?? (token => Task.Delay(TimeSpan.FromSeconds(30), token));
 
     public AutonomousWorkspaceService ReconcileAfterRestart()
     {
@@ -206,7 +207,7 @@ public sealed class AutonomousWorkspaceService(
                 }
 
                 var current = settings.Get(workspaceId);
-                var role = TeamRoles.For(current.Member, current.Role);
+                var role = TeamRoles.Effective(current);
                 AssignedIssue task;
                 try
                 {
@@ -344,6 +345,8 @@ public sealed class AutonomousWorkspaceService(
         var current = settings.Get(workspaceId);
         if (role.Trigger == RoleTriggerKind.ProposalAwaitingReview)
         {
+            if (hostReviews is not null)
+                await hostReviews.SyncAsync(workspaceId, cancellationToken);
             var queue = await proposals.ListAwaitingAsync(workspaceId, cancellationToken);
             var proposal = queue.FirstOrDefault(item => !completed.Contains(TaskKey(RoleTriggerKind.ProposalAwaitingReview, item.Id)));
             return proposal is null ? null : ToIssue(proposal);

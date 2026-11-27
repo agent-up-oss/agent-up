@@ -39,6 +39,21 @@
           </div>
         </div>
         <div class="aun-group">
+          <p class="au-field-label">Prompts</p>
+          <p class="aun-faint">The system prompt is this member kind's default until you change it. Customization stays when the type changes.</p>
+          <div class="aun-settings__list">
+            <div class="aun-settings__row">
+              <textarea class="aun-input aun-textarea" data-au-action="system-prompt" rows="8" placeholder="System prompt"></textarea>
+            </div>
+            <div class="aun-settings__row">
+              <textarea class="aun-input aun-textarea" data-au-action="customization-prompt" rows="4" placeholder="Customization"></textarea>
+            </div>
+            <div class="aun-settings__row">
+              <button class="aun-btn aun-btn--primary" type="button" data-au-action="save-prompts">Save prompts</button>
+            </div>
+          </div>
+        </div>
+        <div class="aun-group">
           <p class="au-field-label">Forge</p>
           <div class="au-cluster">
             <button class="au-app-tab au-app-tab--selected" type="button" data-au-action="forge-tab" data-au-id="github" data-au-selection="forgeTab:github:au-app-tab--selected">GitHub</button>

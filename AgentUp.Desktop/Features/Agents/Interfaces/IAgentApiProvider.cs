@@ -21,7 +21,12 @@ public interface IAgentApiProvider
     Task<AgentLoopStatusDto?> GetLoopAsync(string workspaceId, CancellationToken cancellationToken);
     Task<TeamMemberDto?> GetMemberAsync(string workspaceId, CancellationToken cancellationToken) =>
         Task.FromResult<TeamMemberDto?>(null);
-    Task<TeamMemberDto?> PutMemberAsync(string workspaceId, string kind, CancellationToken cancellationToken) =>
+    Task<TeamMemberDto?> PutMemberAsync(
+        string workspaceId,
+        string kind,
+        CancellationToken cancellationToken,
+        string? systemPrompt = null,
+        string? customizationPrompt = null) =>
         Task.FromResult<TeamMemberDto?>(null);
     IAsyncEnumerable<AgentEventDto> EventsAsync(string workspaceId, long after, CancellationToken cancellationToken);
 }

@@ -20,6 +20,12 @@ public sealed class AgentChatService(IAgentApiProvider provider)
     public Task PutLoopActivationAsync(string id, bool active, CancellationToken cancellationToken) => provider.PutLoopActivationAsync(id, active, cancellationToken);
     public Task<AgentLoopStatusDto?> GetLoopAsync(string id, CancellationToken cancellationToken) => provider.GetLoopAsync(id, cancellationToken);
     public Task<TeamMemberDto?> GetMemberAsync(string id, CancellationToken cancellationToken) => provider.GetMemberAsync(id, cancellationToken);
-    public Task<TeamMemberDto?> PutMemberAsync(string id, string kind, CancellationToken cancellationToken) => provider.PutMemberAsync(id, kind, cancellationToken);
+    public Task<TeamMemberDto?> PutMemberAsync(
+        string id,
+        string kind,
+        CancellationToken cancellationToken,
+        string? systemPrompt = null,
+        string? customizationPrompt = null) =>
+        provider.PutMemberAsync(id, kind, cancellationToken, systemPrompt, customizationPrompt);
     public IAsyncEnumerable<AgentEventDto> EventsAsync(string id, long after, CancellationToken cancellationToken) => provider.EventsAsync(id, after, cancellationToken);
 }

@@ -43,10 +43,22 @@ public sealed record TaskSourcePullDto(
     int Number,
     string Title,
     string Url,
-    IReadOnlyList<TaskSourceReviewDto> Reviews);
+    IReadOnlyList<TaskSourceReviewDto> Reviews,
+    string? HeadRef = null,
+    string? BaseRef = null,
+    string? HeadSha = null,
+    string? Body = null,
+    string? HeadOwner = null);
 
 /// <summary>
 /// One kind of review a pull request still needs or has already received.
 /// <paramref name="Standing"/> is <c>waiting</c>, <c>reviewing</c>, or <c>reviewed</c>.
+/// <paramref name="CommitId"/> is the host commit that standing was left on, so a later push
+/// can reopen the kind.
 /// </summary>
-public sealed record TaskSourceReviewDto(string Kind, string Standing, string? Login, string? Verdict);
+public sealed record TaskSourceReviewDto(
+    string Kind,
+    string Standing,
+    string? Login,
+    string? Verdict,
+    string? CommitId = null);

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { createNewUiScene } from '@agent-up/design-system/new-ui-scene';
 import { WorkspaceAgentChatScreen } from '@/features/agents/components/WorkspaceAgentChatScreen';
@@ -40,13 +40,18 @@ import {
   scheduleAgent,
   type AgentSession,
   type ServerAutonomy,
+  type TeamMember,
 } from '@agent-up/chat';
 import { chatSettingsFields, settingsWorkspaces } from '../providers/ChatSettingsProvider';
 import {
   agentSettingSave,
+  applyMemberIfCurrent,
   commandCenterScene,
   commandCenterServerLabel,
+  memberKindChange,
   prefillEndpoint,
+  promptSave,
+  TASK_SOURCE_REFRESH_MS,
   tasksTabFor,
   tokenSave,
   type TasksTab,
@@ -95,8 +100,16 @@ function CommandCenterBinder() {
   const [chatSession, setChatSession] = useState<AgentSession | null>(null);
   const [chatAutonomy, setChatAutonomy] = useState<ServerAutonomy | null>(null);
   const [memberKind, setMemberKind] = useState('Author');
+  const [systemPrompt, setSystemPrompt] = useState('');
+  const [customizationPrompt, setCustomizationPrompt] = useState('');
+  const [defaultSystemPrompt, setDefaultSystemPrompt] = useState('');
+  const [promptOverwrite, setPromptOverwrite] = useState(false);
+  const [pendingMemberKind, setPendingMemberKind] = useState<string | null>(null);
+  const [memberLoadedFor, setMemberLoadedFor] = useState<string | null>(null);
   const [chatNonce, setChatNonce] = useState(0);
   const chatWorkspace = openAgent ?? settingsWorkspace ?? standing.team[0]?.workspaceId ?? null;
+  const chatWorkspaceRef = useRef(chatWorkspace);
+  chatWorkspaceRef.current = chatWorkspace;
   const authMember = openAgent
     ?? authTab
     ?? source.source?.identities?.find(item => item.connected)?.workspaceId
@@ -105,9 +118,24 @@ function CommandCenterBinder() {
   const identity = source.source?.identities?.find(item => item.workspaceId === authMember) ?? null;
   const memberSettingsOpen = openAgent !== null && section === 'settings';
 
+  const applyMember = (member: TeamMember | null) => {
+    setMemberKind(member?.kind ?? 'Author');
+    setSystemPrompt(member?.systemPrompt ?? '');
+    setCustomizationPrompt(member?.customizationPrompt ?? '');
+    setDefaultSystemPrompt(member?.defaultSystemPrompt ?? '');
+    setPromptOverwrite(false);
+    setPendingMemberKind(null);
+  };
+
   // Member Settings reads this workspace's agent, loop, and kind.
   useEffect(() => {
     if (!activeServer || !chatWorkspace || !memberSettingsOpen) return;
+    setMemberLoadedFor(null);
+    setSystemPrompt('');
+    setCustomizationPrompt('');
+    setDefaultSystemPrompt('');
+    setPromptOverwrite(false);
+    setPendingMemberKind(null);
     let live = true;
     Promise.all([
       getAgent(activeServer, chatWorkspace),
@@ -118,16 +146,27 @@ function CommandCenterBinder() {
         if (!live) return;
         setChatSession(session);
         setChatAutonomy(autonomy);
-        setMemberKind(member?.kind ?? 'Author');
+        applyMember(member);
+        setMemberLoadedFor(chatWorkspace);
       })
       .catch(() => {
         if (!live) return;
         setChatSession(null);
         setChatAutonomy(null);
-        setMemberKind('Author');
+        applyMember(null);
+        setMemberLoadedFor(chatWorkspace);
       });
     return () => { live = false; };
   }, [activeServer, chatWorkspace, chatNonce, memberSettingsOpen]);
+
+  const refreshSource = source.refresh;
+  useEffect(() => {
+    const timer = setInterval(() => {
+      refreshSource();
+      setRepoNonce(current => current + 1);
+    }, TASK_SOURCE_REFRESH_MS);
+    return () => clearInterval(timer);
+  }, [refreshSource]);
 
   const changeChat = (change: Promise<unknown>) => {
     void change.catch(() => undefined).finally(() => setChatNonce(current => current + 1));
@@ -219,6 +258,9 @@ function CommandCenterBinder() {
     boundAgent,
     agentEndpoint: agentSetting('endpoint'),
     agentModel: agentSetting('model'),
+    systemPrompt,
+    customizationPrompt,
+    promptOverwrite,
     // The application page carries the client's own dock, which replays a flow for real.
     flows: [],
     modules,
@@ -343,7 +385,52 @@ function CommandCenterBinder() {
       if (name === 'enable-agent' && id) { changeChat(enableAgentCapability(activeServer, id)); return; }
       if (name === 'start-bound' && chatSession?.boundAgent) { changeChat(scheduleAgent(activeServer, chatWorkspace, chatSession.boundAgent)); return; }
       if (name === 'member-kind' && id) {
-        changeChat(putMember(activeServer, chatWorkspace, id).then(member => { if (member) setMemberKind(member.kind); }));
+        if (memberLoadedFor !== chatWorkspace) return;
+        const drafts = promptSave(fields, systemPrompt, customizationPrompt);
+        const change = memberKindChange(id, memberKind, promptOverwrite, drafts.systemPrompt, defaultSystemPrompt);
+        if (change === 'none') return;
+        if (change === 'confirm') {
+          setPendingMemberKind(id);
+          setPromptOverwrite(true);
+          return;
+        }
+        const requested = chatWorkspace;
+        changeChat(putMember(activeServer, chatWorkspace, id, fetch, {
+          customizationPrompt: drafts.customizationPrompt,
+        }).then(member => {
+          if (member && applyMemberIfCurrent(requested, chatWorkspaceRef.current)) applyMember(member);
+        }));
+        return;
+      }
+      if (name === 'save-prompts') {
+        if (memberLoadedFor !== chatWorkspace) return;
+        const requested = chatWorkspace;
+        const drafts = promptSave(fields, systemPrompt, customizationPrompt);
+        changeChat(putMember(activeServer, chatWorkspace, memberKind, fetch, {
+          systemPrompt: drafts.systemPrompt,
+          customizationPrompt: drafts.customizationPrompt,
+        }).then(member => {
+          if (member && applyMemberIfCurrent(requested, chatWorkspaceRef.current)) applyMember(member);
+        }));
+        return;
+      }
+      if (name === 'confirm-overwrite' && pendingMemberKind) {
+        if (memberLoadedFor !== chatWorkspace) return;
+        const kind = pendingMemberKind;
+        const requested = chatWorkspace;
+        const drafts = promptSave(fields, systemPrompt, customizationPrompt);
+        setPromptOverwrite(false);
+        setPendingMemberKind(null);
+        changeChat(putMember(activeServer, chatWorkspace, kind, fetch, {
+          customizationPrompt: drafts.customizationPrompt,
+        }).then(member => {
+          if (member && applyMemberIfCurrent(requested, chatWorkspaceRef.current)) applyMember(member);
+        }));
+        return;
+      }
+      if (name === 'cancel-overwrite') {
+        setPromptOverwrite(false);
+        setPendingMemberKind(null);
         return;
       }
       if (name === 'save-agent-settings' && boundAgent) {
