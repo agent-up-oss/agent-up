@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { createNewUiScene } from '@agent-up/design-system/new-ui-scene';
 import { WorkspaceAgentChatScreen } from '@/features/agents/components/WorkspaceAgentChatScreen';
@@ -45,6 +45,7 @@ import {
 import { chatSettingsFields, settingsWorkspaces } from '../providers/ChatSettingsProvider';
 import {
   agentSettingSave,
+  applyMemberIfCurrent,
   commandCenterScene,
   commandCenterServerLabel,
   prefillEndpoint,
@@ -103,8 +104,11 @@ function CommandCenterBinder() {
   const [defaultSystemPrompt, setDefaultSystemPrompt] = useState('');
   const [promptOverwrite, setPromptOverwrite] = useState(false);
   const [pendingMemberKind, setPendingMemberKind] = useState<string | null>(null);
+  const [memberLoadedFor, setMemberLoadedFor] = useState<string | null>(null);
   const [chatNonce, setChatNonce] = useState(0);
   const chatWorkspace = openAgent ?? settingsWorkspace ?? standing.team[0]?.workspaceId ?? null;
+  const chatWorkspaceRef = useRef(chatWorkspace);
+  chatWorkspaceRef.current = chatWorkspace;
   const authMember = openAgent
     ?? authTab
     ?? source.source?.identities?.find(item => item.connected)?.workspaceId
@@ -136,12 +140,14 @@ function CommandCenterBinder() {
         setChatSession(session);
         setChatAutonomy(autonomy);
         applyMember(member);
+        setMemberLoadedFor(chatWorkspace);
       })
       .catch(() => {
         if (!live) return;
         setChatSession(null);
         setChatAutonomy(null);
         applyMember(null);
+        setMemberLoadedFor(chatWorkspace);
       });
     return () => { live = false; };
   }, [activeServer, chatWorkspace, chatNonce, memberSettingsOpen]);
@@ -372,32 +378,43 @@ function CommandCenterBinder() {
       if (name === 'enable-agent' && id) { changeChat(enableAgentCapability(activeServer, id)); return; }
       if (name === 'start-bound' && chatSession?.boundAgent) { changeChat(scheduleAgent(activeServer, chatWorkspace, chatSession.boundAgent)); return; }
       if (name === 'member-kind' && id) {
-        if (id === memberKind) return;
+        if (id === memberKind || memberLoadedFor !== chatWorkspace) return;
         const draft = fields?.['system-prompt'] ?? systemPrompt;
         if (promptOverwrite || systemPromptWasCustomized(draft, defaultSystemPrompt)) {
           setPendingMemberKind(id);
           setPromptOverwrite(true);
           return;
         }
+        const requested = chatWorkspace;
         changeChat(putMember(activeServer, chatWorkspace, id, fetch, {
           customizationPrompt: fields?.['customization-prompt'] ?? customizationPrompt,
-        }).then(member => { if (member) applyMember(member); }));
+        }).then(member => {
+          if (member && applyMemberIfCurrent(requested, chatWorkspaceRef.current)) applyMember(member);
+        }));
         return;
       }
       if (name === 'save-prompts') {
+        if (memberLoadedFor !== chatWorkspace) return;
+        const requested = chatWorkspace;
         changeChat(putMember(activeServer, chatWorkspace, memberKind, fetch, {
           systemPrompt: fields?.['system-prompt'] ?? systemPrompt,
           customizationPrompt: fields?.['customization-prompt'] ?? customizationPrompt,
-        }).then(member => { if (member) applyMember(member); }));
+        }).then(member => {
+          if (member && applyMemberIfCurrent(requested, chatWorkspaceRef.current)) applyMember(member);
+        }));
         return;
       }
       if (name === 'confirm-overwrite' && pendingMemberKind) {
+        if (memberLoadedFor !== chatWorkspace) return;
         const kind = pendingMemberKind;
+        const requested = chatWorkspace;
         setPromptOverwrite(false);
         setPendingMemberKind(null);
         changeChat(putMember(activeServer, chatWorkspace, kind, fetch, {
           customizationPrompt: fields?.['customization-prompt'] ?? customizationPrompt,
-        }).then(member => { if (member) applyMember(member); }));
+        }).then(member => {
+          if (member && applyMemberIfCurrent(requested, chatWorkspaceRef.current)) applyMember(member);
+        }));
         return;
       }
       if (name === 'cancel-overwrite') {

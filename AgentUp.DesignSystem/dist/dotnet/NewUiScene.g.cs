@@ -51,6 +51,7 @@ public sealed class NewUiScene : UserControl
     private readonly Dictionary<string, string> _drafts = new(StringComparer.Ordinal);
     private readonly Dictionary<string, string> _bound = new(StringComparer.Ordinal);
     private string _scene = "";
+    private string _draftScope = "";
     private bool _applying;
 
     public event EventHandler<NewUiActionEventArgs>? ActionInvoked;
@@ -63,6 +64,13 @@ public sealed class NewUiScene : UserControl
         IReadOnlyDictionary<string, IReadOnlyList<NewUiSlotItem>> items,
         IReadOnlyDictionary<string, string> state)
     {
+        var scope = text.TryGetValue("memberId", out var memberId) ? memberId : "";
+        if (scope != _draftScope)
+        {
+            _draftScope = scope;
+            _drafts.Clear();
+            _bound.Clear();
+        }
         _scene = scene;
         _text.Clear();
         foreach (var pair in text) _text[pair.Key] = pair.Value;
@@ -236,7 +244,7 @@ public sealed class NewUiScene : UserControl
         var action = string.IsNullOrEmpty(node.Action) ? null : (item?.Action ?? node.Action);
         if ((node.T == "input" || node.T == "textarea") && !string.IsNullOrEmpty(node.Action))
             return Field(node);
-        if (node.T == "input" || node.T == "textarea")
+        if (node.T == "input")
             return AddressField(text, classes);
         if (!string.IsNullOrEmpty(action) && !InlineTags.Contains(node.T ?? "") && (node.Flow is null || node.Flow.D == "column"))
         {

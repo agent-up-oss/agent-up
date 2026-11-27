@@ -70,6 +70,39 @@ public sealed class HostReviewQueueServiceTests
     }
 
     [Test]
+    public async Task SyncAsync_copiesACompletedOtherKindReviewOntoTheAdoptedTask()
+    {
+        var host = await HostAsync(
+            TeamMemberKind.PmReviewer,
+            new ForgePullRequest(
+                "42",
+                42,
+                "Product cards",
+                "https://example.test/42",
+                ["lucy"],
+                [new ForgeReview("hector", "APPROVED", DateTimeOffset.UnixEpoch)],
+                "feature",
+                "main",
+                "aaa"),
+            new Dictionary<string, string>(StringComparer.Ordinal)
+            {
+                ["hector"] = "devReviewer",
+                ["lucy"] = "pmReviewer",
+            },
+            ["devReviewer", "pmReviewer"]);
+
+        await host.Sync.SyncAsync(host.WorkspaceId, CancellationToken.None);
+
+        var adopted = host.Queue.List().Single();
+        Assert.Multiple(() =>
+        {
+            Assert.That(adopted.Reviews!.Single().Kind, Is.EqualTo(TeamMemberKind.DevReviewer));
+            Assert.That(host.Queue.AwaitingReview(host.WorkspaceId, TeamMemberKind.PmReviewer, "acme", "widgets"), Has.Count.EqualTo(1));
+            Assert.That(host.Queue.AwaitingReview(host.WorkspaceId, TeamMemberKind.DevReviewer, "acme", "widgets"), Is.Empty);
+        });
+    }
+
+    [Test]
     public async Task SyncAsync_skipsAPullThatCannotNameItsBranches()
     {
         var host = await HostAsync(TeamMemberKind.DevReviewer, Pull(null, "main", "aaa"));
@@ -82,7 +115,11 @@ public sealed class HostReviewQueueServiceTests
     private static ForgePullRequest Pull(string? head, string? @base, string? sha) =>
         new("42", 42, "Product cards", "https://example.test/42", [], [], head, @base, sha, "Ship the cards.");
 
-    private static async Task<Host> HostAsync(TeamMemberKind kind, ForgePullRequest pull)
+    private static async Task<Host> HostAsync(
+        TeamMemberKind kind,
+        ForgePullRequest pull,
+        IReadOnlyDictionary<string, string>? kindByLogin = null,
+        IReadOnlyCollection<string>? kinds = null)
     {
         var workspaces = new WorkspaceQueryController(ServerTestComposition.CreateRegistry());
         var workspace = await workspaces.RegisterAsync(ServerDomain.Workspace().Build());
@@ -94,7 +131,9 @@ public sealed class HostReviewQueueServiceTests
         var source = new TaskSourceService(
             credentials,
             packages,
-            new FixedTeam(new Dictionary<string, string> { ["hector"] = "devReviewer" }, ["devReviewer"]),
+            new FixedTeam(
+                kindByLogin ?? new Dictionary<string, string> { ["hector"] = "devReviewer" },
+                kinds ?? ["devReviewer"]),
             new FixedTaskSourceIdentities(new TaskSourcePerson(workspace.Id, "Hector")));
         await source.SaveAsync(
             new SaveTaskSourceTokenRequest(workspace.Id, "github", "https://github.com", "token"),

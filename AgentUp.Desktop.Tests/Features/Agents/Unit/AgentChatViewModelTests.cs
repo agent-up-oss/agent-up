@@ -545,6 +545,35 @@ public sealed class AgentChatViewModelTests
     }
 
     [Test]
+    public async Task SavePromptsCommand_doesNotApplyAMemberAfterTheWorkspaceHasChanged()
+    {
+        var hang = new TaskCompletionSource<bool>();
+        var started = new TaskCompletionSource<bool>();
+        var fake = new ChatApiFake
+        {
+            Member = new TeamMemberDto("Author", "Edit the files.", null, "Edit the files."),
+            MemberHang = hang,
+            MemberStarted = started,
+        };
+        var view = CreateView(fake);
+        await view.LoadAsync("ws-1");
+        var saving = view.SavePromptsCommand.Execute(("Ship the cards.", "Keep the comma.")).FirstAsync();
+        await started.Task;
+
+        fake.Member = new TeamMemberDto("DevReviewer", "Check that the change", null, "Check that the change");
+        await view.LoadAsync("ws-2");
+        hang.SetResult(true);
+        await saving;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(view.MemberKind, Is.EqualTo("DevReviewer"));
+            Assert.That(view.SystemPrompt, Is.EqualTo("Check that the change"));
+        });
+        await view.LoadAsync(null);
+    }
+
+    [Test]
     public async Task ChangeKindAsync_omitsTheSystemPromptAndKeepsDraftCustomization()
     {
         var fake = new ChatApiFake { Member = new TeamMemberDto("Author", "Edit the files.", null, "Edit the files.") };
@@ -1311,12 +1340,16 @@ internal sealed class ChatApiFake : IAgentApiProvider
     public string? LastCustomizationPrompt { get; private set; }
     public Exception? MemberFailure { get; set; }
 
+    public TaskCompletionSource<bool>? MemberHang { get; set; }
+
+    public TaskCompletionSource<bool>? MemberStarted { get; set; }
+
     public Task<TeamMemberDto?> GetMemberAsync(string workspaceId, CancellationToken cancellationToken)
         => MemberFailure is null
             ? Task.FromResult(Member)
             : Task.FromException<TeamMemberDto?>(MemberFailure);
 
-    public Task<TeamMemberDto?> PutMemberAsync(
+    public async Task<TeamMemberDto?> PutMemberAsync(
         string workspaceId,
         string kind,
         CancellationToken cancellationToken,
@@ -1326,8 +1359,12 @@ internal sealed class ChatApiFake : IAgentApiProvider
         LastMemberKind = kind;
         LastSystemPrompt = systemPrompt;
         LastCustomizationPrompt = customizationPrompt;
-        Member = new TeamMemberDto(kind, systemPrompt ?? Member?.SystemPrompt ?? "", customizationPrompt ?? Member?.CustomizationPrompt, Member?.DefaultSystemPrompt ?? "");
-        return Task.FromResult<TeamMemberDto?>(Member);
+        var next = new TeamMemberDto(kind, systemPrompt ?? Member?.SystemPrompt ?? "", customizationPrompt ?? Member?.CustomizationPrompt, Member?.DefaultSystemPrompt ?? "");
+        MemberStarted?.TrySetResult(true);
+        if (MemberHang is not null)
+            await MemberHang.Task;
+        Member = next;
+        return next;
     }
 
     public async Task<AgentLoopStatusDto?> GetLoopAsync(string workspaceId, CancellationToken cancellationToken)

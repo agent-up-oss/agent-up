@@ -161,10 +161,15 @@ public sealed class CommandCenterTaskSourceBoard
             return;
         }
 
+        var module = OpenModule;
+        var owner = OpenOwner;
+        var name = OpenName;
         try
         {
-            var pulls = await source.PullsAsync(OpenModule, OpenOwner, OpenName);
-            var repo = $"{OpenOwner}/{OpenName}";
+            var pulls = await source.PullsAsync(module, owner, name);
+            if (OpenModule != module || OpenOwner != owner || OpenName != name)
+                return;
+            var repo = $"{owner}/{name}";
             DevPulls = CommandCenterScene.ReviewRows(pulls, "devReviewer", repo);
             PmPulls = CommandCenterScene.ReviewRows(pulls, "pmReviewer", repo);
         }

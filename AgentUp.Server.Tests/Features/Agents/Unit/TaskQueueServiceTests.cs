@@ -379,6 +379,23 @@ public sealed class TaskQueueServiceTests
     }
 
     [Test]
+    public void NeedsReview_settlesByKindWhenAHostReviewHasNoWorkspaceHolder()
+    {
+        var task = Task("42", 42) with
+        {
+            Stage = TaskStage.InReview,
+            Proposal = new TaskProposal("42", "https://example.test/42", "feature", "main", 1, "aaa"),
+            Reviews = [new TaskReview("hector", TaskReviewVerdict.Approve, 1, "", Dev)],
+        };
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(task.NeedsReview(Dev), Is.False);
+            Assert.That(task.NeedsReview(Pm), Is.True);
+        });
+    }
+
+    [Test]
     public void AdoptProposal_recordsAHostPullAsReviewWork()
     {
         var queue = Queue();

@@ -1,5 +1,6 @@
 using AgentUp.Server.Features.Agents.DTOs;
 using AgentUp.Server.Features.Agents.Models;
+using AgentUp.Server.Features.Agents.Providers;
 using AgentUp.Server.Features.Agents.Services;
 using AgentUp.Server.Features.Workspaces.Controllers;
 using AgentUp.Server.Tests.Fake;
@@ -45,6 +46,25 @@ public sealed class TeamMemberServiceTests
     }
 
     [Test]
+    public async Task Set_keepsAStoredReviewWhenThePromptMatchesTheDefault()
+    {
+        var host = await HostAsync();
+        host.Settings.Save(JsonAgentWorkspaceSettingsRepository.Empty(host.WorkspaceId) with
+        {
+            Role = new AgentRoleDefinition(
+                TeamRoles.AuthorPrompt,
+                [],
+                RoleTriggerKind.IssueAssigned,
+                RoleTerminationKind.ProposalOpened,
+                RoleReviewKind.Dev),
+        });
+
+        host.Members.Set(host.WorkspaceId, new TeamMemberRequest(TeamMemberKind.Author, TeamRoles.AuthorPrompt));
+
+        Assert.That(host.Settings.Get(host.WorkspaceId).Role!.Review, Is.EqualTo(RoleReviewKind.Dev));
+    }
+
+    [Test]
     public async Task Set_replacesAModifiedSystemPromptWhenTheKindChangesAndKeepsCustomization()
     {
         var host = await HostAsync();
@@ -67,8 +87,8 @@ public sealed class TeamMemberServiceTests
         var workspaces = new WorkspaceQueryController(ServerTestComposition.CreateRegistry());
         var workspace = await workspaces.RegisterAsync(ServerDomain.Workspace().Build());
         var settings = new InMemoryAgentWorkspaceSettingsRepository();
-        return new Host(workspace.Id, new TeamMemberService(settings, workspaces));
+        return new Host(workspace.Id, new TeamMemberService(settings, workspaces), settings);
     }
 
-    private sealed record Host(string WorkspaceId, TeamMemberService Members);
+    private sealed record Host(string WorkspaceId, TeamMemberService Members, InMemoryAgentWorkspaceSettingsRepository Settings);
 }

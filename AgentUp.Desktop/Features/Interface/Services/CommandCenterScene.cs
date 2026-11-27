@@ -163,6 +163,7 @@ public static class CommandCenterScene
             binding.State["authMember"] = "1";
         }
         binding.State["memberKind"] = input.MemberKind.Length > 0 ? input.MemberKind : "Author";
+        binding.Text["memberId"] = input.OpenWorkspaceId ?? input.AuthTab;
         binding.Text["systemPrompt"] = input.SystemPrompt;
         binding.Text["customizationPrompt"] = input.CustomizationPrompt;
         if (input.PromptOverwrite)

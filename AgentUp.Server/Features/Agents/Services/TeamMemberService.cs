@@ -100,7 +100,11 @@ public sealed class TeamMemberService(IAgentWorkspaceSettingsRepository settings
         var trigger = current?.Trigger ?? defaults.Trigger;
         var termination = current?.Termination ?? defaults.Termination;
         var review = current?.Review ?? defaults.Review;
-        if (prompt == defaults.Prompt && tools.Count == 0 && trigger == defaults.Trigger && termination == defaults.Termination)
+        if (prompt == defaults.Prompt
+            && tools.Count == 0
+            && trigger == defaults.Trigger
+            && termination == defaults.Termination
+            && review == defaults.Review)
             return null;
         return new AgentRoleDefinition(prompt, tools, trigger, termination, review);
     }

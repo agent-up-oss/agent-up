@@ -586,6 +586,7 @@ export function createNewUiScene(React, native) {
   const { View, Text, Pressable, ScrollView, Icon, TextInput } = native;
   const drafts = {};
   const bound = {};
+  let draftScope = '';
   const h = React.createElement;
   // The page sets the ink on the web (.aun sets color); a React Native Text has none of its own.
   const root = { scope: [], ink: { color: newUiTheme.colors.textPrimary } };
@@ -788,6 +789,12 @@ export function createNewUiScene(React, native) {
    */
   return function NewUiScene(props) {
     const { scene, text = {}, items = {}, state = {}, content = {}, onAction = () => {} } = props;
+    const scope = text.memberId ?? '';
+    if (scope !== draftScope) {
+      draftScope = scope;
+      for (const key of Object.keys(drafts)) delete drafts[key];
+      for (const key of Object.keys(bound)) delete bound[key];
+    }
     const tree = newUiSceneDocument.scenes[scene];
     if (!tree) return null;
     const model = { text, items, state, content, onAction };
@@ -855,6 +862,7 @@ public sealed class NewUiScene : UserControl
     private readonly Dictionary<string, string> _drafts = new(StringComparer.Ordinal);
     private readonly Dictionary<string, string> _bound = new(StringComparer.Ordinal);
     private string _scene = "";
+    private string _draftScope = "";
     private bool _applying;
 
     public event EventHandler<NewUiActionEventArgs>? ActionInvoked;
@@ -867,6 +875,13 @@ public sealed class NewUiScene : UserControl
         IReadOnlyDictionary<string, IReadOnlyList<NewUiSlotItem>> items,
         IReadOnlyDictionary<string, string> state)
     {
+        var scope = text.TryGetValue("memberId", out var memberId) ? memberId : "";
+        if (scope != _draftScope)
+        {
+            _draftScope = scope;
+            _drafts.Clear();
+            _bound.Clear();
+        }
         _scene = scene;
         _text.Clear();
         foreach (var pair in text) _text[pair.Key] = pair.Value;
@@ -1040,7 +1055,7 @@ public sealed class NewUiScene : UserControl
         var action = string.IsNullOrEmpty(node.Action) ? null : (item?.Action ?? node.Action);
         if ((node.T == "input" || node.T == "textarea") && !string.IsNullOrEmpty(node.Action))
             return Field(node);
-        if (node.T == "input" || node.T == "textarea")
+        if (node.T == "input")
             return AddressField(text, classes);
         if (!string.IsNullOrEmpty(action) && !InlineTags.Contains(node.T ?? "") && (node.Flow is null || node.Flow.D == "column"))
         {

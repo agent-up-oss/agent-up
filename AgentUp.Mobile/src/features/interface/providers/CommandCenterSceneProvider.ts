@@ -91,6 +91,11 @@ export function systemPromptWasCustomized(draft: string | null | undefined, defa
   return current.length > 0 && current !== (defaultPrompt?.trim() ?? '');
 }
 
+/** Whether a member PUT still belongs to the Settings workspace that requested it. */
+export function applyMemberIfCurrent(requested: string | null, current: string | null): boolean {
+  return requested !== null && requested === current;
+}
+
 /** The board's tab a scene action opens, or null when the action is not a tab. */
 export function tasksTabFor(action: string): TasksTab | null {
   if (action === 'tasks-issues') return 'issues';
@@ -134,6 +139,7 @@ export function commandCenterScene(input: CommandCenterSceneInput): CommandCente
     forgeEndpoint: input.forgeEndpoint ?? '',
     agentEndpoint: input.agentEndpoint ?? '',
     agentModel: input.agentModel ?? '',
+    memberId: input.openWorkspaceId ?? input.authTab ?? '',
     systemPrompt: input.systemPrompt ?? '',
     customizationPrompt: input.customizationPrompt ?? '',
   };

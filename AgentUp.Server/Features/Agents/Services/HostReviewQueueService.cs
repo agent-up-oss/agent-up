@@ -11,7 +11,8 @@ namespace AgentUp.Server.Features.Agents.Services;
 /// Adopts open host pull requests into the Server queue so an idle reviewer can take them.
 /// Only the workspace's own repository is considered, because checkout happens in that clone.
 /// A pull that already has a decisive review of this kind, or that cannot name its branches,
-/// is left alone.
+/// is left alone. Other kinds' completed host reviews travel with the adopted task so a
+/// later kind does not offer that work again.
 /// </summary>
 public sealed class HostReviewQueueService(
     TaskQueueService queue,
@@ -74,5 +75,18 @@ public sealed class HostReviewQueueService(
                 pull.BaseRef!,
                 1,
                 pull.HeadSha),
+            Reviews: [.. pull.Reviews.Where(item => item.Standing == "reviewed").Select(HostReview)],
             BaseBranch: pull.BaseRef);
+
+    private static TaskReview HostReview(TaskSourceReviewDto item) =>
+        new(
+            item.Login ?? item.Kind,
+            item.Verdict is not null && item.Verdict.Contains("CHANGE", StringComparison.OrdinalIgnoreCase)
+                ? TaskReviewVerdict.RequestChanges
+                : TaskReviewVerdict.Approve,
+            1,
+            "",
+            item.Kind.Equals("pmReviewer", StringComparison.Ordinal)
+                ? TeamMemberKind.PmReviewer
+                : TeamMemberKind.DevReviewer);
 }

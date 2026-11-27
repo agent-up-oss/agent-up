@@ -277,8 +277,17 @@ public sealed class AgentChatViewModel : ReactiveObject
         TryStartLoopPoll();
     });
     private async Task SetMemberKindAsync(string kind) => await ChangeKindAsync(kind, CustomizationPrompt);
-    private async Task SavePromptsAsync((string SystemPrompt, string CustomizationPrompt) prompts) => await RunAsync(async id =>
-        ApplyMember(await _controller.PutMemberAsync(id, MemberKind, CancellationToken.None, prompts.SystemPrompt, prompts.CustomizationPrompt)));
+    private async Task SavePromptsAsync((string SystemPrompt, string CustomizationPrompt) prompts)
+    {
+        var generation = _loadGeneration;
+        await RunAsync(async id =>
+        {
+            var member = await _controller.PutMemberAsync(id, MemberKind, CancellationToken.None, prompts.SystemPrompt, prompts.CustomizationPrompt);
+            if (generation != _loadGeneration)
+                return;
+            ApplyMember(member);
+        });
+    }
     public void BeginKindChange(string kind)
     {
         PendingMemberKind = kind;
@@ -289,8 +298,17 @@ public sealed class AgentChatViewModel : ReactiveObject
         PendingMemberKind = null;
         PromptOverwrite = false;
     }
-    public async Task ChangeKindAsync(string kind, string? customizationPrompt) => await RunAsync(async id =>
-        ApplyMember(await _controller.PutMemberAsync(id, kind, CancellationToken.None, customizationPrompt: customizationPrompt ?? CustomizationPrompt)));
+    public async Task ChangeKindAsync(string kind, string? customizationPrompt)
+    {
+        var generation = _loadGeneration;
+        await RunAsync(async id =>
+        {
+            var member = await _controller.PutMemberAsync(id, kind, CancellationToken.None, customizationPrompt: customizationPrompt ?? CustomizationPrompt);
+            if (generation != _loadGeneration)
+                return;
+            ApplyMember(member);
+        });
+    }
     public async Task ConfirmKindChangeAsync(string? customizationPrompt)
     {
         var kind = PendingMemberKind;

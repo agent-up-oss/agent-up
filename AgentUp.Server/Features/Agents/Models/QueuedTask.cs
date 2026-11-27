@@ -66,11 +66,13 @@ public sealed record QueuedTask(
 
     /// <summary>
     /// Whether the revision now open still needs a review of this kind: nobody of the kind has
-    /// reviewed it yet. A push opens a new revision, so every push needs every kind again.
+    /// reviewed it yet. A host review copied onto an adopted pull has no Agent-Up workspace
+    /// holder, so kind is what settles it. A push opens a new revision, so every push needs
+    /// every kind again.
     /// </summary>
     public bool NeedsReview(TeamMemberKind kind) =>
         Stage == TaskStage.InReview
-        && !CurrentReviews.Any(review => string.Equals(review.WorkspaceId, ReviewerFor(kind), StringComparison.Ordinal));
+        && !CurrentReviews.Any(review => review.Kind == kind);
 
     /// <summary>
     /// Whether this reviewer is offered the revision now open: it needs a review of the reviewer's

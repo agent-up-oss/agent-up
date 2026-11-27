@@ -177,6 +177,29 @@ public sealed class CommandCenterTaskSourceBoardTests
     }
 
     [Test]
+    public async Task LoadOpenRepositoryAsync_ignoresPullsAfterTheOpenRepositoryChanges()
+    {
+        var hang = new TaskCompletionSource<IReadOnlyList<TaskSourcePull>>();
+        var api = new FakeTaskSourceApi { PullsHang = hang };
+        var board = new CommandCenterTaskSourceBoard();
+        board.OpenRepository("github/example/repository", null);
+        var loading = board.LoadOpenRepositoryAsync(null, Source(api));
+        board.OpenRepository("github/other/repo", null);
+        hang.SetResult(
+        [
+            new TaskSourcePull("42", 42, "Product cards", "u",
+                [new TaskSourceReview("devReviewer", "reviewing", "hector", null)]),
+        ]);
+        await loading;
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(board.OpenName, Is.EqualTo("repo"));
+            Assert.That(board.DevPulls, Is.Empty);
+        });
+    }
+
+    [Test]
     public async Task EnsureSourceAsync_loadsRepositoriesOnce()
     {
         var api = new FakeTaskSourceApi
@@ -246,6 +269,8 @@ public sealed class CommandCenterTaskSourceBoardTests
 
         public Exception? PullsFailure { get; set; }
 
+        public TaskCompletionSource<IReadOnlyList<TaskSourcePull>>? PullsHang { get; set; }
+
         public (string Workspace, string Module, string Endpoint, string Token)? Saved { get; private set; }
 
         public string? Forgotten { get; private set; }
@@ -280,14 +305,18 @@ public sealed class CommandCenterTaskSourceBoardTests
         public Task<IReadOnlyList<TaskSourceRepository>> ListRepositoriesAsync(CancellationToken cancellationToken)
             => Task.FromResult(Repositories);
 
-        public Task<IReadOnlyList<TaskSourcePull>> ListPullsAsync(
+        public async Task<IReadOnlyList<TaskSourcePull>> ListPullsAsync(
             string moduleId,
             string owner,
             string repository,
             CancellationToken cancellationToken)
-            => PullsFailure is not null
-                ? Task.FromException<IReadOnlyList<TaskSourcePull>>(PullsFailure)
-                : Task.FromResult(Pulls);
+        {
+            if (PullsFailure is not null)
+                throw PullsFailure;
+            if (PullsHang is not null)
+                return await PullsHang.Task;
+            return Pulls;
+        }
     }
 
     private sealed class FakeTaskQueueApi : ITaskQueueApiProvider

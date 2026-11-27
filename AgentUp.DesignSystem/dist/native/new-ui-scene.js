@@ -71,6 +71,7 @@ export function createNewUiScene(React, native) {
   const { View, Text, Pressable, ScrollView, Icon, TextInput } = native;
   const drafts = {};
   const bound = {};
+  let draftScope = '';
   const h = React.createElement;
   // The page sets the ink on the web (.aun sets color); a React Native Text has none of its own.
   const root = { scope: [], ink: { color: newUiTheme.colors.textPrimary } };
@@ -273,6 +274,12 @@ export function createNewUiScene(React, native) {
    */
   return function NewUiScene(props) {
     const { scene, text = {}, items = {}, state = {}, content = {}, onAction = () => {} } = props;
+    const scope = text.memberId ?? '';
+    if (scope !== draftScope) {
+      draftScope = scope;
+      for (const key of Object.keys(drafts)) delete drafts[key];
+      for (const key of Object.keys(bound)) delete bound[key];
+    }
     const tree = newUiSceneDocument.scenes[scene];
     if (!tree) return null;
     const model = { text, items, state, content, onAction };

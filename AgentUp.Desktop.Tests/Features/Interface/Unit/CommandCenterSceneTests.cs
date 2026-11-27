@@ -314,6 +314,7 @@ public sealed class CommandCenterSceneTests
     {
         var binding = CommandCenterScene.Bind(Input([], "agent-settings") with
         {
+            OpenWorkspaceId = "bob",
             SystemPrompt = "Ship the cards.",
             CustomizationPrompt = "Keep the comma.",
             PromptOverwrite = true,
@@ -321,6 +322,7 @@ public sealed class CommandCenterSceneTests
 
         Assert.Multiple(() =>
         {
+            Assert.That(binding.Text["memberId"], Is.EqualTo("bob"));
             Assert.That(binding.Text["systemPrompt"], Is.EqualTo("Ship the cards."));
             Assert.That(binding.Text["customizationPrompt"], Is.EqualTo("Keep the comma."));
             Assert.That(binding.State["promptOverwrite"], Is.EqualTo("1"));

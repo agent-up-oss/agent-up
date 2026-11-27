@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { TeamStanding } from '../models/TeamStanding';
-import { agentSettingSave, commandCenterScene, commandCenterSceneId, commandCenterServerLabel, fleetHeadline, moduleRow, prefillEndpoint, systemPromptWasCustomized, TASK_SOURCE_REFRESH_MS, tasksTabFor, tokenSave } from './CommandCenterSceneProvider';
+import { agentSettingSave, applyMemberIfCurrent, commandCenterScene, commandCenterSceneId, commandCenterServerLabel, fleetHeadline, moduleRow, prefillEndpoint, systemPromptWasCustomized, TASK_SOURCE_REFRESH_MS, tasksTabFor, tokenSave } from './CommandCenterSceneProvider';
 
 function standing(patch: Partial<TeamStanding> & Pick<TeamStanding, 'workspaceId' | 'displayName' | 'kind'>): TeamStanding {
   return {
@@ -305,11 +305,14 @@ test('member settings bind prompts and warn only when the system prompt was edit
     validationsOpen: false, validationRunning: false, validationPassed: false, validationSummary: '',
   });
 
+  assert.equal(scene.text.memberId, 'bob');
   assert.equal(scene.text.systemPrompt, 'Ship the cards.');
   assert.equal(scene.text.customizationPrompt, 'Keep the comma.');
   assert.equal(scene.state.promptOverwrite, '1');
   assert.equal(systemPromptWasCustomized('Ship the cards.', 'Edit the files.'), true);
   assert.equal(systemPromptWasCustomized('Edit the files.', 'Edit the files.'), false);
+  assert.equal(applyMemberIfCurrent('bob', 'bob'), true);
+  assert.equal(applyMemberIfCurrent('bob', 'lucy'), false);
   assert.equal(TASK_SOURCE_REFRESH_MS, 30_000);
 });
 
