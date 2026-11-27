@@ -157,7 +157,7 @@ function ApplicationRow({ application, onPress }: { application: WorkspaceApplic
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: agentUpTheme.colors.canvas },
-  content: { padding: agentUpTheme.spacing[4], paddingBottom: agentUpTheme.spacing[8], gap: 16, maxWidth: 672, width: '100%', alignSelf: 'center' },
+  content: { padding: agentUpTheme.spacing[4], paddingBottom: agentUpTheme.spacing[8], gap: 16, width: '100%' },
   lifecycleRow: { ...auBox('workspace'), flexDirection: 'row', alignItems: 'center', gap: agentUpTheme.spacing[2] },
   lifecycleButton: { ...auBox('lifecycleButton'), alignItems: 'center', justifyContent: 'center' },
   lifecycleButtonDisabled: auBox('lifecycleButtonDisabled'),

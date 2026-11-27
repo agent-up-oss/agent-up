@@ -90,7 +90,7 @@ export function AgentCreationScreen({ workspaceId }: { workspaceId: string }) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: agentUpTheme.colors.canvas },
-  content: { padding: agentUpTheme.spacing[4], paddingBottom: agentUpTheme.spacing[8], gap: 12, maxWidth: 672, width: '100%', alignSelf: 'center' },
+  content: { padding: agentUpTheme.spacing[4], paddingBottom: agentUpTheme.spacing[8], gap: 12, width: '100%' },
   card: { ...auBox('choice'), gap: 2 },
   title: auText('workspaceName'),
   detail: auText('muted'),

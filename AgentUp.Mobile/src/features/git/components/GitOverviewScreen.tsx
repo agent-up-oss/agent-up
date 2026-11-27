@@ -50,7 +50,7 @@ export function GitOverviewScreen({ workspaceId }: { workspaceId: string }) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: agentUpTheme.colors.canvas },
-  body: { flex: 1, padding: agentUpTheme.spacing[4], gap: 16, maxWidth: 672, width: '100%', alignSelf: 'center' },
+  body: { flex: 1, padding: agentUpTheme.spacing[4], gap: 16, width: '100%' },
   section: { flex: 1, gap: 8, minHeight: 0 },
   sectionTitle: auText('fieldLabel'),
 });

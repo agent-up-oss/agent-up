@@ -114,7 +114,7 @@ export function AgentsOverviewScreen({ workspaceId }: { workspaceId: string }) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: agentUpTheme.colors.canvas },
-  content: { padding: agentUpTheme.spacing[4], paddingBottom: agentUpTheme.spacing[8], gap: 16, maxWidth: 672, width: '100%', alignSelf: 'center' },
+  content: { padding: agentUpTheme.spacing[4], paddingBottom: agentUpTheme.spacing[8], gap: 16, width: '100%' },
   section: { gap: 10 },
   sectionTitle: auText('fieldLabel'),
   card: { ...auBox('choice'), gap: 2 },

@@ -159,7 +159,7 @@ export function FilesScreen({ workspaceId }: { workspaceId: string }) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: agentUpTheme.colors.canvas },
-  body: { flex: 1, padding: agentUpTheme.spacing[4], gap: 12, maxWidth: 672, width: '100%', alignSelf: 'center' },
+  body: { flex: 1, padding: agentUpTheme.spacing[4], gap: 12, width: '100%' },
   toolbar: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   root: { flex: 1, minWidth: 0 },
   reload: { alignItems: 'center', justifyContent: 'center' },

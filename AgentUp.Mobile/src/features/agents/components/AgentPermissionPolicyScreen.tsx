@@ -117,7 +117,7 @@ export function AgentPermissionPolicyScreen({ workspaceId }: { workspaceId: stri
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: agentUpTheme.colors.canvas },
-  content: { padding: agentUpTheme.spacing[4], gap: 12, maxWidth: 672, width: '100%', alignSelf: 'center' },
+  content: { padding: agentUpTheme.spacing[4], gap: 12, width: '100%' },
   intro: auText('muted'),
   choice: { ...auBox('choice'), gap: 4 },
   selected: { borderColor: agentUpTheme.colors.accent },
