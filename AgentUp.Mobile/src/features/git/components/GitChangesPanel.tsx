@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { ActivityIndicator, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 import { useServers } from '@/features/servers/controllers/ServersContext';
 import { isUnauthorized } from '@/features/servers/providers/ServerRequestProvider';
 import { agentUpTheme, auBox, auText } from '@agent-up/design-system/native';
@@ -31,7 +31,11 @@ import { GitChangeRow } from './GitChangeRow';
 import { GitChangeSheet } from './GitChangeSheet';
 import { gitChangeSheetCount, gitChangeSheetDetents, gitChangesUseSheet } from '../providers/GitChangeSheetProvider';
 import { GitConfirmDialog } from './GitConfirmDialog';
-import { GitFileViewer } from './GitFileViewer';
+import { GitDiffView } from './GitDiffView';
+import { fileLines } from '../providers/GitDiffProvider';
+import { getFile } from '@/features/files/providers/WorkspaceFilesApiProvider';
+import { PageSheet } from '@/features/shell/components/PageSheet';
+import { useSheetLayer } from '@/features/shell/components/SheetLayer';
 import { gitWriteAllowed, gitWriteUnavailableMessage } from '@/features/entitlements/models/Entitlements';
 import { getEntitlements } from '@/features/entitlements/providers/EntitlementsApiProvider';
 
@@ -78,6 +82,12 @@ export function GitChangesPanel({
   const [canWrite, setCanWrite] = useState(true);
   const [diffPath, setDiffPath] = useState<string | null>(null);
   const [diffLoading, setDiffLoading] = useState(false);
+  // The file as it is now, which the diff's folds open onto.
+  const [diffFile, setDiffFile] = useState<string[] | null>(null);
+  const [closeDiff, setCloseDiff] = useState(0);
+  // Inside a team member's sheet a file's changes open as one more sheet in that stack; anywhere
+  // else they open as a page with a back button.
+  const layer = useSheetLayer();
   const [pageHeight, setPageHeight] = useState(0);
   const window = useWindowDimensions();
 
@@ -201,7 +211,14 @@ export function GitChangesPanel({
     if (!server || !workspaceId || node.isDirectory) return;
     onOpenFile?.(node.path);
     const ticket = diffGate.begin();
-    setDiffPath(node.path); setDiff(null); setDiffLoading(true);
+    setDiffPath(node.path); setDiff(null); setDiffFile(null); setDiffLoading(true);
+    if (node.status !== 'Deleted') {
+      void getFile(server, workspaceId, node.path)
+        .then(file => {
+          if (diffGate.isCurrent(ticket) && file?.content != null) setDiffFile(fileLines(file.content));
+        })
+        .catch(() => undefined);
+    }
     try {
       const loaded = await getFileDiff(server, workspaceId, node.path);
       if (!diffGate.isCurrent(ticket)) return;
@@ -334,20 +351,40 @@ export function GitChangesPanel({
         }}
       />
 
-      <Modal visible={diffPath !== null} transparent animationType="fade" onRequestClose={() => setDiffPath(null)}>
-        <View style={styles.modalScrim}>
-          {diffPath !== null &&
-            <GitFileViewer
-              path={diffPath}
-              status={diff?.status ?? ''}
-              diff={diff}
-              loading={diffLoading}
-              onClose={() => setDiffPath(null)}
-            />}
-        </View>
-      </Modal>
+      {layer && diffPath !== null ? (
+        <PageSheet
+          key={diffPath}
+          placement="docked"
+          testID="git-diff-sheet"
+          closeRequest={closeDiff}
+          onDismiss={() => true}
+          onClosed={() => setDiffPath(null)}>
+          <GitDiffView
+            mode="sheet"
+            path={diffPath}
+            diff={diff}
+            file={diffFile}
+            loading={diffLoading}
+            onClose={() => setCloseDiff(current => current + 1)}
+          />
+        </PageSheet>
+      ) : null}
     </>
   );
+
+  // Without a sheet layer to stack in, a file's changes are a page of their own with a back button.
+  if (!layer && diffPath !== null) {
+    return (
+      <GitDiffView
+        mode="page"
+        path={diffPath}
+        diff={diff}
+        file={diffFile}
+        loading={diffLoading}
+        onClose={() => setDiffPath(null)}
+      />
+    );
+  }
 
   // The Git page on anything wider than a phone: what to commit first, then the change list in a
   // pane of its own that scrolls.
@@ -465,5 +502,4 @@ const styles = StyleSheet.create({
   insertionsOnPrimary: auText('gitInsertions', 'gitInsertionsOnPrimary'),
   deletionsOnPrimary: auText('gitDeletions', 'gitDeletionsOnPrimary'),
   disabled: { opacity: 0.38 },
-  modalScrim: { flex: 1, padding: 20, alignItems: 'center', justifyContent: 'center', ...auBox('scrim') },
 });

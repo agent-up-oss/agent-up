@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   Animated,
   BackHandler,
@@ -19,6 +19,7 @@ import {
 } from '../providers/PageSheetProvider';
 
 const nativeDriver = Platform.OS !== 'web';
+let sheetKeys = 0;
 const spring = { damping: 30, stiffness: 320, mass: 1, overshootClamping: true, useNativeDriver: nativeDriver } as const;
 
 /**
@@ -26,9 +27,10 @@ const spring = { damping: 30, stiffness: 320, mass: 1, overshootClamping: true, 
  * over that member. It slides up and its head is the handle - drag the head down, or tap its
  * grabber, to close it. The page under the head keeps its own scrolling.
  *
- * `screen` covers the whole screen below the phone's chrome. `docked` opens inside the sheet layer
- * it is rendered in and docks right below that layer's head, so the page it belongs to stays named
- * above it. Each sheet is a sheet layer of its own, so what it opens docks below its own head.
+ * `screen` covers the whole screen below the phone's chrome. `docked` is drawn in the nearest sheet
+ * layer, wherever in that layer's page it was opened - a file list, the Git page, the chat - and
+ * docks right below the layer's head, so the page it belongs to stays named above it. Each sheet is
+ * a sheet layer of its own, so what it opens docks below its own head.
  *
  * `onDismiss` answers a drag down, the Android back button and the grabber's own request: return
  * true to close now, or false to stay open (a file with an unsaved edit asks first, and changes
@@ -48,6 +50,7 @@ export function PageSheet({ placement, closeRequest, onDismiss, onClosed, testID
   const topInset = placement === 'screen' ? insets.top : 0;
   const dockedAt = placement === 'docked' ? parent?.dock ?? null : 0;
   const [height, setHeight] = useState(window.height);
+  const [key] = useState(() => `page-sheet-${++sheetKeys}`);
   const offset = useRef(new Animated.Value(window.height)).current;
   const sheet = useRef<ViewInstance>(null);
   const live = useRef({
@@ -141,8 +144,7 @@ export function PageSheet({ placement, closeRequest, onDismiss, onClosed, testID
     [offset, height],
   );
 
-  if (!ready) return null;
-  return (
+  const drawn = !ready ? null : (
     <View
       pointerEvents="box-none"
       style={[StyleSheet.absoluteFill, placement === 'docked' ? { top: dockedAt, overflow: 'hidden' } : null]}
@@ -164,6 +166,18 @@ export function PageSheet({ placement, closeRequest, onDismiss, onClosed, testID
       </Animated.View>
     </View>
   );
+
+  // A docked sheet is drawn in the layer it docks in, above whatever page opened it. The layer
+  // draws what it is on every render, so its content stays as live as it is here.
+  const portal = placement === 'docked' && parent !== null;
+  useLayoutEffect(() => {
+    if (portal && drawn) parent.mount(key, drawn);
+  });
+  useEffect(() => {
+    if (!portal) return;
+    return () => parent.unmount(key);
+  }, [portal, parent, key]);
+  return portal ? null : drawn;
 }
 
 const styles = StyleSheet.create({

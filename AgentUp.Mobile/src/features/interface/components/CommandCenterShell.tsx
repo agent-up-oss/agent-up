@@ -26,6 +26,7 @@ import {
   listCapabilityModules,
   updateCapabilitySettings,
 } from '@/features/capabilities/providers/CapabilityModulesApiProvider';
+import { DockedChatSheet } from './DockedChatSheet';
 import { SceneIcon } from './SceneIcon';
 import { runTaskAction } from '../providers/TaskActionProvider';
 import { pickIssue } from '../providers/TaskQueueProvider';
@@ -34,6 +35,7 @@ import { forgeHostLabel, repositoryId, type TaskSourcePull } from '../models/Tas
 import type { OfferedIssue } from '../models/TaskQueue';
 import {
   bindAgent,
+  ChatSheetHostContext,
   enableAgentCapability,
   getAgent,
   getAutonomy,
@@ -338,8 +340,11 @@ function CommandCenterBinder() {
     content.dock = <View />;
   }
   if (scene === 'mobile-chat' && agent && activeServer) {
+    // On a phone a transcript item opens as one more sheet in the member's stack.
     content.transcript = (
-      <WorkspaceAgentChatScreen workspaceId={agent.workspaceId} displayName={agent.displayName} server={activeServer} loopControls={false} />
+      <ChatSheetHostContext.Provider value={phone ? DockedChatSheet : null}>
+        <WorkspaceAgentChatScreen workspaceId={agent.workspaceId} displayName={agent.displayName} server={activeServer} loopControls={false} />
+      </ChatSheetHostContext.Provider>
     );
   }
   if (scene === 'mobile-agent-git' && agent) {
