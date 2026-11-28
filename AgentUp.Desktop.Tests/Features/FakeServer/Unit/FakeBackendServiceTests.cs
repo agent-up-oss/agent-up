@@ -45,6 +45,36 @@ public sealed class FakeBackendServiceTests
     }
 
     [Test]
+    public void AgentEventsAfter_replaysAPastConversation_andAgainAfterAReset()
+    {
+        var backend = FakeServerTestComposition.Backend();
+        var replayed = backend.AgentEventsAfter("frank", 0);
+        backend.Reset();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(replayed.Count(item => item.Type == "user_message"), Is.GreaterThanOrEqualTo(25));
+            Assert.That(backend.AgentEventsAfter("frank", 0), Has.Count.EqualTo(replayed.Count));
+            Assert.That(backend.AgentEventsAfter("mia", 0), Is.Empty);
+        });
+    }
+
+    [Test]
+    public void Handle_frankCarriesEnoughOfEverythingToScroll()
+    {
+        var backend = FakeServerTestComposition.Backend();
+        var frank = Json(backend, Get("/api/workspaces")).AsArray()
+            .Single(entry => entry!["id"]!.GetValue<string>() == "frank")!;
+        var changes = Json(backend, Get("/api/workspaces/frank/git/changes"));
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(frank["applications"]!.AsArray(), Has.Count.GreaterThanOrEqualTo(50));
+            Assert.That(changes["fileCount"]!.GetValue<int>(), Is.GreaterThanOrEqualTo(50));
+        });
+    }
+
+    [Test]
     public void Handle_permissionPolicyReadsBackWhatWasSaved_perWorkspace()
     {
         var backend = FakeServerTestComposition.Backend();
@@ -639,7 +669,8 @@ public sealed class FakeBackendServiceTests
         var backend = FakeServerTestComposition.Backend();
         Run(backend, Post("/api/workspaces/bob/agent/messages", """{"message":"hi"}"""));
         var stream = Run(backend, Get("/api/workspaces/bob/agent/events").WithQuery("?after=0"));
-        var later = Run(backend, Get("/api/workspaces/bob/agent/events").WithQuery("after=99"));
+        var last = backend.AgentEventsAfter("bob", 0).Max(item => item.Sequence);
+        var later = Run(backend, Get("/api/workspaces/bob/agent/events").WithQuery($"after={last}"));
 
         Assert.That(stream.ContentType, Is.EqualTo("text/event-stream"));
         Assert.That(stream.Body, Does.Contain("user_message"));

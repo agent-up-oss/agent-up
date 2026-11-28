@@ -11,7 +11,12 @@ export type FakeServerDefinition = {
   /** The Harbor Shop repository every Demo workspace checks out, by path. */
   files?: Record<string, string>;
   console?: Record<string, unknown>;
-  agents?: Record<string, { session?: unknown; scripts?: Array<{ events?: Array<{ type?: string; payload?: unknown }> }> }>;
+  agents?: Record<string, {
+    session?: unknown;
+    scripts?: Array<{ events?: Array<{ type?: string; payload?: unknown }> }>;
+    /** A past conversation, replayed to a transcript that opens, as a Server replays its events. */
+    history?: Array<{ type?: string; payload?: unknown }>;
+  }>;
   /**
    * The agent turn an author plays when prompted: ACP events, each after a delay from the one
    * before, so the Demo shows a real run's thinking, reads, edits, summaries and timings.

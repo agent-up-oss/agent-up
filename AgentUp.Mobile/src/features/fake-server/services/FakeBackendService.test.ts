@@ -810,3 +810,23 @@ test('the Demo refuses a stale save with a conflict', () => {
   assert.equal(saved.status, 409);
   assert.equal(JSON.parse(saved.body!).title, 'File changed on the Server');
 });
+
+test('a member with a past conversation replays it when the transcript opens, and again after a reset', () => {
+  const service = backend();
+  const replayed = service.agentEventsAfter('frank', 0);
+  const asked = replayed.filter(event => event.type === 'user_message');
+  assert.ok(asked.length >= 25, 'Frank has a long conversation to scroll');
+  assert.equal(service.agentEventsAfter('mia', 0).length, 0);
+  service.reset();
+  assert.equal(service.agentEventsAfter('frank', 0).length, replayed.length);
+});
+
+test('Frank carries enough of everything to scroll', () => {
+  const service = backend();
+  const frank = json(service, 'GET', '/api/workspaces').find((workspace: { id: string }) => workspace.id === 'frank');
+  const changes = json(service, 'GET', '/api/workspaces/frank/git/changes');
+  const log = json(service, 'GET', '/api/workspaces/frank/git/log');
+  assert.ok(frank.applications.length >= 50);
+  assert.ok(changes.fileCount >= 50);
+  assert.ok(log.commits.length >= 50);
+});
