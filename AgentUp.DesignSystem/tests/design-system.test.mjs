@@ -397,9 +397,9 @@ test('tappable cards are catalog buttons instead of local picker chrome', async 
   assert.match(mobile, /auBox\('choice'\)/);
 });
 
-test('sign-in is a pane on the canvas rather than a grey overlay', async () => {
+test('sign-in is a canvas-black pane with quiet fields rather than a grey overlay', async () => {
   const signIn = agentUpTheme.components.signIn;
-  assert.equal(signIn.backgroundColor, agentUpTheme.colors.surface);
+  assert.equal(signIn.backgroundColor, agentUpTheme.colors.canvas);
   assert.notEqual(signIn.backgroundColor, agentUpTheme.colors.surfaceOverlay);
   assert.equal(agentUpTheme.components.choiceSelected.backgroundColor, agentUpTheme.colors.surfaceSelectedSoft);
   assert.equal(agentUpTheme.components.choiceSelected.borderLeftColor, agentUpTheme.colors.accentLine);
@@ -414,7 +414,8 @@ test('sign-in is a pane on the canvas rather than a grey overlay', async () => {
   assert.match(axaml, /ItemsSource="\{Binding Login\.SavedServers\}"[\s\S]*?ToolTip\.Tip="\{Binding Url\}"/);
   const mobile = await readFile(resolve(repository, 'AgentUp.Mobile/src/features/servers/components/ServerSetupScreen.tsx'), 'utf8');
   assert.match(mobile, /auBox\('signIn'\)/);
-  assert.match(mobile, /auBox\('choice', 'choiceCompact'\)/);
+  assert.match(mobile, /auBox\('choice', 'choiceCompact', 'quiet'\)/);
+  assert.match(mobile, /auBox\('input', 'quiet'\)/);
   assert.match(mobile, /auBox\('choiceSelected'\)/);
   assert.match(mobile, /auText\('choiceLabel'\)/);
   assert.match(mobile, /numberOfLines=\{1\}/);

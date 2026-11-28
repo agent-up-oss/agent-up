@@ -1226,7 +1226,7 @@
         {
           "id": "git-toolbar-mobile",
           "title": "Mobile Git toolbar",
-          "note": "Mobile keeps the same actions and adds a compact new-branch control next to the branch field. The branch field and secondary actions are au-git-quiet: canvas black with one faint hairline. Push keeps the accent.",
+          "note": "Mobile keeps the same actions and adds a compact new-branch control next to the branch field. The branch field and secondary actions are au-quiet: canvas black with one faint hairline. Push keeps the accent.",
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
@@ -1242,7 +1242,7 @@
             "au-button",
             "au-button--secondary",
             "au-git-branch",
-            "au-git-quiet",
+            "au-quiet",
             "au-muted",
             "au-lifecycle-button",
             "au-git-actions",
@@ -1251,7 +1251,7 @@
             "au-button--danger",
             "au-git-history"
           ],
-          "html": "<div class=\"au-git-toolbar\">\n        <div class=\"au-git-branch-row\">\n          <button class=\"au-button au-button--secondary au-git-branch au-git-quiet\" type=\"button\">main <span class=\"au-muted\">▾</span></button>\n          <button class=\"au-lifecycle-button au-git-quiet\" type=\"button\">+</button>\n        </div>\n        <div class=\"au-git-actions\">\n          <button class=\"au-browser-button au-git-quiet\" type=\"button\">↻</button>\n          <button class=\"au-button au-button--secondary au-button--compact au-git-quiet\" type=\"button\">Fetch</button>\n          <button class=\"au-button au-button--secondary au-button--compact au-git-quiet\" type=\"button\">Pull</button>\n          <button class=\"au-button au-button--compact\" type=\"button\">Push</button>\n          <button class=\"au-button au-button--danger au-button--compact\" type=\"button\">Discard</button>\n          <button class=\"au-button au-button--secondary au-button--compact au-git-history au-git-quiet\" type=\"button\">History</button>\n        </div>\n      </div>"
+          "html": "<div class=\"au-git-toolbar\">\n        <div class=\"au-git-branch-row\">\n          <button class=\"au-button au-button--secondary au-git-branch au-quiet\" type=\"button\">main <span class=\"au-muted\">▾</span></button>\n          <button class=\"au-lifecycle-button au-quiet\" type=\"button\">+</button>\n        </div>\n        <div class=\"au-git-actions\">\n          <button class=\"au-browser-button au-quiet\" type=\"button\">↻</button>\n          <button class=\"au-button au-button--secondary au-button--compact au-quiet\" type=\"button\">Fetch</button>\n          <button class=\"au-button au-button--secondary au-button--compact au-quiet\" type=\"button\">Pull</button>\n          <button class=\"au-button au-button--compact\" type=\"button\">Push</button>\n          <button class=\"au-button au-button--danger au-button--compact\" type=\"button\">Discard</button>\n          <button class=\"au-button au-button--secondary au-button--compact au-git-history au-quiet\" type=\"button\">History</button>\n        </div>\n      </div>"
         },
         {
           "id": "git-heading",
@@ -1311,12 +1311,12 @@
             "au-git-commit--mobile",
             "au-field-label",
             "au-input",
-            "au-git-quiet",
+            "au-quiet",
             "au-button",
             "au-git-insertions",
             "au-git-insertions--on-primary"
           ],
-          "html": "<div class=\"au-git-commit au-git-commit--mobile\">\n        <span class=\"au-field-label\">Commit message</span>\n        <textarea class=\"au-input au-git-quiet\" readonly>feat(storefront): add the weekly promo banner</textarea>\n        <button class=\"au-button\" type=\"button\">Commit <span class=\"au-git-insertions au-git-insertions--on-primary\">+2</span></button>\n      </div>"
+          "html": "<div class=\"au-git-commit au-git-commit--mobile\">\n        <span class=\"au-field-label\">Commit message</span>\n        <textarea class=\"au-input au-quiet\" readonly>feat(storefront): add the weekly promo banner</textarea>\n        <button class=\"au-button\" type=\"button\">Commit <span class=\"au-git-insertions au-git-insertions--on-primary\">+2</span></button>\n      </div>"
         },
         {
           "id": "git-change-sheet",
@@ -1940,7 +1940,7 @@
         {
           "id": "sign-in",
           "title": "Sign-in pane",
-          "note": "The pane is compact on canvas. Saved-server URLs ellipsize; the title tooltip holds the full URL. The saved list scrolls. Rows do not display credential state; selecting a saved server applies a stored sign-in.",
+          "note": "The pane is canvas black with one faint hairline, like the Team page; its field, saved servers and secondary buttons are au-quiet, and Connect keeps the accent. It is compact. Saved-server URLs ellipsize; the title tooltip holds the full URL. The saved list scrolls. Rows do not display credential state; selecting a saved server applies a stored sign-in.",
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
@@ -1958,6 +1958,7 @@
             "au-muted",
             "au-field-label",
             "au-input",
+            "au-quiet",
             "au-sign-in-list",
             "au-choice",
             "au-choice--compact",
@@ -1966,7 +1967,7 @@
             "au-button--secondary",
             "au-button--compact"
           ],
-          "html": "<form class=\"au-sign-in au-stack\">\n        <p class=\"au-eyebrow\">Agent-Up Server</p>\n        <h2 class=\"au-page-title\">Agent-Up Server</h2>\n        <p class=\"au-muted\">Choose a saved server or enter a URL. Switching replaces this window's local workspace and browser state.</p>\n        <span class=\"au-field-label\">Server URL</span>\n        <input class=\"au-input\" value=\"http://127.0.0.1:9\" readonly autofocus />\n        <span class=\"au-field-label\">Saved servers</span>\n        <div class=\"au-sign-in-list\">\n          <button class=\"au-choice au-choice--compact\" type=\"button\" title=\"http://127.0.0.1:9\"><span class=\"au-choice-label\">Demo</span></button>\n          <button class=\"au-button au-button--secondary au-button--compact\" type=\"button\">Remove</button>\n        </div>\n        <button class=\"au-button\" type=\"button\">Connect</button>\n      </form>"
+          "html": "<form class=\"au-sign-in au-stack\">\n        <p class=\"au-eyebrow\">Agent-Up Server</p>\n        <h2 class=\"au-page-title\">Agent-Up Server</h2>\n        <p class=\"au-muted\">Choose a saved server or enter a URL. Switching replaces this window's local workspace and browser state.</p>\n        <span class=\"au-field-label\">Server URL</span>\n        <input class=\"au-input au-quiet\" value=\"http://127.0.0.1:9\" readonly autofocus />\n        <span class=\"au-field-label\">Saved servers</span>\n        <div class=\"au-sign-in-list\">\n          <button class=\"au-choice au-choice--compact au-quiet\" type=\"button\" title=\"http://127.0.0.1:9\"><span class=\"au-choice-label\">Demo</span></button>\n          <button class=\"au-button au-button--secondary au-button--compact au-quiet\" type=\"button\">Remove</button>\n        </div>\n        <button class=\"au-button\" type=\"button\">Connect</button>\n      </form>"
         },
         {
           "id": "sign-in-mobile",
@@ -1989,6 +1990,7 @@
             "au-muted",
             "au-field-label",
             "au-input",
+            "au-quiet",
             "au-button",
             "au-sign-in-list",
             "au-choice",
@@ -1997,7 +1999,7 @@
             "au-button--secondary",
             "au-button--compact"
           ],
-          "html": "<form class=\"au-sign-in au-stack\">\n        <p class=\"au-eyebrow\">Agent-Up Server</p>\n        <h2 class=\"au-page-title\">Connect to server</h2>\n        <p class=\"au-muted\">Choose a saved server or enter a URL. Switching replaces this client's local workspace and browser state.</p>\n        <span class=\"au-field-label\">Server URL</span>\n        <input class=\"au-input\" value=\"http://127.0.0.1:9\" readonly />\n        <button class=\"au-button\" type=\"button\">Try and save</button>\n        <span class=\"au-field-label\">Saved servers</span>\n        <div class=\"au-sign-in-list\">\n          <button class=\"au-choice au-choice--compact\" type=\"button\" title=\"http://127.0.0.1:9\"><span class=\"au-choice-label\">Demo</span></button>\n          <button class=\"au-button au-button--secondary au-button--compact\" type=\"button\">Remove</button>\n          <button class=\"au-button au-button--secondary\" type=\"button\">Add server</button>\n        </div>\n      </form>"
+          "html": "<form class=\"au-sign-in au-stack\">\n        <p class=\"au-eyebrow\">Agent-Up Server</p>\n        <h2 class=\"au-page-title\">Connect to server</h2>\n        <p class=\"au-muted\">Choose a saved server or enter a URL. Switching replaces this client's local workspace and browser state.</p>\n        <span class=\"au-field-label\">Server URL</span>\n        <input class=\"au-input au-quiet\" value=\"http://127.0.0.1:9\" readonly />\n        <button class=\"au-button\" type=\"button\">Try and save</button>\n        <span class=\"au-field-label\">Saved servers</span>\n        <div class=\"au-sign-in-list\">\n          <button class=\"au-choice au-choice--compact au-quiet\" type=\"button\" title=\"http://127.0.0.1:9\"><span class=\"au-choice-label\">Demo</span></button>\n          <button class=\"au-button au-button--secondary au-button--compact au-quiet\" type=\"button\">Remove</button>\n          <button class=\"au-button au-button--secondary au-quiet\" type=\"button\">Add server</button>\n        </div>\n      </form>"
         },
         {
           "id": "sign-in-password",
@@ -3683,7 +3685,7 @@
         {
           "id": "file-editor-mobile",
           "title": "Mobile file page",
-          "note": "On a phone the file is its own page: the top bar carries the back chevron and the file name, and the page keeps the path, status, Save and Revert above the same gutter and editor.",
+          "note": "On a phone the file is its own page: the top bar carries the back chevron and the file name, and the page keeps the path, status, Save and Revert above the same gutter and editor. The page is canvas black: its header and footer carry no grey fill, Revert is au-quiet, and Save keeps the accent.",
           "avalonia": "Border",
           "desktopClass": "",
           "desktopHost": "",
@@ -3703,6 +3705,7 @@
             "au-button",
             "au-button--secondary",
             "au-button--compact",
+            "au-quiet",
             "au-file-editor-body",
             "au-file-editor-gutter",
             "au-file-editor-input",
@@ -3710,7 +3713,7 @@
             "au-file-editor-state",
             "au-file-editor-caret"
           ],
-          "html": "<div class=\"au-file-editor\">\n        <div class=\"au-file-viewer-header\">\n          <span class=\"au-file-viewer-heading\">\n            <span class=\"au-file-viewer-path\">apps/storefront/PromoBanner.tsx</span>\n            <span class=\"au-file-viewer-status\">Added</span>\n          </span>\n          <span class=\"au-file-editor-actions\">\n            <button class=\"au-button au-button--secondary au-button--compact\" type=\"button\">Revert</button>\n            <button class=\"au-button au-button--compact\" type=\"button\">Save</button>\n          </span>\n        </div>\n        <div class=\"au-file-editor-body\">\n          <span class=\"au-file-editor-gutter\">1\n2\n3\n4</span>\n          <textarea class=\"au-file-editor-input\" readonly spellcheck=\"false\">export function PromoBanner() {\n  return (\n    &lt;aside className=\"promo\"&gt;\n      Weekly harbor special</textarea>\n        </div>\n        <div class=\"au-file-editor-footer\">\n          <span class=\"au-file-editor-state\">Saved</span>\n          <span class=\"au-file-editor-caret\">Ln 1, Col 1</span>\n        </div>\n      </div>"
+          "html": "<div class=\"au-file-editor\">\n        <div class=\"au-file-viewer-header\">\n          <span class=\"au-file-viewer-heading\">\n            <span class=\"au-file-viewer-path\">apps/storefront/PromoBanner.tsx</span>\n            <span class=\"au-file-viewer-status\">Added</span>\n          </span>\n          <span class=\"au-file-editor-actions\">\n            <button class=\"au-button au-button--secondary au-button--compact au-quiet\" type=\"button\">Revert</button>\n            <button class=\"au-button au-button--compact\" type=\"button\">Save</button>\n          </span>\n        </div>\n        <div class=\"au-file-editor-body\">\n          <span class=\"au-file-editor-gutter\">1\n2\n3\n4</span>\n          <textarea class=\"au-file-editor-input\" readonly spellcheck=\"false\">export function PromoBanner() {\n  return (\n    &lt;aside className=\"promo\"&gt;\n      Weekly harbor special</textarea>\n        </div>\n        <div class=\"au-file-editor-footer\">\n          <span class=\"au-file-editor-state\">Saved</span>\n          <span class=\"au-file-editor-caret\">Ln 1, Col 1</span>\n        </div>\n      </div>"
         },
         {
           "id": "file-editor-notice",

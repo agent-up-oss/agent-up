@@ -35,7 +35,9 @@ const rowLayout = new Set([
   'aun-state-map__root',
 ]);
 const spreadLayout = new Set(['aun-nav-row', 'aun-state-map__head', 'aun-settings__row', 'aun-session']);
-const trioLayout = new Set(['aun-state-map__branch-head', 'aun-task-row', 'au-validation-flow-head']);
+// A task row is not a trio: a queued row starts with its grip, so the second child is the
+// assignee, not the body. The body grows through its own CSS instead.
+const trioLayout = new Set(['aun-state-map__branch-head', 'au-validation-flow-head']);
 const pairLayout = new Set(['au-validation-step', 'au-validation-check']);
 const columnLayout = new Set([
   'aun-rail__nav', 'au-screen-aside', 'aun-phone__body', 'aun-phone__head',

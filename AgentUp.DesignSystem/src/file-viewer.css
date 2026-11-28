@@ -22,7 +22,7 @@
   min-height: var(--au-control-height-compact);
   padding: var(--au-space-3) var(--au-space-4);
   color: var(--au-color-text-primary);
-  background: var(--au-color-surface-raised);
+  background: var(--au-color-canvas);
   border-bottom: 1px solid var(--au-color-border-subtle);
   border-radius: var(--au-radius-xl) var(--au-radius-xl) 0 0;
 }
