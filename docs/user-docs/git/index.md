@@ -26,7 +26,7 @@ Agents still enqueue through the commit queue. This slice does not replace `enqu
 
 <DocSurfaces>
 <DocSurface desktop>Open it from the Git tab of the selected workspace. Branch switching, fetch, pull, and push live at the top of that tab. History is an inner page from the History button. Those write controls stay hidden when the Server does not allow `git.write`.</DocSurface>
-<DocSurface mobile>Open it from the Git tab. The overview lists uncommitted changes; a filename opens the file viewer. History sits next to Push. Inner Review and History pages return through the nav-bar back button. Fetch, pull, push, discard, and commit stay hidden when the Server does not allow `git.write`.</DocSurface>
+<DocSurface mobile>Open it from the Git tab. The overview lists uncommitted changes; a filename opens its changes. History sits next to Push. Inner Review and History pages return through the nav-bar back button. Fetch, pull, push, discard, and commit stay hidden when the Server does not allow `git.write`.</DocSurface>
 </DocSurfaces>
 
 The **Files** tab next to Git shows the whole clone, not only what changed, and lets you open and edit a file. See [Files](./files).
