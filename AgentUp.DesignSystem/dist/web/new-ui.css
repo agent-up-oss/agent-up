@@ -3128,6 +3128,11 @@
   padding: 6px var(--au-space-2);
 }
 .aun-agent-head { display: flex; align-items: center; gap: var(--au-space-2); }
+/* A team member is a sheet over the team. Its grabber tops the head: tap it, or drag the head down,
+ * to return to the team. The grabber row carries the head's top spacing. */
+.aun-phone__head--sheet { padding-top: 0; }
+.aun-agent-sheet-head { display: flex; flex-direction: column; }
+.aun-agent-grabber { width: 100%; margin: 0; border: 0; background: transparent; }
 
 .aun-validate { position: relative; flex-shrink: 0; }
 .aun-validate__player { position: relative; }

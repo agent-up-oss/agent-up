@@ -36,20 +36,22 @@
     </div>
   </section>
 
+  <!-- A team member is a sheet over the team: the grabber and head on top, the page, then the
+       member's own tabs as an app bar on the bottom edge. -->
   <section data-au-layout="mobile-agent">
     <div data-au-use="phone">
-      <header class="aun-phone__head" data-au-slot="head"></header>
-      <div data-au-slot="tabs"></div>
+      <header class="aun-phone__head aun-phone__head--sheet" data-au-slot="head"></header>
       <div class="aun-phone__body" data-au-slot="body"></div>
+      <div data-au-slot="tabs"></div>
     </div>
   </section>
 
   <!-- A member page that lays itself out to the edges, such as Git with its change sheet. -->
   <section data-au-layout="mobile-agent-page">
     <div data-au-use="phone">
-      <header class="aun-phone__head" data-au-slot="head"></header>
-      <div data-au-slot="tabs"></div>
+      <header class="aun-phone__head aun-phone__head--sheet" data-au-slot="head"></header>
       <div class="aun-phone__body aun-phone__body--page" data-au-slot="body"></div>
+      <div data-au-slot="tabs"></div>
     </div>
   </section>
 

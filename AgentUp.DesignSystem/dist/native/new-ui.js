@@ -3318,6 +3318,21 @@ export const newUiTheme = Object.freeze({
     aunAgentHead: Object.freeze({
 
     }),
+    aunPhoneHeadSheet: Object.freeze({
+      paddingTop: 0,
+    }),
+    aunAgentSheetHead: Object.freeze({
+
+    }),
+    aunAgentGrabber: Object.freeze({
+      marginTop: 0,
+      marginRight: 0,
+      marginBottom: 0,
+      marginLeft: 0,
+      borderWidth: 0,
+      borderColor: "#00000000",
+      backgroundColor: "transparent",
+    }),
     aunValidate: Object.freeze({
 
     }),

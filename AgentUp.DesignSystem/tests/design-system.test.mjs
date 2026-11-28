@@ -891,7 +891,7 @@ test('new UI screens pair desktop and mobile instead of a chip per surface', asy
   assert.match(scenes.find(item => item.id === 'agent-settings').html, />Settings</);
   assert.match(scenes.find(item => item.id === 'agent-settings').html, />Type</);
   assert.match(scenes.find(item => item.id === 'agent-settings').html, />Forge</);
-  assert.match(scenes.find(item => item.id === 'mobile-agent-settings').html, />Settings</);
+  assert.match(scenes.find(item => item.id === 'mobile-agent-settings').html, /au-subtab--selected" type="button" aria-selected="true" data-au-action="tab-settings"/);
   assert.match(scenes.find(item => item.id === 'mobile-agent-settings').html, />Type</);
   assert.doesNotMatch(scenes.find(item => item.id === 'team').html, />Capabilities</);
   assert.match(scenes.find(item => item.id === 'tasks').html, /class="au-page-title"/);
@@ -961,11 +961,14 @@ test('new UI agent git assembles the client git pane', async () => {
   assert.match(mobile.html, /Changes/);
   assert.match(mobile.html, /Commit message/);
   assert.match(mobile.html, />Fetch</);
-  // Inside a team member the back button leads out, so there is no bottom bar; the change list
-  // takes the bottom of the page as a sheet under the commit box.
-  assert.doesNotMatch(mobile.html, /au-nav-icon/);
+  // A team member is a sheet: its grabber leads out, and its own tabs are the app bar on the
+  // bottom edge, under the change list that rests as a sheet below the commit box.
+  assert.doesNotMatch(mobile.html, /aun-agent-back/);
+  assert.match(mobile.html, /aun-agent-grabber/);
   assert.match(mobile.html, /au-git-change-sheet/);
   assert.ok(mobile.html.indexOf('Commit message') < mobile.html.indexOf('au-git-change-sheet'));
+  assert.ok(mobile.html.indexOf('au-git-change-sheet') < mobile.html.indexOf('aria-label="Agent sections"'));
+  assert.ok(mobile.html.indexOf('aun-agent-grabber') < mobile.html.indexOf('Commit message'));
   assert.equal(assembled.screens.find(item => item.id === 'team').mobileId, 'mobile-team');
 });
 
