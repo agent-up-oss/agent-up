@@ -6,6 +6,8 @@ import {
   gitChangeSheetDetents,
   gitChangeSheetDraggedHeight,
   gitChangeSheetHeight,
+  gitChangeSheetLayerDetents,
+  gitChangeSheetLift,
   gitChangeSheetTakesDrag,
   gitChangesUseSheet,
   settleGitChangeSheet,
@@ -80,4 +82,22 @@ test('a drag that starts past a detent follows the finger instead of resisting t
   assert.equal(at(820, 0), 820);
   assert.equal(at(820, 50), 810);
   assert.equal(at(820, 200), 700);
+});
+
+test('in a sheet layer the sheet peeks above the tab bar and opens over the whole layer', () => {
+  assert.deepEqual(gitChangeSheetLayerDetents(800, { height: 950, bottomInset: 64 }), { peek: 264, full: 950 });
+});
+
+test('a layered peek never passes the layer it is drawn in', () => {
+  assert.deepEqual(gitChangeSheetLayerDetents(800, { height: 100, bottomInset: 64 }), { peek: 100, full: 100 });
+});
+
+test('the layered sheet keeps the tab bar in view at the peek and covers it once open', () => {
+  const lift = gitChangeSheetLift({ peek: 264, full: 950 }, 64);
+  assert.deepEqual(lift, { inputRange: [264, 950], outputRange: [64, 0] });
+});
+
+test('a sheet with no room to open still has a rising lift range', () => {
+  const lift = gitChangeSheetLift({ peek: 100, full: 100 }, 64);
+  assert.ok(lift.inputRange[1] > lift.inputRange[0]);
 });

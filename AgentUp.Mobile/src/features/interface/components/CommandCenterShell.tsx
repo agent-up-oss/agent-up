@@ -23,6 +23,7 @@ import {
   listCapabilityModules,
   updateCapabilitySettings,
 } from '@/features/capabilities/providers/CapabilityModulesApiProvider';
+import { MemberSheet } from './MemberSheet';
 import { SceneIcon } from './SceneIcon';
 import { runTaskAction } from '../providers/TaskActionProvider';
 import { pickIssue } from '../providers/TaskQueueProvider';
@@ -59,6 +60,9 @@ import {
 } from '../providers/CommandCenterSceneProvider';
 
 const Scene = createNewUiScene(React, { View, Text, Pressable, ScrollView, Icon: SceneIcon, TextInput });
+// The team stays drawn under an open member's sheet. It is a scene of its own, so the drafts a
+// member's fields keep are never shared with the page underneath.
+const TeamScene = createNewUiScene(React, { View, Text, Pressable, ScrollView, Icon: SceneIcon, TextInput });
 
 type Section = 'overview' | 'chat' | 'git' | 'files' | 'file' | 'settings' | 'application';
 
@@ -91,6 +95,8 @@ function CommandCenterBinder() {
   const [repoNonce, setRepoNonce] = useState(0);
   const [section, setSection] = useState<Section>('overview');
   const [openAgent, setOpenAgent] = useState<string | null>(null);
+  // A request for the open member's sheet to slide back down to the team.
+  const [closeMember, setCloseMember] = useState(0);
   // The file opened from Files, and a request for its page to leave, which it answers by asking
   // before it discards an edit.
   const [openFile, setOpenFile] = useState<string | null>(null);
@@ -216,7 +222,7 @@ function CommandCenterBinder() {
   const boundModule = modules.find(module => module.id === boundAgent);
   const agentSetting = (key: string) => boundModule?.settings?.find(setting => setting.key === key)?.value ?? '';
 
-  const model = commandCenterScene({
+  const sceneInput: Parameters<typeof commandCenterScene>[0] = {
     surface: 'mobile',
     nav,
     section,
@@ -279,7 +285,10 @@ function CommandCenterBinder() {
     validationRunning: false,
     validationPassed: false,
     validationSummary: '',
-  });
+  };
+  const model = commandCenterScene(sceneInput);
+  // What the open member's sheet covers: the page the member was opened from.
+  const team = agent ? commandCenterScene({ ...sceneInput, agentOpen: false, openWorkspaceId: null }) : model;
 
   const host = useCallback((): WorkspaceHost => ({
     open: (place: WorkspacePlace) => {
@@ -330,7 +339,8 @@ function CommandCenterBinder() {
     if (name === 'back' && section === 'application') { setSection('overview'); return; }
     // A file is an inner page of Files; its own page decides whether leaving needs a word first.
     if (name === 'back' && section === 'file') { setLeaveFile(current => current + 1); return; }
-    if (name === 'back') { setOpenAgent(null); setSection('overview'); return; }
+    // The member's own pages close the sheet back to the team; it slides down before it goes.
+    if (name === 'back') { setCloseMember(current => current + 1); return; }
     if (name === 'tab-overview' || name === 'tab-apps') { setSection('overview'); return; }
     if (name === 'tab-chat') { setSection('chat'); return; }
     if (name === 'tab-git') { setSection('git'); return; }
@@ -454,15 +464,32 @@ function CommandCenterBinder() {
   return (
     <WorkspaceHostProvider host={provide}>
       <View style={{ flex: 1 }}>
-        <Scene
-          scene={model.scene}
-          text={model.text}
-          items={model.items}
-          state={model.state}
-          content={content}
+        <TeamScene
+          scene={team.scene}
+          text={team.text}
+          items={team.items}
+          state={team.state}
+          content={agent ? {} : content}
           contentWidth={reading.layout.kind === 'column' ? reading.layout.width : undefined}
           onAction={onAction}
         />
+        {agent ? (
+          <MemberSheet
+            key={agent.workspaceId}
+            closeRequest={closeMember}
+            onBack={() => onAction('back', null)}
+            onClosed={() => { setOpenAgent(null); setSection('overview'); }}>
+            <Scene
+              scene={model.scene}
+              text={model.text}
+              items={model.items}
+              state={model.state}
+              content={content}
+              contentWidth={reading.layout.kind === 'column' ? reading.layout.width : undefined}
+              onAction={onAction}
+            />
+          </MemberSheet>
+        ) : null}
       </View>
     </WorkspaceHostProvider>
   );
