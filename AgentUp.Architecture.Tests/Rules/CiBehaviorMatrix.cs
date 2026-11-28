@@ -136,6 +136,9 @@ public sealed class CiBehaviorMatrix
         {
             Assert.That(branches, Is.EqualTo(new[] { "main" }),
                 "Push must be main only so a PR is tested as the merge with main, not the branch HEAD.");
+            Assert.That(push.Children.ContainsKey(new YamlScalarNode("tags")), Is.False);
+            Assert.That(push.Children.ContainsKey(new YamlScalarNode("tags-ignore")), Is.False,
+                "A tags-ignore filter beside branches still runs CI on other tag pushes.");
             Assert.That(triggers.Children.ContainsKey(new YamlScalarNode("pull_request")), Is.True,
                 "Non-main work must run as pull_request so GitHub CI uses the merge commit.");
             Assert.That(triggers.Children.ContainsKey(new YamlScalarNode("workflow_dispatch")), Is.True);

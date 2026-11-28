@@ -47,7 +47,7 @@ whose tag is `android-v<version>` or `ios-v<version>`, with the AAB or IPA
 attached. Re-running the same marketing version replaces those assets; the stores
 still accept the binary because the build number changed.
 
-`ci.yml` ignores `android-v*` and `ios-v*` tag pushes. Push is `main` only, so those tags still do not start CI. A `tags-ignore` filter without a `branches` filter would skip branch pushes entirely.
+Push is `main` only. Tag pushes, including the `android-v*` and `ios-v*` tags Mobile release creates, do not start CI.
 
 ## Job graph
 
