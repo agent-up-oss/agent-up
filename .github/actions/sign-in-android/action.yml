@@ -109,7 +109,7 @@ runs:
       shell: bash
       if: ${{ steps.restored.outputs.usable != 'true' }}
       working-directory: AgentUp.Mobile.E2E
-      run: npx detox build --configuration android.emu.release
+      run: ../.github/scripts/retry-android-gradle.sh npx detox build --configuration android.emu.release
 
     # Saved here rather than at the end of the job: a run whose tests fail would otherwise throw
     # the build away and recompile it on the next push, which is exactly when iteration is

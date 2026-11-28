@@ -6,40 +6,41 @@ updates:
     schedule:
       interval: weekly
       day: monday
+    open-pull-requests-limit: 1
     groups:
-      avalonia:
+      all:
         patterns:
-          - "Avalonia*"
-      microsoft-extensions:
-        patterns:
-          - "Microsoft.Extensions.*"
+          - "*"
 
   - package-ecosystem: npm
     directory: /
     schedule:
       interval: weekly
       day: monday
+    open-pull-requests-limit: 1
     groups:
-      semantic-release:
+      all:
         patterns:
-          - "semantic-release"
-          - "@semantic-release/*"
-          - "conventional-changelog-*"
+          - "*"
 
   - package-ecosystem: npm
     directory: /docs
     schedule:
       interval: weekly
       day: monday
+    open-pull-requests-limit: 1
     groups:
-      docusaurus:
+      all:
         patterns:
-          - "@docusaurus/*"
-          - "react"
-          - "react-dom"
+          - "*"
 
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
       day: monday
+    open-pull-requests-limit: 1
+    groups:
+      all:
+        patterns:
+          - "*"

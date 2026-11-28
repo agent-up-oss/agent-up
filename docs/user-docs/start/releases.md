@@ -33,8 +33,6 @@ Release files are published under two URL shapes:
 
 Use the `latest` URLs for manual installation unless you need to pin an exact version.
 
-GitHub also lists prereleases from branch CI. Those are not the latest install; use [Downloads](/docs/start/downloads).
-
 ## Updates
 
 Automatic background updates are not available yet. To update, download the newest artifact for your platform and run the platform installer or package manager again.
