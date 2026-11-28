@@ -21,7 +21,7 @@ Changed files are grouped by directory and indented. Directories are listed befo
 
 Each untracked file gets its own row under its directory. Git alone would collapse a new directory into a single entry, so listing the files individually lets you select exactly the new files you want.
 
-Selecting a file name opens its diff in a modal. Close the modal to return to the list. Binary files report that no text diff is rendered instead of showing raw bytes.
+Selecting a file name opens its changes. On Desktop they open in a modal. On Mobile the file is shown in place: removed lines red, added lines green, the words an edited line changed marked, and unchanged stretches folded into a row that opens five lines up or down at a time, or all at once. On a phone it is a sheet under the page that opened it; wider, it is a page with a back button. Binary files report that no text diff is rendered instead of showing raw bytes.
 
 ## Choosing what to commit
 

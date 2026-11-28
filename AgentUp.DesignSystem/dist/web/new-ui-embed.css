@@ -704,6 +704,14 @@
   padding: 6px var(--au-space-2);
 }
 .aun-agent-head { display: flex; align-items: center; gap: var(--au-space-2); }
+/* On a phone a team member, an open application and an open file are sheets. Their grabber tops
+ * the head: tap it, or drag the head down, to close the sheet. It sits in the head's top padding. */
+.aun-agent-sheet-head { display: flex; flex-direction: column; }
+/* Where a sheet opened under a head docks: a mark with no height of its own. */
+.aun-sheet-dock { height: 0; }
+.aun-agent-grabber { width: 100%; margin: -8px 0 4px; padding: 0 0 4px; border: 0; background: transparent; }
+/* A prompt is a labelled field: the small label over a full-width text area. */
+.aun-settings__prompt { display: flex; flex-direction: column; gap: var(--au-space-2); padding: var(--au-space-3) var(--au-space-4); }
 
 .aun-validate { position: relative; flex-shrink: 0; }
 .aun-validate__player { position: relative; }

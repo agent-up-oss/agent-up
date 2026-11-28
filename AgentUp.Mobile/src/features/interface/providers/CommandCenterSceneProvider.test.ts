@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { TeamStanding } from '../models/TeamStanding';
-import { agentSettingSave, applyMemberIfCurrent, commandCenterScene, commandCenterSceneId, commandCenterServerLabel, fleetHeadline, memberKindChange, moduleRow, prefillEndpoint, promptSave, systemPromptWasCustomized, TASK_SOURCE_REFRESH_MS, tasksTabFor, tokenSave } from './CommandCenterSceneProvider';
+import { agentSettingSave, applyMemberIfCurrent, commandCenterScene, commandCenterSceneId, commandCenterServerLabel, fleetHeadline, memberKindChange, moduleRow, prefillEndpoint, promptSave, systemPromptWasCustomized, TASK_SOURCE_REFRESH_MS, tasksTabFor, tokenSave,
+  memberSheetLayers,
+} from './CommandCenterSceneProvider';
 
 function standing(patch: Partial<TeamStanding> & Pick<TeamStanding, 'workspaceId' | 'displayName' | 'kind'>): TeamStanding {
   return {
@@ -354,4 +356,29 @@ test('a capability whose software was not found offers no Enable and names what 
 
   assert.deepEqual([noNix.action, noNix.parts, noNix.text?.why], ['module-unavailable', ['blocked'], 'Needs Nix']);
   assert.equal(noCli.text?.why, 'Not found');
+});
+
+test('on a phone an application or a file opens as a sheet over the page it came from', () => {
+  assert.deepEqual(memberSheetLayers('application', true), { base: 'overview', inner: 'application' });
+  assert.deepEqual(memberSheetLayers('file', true), { base: 'files', inner: 'file' });
+  assert.deepEqual(memberSheetLayers('git', true), { base: 'git', inner: null });
+});
+
+test('wider than a phone an application or a file is the page itself', () => {
+  assert.deepEqual(memberSheetLayers('application', false), { base: 'application', inner: null });
+  assert.deepEqual(memberSheetLayers('file', false), { base: 'file', inner: null });
+});
+
+test('an unedited system prompt shows the default for the member\'s type', () => {
+  const scene = commandCenterScene({
+    surface: 'mobile', nav: 0, section: 'settings', agentOpen: true, serverLabel: 'Demo', openWorkspaceId: 'bob',
+    team: [standing({ workspaceId: 'bob', displayName: 'Bob', kind: 'idle' })],
+    queue: [], working: [], offered: [], names: new Map(), flows: [],
+    systemPrompt: '',
+    defaultSystemPrompt: 'Edit the files.',
+    validationsOpen: false, validationRunning: false, validationPassed: false, validationSummary: '',
+  });
+
+  assert.equal(scene.text.systemPrompt, 'Edit the files.');
+  assert.equal(scene.text.customizationPrompt, '');
 });

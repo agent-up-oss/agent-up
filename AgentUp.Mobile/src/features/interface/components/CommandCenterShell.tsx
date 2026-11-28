@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, Text, TextInput, View, useWindowDimensions } from 'react-native';
+import { usesSheet } from '@agent-up/chat/providers/SheetProvider';
 import { createNewUiScene } from '@agent-up/design-system/new-ui-scene';
 import { WorkspaceAgentChatScreen } from '@/features/agents/components/WorkspaceAgentChatScreen';
 import { ApplicationSpaceScreen } from '@/features/applications/components/ApplicationSpaceScreen';
@@ -7,7 +8,9 @@ import { FileEditorScreen } from '@/features/files/components/FileEditorScreen';
 import { FilesScreen } from '@/features/files/components/FilesScreen';
 import { GitOverviewScreen } from '@/features/git/components/GitOverviewScreen';
 import { useServers } from '@/features/servers/controllers/ServersContext';
+import { PageSheet } from '@/features/shell/components/PageSheet';
 import { useReadingFrame } from '@/features/shell/components/ReadingFrame';
+import { SheetDockMark } from '@/features/shell/components/SheetLayer';
 import { AppShellProvider } from '@/features/shell/controllers/AppShellContext';
 import { WorkspaceDashboardScreen } from '@/features/workspaces/components/WorkspaceDashboardScreen';
 import { WorkspaceHostProvider, type WorkspaceHost, type WorkspacePlace } from '@/features/workspaces/controllers/WorkspaceHostContext';
@@ -23,6 +26,7 @@ import {
   listCapabilityModules,
   updateCapabilitySettings,
 } from '@/features/capabilities/providers/CapabilityModulesApiProvider';
+import { DockedChatSheet } from './DockedChatSheet';
 import { SceneIcon } from './SceneIcon';
 import { runTaskAction } from '../providers/TaskActionProvider';
 import { pickIssue } from '../providers/TaskQueueProvider';
@@ -31,6 +35,7 @@ import { forgeHostLabel, repositoryId, type TaskSourcePull } from '../models/Tas
 import type { OfferedIssue } from '../models/TaskQueue';
 import {
   bindAgent,
+  ChatSheetHostContext,
   enableAgentCapability,
   getAgent,
   getAutonomy,
@@ -47,6 +52,7 @@ import { chatSettingsFields, settingsWorkspaces } from '../providers/ChatSetting
 import {
   agentSettingSave,
   applyMemberIfCurrent,
+  memberSheetLayers,
   commandCenterScene,
   commandCenterServerLabel,
   memberKindChange,
@@ -59,6 +65,11 @@ import {
 } from '../providers/CommandCenterSceneProvider';
 
 const Scene = createNewUiScene(React, { View, Text, Pressable, ScrollView, Icon: SceneIcon, TextInput });
+// The team stays drawn under an open member's sheet. It is a scene of its own, so the drafts a
+// member's fields keep are never shared with the page underneath.
+const TeamScene = createNewUiScene(React, { View, Text, Pressable, ScrollView, Icon: SceneIcon, TextInput });
+// The application or file sheet over a member is a scene of its own for the same reason.
+const InnerScene = createNewUiScene(React, { View, Text, Pressable, ScrollView, Icon: SceneIcon, TextInput });
 
 type Section = 'overview' | 'chat' | 'git' | 'files' | 'file' | 'settings' | 'application';
 
@@ -91,6 +102,15 @@ function CommandCenterBinder() {
   const [repoNonce, setRepoNonce] = useState(0);
   const [section, setSection] = useState<Section>('overview');
   const [openAgent, setOpenAgent] = useState<string | null>(null);
+  // Requests for the open member's sheet, and the application or file sheet over it, to slide down.
+  const [closeMember, setCloseMember] = useState(0);
+  const [closeInner, setCloseInner] = useState(0);
+  const [openApplication, setOpenApplication] = useState<string | null>(null);
+  // On a phone a member, an application and a file open as sheets; wider than a phone nothing
+  // overlaps, and each is a page with a back button instead.
+  const phone = usesSheet(useWindowDimensions().width);
+  const phoneRef = useRef(phone);
+  phoneRef.current = phone;
   // The file opened from Files, and a request for its page to leave, which it answers by asking
   // before it discards an edit.
   const [openFile, setOpenFile] = useState<string | null>(null);
@@ -211,12 +231,14 @@ function CommandCenterBinder() {
 
   const agent = openAgent === null ? null : standing.team.find(item => item.workspaceId === openAgent) ?? null;
   const workspace = agent ? workspaces.find(item => item.id === agent.workspaceId) ?? null : null;
-  const applicationName = workspace?.applications?.[0]?.name ?? '';
+  const applicationName = workspace?.applications?.find(item => item.name === openApplication)?.name
+    ?? workspace?.applications?.[0]?.name
+    ?? '';
   const boundAgent = chatSession?.boundAgent ?? null;
   const boundModule = modules.find(module => module.id === boundAgent);
   const agentSetting = (key: string) => boundModule?.settings?.find(setting => setting.key === key)?.value ?? '';
 
-  const model = commandCenterScene({
+  const sceneInput: Parameters<typeof commandCenterScene>[0] = {
     surface: 'mobile',
     nav,
     section,
@@ -261,6 +283,7 @@ function CommandCenterBinder() {
     agentEndpoint: agentSetting('endpoint'),
     agentModel: agentSetting('model'),
     systemPrompt,
+    defaultSystemPrompt,
     customizationPrompt,
     promptOverwrite,
     // The application page carries the client's own dock, which replays a flow for real.
@@ -279,7 +302,16 @@ function CommandCenterBinder() {
     validationRunning: false,
     validationPassed: false,
     validationSummary: '',
-  });
+  };
+  const model = commandCenterScene(sceneInput);
+  // What the open member's sheet covers: the page the member was opened from.
+  const team = agent && phone ? commandCenterScene({ ...sceneInput, agentOpen: false, openWorkspaceId: null }) : model;
+  // On a phone an open application or file is a sheet over the member page it was opened from.
+  const layers = memberSheetLayers(section, phone);
+  const memberModel = layers.inner ? commandCenterScene({ ...sceneInput, section: layers.base }) : model;
+  const innerModel = layers.inner ? model : null;
+  const sectionRef = useRef(section);
+  sectionRef.current = section;
 
   const host = useCallback((): WorkspaceHost => ({
     open: (place: WorkspacePlace) => {
@@ -287,38 +319,48 @@ function CommandCenterBinder() {
       else if (place.kind === 'files') setSection('files');
       else if (place.kind === 'file') { setOpenFile(place.path); setSection('file'); }
       else if (place.kind === 'agent' || place.kind === 'agentPolicy' || place.kind === 'agentCreate') setSection('chat');
-      else if (place.kind === 'application') setSection('application');
+      else if (place.kind === 'application') { setOpenApplication(place.name); setSection('application'); }
       else setSection('overview');
     },
-    back: fallback => setSection(fallback.kind === 'files' ? 'files' : 'overview'),
+    // On a phone a file or an application is a sheet, which slides down before it goes.
+    back: fallback => {
+      if (phoneRef.current && sectionRef.current === 'file') { setCloseInner(current => current + 1); return; }
+      setSection(fallback.kind === 'files' ? 'files' : 'overview');
+    },
     showsTabBar: false,
   }), []);
   const provide = useMemo(() => () => host(), [host]);
 
-  const content: Record<string, React.ReactNode> = {};
-  if (model.scene === 'mobile-application' && workspace && applicationName) {
+  const contentFor = (scene: string): Record<string, React.ReactNode> => {
+  const content: Record<string, React.ReactNode> = { sheetDock: phone ? <SheetDockMark /> : null };
+  if (scene === 'mobile-application' && workspace && applicationName) {
     content.application = (
       <ApplicationSpaceScreen workspace={workspace} applicationName={applicationName} />
     );
     content.dock = <View />;
   }
-  if (model.scene === 'mobile-chat' && agent && activeServer) {
+  if (scene === 'mobile-chat' && agent && activeServer) {
+    // On a phone a transcript item opens as one more sheet in the member's stack.
     content.transcript = (
-      <WorkspaceAgentChatScreen workspaceId={agent.workspaceId} displayName={agent.displayName} server={activeServer} loopControls={false} />
+      <ChatSheetHostContext.Provider value={phone ? DockedChatSheet : null}>
+        <WorkspaceAgentChatScreen workspaceId={agent.workspaceId} displayName={agent.displayName} server={activeServer} loopControls={false} />
+      </ChatSheetHostContext.Provider>
     );
   }
-  if (model.scene === 'mobile-agent-git' && agent) {
+  if (scene === 'mobile-agent-git' && agent) {
     content.changes = <GitOverviewScreen workspaceId={agent.workspaceId} />;
   }
-  if (model.scene === 'mobile-agent-files' && agent) {
+  if (scene === 'mobile-agent-files' && agent) {
     content.files = <FilesScreen workspaceId={agent.workspaceId} />;
   }
-  if (model.scene === 'mobile-agent-file' && agent && openFile) {
+  if (scene === 'mobile-agent-file' && agent && openFile) {
     content.file = <FileEditorScreen workspaceId={agent.workspaceId} path={openFile} leaveRequest={leaveFile} />;
   }
-  if (model.scene === 'mobile-agent-overview' && workspace) {
+  if (scene === 'mobile-agent-overview' && workspace) {
     content.overview = <WorkspaceDashboardScreen workspace={workspace} />;
   }
+  return content;
+  };
 
   const onAction = (name: string, id: string | null, text?: string, fields?: Record<string, string>) => {
     if (name === 'nav-team') { setOpenAgent(null); setNav(0); return; }
@@ -327,10 +369,19 @@ function CommandCenterBinder() {
     const tab = tasksTabFor(name);
     if (tab) { setTasksTab(tab); return; }
     // An application is an inner page of its agent: back returns to Apps, not to the team.
-    if (name === 'back' && section === 'application') { setSection('overview'); return; }
+    if (name === 'back' && section === 'application') {
+      if (phone) setCloseInner(current => current + 1);
+      else setSection('overview');
+      return;
+    }
     // A file is an inner page of Files; its own page decides whether leaving needs a word first.
     if (name === 'back' && section === 'file') { setLeaveFile(current => current + 1); return; }
-    if (name === 'back') { setOpenAgent(null); setSection('overview'); return; }
+    // The member's own pages return to the team; on a phone the member's sheet slides down first.
+    if (name === 'back') {
+      if (phone) setCloseMember(current => current + 1);
+      else { setOpenAgent(null); setSection('overview'); }
+      return;
+    }
     if (name === 'tab-overview' || name === 'tab-apps') { setSection('overview'); return; }
     if (name === 'tab-chat') { setSection('chat'); return; }
     if (name === 'tab-git') { setSection('git'); return; }
@@ -451,18 +502,64 @@ function CommandCenterBinder() {
     }
   };
 
+  const contentWidth = reading.layout.kind === 'column' ? reading.layout.width : undefined;
+  // Which head the scenes draw: a sheet's grabber on a phone, a back chevron in a page.
+  const shape: Record<string, string> = phone ? { sheeted: '1' } : { stacked: '1' };
+
   return (
     <WorkspaceHostProvider host={provide}>
       <View style={{ flex: 1 }}>
-        <Scene
-          scene={model.scene}
-          text={model.text}
-          items={model.items}
-          state={model.state}
-          content={content}
-          contentWidth={reading.layout.kind === 'column' ? reading.layout.width : undefined}
+        <TeamScene
+          scene={team.scene}
+          text={team.text}
+          items={team.items}
+          state={{ ...team.state, ...shape }}
+          content={agent && phone ? {} : contentFor(team.scene)}
+          contentWidth={contentWidth}
           onAction={onAction}
         />
+        {agent && phone ? (
+          <PageSheet
+            key={agent.workspaceId}
+            placement="screen"
+            testID="member-sheet"
+            closeRequest={closeMember}
+            onDismiss={() => true}
+            onClosed={() => { setOpenAgent(null); setSection('overview'); }}>
+            <Scene
+              scene={memberModel.scene}
+              text={memberModel.text}
+              items={memberModel.items}
+              state={{ ...memberModel.state, ...shape }}
+              content={contentFor(memberModel.scene)}
+              contentWidth={contentWidth}
+              onAction={onAction}
+            />
+            {innerModel ? (
+              <PageSheet
+                key={`${layers.inner}:${layers.inner === 'file' ? openFile : applicationName}`}
+                placement="docked"
+                testID={layers.inner === 'file' ? 'file-sheet' : 'application-sheet'}
+                closeRequest={closeInner}
+                onDismiss={() => {
+                  // A file with an unsaved edit asks before it goes; once it may, it goes back.
+                  if (layers.inner === 'file') { setLeaveFile(current => current + 1); return false; }
+                  return true;
+                }}
+                onClosed={() => setSection(layers.base)}>
+                <InnerScene
+                  scene={innerModel.scene}
+                  text={innerModel.text}
+                  items={innerModel.items}
+                  state={{ ...innerModel.state, ...shape }}
+                  content={contentFor(innerModel.scene)}
+                  contentWidth={contentWidth}
+                  onAction={onAction}
+                />
+              </PageSheet>
+            ) : null}
+          </PageSheet>
+        ) : null}
       </View>
     </WorkspaceHostProvider>
   );

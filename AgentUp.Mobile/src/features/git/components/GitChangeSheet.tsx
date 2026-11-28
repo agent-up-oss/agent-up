@@ -1,29 +1,47 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Animated, PanResponder, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Animated, PanResponder, Platform, Pressable, ScrollView, StyleSheet, Text, View, type ViewInstance } from 'react-native';
 import { auBox, auText } from '@agent-up/design-system/native';
+import { useSheetLayer } from '@/features/shell/components/SheetLayer';
+import { sheetLayerFrame, type SheetLayerFrame } from '@/features/shell/providers/SheetLayerProvider';
 import {
   gitChangeSheetDetents,
   gitChangeSheetDraggedHeight,
   gitChangeSheetHeight,
+  gitChangeSheetLayerDetents,
+  gitChangeSheetLift,
   gitChangeSheetTakesDrag,
   settleGitChangeSheet,
   type GitChangeSheetDetent,
 } from '../providers/GitChangeSheetProvider';
 
 const nativeDriver = Platform.OS !== 'web';
+let sheetKeys = 0;
 
 /**
  * The change list, resting in a sheet on the bottom edge of the Git page. It peeks at about a
  * quarter of the page with its first rows live - a checkbox there works without opening the sheet -
  * and a drag up or a tap on the grabber opens it to the whole page. A drag down brings it back to
- * the peek; it never closes. `pageHeight` is the height of the page it rests on; the page clips it.
+ * the peek; it never closes. `pageHeight` is the height of the page it rests on.
+ *
+ * Inside a sheet layer - a team member's sheet - the sheet is drawn in that layer rather than in the
+ * page, so drawn up it covers the member's tab bar too and docks right below the member's head.
+ * Elsewhere the page clips it.
  */
 export function GitChangeSheet({ pageHeight, count, children }: {
   pageHeight: number;
   count: string;
   children: ReactNode;
 }) {
-  const detents = useMemo(() => gitChangeSheetDetents(pageHeight), [pageHeight]);
+  const layer = useSheetLayer();
+  const [key] = useState(() => `git-change-sheet-${++sheetKeys}`);
+  const anchor = useRef<ViewInstance>(null);
+  const [frame, setFrame] = useState<SheetLayerFrame | null>(null);
+  const layered = layer !== null && frame !== null;
+  const detents = useMemo(
+    () => (layer && frame ? gitChangeSheetLayerDetents(pageHeight, frame) : gitChangeSheetDetents(pageHeight)),
+    [layer, frame, pageHeight],
+  );
+  const inset = layer && frame ? frame.bottomInset : 0;
   const shown = useRef(new Animated.Value(detents.peek)).current;
   const [detent, setDetent] = useState<GitChangeSheetDetent>('peek');
   // The gesture handlers are made once, so they read the current values through refs.
@@ -92,10 +110,31 @@ export function GitChangeSheet({ pageHeight, count, children }: {
   const responder = useMemo(() => makeResponder(false), [makeResponder]);
   const headerResponder = useMemo(() => makeResponder(true), [makeResponder]);
 
-  const expanded = detent === 'full';
-  const translateY = Animated.subtract(detents.full, shown);
+  // Where the page sits in the layer: the sheet rests on the page's bottom edge, which is above the
+  // layer's own by whatever is under the page, such as a tab bar.
+  const measure = useCallback(() => {
+    if (!layer) return;
+    layer.measure(span => anchor.current?.measureInWindow((_x, y, _width, height) => {
+      const next = sheetLayerFrame({ layer: span, page: { y, height }, topInset: layer.topInset });
+      setFrame(current => (current && current.height === next.height && current.bottomInset === next.bottomInset ? current : next));
+    }));
+  }, [layer]);
 
-  return (
+  const expanded = detent === 'full';
+  // While it rests at the peek, a layered sheet's bottom edge stays above the tab bar; it reaches the
+  // layer's bottom as it opens. Its clip rises by that lift and the sheet sinks by it, so the sheet
+  // stays where the finger put it while its hidden edge moves.
+  const lift = useMemo(() => {
+    const range = gitChangeSheetLift(detents, inset);
+    return shown.interpolate({ ...range, extrapolate: 'clamp' });
+  }, [detents, inset, shown]);
+  const raise = useMemo(() => Animated.multiply(lift, -1), [lift]);
+  const translateY = useMemo(
+    () => Animated.add(Animated.subtract(detents.full, shown), lift),
+    [detents.full, shown, lift],
+  );
+
+  const sheet = (
     <Animated.View
       testID="git-change-sheet"
       style={[styles.sheet, { height: detents.full, transform: [{ translateY }] }]}
@@ -126,6 +165,19 @@ export function GitChangeSheet({ pageHeight, count, children }: {
       </ScrollView>
     </Animated.View>
   );
+
+  // The layer draws what this sheet is on every render, so its rows stay as live as they are here.
+  useLayoutEffect(() => {
+    if (layer && frame) layer.mount(key, <Animated.View pointerEvents="box-none" style={[styles.lift, { transform: [{ translateY: raise }] }]}>{sheet}</Animated.View>);
+  });
+  useEffect(() => {
+    if (!layer || !layered) return;
+    return () => layer.unmount(key);
+  }, [layered, layer, key]);
+
+  if (!layer) return sheet;
+  // In a layer the page keeps only an anchor that says where it is.
+  return <View ref={anchor} collapsable={false} pointerEvents="none" style={StyleSheet.absoluteFill} onLayout={measure} />;
 }
 
 const styles = StyleSheet.create({
@@ -145,6 +197,8 @@ const styles = StyleSheet.create({
   head: { ...auBox('gitChangeSheetHead'), flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
   title: auText('gitChangeSheetTitle'),
   count: auText('gitChangeSheetCount'),
+  // The layered sheet's clip: the whole layer, lifted while the sheet rests at its peek.
+  lift: { ...StyleSheet.absoluteFill, overflow: 'hidden' },
   list: { flex: 1 },
   listContent: { ...auBox('gitChangeSheetList'), flexGrow: 1 },
 });

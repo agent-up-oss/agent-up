@@ -1386,6 +1386,12 @@ export class FakeBackendService {
       const loaded = loadFakeGitState(workspace.id, this.state.git?.[workspace.id] as Record<string, unknown> | undefined);
       if (loaded) this.git.set(workspace.id, loaded);
     }
+    // A member with a past conversation shows it when its transcript opens, as a Server replays it.
+    for (const [workspaceId, agent] of Object.entries(this.state.agents ?? {})) {
+      for (const event of agent.history ?? []) {
+        if (typeof event.type === 'string') this.publishAgent(workspaceId, event.type, structuredClone(event.payload ?? {}));
+      }
+    }
   }
 
   private applyWorkspacePhase(

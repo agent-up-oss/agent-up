@@ -46,6 +46,7 @@ public sealed class FakeBackendService
             _ = Task.Delay(TimeSpan.FromMilliseconds(delay)).ContinueWith(_ => work(), TaskScheduler.Default);
         });
         CaptureTemplates();
+        SeedAgentHistory();
     }
 
     public FakeServerConnectionDto Catalog(string? activeServerId)
@@ -74,6 +75,7 @@ public sealed class FakeBackendService
             _tokens["bob"] = ("github", "https://github.com", "demo");
             CancelLifecycle();
             CaptureTemplates();
+            SeedAgentHistory();
         }
     }
 
@@ -1923,6 +1925,35 @@ public sealed class FakeBackendService
 
     private JsonObject? GitState(string workspaceId)
         => _state.Git?[workspaceId] as JsonObject;
+
+    /// <summary>
+    /// A member with a past conversation shows it when its transcript opens, as a Server replays
+    /// its events. Nothing listens yet, so the events are recorded rather than published.
+    /// </summary>
+    private void SeedAgentHistory()
+    {
+        lock (_gate)
+        {
+            foreach (var (workspaceId, agent) in _state.Agents?.AsObject() ?? [])
+            {
+                if (agent?["history"] is not JsonArray history)
+                    continue;
+                foreach (var (item, type) in history.OfType<JsonObject>()
+                    .Select(item => (item, type: item["type"]?.GetValue<string>()))
+                    .Where(entry => entry.type is not null))
+                {
+                    _agentSequence++;
+                    if (!_agentEvents.TryGetValue(workspaceId, out var events))
+                    {
+                        events = [];
+                        _agentEvents[workspaceId] = events;
+                    }
+
+                    events.Add(new FakeServerEvent(_agentSequence, type!, item["payload"]?.DeepClone() ?? new JsonObject(), DateTimeOffset.UtcNow));
+                }
+            }
+        }
+    }
 
     private void CaptureTemplates()
     {

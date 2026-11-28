@@ -5,6 +5,7 @@ import { auBox, auText } from '@agent-up/design-system/native';
 import type { TranscriptItem } from '../models/AgentSession';
 import { presentSheet, type SheetArgument } from '../providers/SheetProvider';
 import { languageForPath } from '../providers/SyntaxProvider';
+import { unifiedFromDiff } from '../providers/DiffProvider';
 import { BottomSheet } from './BottomSheet';
 import { MarkdownView } from './MarkdownView';
 import { monoFont } from './monoFont';
@@ -22,7 +23,9 @@ const copiedMs = 1500;
  */
 export function TranscriptItemSheet({ item, live, onClose }: { item: TranscriptItem; live: boolean; onClose: () => void }) {
   const sheet = presentSheet(item, live);
-  return <BottomSheet title={sheet.title} status={sheet.status} onClose={onClose}>
+  const edit = item.role === 'thought' ? undefined : presentToolItem(item).diff;
+  const diff = edit ? { path: edit.path, unified: unifiedFromDiff(edit) } : undefined;
+  return <BottomSheet title={sheet.title} status={sheet.status} onClose={onClose} diff={diff}>
     {item.role === 'thought'
       ? <View testID="agent-sheet-thought"><MarkdownView markdown={item.text} /></View>
       : <ToolSheetBody item={item} details={sheet.arguments} />}

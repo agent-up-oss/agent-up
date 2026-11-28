@@ -13,6 +13,12 @@ export const agentUpTheme = Object.freeze({
     surfaceSelectedSoft: "#11211b",
     surfaceSelected: "#10281d",
     surfaceSelectedStrong: "#0f3220",
+    diffAdded: "#00b85017",
+    diffAddedGutter: "#00b85029",
+    diffAddedWord: "#00b8504d",
+    diffDeleted: "#d84f4f1c",
+    diffDeletedGutter: "#d84f4f30",
+    diffDeletedWord: "#d84f4f57",
     borderSubtle: "#ffffff14",
     borderStrong: "#ffffff29",
     borderSelected: "#00b85059",
@@ -1421,6 +1427,131 @@ export const agentUpTheme = Object.freeze({
     }),
     cartRow: Object.freeze({
 
+    }),
+    diffView: Object.freeze({
+      minHeight: 0,
+      color: "#f5fbf7",
+      backgroundColor: "#0a0b0c",
+    }),
+    diffFile: Object.freeze({
+      minHeight: 44,
+      paddingHorizontal: 16,
+      paddingVertical: 8,
+      backgroundColor: "#0a0b0c",
+      borderBottomWidth: 1,
+      borderBottomColor: "#ffffff14",
+    }),
+    diffKind: Object.freeze({
+      minWidth: 24,
+      paddingHorizontal: 5,
+      paddingVertical: 1,
+      color: "#8a9a92",
+      fontSize: 10,
+      fontWeight: '600',
+      letterSpacing: 0.2,
+      borderWidth: 1,
+      borderColor: "#ffffff14",
+      borderRadius: 6,
+    }),
+    diffName: Object.freeze({
+      color: "#f5fbf7",
+      fontSize: 13,
+      fontWeight: '600',
+    }),
+    diffFolder: Object.freeze({
+      color: "#718077",
+      fontSize: 12,
+    }),
+    diffCountAdded: Object.freeze({
+      color: "#2bf27a",
+      fontSize: 12,
+    }),
+    diffCountDeleted: Object.freeze({
+      color: "#e48989",
+      fontSize: 12,
+    }),
+    diffBody: Object.freeze({
+      backgroundColor: "#0a0b0c",
+    }),
+    diffBlock: Object.freeze({
+
+    }),
+    diffLine: Object.freeze({
+      height: 20,
+    }),
+    diffLineAdded: Object.freeze({
+      backgroundColor: "#00b85017",
+    }),
+    diffLineDeleted: Object.freeze({
+      backgroundColor: "#d84f4f1c",
+    }),
+    diffNumber: Object.freeze({
+      width: 44,
+      height: 20,
+      color: "#718077",
+      fontSize: 11,
+    }),
+    diffNumberAdded: Object.freeze({
+      color: "#2bf27a",
+      backgroundColor: "#00b85029",
+      borderLeftWidth: 2,
+      borderLeftColor: "#00b850",
+    }),
+    diffNumberDeleted: Object.freeze({
+      color: "#e48989",
+      backgroundColor: "#d84f4f30",
+      borderLeftWidth: 2,
+      borderLeftColor: "#d84f4f",
+    }),
+    diffCode: Object.freeze({
+      paddingHorizontal: 12,
+      paddingVertical: 0,
+      color: "#c2d2ca",
+      fontSize: 12,
+    }),
+    diffWordAdded: Object.freeze({
+      backgroundColor: "#00b8504d",
+      borderRadius: 3,
+    }),
+    diffWordDeleted: Object.freeze({
+      backgroundColor: "#d84f4f57",
+      borderRadius: 3,
+    }),
+    diffFold: Object.freeze({
+      minHeight: 32,
+      paddingHorizontal: 12,
+      paddingVertical: 0,
+      backgroundColor: "#121416",
+      borderTopWidth: 1,
+      borderTopColor: "#ffffff14",
+      borderBottomWidth: 1,
+      borderBottomColor: "#ffffff14",
+    }),
+    diffFoldRule: Object.freeze({
+      width: 44,
+      color: "#718077",
+      fontSize: 11,
+    }),
+    diffFoldLabel: Object.freeze({
+      color: "#8a9a92",
+      fontSize: 11,
+    }),
+    diffExpand: Object.freeze({
+      paddingHorizontal: 10,
+      paddingVertical: 3,
+      color: "#c2d2ca",
+      fontSize: 11,
+      fontWeight: '600',
+      backgroundColor: "#0a0b0c",
+      borderWidth: 1,
+      borderColor: "#ffffff14",
+      borderRadius: 999,
+    }),
+    diffNote: Object.freeze({
+      paddingHorizontal: 16,
+      paddingVertical: 16,
+      color: "#8a9a92",
+      fontSize: 12,
     }),
     fileViewer: Object.freeze({
       minHeight: 256,

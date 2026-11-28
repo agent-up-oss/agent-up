@@ -14,12 +14,14 @@
 <body>
 <div class="aun-frame">
 <div class="aun-phone">
-      <header class="aun-phone__head"><div class="aun-agent-head">
-        <button type="button" class="aun-agent-back" data-au-action="back" aria-label="Back to the team">‹</button>
+      <header class="aun-phone__head"><div class="aun-agent-sheet-head">
+        <button type="button" class="au-sheet-grabber-row aun-agent-grabber" data-au-when="sheeted" data-au-action="back" aria-label="Back to the team"><span class="au-sheet-grabber"></span></button>
+        <div class="aun-agent-head">
         <div class="aun-phone__head-copy" data-au-demo="member"><h1 class="au-page-title">Bob</h1><span class="aun-phone__subtitle">feat/45-deliver</span></div>
         <button type="button" class="aun-agent-reload" data-au-action="reload">Reload</button>
+        </div>
       </div></header>
-      <nav class="au-tabs" aria-label="Agent sections"><button class="au-tab" type="button" data-au-action="tab-apps" data-au-selection="section:0:au-tab--selected">Apps</button><button class="au-tab au-tab--selected" type="button" aria-selected="true" data-au-action="tab-git" data-au-selection="section:1:au-tab--selected">Git</button><button class="au-tab" type="button" data-au-action="tab-files" data-au-selection="section:2:au-tab--selected">Files</button><button class="au-tab" type="button" data-au-action="tab-chat" data-au-selection="section:3:au-tab--selected">Chat</button><button class="au-tab" type="button" data-au-action="tab-settings" data-au-selection="section:4:au-tab--selected">Settings</button></nav>
+      <div class="aun-sheet-dock" data-au-slot="sheetDock"></div>
       <div class="aun-phone__body aun-phone__body--page"><div class="aun-git-pane" data-au-slot="changes">
         <div class="au-git-toolbar">
         <div class="au-git-branch-row">
@@ -92,6 +94,28 @@
         </div>
       </div>
       </div></div>
+      <nav class="au-mobile-tab-bar" role="tablist" aria-label="Agent sections">
+        <button class="au-subtab au-nav-tab" type="button" data-au-action="tab-apps" data-au-selection="section:0:au-subtab--selected">
+          <svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect></svg>
+          Apps
+        </button>
+        <button class="au-subtab au-nav-tab au-subtab--selected" type="button" aria-selected="true" data-au-action="tab-git" data-au-selection="section:1:au-subtab--selected">
+          <svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="18" r="2.5"></circle><circle cx="18" cy="6" r="2.5"></circle><circle cx="18" cy="18" r="2.5"></circle><path d="M8.2 16.2 16 8"></path><path d="M18 8.6v6.8"></path></svg>
+          Git
+        </button>
+        <button class="au-subtab au-nav-tab" type="button" data-au-action="tab-files" data-au-selection="section:2:au-subtab--selected">
+          <svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"></path><path d="M8 12h8M8 16h5"></path></svg>
+          Files
+        </button>
+        <button class="au-subtab au-nav-tab" type="button" data-au-action="tab-chat" data-au-selection="section:3:au-subtab--selected">
+          <svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 7V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v7a2 2 0 0 1-1.4 1.9"></path><path d="M18 12H7a2 2 0 0 0-2 2v6l3-2h10a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2z"></path></svg>
+          Chat
+        </button>
+        <button class="au-subtab au-nav-tab" type="button" data-au-action="tab-settings" data-au-selection="section:4:au-subtab--selected">
+          <svg class="au-nav-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          Settings
+        </button>
+      </nav>
     </div>
 </div>
 </body>

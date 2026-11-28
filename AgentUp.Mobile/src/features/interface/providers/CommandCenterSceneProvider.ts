@@ -69,6 +69,8 @@ export type CommandCenterSceneInput = {
   agentEndpoint?: string;
   agentModel?: string;
   systemPrompt?: string;
+  /** The role prompt for this member's type: what the system prompt field shows until it is edited. */
+  defaultSystemPrompt?: string;
   customizationPrompt?: string;
   promptOverwrite?: boolean;
   flows: CommandCenterFlowSlot[];
@@ -138,6 +140,22 @@ const laneCopy: Array<[TeamStandingKind, string, string, string]> = [
 ];
 
 /** The scene id the phone mounts. The catalog page is that scene. */
+export type CommandCenterSection = CommandCenterSceneInput['section'];
+
+/**
+ * Which member page an open section draws, and what opens over it. On a phone an application or a
+ * file is a sheet over the member page it was opened from - Apps or Files - so that page stays under
+ * it. Wider than a phone nothing overlaps: the section is the page.
+ */
+export function memberSheetLayers(section: CommandCenterSection, phone: boolean): {
+  base: CommandCenterSection;
+  inner: 'application' | 'file' | null;
+} {
+  if (phone && section === 'application') return { base: 'overview', inner: 'application' };
+  if (phone && section === 'file') return { base: 'files', inner: 'file' };
+  return { base: section, inner: null };
+}
+
 export function commandCenterSceneId(input: Pick<CommandCenterSceneInput, 'nav' | 'section' | 'agentOpen'>): string {
   if (!input.agentOpen) return input.nav === 1 ? 'mobile-tasks' : input.nav === 2 ? 'mobile-settings' : 'mobile-team';
   if (input.section === 'chat') return 'mobile-chat';
@@ -166,7 +184,7 @@ export function commandCenterScene(input: CommandCenterSceneInput): CommandCente
     agentEndpoint: input.agentEndpoint ?? '',
     agentModel: input.agentModel ?? '',
     memberId: input.openWorkspaceId ?? input.authTab ?? '',
-    systemPrompt: input.systemPrompt ?? '',
+    systemPrompt: input.systemPrompt || input.defaultSystemPrompt || '',
     customizationPrompt: input.customizationPrompt ?? '',
   };
   const state: Record<string, string> = {

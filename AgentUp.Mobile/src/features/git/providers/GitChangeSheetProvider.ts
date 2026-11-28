@@ -30,6 +30,29 @@ export function gitChangeSheetDetents(pageHeight: number): GitChangeSheetDetents
   return { peek, full };
 }
 
+/**
+ * Peek and full heights for a change sheet drawn in a sheet layer. It peeks at the same share of
+ * its page, measured from the page's bottom edge, so it rests above the tab bar under the page;
+ * drawn up, it opens to the whole layer, over the head and the tab bar.
+ */
+export function gitChangeSheetLayerDetents(pageHeight: number, frame: { height: number; bottomInset: number }): GitChangeSheetDetents {
+  const full = Math.max(0, Math.round(frame.height));
+  const peek = Math.min(full, gitChangeSheetDetents(pageHeight).peek + Math.max(0, Math.round(frame.bottomInset)));
+  return { peek, full };
+}
+
+/**
+ * How far the bottom edge of a layered sheet stays above the layer's bottom as the sheet moves: by
+ * the tab bar's height at the peek, so the bar stays in view and in reach, and by nothing once it
+ * is open over everything. As an interpolation of the sheet's shown height, which only ever rises.
+ */
+export function gitChangeSheetLift(detents: GitChangeSheetDetents, bottomInset: number): { inputRange: [number, number]; outputRange: [number, number] } {
+  return {
+    inputRange: [detents.peek, Math.max(detents.full, detents.peek + 1)],
+    outputRange: [Math.max(0, bottomInset), 0],
+  };
+}
+
 export function gitChangeSheetHeight(detent: GitChangeSheetDetent, detents: GitChangeSheetDetents): number {
   return detent === 'full' ? detents.full : detents.peek;
 }

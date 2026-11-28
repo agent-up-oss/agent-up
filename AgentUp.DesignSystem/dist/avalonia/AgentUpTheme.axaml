@@ -24,6 +24,18 @@
   <SolidColorBrush x:Key="AgentUpColorSurfaceSelectedBrush" Color="{StaticResource AgentUpColorSurfaceSelected}"/>
   <Color x:Key="AgentUpColorSurfaceSelectedStrong">#0f3220</Color>
   <SolidColorBrush x:Key="AgentUpColorSurfaceSelectedStrongBrush" Color="{StaticResource AgentUpColorSurfaceSelectedStrong}"/>
+  <Color x:Key="AgentUpColorDiffAdded">#1700b850</Color>
+  <SolidColorBrush x:Key="AgentUpColorDiffAddedBrush" Color="{StaticResource AgentUpColorDiffAdded}"/>
+  <Color x:Key="AgentUpColorDiffAddedGutter">#2900b850</Color>
+  <SolidColorBrush x:Key="AgentUpColorDiffAddedGutterBrush" Color="{StaticResource AgentUpColorDiffAddedGutter}"/>
+  <Color x:Key="AgentUpColorDiffAddedWord">#4d00b850</Color>
+  <SolidColorBrush x:Key="AgentUpColorDiffAddedWordBrush" Color="{StaticResource AgentUpColorDiffAddedWord}"/>
+  <Color x:Key="AgentUpColorDiffDeleted">#1cd84f4f</Color>
+  <SolidColorBrush x:Key="AgentUpColorDiffDeletedBrush" Color="{StaticResource AgentUpColorDiffDeleted}"/>
+  <Color x:Key="AgentUpColorDiffDeletedGutter">#30d84f4f</Color>
+  <SolidColorBrush x:Key="AgentUpColorDiffDeletedGutterBrush" Color="{StaticResource AgentUpColorDiffDeletedGutter}"/>
+  <Color x:Key="AgentUpColorDiffDeletedWord">#57d84f4f</Color>
+  <SolidColorBrush x:Key="AgentUpColorDiffDeletedWordBrush" Color="{StaticResource AgentUpColorDiffDeletedWord}"/>
   <Color x:Key="AgentUpColorBorderSubtle">#14ffffff</Color>
   <SolidColorBrush x:Key="AgentUpColorBorderSubtleBrush" Color="{StaticResource AgentUpColorBorderSubtle}"/>
   <Color x:Key="AgentUpColorBorderStrong">#29ffffff</Color>

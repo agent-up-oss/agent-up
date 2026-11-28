@@ -3148,6 +3148,90 @@
       ]
     },
     {
+      "id": "diff-view",
+      "title": "Diff view",
+      "intro": "One changed file read in place, the way a code host shows it. The code sits on the canvas with its line numbers; removed lines are washed red and added lines green, and the words a line actually changed are marked a step stronger. Unchanged stretches fold into a row that opens five lines at a time. On a phone it is a sheet docked under the page that opened it; wider, it is a page with a back button.",
+      "components": [
+        {
+          "id": "diff-file",
+          "title": "Diff file head",
+          "note": "The file named the way an editor tab names it: its kind, its name, the folder it lives in faint, and how many lines it adds and removes. No status word: the counts and colours say it.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
+          "rootClass": "au-diff-file",
+          "classes": [
+            "au-diff-file",
+            "au-diff-kind",
+            "au-diff-name",
+            "au-diff-folder",
+            "au-diff-count-added",
+            "au-diff-count-deleted"
+          ],
+          "html": "<div class=\"au-diff-file\">\n        <span class=\"au-diff-kind\">TS</span>\n        <span class=\"au-diff-name\">orders.ts</span>\n        <span class=\"au-diff-folder\">apps/api</span>\n        <span class=\"au-diff-count-added\">+2</span>\n        <span class=\"au-diff-count-deleted\">−1</span>\n      </div>"
+        },
+        {
+          "id": "diff-lines",
+          "title": "Diff lines",
+          "note": "Unchanged lines are plain code on the canvas. A removed line is washed red and numbered from the old file; an added line is washed green and numbered from the new one, each with a firmer wash and a 2px rule on its number. When a removed and an added line are the same line edited, only the words that changed are marked. Long lines scroll sideways under fixed numbers.",
+          "avalonia": "Border",
+          "desktopClass": "",
+          "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
+          "rootClass": "au-diff-body",
+          "classes": [
+            "au-diff-view",
+            "au-diff-fold",
+            "au-diff-fold-rule",
+            "au-diff-fold-label",
+            "au-diff-expand",
+            "au-diff-body",
+            "au-diff-line",
+            "au-diff-number",
+            "au-diff-code",
+            "au-syntax-keyword",
+            "au-syntax-function",
+            "au-syntax-type",
+            "au-diff-line--deleted",
+            "au-diff-number--deleted",
+            "au-diff-word--deleted",
+            "au-diff-line--added",
+            "au-diff-number--added",
+            "au-diff-word--added",
+            "au-syntax-comment"
+          ],
+          "html": "<div class=\"au-diff-view\">\n        <div class=\"au-diff-fold\">\n          <span class=\"au-diff-fold-rule\">⋯</span>\n          <span class=\"au-diff-fold-label\">14 unmodified lines</span>\n          <button class=\"au-diff-expand\" type=\"button\">↑ 5</button>\n          <button class=\"au-diff-expand\" type=\"button\">All</button>\n        </div>\n        <div class=\"au-diff-body\">\n          <div class=\"au-diff-line\"><span class=\"au-diff-number\">15</span><span class=\"au-diff-code\"><span class=\"au-syntax-keyword\">export function</span> <span class=\"au-syntax-function\">listOrders</span>(store: <span class=\"au-syntax-type\">Store</span>) {</span></div>\n          <div class=\"au-diff-line au-diff-line--deleted\"><span class=\"au-diff-number au-diff-number--deleted\">16</span><span class=\"au-diff-code\">  <span class=\"au-syntax-keyword\">return</span> store.orders.filter(order =&gt; order.<span class=\"au-diff-word--deleted\">open</span>);</span></div>\n          <div class=\"au-diff-line au-diff-line--added\"><span class=\"au-diff-number au-diff-number--added\">16</span><span class=\"au-diff-code\">  <span class=\"au-syntax-keyword\">return</span> store.orders.filter(order =&gt; order.<span class=\"au-diff-word--added\">status === 'open'</span>);</span></div>\n          <div class=\"au-diff-line au-diff-line--added\"><span class=\"au-diff-number au-diff-number--added\">17</span><span class=\"au-diff-code\">  <span class=\"au-syntax-comment\">// Packed orders stay open until they ship.</span></span></div>\n          <div class=\"au-diff-line\"><span class=\"au-diff-number\">18</span><span class=\"au-diff-code\">}</span></div>\n        </div>\n        <div class=\"au-diff-fold\">\n          <span class=\"au-diff-fold-rule\">⋯</span>\n          <span class=\"au-diff-fold-label\">31 unmodified lines</span>\n          <button class=\"au-diff-expand\" type=\"button\">↓ 5</button>\n          <button class=\"au-diff-expand\" type=\"button\">↑ 5</button>\n          <button class=\"au-diff-expand\" type=\"button\">All</button>\n        </div>\n      </div>"
+        },
+        {
+          "id": "diff-note",
+          "title": "Diff note",
+          "note": "What the view says instead of lines: a binary file, a file with no text, a change that is gone. One quiet sentence on the canvas.",
+          "avalonia": "TextBlock",
+          "desktopClass": "",
+          "desktopHost": "",
+          "states": "",
+          "parts": "",
+          "propsExamples": [],
+          "modifierClasses": "",
+          "stateExamples": [],
+          "rootClass": "au-diff-note",
+          "classes": [
+            "au-diff-note"
+          ],
+          "html": "<p class=\"au-diff-note\">This file is binary; Agent-Up does not render a text diff for it.</p>"
+        }
+      ]
+    },
+    {
       "id": "file-viewer",
       "title": "File viewer",
       "intro": "A readonly inspection window for a Server-owned file or diff. The catalog owns chrome, gutter, line kinds, hunk markers, and syntax token colors. Clients virtualize the line list instead of dumping the file into one text node.",

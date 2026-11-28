@@ -90,6 +90,33 @@ function compare(before: string[], after: string[]): DiffLine[] {
   return lines;
 }
 
+/**
+ * The diff as unified text, for a host that reads diffs that way. Each run between hunk markers
+ * becomes one hunk headed by where it starts in both files, so a run the agent reported without
+ * a header still lands at its own line numbers.
+ */
+export function unifiedFromDiff(diff: Diff): string {
+  const runs: DiffLine[][] = [[]];
+  for (const line of diff.lines) {
+    if (line.kind === 'hunk') { if (runs[runs.length - 1]!.length) runs.push([]); continue; }
+    runs[runs.length - 1]!.push(line);
+  }
+  const out: string[] = [];
+  let oldNext = 1;
+  let newNext = 1;
+  for (const run of runs.filter(lines => lines.length)) {
+    const oldStart = run.find(line => line.oldNumber !== undefined)?.oldNumber ?? oldNext;
+    const newStart = run.find(line => line.newNumber !== undefined)?.newNumber ?? newNext;
+    const oldCount = run.filter(line => line.kind !== 'added').length;
+    const newCount = run.filter(line => line.kind !== 'deleted').length;
+    out.push(`@@ -${oldCount ? oldStart : oldStart - 1},${oldCount} +${newCount ? newStart : newStart - 1},${newCount} @@`);
+    for (const line of run) out.push(`${line.kind === 'added' ? '+' : line.kind === 'deleted' ? '-' : ' '}${line.text}`);
+    oldNext = oldStart + oldCount;
+    newNext = newStart + newCount;
+  }
+  return out.length ? `${out.join('\n')}\n` : '';
+}
+
 function counted(path: string | undefined, lines: DiffLine[]): Diff {
   return {
     ...(path ? { path } : {}),

@@ -2590,6 +2590,188 @@
     <Setter Property="MinHeight" Value="192"/>
     <Setter Property="Background" Value="{DynamicResource AgentUpColorCanvasBrush}"/>
   </Style>
+  <Style Selector="Border.au-diff-view">
+    <Setter Property="MinHeight" Value="0"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorCanvasBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-diff-view">
+    <Setter Property="MinHeight" Value="0"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorCanvasBrush}"/>
+  </Style>
+  <Style Selector="Border.au-diff-file">
+    <Setter Property="MinHeight" Value="44"/>
+    <Setter Property="Padding" Value="16,8"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorCanvasBrush}"/>
+    <Setter Property="BorderThickness" Value="0,0,0,1"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-diff-file">
+    <Setter Property="MinHeight" Value="44"/>
+    <Setter Property="Padding" Value="16,8"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorCanvasBrush}"/>
+  </Style>
+  <Style Selector="Border.au-diff-kind">
+    <Setter Property="MinWidth" Value="24"/>
+    <Setter Property="Padding" Value="5,1"/>
+    <Setter Property="CornerRadius" Value="{DynamicResource AgentUpCornerRadiusSm}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-diff-kind">
+    <Setter Property="MinWidth" Value="24"/>
+    <Setter Property="Padding" Value="5,1"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+    <Setter Property="FontFamily" Value="{DynamicResource AgentUpFontMono}"/>
+    <Setter Property="FontSize" Value="10"/>
+    <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
+    <Setter Property="LetterSpacing" Value="0.2"/>
+  </Style>
+  <Style Selector="TextBlock.au-diff-name">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiMd}"/>
+    <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
+  </Style>
+  <Style Selector="TextBlock.au-diff-folder">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextFaintBrush}"/>
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
+  </Style>
+  <Style Selector="TextBlock.au-diff-count-added">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorAccentSoftBrush}"/>
+    <Setter Property="FontFamily" Value="{DynamicResource AgentUpFontMono}"/>
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
+  </Style>
+  <Style Selector="TextBlock.au-diff-count-deleted">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextDangerBrush}"/>
+    <Setter Property="FontFamily" Value="{DynamicResource AgentUpFontMono}"/>
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
+  </Style>
+  <Style Selector="Border.au-diff-body">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorCanvasBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-diff-body">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorCanvasBrush}"/>
+  </Style>
+  <Style Selector="Border.au-diff-line">
+    <Setter Property="Height" Value="20"/>
+  </Style>
+  <Style Selector="TextBlock.au-diff-line">
+    <Setter Property="Height" Value="20"/>
+  </Style>
+  <Style Selector="Border.au-diff-line--added">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorDiffAddedBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-diff-line--added">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorDiffAddedBrush}"/>
+  </Style>
+  <Style Selector="Border.au-diff-line--deleted">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorDiffDeletedBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-diff-line--deleted">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorDiffDeletedBrush}"/>
+  </Style>
+  <Style Selector="Border.au-diff-number">
+    <Setter Property="Width" Value="44"/>
+    <Setter Property="Height" Value="20"/>
+  </Style>
+  <Style Selector="TextBlock.au-diff-number">
+    <Setter Property="Width" Value="44"/>
+    <Setter Property="Height" Value="20"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextFaintBrush}"/>
+    <Setter Property="FontFamily" Value="{DynamicResource AgentUpFontMono}"/>
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
+  </Style>
+  <Style Selector="Border.au-diff-number--added">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorDiffAddedGutterBrush}"/>
+    <Setter Property="BorderThickness" Value="2,0,0,0"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorAccentBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-diff-number--added">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorAccentSoftBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorDiffAddedGutterBrush}"/>
+  </Style>
+  <Style Selector="Border.au-diff-number--deleted">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorDiffDeletedGutterBrush}"/>
+    <Setter Property="BorderThickness" Value="2,0,0,0"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorStatusDangerBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-diff-number--deleted">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextDangerBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorDiffDeletedGutterBrush}"/>
+  </Style>
+  <Style Selector="Border.au-diff-code">
+    <Setter Property="Padding" Value="12,0"/>
+  </Style>
+  <Style Selector="TextBlock.au-diff-code">
+    <Setter Property="Padding" Value="12,0"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+    <Setter Property="FontFamily" Value="{DynamicResource AgentUpFontMono}"/>
+    <Setter Property="FontSize" Value="12"/>
+  </Style>
+  <Style Selector="Border.au-diff-word--added">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorDiffAddedWordBrush}"/>
+    <Setter Property="CornerRadius" Value="3"/>
+  </Style>
+  <Style Selector="TextBlock.au-diff-word--added">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorDiffAddedWordBrush}"/>
+  </Style>
+  <Style Selector="Border.au-diff-word--deleted">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorDiffDeletedWordBrush}"/>
+    <Setter Property="CornerRadius" Value="3"/>
+  </Style>
+  <Style Selector="TextBlock.au-diff-word--deleted">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorDiffDeletedWordBrush}"/>
+  </Style>
+  <Style Selector="Border.au-diff-fold">
+    <Setter Property="MinHeight" Value="32"/>
+    <Setter Property="Padding" Value="0,0,12,0"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceBrush}"/>
+    <Setter Property="BorderThickness" Value="0,1,0,1"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-diff-fold">
+    <Setter Property="MinHeight" Value="32"/>
+    <Setter Property="Padding" Value="0,0,12,0"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceBrush}"/>
+  </Style>
+  <Style Selector="Border.au-diff-fold-rule">
+    <Setter Property="Width" Value="44"/>
+  </Style>
+  <Style Selector="TextBlock.au-diff-fold-rule">
+    <Setter Property="Width" Value="44"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextFaintBrush}"/>
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
+  </Style>
+  <Style Selector="TextBlock.au-diff-fold-label">
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+    <Setter Property="FontFamily" Value="{DynamicResource AgentUpFontMono}"/>
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
+  </Style>
+  <Style Selector="Border.au-diff-expand">
+    <Setter Property="Padding" Value="10,3"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorCanvasBrush}"/>
+    <Setter Property="CornerRadius" Value="999"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-diff-expand">
+    <Setter Property="Padding" Value="10,3"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextSecondaryBrush}"/>
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiXs}"/>
+    <Setter Property="FontWeight" Value="{DynamicResource AgentUpWeightUiStrong}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorCanvasBrush}"/>
+  </Style>
+  <Style Selector="Border.au-diff-expand:pointerover">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-diff-expand:pointerover">
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
+  </Style>
+  <Style Selector="TextBlock.au-diff-note">
+    <Setter Property="Padding" Value="{DynamicResource AgentUpThickness4}"/>
+    <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
+    <Setter Property="FontSize" Value="{DynamicResource AgentUpFontSizeUiSm}"/>
+  </Style>
   <Style Selector="Border.au-file-viewer">
     <Setter Property="MinHeight" Value="256"/>
     <Setter Property="MinWidth" Value="288"/>

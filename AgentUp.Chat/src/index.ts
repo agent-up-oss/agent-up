@@ -9,6 +9,8 @@
 export { AgentChatScreen } from './components/AgentChatScreen';
 export type { AgentChatScreenProps, ChatWorkspace } from './components/AgentChatScreen';
 export { AgentSignIn } from './components/AgentSignIn';
+export { ChatSheetHostContext } from './components/SheetHost';
+export type { ChatSheetHostProps } from './components/SheetHost';
 export { createAgentLoginPort } from './providers/AgentLoginPortProvider';
 export type { AgentLoginPortOptions, PendingRedirect } from './providers/AgentLoginPortProvider';
 export * from './models/AgentSession';

@@ -37,6 +37,18 @@
   --au-color-surface-selected-strong: #0f3220;
 
   /*
+   * Diff tints. Alpha over the canvas, so a changed line reads as the code it is with a wash
+   * of meaning behind it. The line carries the faint wash, its line number a firmer one, and
+   * the words that actually changed inside it the strongest.
+   */
+  --au-color-diff-added: #00b85017;
+  --au-color-diff-added-gutter: #00b85029;
+  --au-color-diff-added-word: #00b8504d;
+  --au-color-diff-deleted: #d84f4f1c;
+  --au-color-diff-deleted-gutter: #d84f4f30;
+  --au-color-diff-deleted-word: #d84f4f57;
+
+  /*
    * Borders are hairlines in alpha, not fixed grays. An opaque line reads
    * 2.4x stronger on the canvas than on a raised surface; alpha composites,
    * so one token holds an even weight across the whole ramp.
@@ -1900,6 +1912,175 @@
 
 
 /*
+ * Diff view. A changed file read in place, the way a code host shows it: the code itself on the
+ * canvas, line numbers beside it, removed lines washed red and added lines washed green, and the
+ * words that changed inside a line marked a step stronger. Unchanged stretches fold into a quiet
+ * row that opens five lines at a time. No unified-diff headers and no prefix column: the colour
+ * and the numbers already say what changed.
+ */
+
+.au-diff-view {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  color: var(--au-color-text-primary);
+  background: var(--au-color-canvas);
+}
+
+/* The file, named the way an editor tab names it: kind, name, folder, and the count of change. */
+.au-diff-file {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  min-height: 2.75rem;
+  padding: var(--au-space-2) var(--au-space-4);
+  background: var(--au-color-canvas);
+  border-bottom: 1px solid var(--au-color-border-subtle);
+}
+
+.au-diff-kind {
+  min-width: 1.5rem;
+  padding: 0.0625rem 0.3125rem;
+  color: var(--au-color-text-muted);
+  font-family: var(--au-font-mono);
+  font-size: 0.625rem;
+  font-weight: var(--au-weight-ui-strong);
+  letter-spacing: 0.02em;
+  text-align: center;
+  border: 1px solid var(--au-color-border-subtle);
+  border-radius: var(--au-radius-sm);
+}
+
+.au-diff-name {
+  color: var(--au-color-text-primary);
+  font-size: var(--au-font-size-ui-md);
+  font-weight: var(--au-weight-ui-strong);
+}
+
+.au-diff-folder {
+  flex: 1;
+  overflow: hidden;
+  color: var(--au-color-text-faint);
+  font-size: var(--au-font-size-ui-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.au-diff-count-added {
+  color: var(--au-color-accent-soft);
+  font-family: var(--au-font-mono);
+  font-size: var(--au-font-size-ui-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.au-diff-count-deleted {
+  color: var(--au-color-text-danger);
+  font-family: var(--au-font-mono);
+  font-size: var(--au-font-size-ui-sm);
+  font-variant-numeric: tabular-nums;
+}
+
+.au-diff-body {
+  display: flex;
+  flex-direction: column;
+  background: var(--au-color-canvas);
+}
+
+/* One run of shown lines: numbers stay put while the code scrolls sideways under them. */
+.au-diff-block {
+  display: flex;
+  flex-direction: row;
+}
+
+.au-diff-line {
+  display: flex;
+  align-items: center;
+  height: 1.25rem;
+}
+.au-diff-line--added { background: var(--au-color-diff-added); }
+.au-diff-line--deleted { background: var(--au-color-diff-deleted); }
+
+.au-diff-number {
+  width: 2.75rem;
+  height: 1.25rem;
+  padding-right: 0.625rem;
+  color: var(--au-color-text-faint);
+  font-family: var(--au-font-mono);
+  font-size: var(--au-font-size-ui-xs);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.25rem;
+  text-align: right;
+}
+.au-diff-number--added {
+  color: var(--au-color-accent-soft);
+  background: var(--au-color-diff-added-gutter);
+  border-left: 2px solid var(--au-color-accent);
+}
+.au-diff-number--deleted {
+  color: var(--au-color-text-danger);
+  background: var(--au-color-diff-deleted-gutter);
+  border-left: 2px solid var(--au-color-status-danger);
+}
+
+.au-diff-code {
+  padding: 0 var(--au-space-3);
+  color: var(--au-color-text-secondary);
+  font-family: var(--au-font-mono);
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+  white-space: pre;
+}
+
+/* The words a changed line actually changed. */
+.au-diff-word--added { background: var(--au-color-diff-added-word); border-radius: 0.1875rem; }
+.au-diff-word--deleted { background: var(--au-color-diff-deleted-word); border-radius: 0.1875rem; }
+
+/* Unchanged lines folded away: how many, and five more either way or all of them. */
+.au-diff-fold {
+  display: flex;
+  align-items: center;
+  gap: var(--au-space-2);
+  min-height: 2rem;
+  padding: 0 var(--au-space-3) 0 0;
+  background: var(--au-color-surface);
+  border-top: 1px solid var(--au-color-border-subtle);
+  border-bottom: 1px solid var(--au-color-border-subtle);
+}
+
+.au-diff-fold-rule {
+  width: 2.75rem;
+  color: var(--au-color-text-faint);
+  font-size: var(--au-font-size-ui-xs);
+  text-align: center;
+}
+
+.au-diff-fold-label {
+  flex: 1;
+  color: var(--au-color-text-muted);
+  font-family: var(--au-font-mono);
+  font-size: var(--au-font-size-ui-xs);
+}
+
+.au-diff-expand {
+  padding: 0.1875rem 0.625rem;
+  color: var(--au-color-text-secondary);
+  font-size: var(--au-font-size-ui-xs);
+  font-weight: var(--au-weight-ui-strong);
+  background: var(--au-color-canvas);
+  border: 1px solid var(--au-color-border-subtle);
+  border-radius: var(--au-radius-pill);
+}
+.au-diff-expand:hover { background: var(--au-color-state-hover); }
+
+.au-diff-note {
+  padding: var(--au-space-4);
+  color: var(--au-color-text-muted);
+  font-size: var(--au-font-size-ui-sm);
+  line-height: 1.5;
+}
+
+
+/*
  * Readonly file inspection viewer. Separate from the Git change list so that
  * surface can keep evolving independently. Syntax colors reuse existing text
  * and status roles — never a second palette, and never green for decoration.
@@ -3128,6 +3309,14 @@
   padding: 6px var(--au-space-2);
 }
 .aun-agent-head { display: flex; align-items: center; gap: var(--au-space-2); }
+/* On a phone a team member, an open application and an open file are sheets. Their grabber tops
+ * the head: tap it, or drag the head down, to close the sheet. It sits in the head's top padding. */
+.aun-agent-sheet-head { display: flex; flex-direction: column; }
+/* Where a sheet opened under a head docks: a mark with no height of its own. */
+.aun-sheet-dock { height: 0; }
+.aun-agent-grabber { width: 100%; margin: -8px 0 4px; padding: 0 0 4px; border: 0; background: transparent; }
+/* A prompt is a labelled field: the small label over a full-width text area. */
+.aun-settings__prompt { display: flex; flex-direction: column; gap: var(--au-space-2); padding: var(--au-space-3) var(--au-space-4); }
 
 .aun-validate { position: relative; flex-shrink: 0; }
 .aun-validate__player { position: relative; }

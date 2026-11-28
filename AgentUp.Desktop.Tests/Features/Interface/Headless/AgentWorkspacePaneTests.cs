@@ -126,10 +126,10 @@ public sealed class AgentWorkspacePaneTests
         var window = await LaunchDemoCommandCenterAsync();
         var main = (MainViewModel)window.DataContext!;
         await OpenMemberSettingsAsync(main.CommandCenter!);
-        await WaitAsync(() => window.GetVisualDescendants().OfType<TextBox>()
-            .Any(box => box.PlaceholderText == "System prompt"));
-        window.GetVisualDescendants().OfType<TextBox>().First(box => box.PlaceholderText == "System prompt")
-            .Text = "Ship the cards.";
+        await WaitAsync(() => !string.IsNullOrEmpty(SystemPromptBox(window)?.Text));
+        // An unedited prompt opens on the default for the member's type, not on placeholder copy.
+        Assert.That(SystemPromptBox(window)!.Text, Is.EqualTo(main.Agent.DefaultSystemPrompt));
+        SystemPromptBox(window)!.Text = "Ship the cards.";
         await ClickControlIntoViewAsync(window, VisibleButtonNamed(window, "Save prompts"));
         await WaitAsync(() => main.Agent.SystemPrompt == "Ship the cards.");
         var page = window.FindControl<CommandCenterView>("CommandCenterPage")!;
@@ -145,10 +145,8 @@ public sealed class AgentWorkspacePaneTests
         var window = await LaunchDemoCommandCenterAsync();
         var main = (MainViewModel)window.DataContext!;
         await OpenMemberSettingsAsync(main.CommandCenter!);
-        await WaitAsync(() => window.GetVisualDescendants().OfType<TextBox>()
-            .Any(box => box.PlaceholderText == "System prompt"));
-        window.GetVisualDescendants().OfType<TextBox>().First(box => box.PlaceholderText == "System prompt")
-            .Text = "Ship the cards.";
+        await WaitAsync(() => SystemPromptBox(window) is not null);
+        SystemPromptBox(window)!.Text = "Ship the cards.";
         await ClickControlIntoViewAsync(window, AppTabNamed(window, "Dev reviewer"));
         await HeadlessExtensions.FlushAsync();
         Assert.That(main.Agent.PromptOverwrite, Is.True);
@@ -165,10 +163,8 @@ public sealed class AgentWorkspacePaneTests
         var window = await LaunchDemoCommandCenterAsync();
         var main = (MainViewModel)window.DataContext!;
         await OpenMemberSettingsAsync(main.CommandCenter!);
-        await WaitAsync(() => window.GetVisualDescendants().OfType<TextBox>()
-            .Any(box => box.PlaceholderText == "System prompt"));
-        window.GetVisualDescendants().OfType<TextBox>().First(box => box.PlaceholderText == "System prompt")
-            .Text = "Ship the cards.";
+        await WaitAsync(() => SystemPromptBox(window) is not null);
+        SystemPromptBox(window)!.Text = "Ship the cards.";
         await ClickControlIntoViewAsync(window, AppTabNamed(window, "Dev reviewer"));
         await HeadlessExtensions.FlushAsync();
         Assert.That(main.Agent.PromptOverwrite, Is.True);
@@ -730,4 +726,8 @@ public sealed class AgentWorkspacePaneTests
         => driver.Window.GetVisualDescendants()
             .OfType<Button>()
             .Single(button => AutomationProperties.GetAutomationId(button) == DesktopAutomationIds.AgentBack);
+
+    /// <summary>The system prompt is the first multi-line field on a member's Settings page.</summary>
+    private static TextBox? SystemPromptBox(Window window)
+        => window.GetVisualDescendants().OfType<TextBox>().FirstOrDefault(box => box.AcceptsReturn && box.IsEffectivelyVisible);
 }
