@@ -48,9 +48,16 @@ test('succeeds on the first attempt without looking at Gradle caches', () => {
 
 test('retries a plugin-portal miss after dropping the negative cache', () => {
   const home = mkdtempSync(join(tmpdir(), 'agent-up-gradle-'));
-  const cache = join(home, 'caches', 'modules-2', 'files-2.1', 'org.gradle.toolchains.foojay-resolver-convention');
-  mkdirSync(cache, { recursive: true });
-  writeFileSync(join(cache, 'miss'), 'stale');
+  const files = join(home, 'caches', 'modules-2', 'files-2.1');
+  const plugin = join(files, 'org.gradle.toolchains.foojay-resolver-convention');
+  const keep = join(files, 'com.example.unrelated');
+  const metadata = join(home, 'caches', 'modules-2', 'metadata-2.107');
+  mkdirSync(plugin, { recursive: true });
+  mkdirSync(keep, { recursive: true });
+  mkdirSync(metadata, { recursive: true });
+  writeFileSync(join(plugin, 'miss'), 'stale');
+  writeFileSync(join(keep, 'jar'), 'keep');
+  writeFileSync(join(metadata, 'resource-at-url.bin'), 'cached-404');
   const log = join(home, 'attempts.log');
   const gradlew = writeCommand(home, `
 echo attempt >> "$GRADLE_USER_HOME/attempts.log"
@@ -60,8 +67,16 @@ if [ "$attempts" -lt 2 ]; then
   echo "could not resolve plugin artifact 'org.gradle.toolchains.foojay-resolver-convention:org.gradle.toolchains.foojay-resolver-convention.gradle.plugin:1.0.0'" >&2
   exit 1
 fi
+if [ -e "$GRADLE_USER_HOME/caches/modules-2/metadata-2.107/resource-at-url.bin" ]; then
+  echo "metadata miss cache was still present" >&2
+  exit 1
+fi
 if [ -e "$GRADLE_USER_HOME/caches/modules-2/files-2.1/org.gradle.toolchains.foojay-resolver-convention/miss" ]; then
-  echo "negative cache was still present" >&2
+  echo "plugin marker cache was still present" >&2
+  exit 1
+fi
+if [ ! -e "$GRADLE_USER_HOME/caches/modules-2/files-2.1/com.example.unrelated/jar" ]; then
+  echo "unrelated artifact was dropped" >&2
   exit 1
 fi
 echo built

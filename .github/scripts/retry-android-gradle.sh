@@ -26,8 +26,12 @@ is_plugin_miss() {
 
 drop_plugin_miss_cache() {
   [ -d "$gradle_home/caches" ] || return 0
-  # Gradle records a plugin-portal 404 under the plugin id. Leaving it means the
-  # next attempt never asks the portal again.
+  # Gradle records "this module is absent" in the modules-2 metadata store
+  # (resource-at-url.bin and friends), not in directories named after the
+  # plugin. Leaving that store means the next attempt never asks the portal.
+  # Downloaded files-2.1 jars stay; only the miss records and any plugin
+  # marker paths go.
+  rm -rf "$gradle_home/caches/modules-2"/metadata-*
   find "$gradle_home/caches" \( \
       -name '*foojay-resolver*' \
       -o -name '*foojay-resolver-convention*' \
