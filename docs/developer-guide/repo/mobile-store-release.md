@@ -8,7 +8,7 @@ title: Mobile store release
 Mobile store binaries are built by `ci.yml` on every run and shipped by its Mobile release job. This page is the Android and iOS store-build and store-submit contract.
 </DocWhat>
 
-Two Mobile legs build the full client for the stores on every pull request and push:
+Two Mobile legs build the full client for the stores on every pull request and every push to `main`:
 
 - **Mobile · Android store bundle** prebuilds, builds, signs and validates the Play upload AAB.
 - **Mobile · iOS store archive** prebuilds, builds, signs through Match and validates the App Store IPA.
@@ -19,7 +19,7 @@ A store leg records a declared skip, not a pass, where GitHub withholds its sign
 
 Mobile release uploads exactly the binaries those legs built. It sits beside Release, needs the same two jobs (Behavior matrix and Plan), and runs only on a `workflow_dispatch` that names a mobile channel. Release runs only on a push, so one run never does both.
 
-Mobile typechecking, provider and script tests run in Source · TypeScript suites. The web export and `Examples/browser-sso` Playwright run in Mobile · Browser SSO front door; pin `@playwright/test` to 1.61.1 so Chromium installs on `ubuntu-latest` (26.04). SDK 58 custom `src/app/+html.tsx` must render `bodyNodes` from `useServerDocumentContext()` so the static HTML hydrates. Dependency installation runs the design-system generator with `--check` so stale committed outputs fail instead of being rewritten. It does not call semantic-release or use `.releaserc.json`. Android compiles on Ubuntu, with Gradle's repository retry window widened by `.github/scripts/configure-gradle-network.sh` because the Gradle Plugin Portal intermittently fails to serve the React Native plugin's `foojay-resolver-convention` on hosted runners. iOS compiles on `macos-latest` with Xcode 26.4 because CocoaPods and `xcodebuild` cannot run on Linux, Expo SDK 58 requires the iOS 27 SDK that Xcode 16 does not ship, and the `macos-26` label sits in a thinner hosted pool that GitHub cancels after about fifteen minutes with no runner.
+Mobile typechecking, provider and script tests run in Source · TypeScript suites. The web export and `Examples/browser-sso` Playwright run in Mobile · Browser SSO front door; pin `@playwright/test` to 1.61.1 so Chromium installs on `ubuntu-latest` (26.04). SDK 58 custom `src/app/+html.tsx` must render `bodyNodes` from `useServerDocumentContext()` so the static HTML hydrates. Dependency installation runs the design-system generator with `--check` so stale committed outputs fail instead of being rewritten. It does not call semantic-release or use `.releaserc.json`. Android compiles on Ubuntu, with Gradle's repository retry window widened by `.github/scripts/configure-gradle-network.sh` and the whole Gradle command retried by `.github/scripts/retry-android-gradle.sh` because the Gradle Plugin Portal intermittently fails to serve the React Native plugin's `foojay-resolver-convention` on hosted runners. iOS compiles on `macos-latest` with Xcode 26.4 because CocoaPods and `xcodebuild` cannot run on Linux, Expo SDK 58 requires the iOS 27 SDK that Xcode 16 does not ship, and the `macos-26` label sits in a thinner hosted pool that GitHub cancels after about fifteen minutes with no runner.
 
 ## Inputs
 
@@ -47,19 +47,18 @@ whose tag is `android-v<version>` or `ios-v<version>`, with the AAB or IPA
 attached. Re-running the same marketing version replaces those assets; the stores
 still accept the binary because the build number changed.
 
-`ci.yml` ignores `android-v*` and `ios-v*` tag pushes. A `tags-ignore` filter without a `branches` filter would skip branch
-pushes entirely, so CI would never start on this branch.
+`ci.yml` ignores `android-v*` and `ios-v*` tag pushes. Push is `main` only, so those tags still do not start CI. A `tags-ignore` filter without a `branches` filter would skip branch pushes entirely.
 
 ## Job graph
 
 ```text
-pull_request, push, or workflow_dispatch
+pull_request, push to main, or workflow_dispatch
   Mobile · Android store bundle (ubuntu)  ─┐
   Mobile · iOS store archive (macos-latest) ├─ Behavior matrix ─ Mobile release (android) → Google Play
   every other leg ─────────────────────────┘                    Mobile release (ios) → App Store Connect
 ```
 
-Android failure does not cancel iOS, and the reverse. A dispatch never cancels and is never cancelled: a second dispatch on the same ref waits, so a store upload is never cut off. A newer push on the same branch cancels an in-flight branch run, never a dispatch.
+Android failure does not cancel iOS, and the reverse. A dispatch never cancels and is never cancelled: a second dispatch on the same ref waits, so a store upload is never cut off. A newer commit on an open pull request cancels that pull request's in-flight run, never a dispatch or a `main` push.
 
 ## Signing
 

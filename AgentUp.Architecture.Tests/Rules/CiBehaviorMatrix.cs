@@ -8,8 +8,9 @@ namespace AgentUp.Architecture.Tests.Rules;
 /// Keeps .github/workflows/ci.yml and .github/behavior-matrix.json describing one pipeline. Each
 /// stage is one matrix job named after its domain, every matrix entry is a declared leg that records
 /// its verdict last, every declared leg is a matrix entry, the Behavior matrix job waits for all of
-/// them, Release and Mobile release wait for it and never run in the same run, and Source gates
-/// release only - no behavior leg waits for a source suite or for coverage. Definition:
+/// them, Release and Mobile release wait for it and never run in the same run, Source gates
+/// release only - no behavior leg waits for a source suite or for coverage - and push is main
+/// only so other branches are pull_request merge commits. Definition:
 /// docs/developer-guide/repo/ci.md.
 /// </summary>
 [TestFixture]
@@ -115,11 +116,29 @@ public sealed class CiBehaviorMatrix
         Assert.Multiple(() =>
         {
             Assert.That(Scalar(release, "if"), Does.Contain("github.event_name == 'push'"), "Release must run only on a push.");
-            Assert.That(Scalar(release, "if"), Does.Not.Contain("refs/heads/main"),
-                "Release publishes a prerelease from every push, not only main.");
             Assert.That(Scalar(mobile, "if"), Does.Contain("github.event_name == 'workflow_dispatch'"), "Mobile release must run only on a dispatch.");
             Assert.That(Needs(mobile).Order(StringComparer.Ordinal), Is.EqualTo(Needs(release).Order(StringComparer.Ordinal)),
                 "Mobile release waits for exactly what Release waits for.");
+        });
+    }
+
+    [Test]
+    public void PushRunsOnlyOnMain_andOtherBranchesArePullRequests()
+    {
+        var triggers = Triggers();
+        var push = (YamlMappingNode)triggers.Children[new YamlScalarNode("push")];
+        var branches = ((YamlSequenceNode)push.Children[new YamlScalarNode("branches")]).Children
+            .OfType<YamlScalarNode>()
+            .Select(node => node.Value)
+            .ToArray();
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(branches, Is.EqualTo(new[] { "main" }),
+                "Push must be main only so a PR is tested as the merge with main, not the branch HEAD.");
+            Assert.That(triggers.Children.ContainsKey(new YamlScalarNode("pull_request")), Is.True,
+                "Non-main work must run as pull_request so GitHub CI uses the merge commit.");
+            Assert.That(triggers.Children.ContainsKey(new YamlScalarNode("workflow_dispatch")), Is.True);
         });
     }
 
@@ -140,13 +159,30 @@ public sealed class CiBehaviorMatrix
         Assert.That(violations, Is.Empty);
     }
 
-    private static YamlMappingNode Jobs()
+    private static YamlMappingNode WorkflowRoot()
     {
         var root = ArchitectureFixture.FindRepositoryRoot(TestContext.CurrentContext.TestDirectory);
         using var reader = File.OpenText(Path.Join(root, ".github", "workflows", "ci.yml"));
         var workflow = new YamlStream();
         workflow.Load(reader);
-        return (YamlMappingNode)((YamlMappingNode)workflow.Documents[0].RootNode).Children[new YamlScalarNode("jobs")];
+        return (YamlMappingNode)workflow.Documents[0].RootNode;
+    }
+
+    private static YamlMappingNode Jobs()
+        => (YamlMappingNode)WorkflowRoot().Children[new YamlScalarNode("jobs")];
+
+    private static YamlMappingNode Triggers()
+    {
+        var trigger = WorkflowRoot().Children
+            .Where(child => child.Key is YamlScalarNode key
+                && (string.Equals(key.Value, "on", StringComparison.Ordinal)
+                    || string.Equals(key.Value, "true", StringComparison.OrdinalIgnoreCase)))
+            .Select(child => child.Value)
+            .OfType<YamlMappingNode>()
+            .FirstOrDefault();
+        if (trigger is null)
+            throw new AssertionException("ci.yml must declare an 'on' trigger mapping.");
+        return trigger;
     }
 
     private static List<(string Stage, string Id, string Job, bool Matrix)> Legs()

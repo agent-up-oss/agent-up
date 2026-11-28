@@ -19,9 +19,10 @@ name: Agent-Up CI
 # renders the matrix with those verdicts on the run summary and fails when a leg failed or never
 # ran, so a green run means every declared leg ran and passed or was skipped for its declared
 # reason. It is the one check to require on pull requests. Release and Mobile release wait for it
-# and nothing else; Release runs on a push (stable cut on main, GitHub prerelease on other
-# branches), Mobile release on a dispatch that names a mobile channel, never both. Nothing waits
-# for Source except them: a red suite or coverage miss
+# and nothing else; Release runs on a push to main (the stable cut). Other branches run as
+# pull_request against the merge with their base, so a green PR is the resulting tree, not the
+# branch HEAD. Mobile release runs on a dispatch that names a mobile channel, never both.
+# Nothing waits for Source except them: a red suite or coverage miss
 # never hides what the behavior legs would have shown.
 #
 # Definition: docs/developer-guide/repo/ci.md.
@@ -29,15 +30,13 @@ name: Agent-Up CI
 on:
   push:
     branches:
-      - '**'
+      - main
     tags-ignore:
       - android-v*
       - ios-v*
   pull_request:
-    branches:
-      - '**'
   # A dispatch runs the whole matrix. With a mobile channel it then ships the Mobile store
-  # binaries that run built; it never runs Release, which belongs to pushes.
+  # binaries that run built; it never runs Release, which belongs to pushes to main.
   workflow_dispatch:
     inputs:
       mobile-channel:
@@ -1237,9 +1236,9 @@ jobs:
             --needs "$RUNNER_TEMP/needs.json" \
             --summary "$GITHUB_STEP_SUMMARY"
 
-  # Release runs on a push when Plan says to publish. Main is the stable cut; any other branch
-  # is a GitHub prerelease on the same public destinations, without :latest or JetBrains.
-  # A dispatch, with or without a mobile channel, never reaches it.
+  # Release runs on a push to main when Plan says to publish. That is the stable cut. Other
+  # branches are pull_request and cannot publish. A dispatch, with or without a mobile
+  # channel, never reaches it.
   release:
     name: Release
     runs-on: ubuntu-latest

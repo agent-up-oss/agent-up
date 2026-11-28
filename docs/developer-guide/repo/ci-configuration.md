@@ -17,12 +17,12 @@ This page lists the repository secrets and variables the Agent-Up CI workflow re
 <DocSpine>
 <DocBeat>Coverage uploads the Cobertura reports the local gate already produced</DocBeat>
 <DocBeat>Signing stays optional until the matching secrets and variables are set</DocBeat>
-<DocBeat>Release publishes a stable cut on main, and a GitHub prerelease on other branch pushes</DocBeat>
+<DocBeat>Release publishes a stable cut on a push to main. Other branches run as pull requests</DocBeat>
 </DocSpine>
 
 <DocContract label="Location">Settings → Secrets and variables → Actions</DocContract>
 
-The Agent-Up CI workflow runs on every push. Signing and release steps degrade gracefully when their credentials are absent. Codecov uploads also skip when `CODECOV_TOKEN` is unavailable, which is how GitHub withholds repository secrets from Dependabot and fork pull requests. Patch coverage and the slice floor still run in Source · .NET suites and coverage.
+The Agent-Up CI workflow runs on every pull request and every push to `main`. Signing and release steps degrade gracefully when their credentials are absent. Codecov uploads also skip when `CODECOV_TOKEN` is unavailable, which is how GitHub withholds repository secrets from Dependabot and fork pull requests. Patch coverage and the slice floor still run in Source · .NET suites and coverage.
 
 ## Code coverage
 
@@ -108,7 +108,7 @@ gpg --verify agent-up-ubuntu-linux-x64.deb.asc agent-up-ubuntu-linux-x64.deb
 
 The release job uses `GITHUB_TOKEN`, which GitHub provides automatically. No setup required.
 
-On `main`, Release runs when semantic-release determines a new version is warranted based on [Conventional Commits](https://www.conventionalcommits.org/). A push to any other branch publishes a GitHub prerelease whose version is the newest reachable `vX.Y.Z` tag plus `GITHUB_RUN_NUMBER`, with `GITHUB_RUN_ATTEMPT` appended after a dot only when the job is retried. That prerelease uses the same Docker Hub, Helm, and npm destinations, tags npm as `ci` instead of `latest`, does not push the Server image `:latest` tag, and skips JetBrains Marketplace.
+On `main`, Release runs when semantic-release determines a new version is warranted based on [Conventional Commits](https://www.conventionalcommits.org/). Other branches are pull requests and do not publish.
 
 The same release publishes the Server image and `agent-up-helm` chart to Docker Hub. Create the public repositories `themassiveone/agent-up-server` and `themassiveone/agent-up-helm` on Docker Hub, then add a token with write access.
 
@@ -182,7 +182,7 @@ Event tags, error-only SDK policy, and injection paths are documented in
 
 ## JetBrains Marketplace
 
-JetBrains Marketplace publishing is optional. Create the Agent-Up plugin entry in JetBrains Marketplace once, then add a Marketplace token from the vendor profile. On `main`, the release job publishes `Plugins/Jetbrains` through Gradle after the GitHub release succeeds, using the same planned release version that was injected into the release ZIP. Branch prereleases skip the plugin.
+JetBrains Marketplace publishing is optional. Create the Agent-Up plugin entry in JetBrains Marketplace once, then add a Marketplace token from the vendor profile. On `main`, the release job publishes `Plugins/Jetbrains` through Gradle after the GitHub release succeeds, using the same planned release version that was injected into the release ZIP.
 
 | Secret | Value |
 |---|---|
