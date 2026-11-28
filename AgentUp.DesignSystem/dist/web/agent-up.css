@@ -1081,7 +1081,7 @@
   max-height: 36rem;
   padding: var(--au-space-5);
   color: var(--au-color-text-primary);
-  background: var(--au-color-surface);
+  background: var(--au-color-canvas);
   border: 1px solid var(--au-color-border-subtle);
   border-radius: var(--au-radius-xl);
   box-shadow: var(--au-shadow-md);
@@ -1804,14 +1804,15 @@
   height: var(--au-control-height);
 }
 .au-git-history { margin-left: auto; }
-/* Git and Files sit on the canvas black. A field, card or secondary button
-   there adds this class: no grey fill, one faint hairline. Green still marks
-   the primary action (Push, Commit) and nothing else. */
-.au-git-quiet {
+/* The canvas-black control. A field, card or secondary button on a black page
+   (Git, Files, the file page, sign-in) adds this class: no grey fill, one faint
+   hairline. Green still marks the primary action (Push, Commit, Save, Connect)
+   and nothing else. */
+.au-quiet {
   background: var(--au-color-canvas);
   border-color: var(--au-color-border-subtle);
 }
-.au-git-quiet:hover { background: var(--au-color-state-hover); }
+.au-quiet:hover { background: var(--au-color-state-hover); }
 .au-git-heading {
   display: flex;
   flex-direction: column;
@@ -1922,7 +1923,7 @@
   min-height: var(--au-control-height-compact);
   padding: var(--au-space-3) var(--au-space-4);
   color: var(--au-color-text-primary);
-  background: var(--au-color-surface-raised);
+  background: var(--au-color-canvas);
   border-bottom: 1px solid var(--au-color-border-subtle);
   border-radius: var(--au-radius-xl) var(--au-radius-xl) 0 0;
 }
@@ -2163,7 +2164,7 @@
   min-height: 16rem;
   min-width: 0;
   color: var(--au-color-text-primary);
-  background: var(--au-color-surface);
+  background: var(--au-color-canvas);
   border: 1px solid var(--au-color-border-subtle);
   border-radius: var(--au-radius-xl);
 }
@@ -2219,7 +2220,7 @@
   min-height: var(--au-control-height-compact);
   padding: var(--au-space-1) var(--au-space-4);
   color: var(--au-color-text-muted);
-  background: var(--au-color-surface-raised);
+  background: var(--au-color-canvas);
   border-top: 1px solid var(--au-color-border-subtle);
   border-radius: 0 0 var(--au-radius-xl) var(--au-radius-xl);
 }

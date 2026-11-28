@@ -12,7 +12,7 @@ const boxKeys = new Set([
   'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 'marginTop', 'marginRight', 'marginBottom',
   'opacity', 'color',
 ]);
-const textKeys = new Set(['color', 'fontSize', 'fontWeight', 'opacity', 'fontFamily', 'fontStyle', 'textTransform', 'letterSpacing']);
+const textKeys = new Set(['color', 'fontSize', 'fontWeight', 'opacity', 'fontFamily', 'fontStyle', 'textTransform', 'letterSpacing', 'lineHeight', 'textAlign']);
 
 /**
  * `keep` is the set of classes the classic bindings skip (the screen shells) that a New UI
@@ -184,6 +184,17 @@ function rnStyle(declarations, tokens, edges = false) {
       }
       case 'font-size':
         style.fontSize = nativeLiteral(value, tokens);
+        break;
+      case 'line-height': {
+        // Only a length: a unitless CSS line height multiplies the font size, which React Native
+        // does not, so those stay with the platform default.
+        if (!/(rem|px)$/.test(String(value).trim())) break;
+        const length = rnLengthLiteral(value, tokens);
+        if (length != null) style.lineHeight = length;
+        break;
+      }
+      case 'text-align':
+        if (['left', 'right', 'center'].includes(String(value).trim())) style.textAlign = `'${String(value).trim()}'`;
         break;
       case 'font-family':
         // CSS stacks ("Inter, ui-sans-serif, ...") are not React Native font

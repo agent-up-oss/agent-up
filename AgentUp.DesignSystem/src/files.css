@@ -71,7 +71,7 @@
   min-height: 16rem;
   min-width: 0;
   color: var(--au-color-text-primary);
-  background: var(--au-color-surface);
+  background: var(--au-color-canvas);
   border: 1px solid var(--au-color-border-subtle);
   border-radius: var(--au-radius-xl);
 }
@@ -127,7 +127,7 @@
   min-height: var(--au-control-height-compact);
   padding: var(--au-space-1) var(--au-space-4);
   color: var(--au-color-text-muted);
-  background: var(--au-color-surface-raised);
+  background: var(--au-color-canvas);
   border-top: 1px solid var(--au-color-border-subtle);
   border-radius: 0 0 var(--au-radius-xl) var(--au-radius-xl);
 }

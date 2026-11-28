@@ -164,7 +164,7 @@ export function FileEditorScreen({
                 accessibilityLabel="Revert"
                 disabled={!dirty}
                 onPress={() => { setText(original); setError(null); }}
-                style={[styles.action, auBox('button', 'buttonSecondary', 'buttonCompact'), !dirty && styles.disabled]}>
+                style={[styles.action, auBox('button', 'buttonSecondary', 'buttonCompact', 'quiet'), !dirty && styles.disabled]}>
                 <Text style={auText('button', 'buttonSecondary', 'buttonCompact')}>Revert</Text>
               </Pressable>
               <Pressable
@@ -183,7 +183,7 @@ export function FileEditorScreen({
           <View style={[styles.bar, auBox('fileEditorNotice', 'fileEditorNoticeDanger')]}>
             <Text style={[styles.barText, auText('fileEditorNotice', 'fileEditorNoticeDanger')]}>Leave this file and discard the unsaved changes?</Text>
             <Pressable testID="file-editor-keep-editing" accessibilityRole="button" onPress={() => setConfirmLeave(false)}
-              style={[styles.action, auBox('button', 'buttonSecondary', 'buttonCompact')]}>
+              style={[styles.action, auBox('button', 'buttonSecondary', 'buttonCompact', 'quiet')]}>
               <Text style={auText('button', 'buttonSecondary', 'buttonCompact')}>Keep editing</Text>
             </Pressable>
             <Pressable testID="file-editor-discard" accessibilityRole="button" onPress={() => host.back(FILES)}
@@ -195,7 +195,7 @@ export function FileEditorScreen({
           <View style={[styles.bar, auBox('fileEditorNotice', 'fileEditorNoticeDanger')]}>
             <Text style={[styles.barText, auText('fileEditorNotice', 'fileEditorNoticeDanger')]}>{error}</Text>
             <Pressable testID="file-editor-reload" accessibilityRole="button" onPress={() => void load()}
-              style={[styles.action, auBox('button', 'buttonSecondary', 'buttonCompact')]}>
+              style={[styles.action, auBox('button', 'buttonSecondary', 'buttonCompact', 'quiet')]}>
               <Text style={auText('button', 'buttonSecondary', 'buttonCompact')}>Reload</Text>
             </Pressable>
           </View>}

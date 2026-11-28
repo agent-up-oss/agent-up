@@ -893,7 +893,7 @@ const agentUpTheme = Object.freeze({
       paddingHorizontal: 20,
       paddingVertical: 20,
       color: "#f5fbf7",
-      backgroundColor: "#121416",
+      backgroundColor: "#0a0b0c",
       borderWidth: 1,
       borderColor: "#ffffff14",
       borderRadius: 16,
@@ -1390,7 +1390,7 @@ const agentUpTheme = Object.freeze({
     gitToolbar: Object.freeze({
 
     }),
-    gitQuiet: Object.freeze({
+    quiet: Object.freeze({
       backgroundColor: "#0a0b0c",
       borderColor: "#ffffff14",
     }),
@@ -1436,7 +1436,7 @@ const agentUpTheme = Object.freeze({
       paddingHorizontal: 16,
       paddingVertical: 12,
       color: "#f5fbf7",
-      backgroundColor: "#191c1f",
+      backgroundColor: "#0a0b0c",
       borderBottomWidth: 1,
       borderBottomColor: "#ffffff14",
       borderRadius: 16,
@@ -1612,7 +1612,7 @@ const agentUpTheme = Object.freeze({
       minHeight: 256,
       minWidth: 0,
       color: "#f5fbf7",
-      backgroundColor: "#121416",
+      backgroundColor: "#0a0b0c",
       borderWidth: 1,
       borderColor: "#ffffff14",
       borderRadius: 16,
@@ -1647,7 +1647,7 @@ const agentUpTheme = Object.freeze({
       paddingHorizontal: 16,
       paddingVertical: 4,
       color: "#8a9a92",
-      backgroundColor: "#191c1f",
+      backgroundColor: "#0a0b0c",
       borderTopWidth: 1,
       borderTopColor: "#ffffff14",
       borderRadius: 0,

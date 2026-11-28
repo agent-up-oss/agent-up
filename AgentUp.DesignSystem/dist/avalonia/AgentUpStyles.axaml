@@ -1735,7 +1735,7 @@
   </Style>
   <Style Selector="Border.au-sign-in">
     <Setter Property="Padding" Value="{DynamicResource AgentUpThickness5}"/>
-    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorCanvasBrush}"/>
     <Setter Property="CornerRadius" Value="{DynamicResource AgentUpCornerRadiusXl}"/>
     <Setter Property="BorderThickness" Value="1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
@@ -1743,7 +1743,7 @@
   <Style Selector="TextBlock.au-sign-in">
     <Setter Property="Padding" Value="{DynamicResource AgentUpThickness5}"/>
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
-    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorCanvasBrush}"/>
   </Style>
   <Style Selector="Border.au-tutorial-button">
     <Setter Property="Padding" Value="12,8"/>
@@ -2566,17 +2566,17 @@
     <Setter Property="Margin" Value="8,0"/>
     <Setter Property="Background" Value="{DynamicResource AgentUpColorBorderStrongBrush}"/>
   </Style>
-  <Style Selector="Border.au-git-quiet">
+  <Style Selector="Border.au-quiet">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorCanvasBrush}"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
   </Style>
-  <Style Selector="TextBlock.au-git-quiet">
+  <Style Selector="TextBlock.au-quiet">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorCanvasBrush}"/>
   </Style>
-  <Style Selector="Border.au-git-quiet:pointerover">
+  <Style Selector="Border.au-quiet:pointerover">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
   </Style>
-  <Style Selector="TextBlock.au-git-quiet:pointerover">
+  <Style Selector="TextBlock.au-quiet:pointerover">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorStateHoverBrush}"/>
   </Style>
   <Style Selector="Border.au-git-log">
@@ -2607,7 +2607,7 @@
   <Style Selector="Border.au-file-viewer-header">
     <Setter Property="MinHeight" Value="{DynamicResource AgentUpControlHeightCompact}"/>
     <Setter Property="Padding" Value="16,12"/>
-    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceRaisedBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorCanvasBrush}"/>
     <Setter Property="BorderThickness" Value="0,0,0,1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
   </Style>
@@ -2615,7 +2615,7 @@
     <Setter Property="MinHeight" Value="{DynamicResource AgentUpControlHeightCompact}"/>
     <Setter Property="Padding" Value="16,12"/>
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
-    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceRaisedBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorCanvasBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-file-viewer-path">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
@@ -2848,7 +2848,7 @@
   <Style Selector="Border.au-file-editor">
     <Setter Property="MinHeight" Value="256"/>
     <Setter Property="MinWidth" Value="0"/>
-    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorCanvasBrush}"/>
     <Setter Property="CornerRadius" Value="{DynamicResource AgentUpCornerRadiusXl}"/>
     <Setter Property="BorderThickness" Value="1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
@@ -2857,7 +2857,7 @@
     <Setter Property="MinHeight" Value="256"/>
     <Setter Property="MinWidth" Value="0"/>
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextPrimaryBrush}"/>
-    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorCanvasBrush}"/>
   </Style>
   <Style Selector="Border.au-file-editor-body">
     <Setter Property="MinHeight" Value="160"/>
@@ -2889,7 +2889,7 @@
   <Style Selector="Border.au-file-editor-footer">
     <Setter Property="MinHeight" Value="{DynamicResource AgentUpControlHeightCompact}"/>
     <Setter Property="Padding" Value="16,4"/>
-    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceRaisedBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorCanvasBrush}"/>
     <Setter Property="BorderThickness" Value="0,1,0,0"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorBorderSubtleBrush}"/>
   </Style>
@@ -2897,7 +2897,7 @@
     <Setter Property="MinHeight" Value="{DynamicResource AgentUpControlHeightCompact}"/>
     <Setter Property="Padding" Value="16,4"/>
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>
-    <Setter Property="Background" Value="{DynamicResource AgentUpColorSurfaceRaisedBrush}"/>
+    <Setter Property="Background" Value="{DynamicResource AgentUpColorCanvasBrush}"/>
   </Style>
   <Style Selector="TextBlock.au-file-editor-caret">
     <Setter Property="Foreground" Value="{DynamicResource AgentUpColorTextMutedBrush}"/>

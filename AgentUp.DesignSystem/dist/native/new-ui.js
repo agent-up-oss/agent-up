@@ -219,6 +219,7 @@ export const newUiTheme = Object.freeze({
       borderWidth: 1,
       borderColor: "#ffffff14",
       borderRadius: 12,
+      textAlign: 'left',
     }),
     choiceDisabled: Object.freeze({
       opacity: 0.45,
@@ -1042,7 +1043,7 @@ export const newUiTheme = Object.freeze({
       paddingBottom: 20,
       paddingLeft: 20,
       color: "#f5fbf7",
-      backgroundColor: "#121416",
+      backgroundColor: "#0a0b0c",
       borderWidth: 1,
       borderColor: "#ffffff14",
       borderRadius: 16,
@@ -1206,6 +1207,7 @@ export const newUiTheme = Object.freeze({
       borderColor: "#00000000",
       borderLeftWidth: 1,
       borderLeftColor: "#ffffff14",
+      textAlign: 'left',
       fontSize: 12,
       fontWeight: '500',
     }),
@@ -1251,6 +1253,7 @@ export const newUiTheme = Object.freeze({
       borderWidth: 0,
       borderColor: "#00000000",
       borderRadius: 8,
+      textAlign: 'left',
       fontSize: 12,
       fontWeight: '500',
     }),
@@ -1375,6 +1378,7 @@ export const newUiTheme = Object.freeze({
       borderWidth: 0,
       borderColor: "#00000000",
       borderRadius: 8,
+      textAlign: 'left',
       fontSize: 12,
       fontWeight: '500',
     }),
@@ -1727,7 +1731,7 @@ export const newUiTheme = Object.freeze({
     gitHistory: Object.freeze({
 
     }),
-    gitQuiet: Object.freeze({
+    quiet: Object.freeze({
       backgroundColor: "#0a0b0c",
       borderColor: "#ffffff14",
     }),
@@ -1801,7 +1805,7 @@ export const newUiTheme = Object.freeze({
       paddingBottom: 12,
       paddingLeft: 16,
       color: "#f5fbf7",
-      backgroundColor: "#191c1f",
+      backgroundColor: "#0a0b0c",
       borderBottomWidth: 1,
       borderBottomColor: "#ffffff14",
       borderRadius: 16,
@@ -1903,11 +1907,13 @@ export const newUiTheme = Object.freeze({
       width: 52,
       color: "#718077",
       fontSize: 11,
+      textAlign: 'right',
     }),
     fileViewerPrefix: Object.freeze({
       width: 14,
       color: "#718077",
       fontSize: 11,
+      textAlign: 'center',
     }),
     fileViewerPrefixAdded: Object.freeze({
       color: "#2bf27a",
@@ -1984,10 +1990,12 @@ export const newUiTheme = Object.freeze({
       borderRadius: 6,
       fontSize: 11,
       fontWeight: '600',
+      textAlign: 'center',
     }),
     filesSize: Object.freeze({
       color: "#718077",
       fontSize: 11,
+      textAlign: 'right',
     }),
     filesNotice: Object.freeze({
       paddingTop: 8,
@@ -2001,7 +2009,7 @@ export const newUiTheme = Object.freeze({
       minHeight: 256,
       minWidth: 0,
       color: "#f5fbf7",
-      backgroundColor: "#121416",
+      backgroundColor: "#0a0b0c",
       borderWidth: 1,
       borderColor: "#ffffff14",
       borderRadius: 16,
@@ -2025,6 +2033,8 @@ export const newUiTheme = Object.freeze({
       borderRightWidth: 1,
       borderRightColor: "#ffffff14",
       fontSize: 11,
+      lineHeight: 22,
+      textAlign: 'right',
     }),
     fileEditorInput: Object.freeze({
       minWidth: 0,
@@ -2037,6 +2047,7 @@ export const newUiTheme = Object.freeze({
       borderWidth: 0,
       borderColor: "#00000000",
       fontSize: 11,
+      lineHeight: 22,
     }),
     fileEditorFooter: Object.freeze({
       minHeight: 32,
@@ -2045,7 +2056,7 @@ export const newUiTheme = Object.freeze({
       paddingBottom: 4,
       paddingLeft: 16,
       color: "#8a9a92",
-      backgroundColor: "#191c1f",
+      backgroundColor: "#0a0b0c",
       borderTopWidth: 1,
       borderTopColor: "#ffffff14",
       borderRadius: 0,
@@ -2322,6 +2333,7 @@ export const newUiTheme = Object.freeze({
       color: "#c2d2ca",
       fontSize: 13,
       fontWeight: '600',
+      textAlign: 'left',
     }),
     aunNavCurrent: Object.freeze({
       backgroundColor: "#10281d",
@@ -2336,6 +2348,7 @@ export const newUiTheme = Object.freeze({
       backgroundColor: "transparent",
       borderWidth: 0,
       borderColor: "#00000000",
+      textAlign: 'left',
     }),
     aunRailSwitch: Object.freeze({
       paddingTop: 8,
@@ -2348,6 +2361,7 @@ export const newUiTheme = Object.freeze({
       backgroundColor: "#191c1f",
       color: "#c2d2ca",
       fontSize: 12,
+      textAlign: 'left',
     }),
     aunRailSpacer: Object.freeze({
 
@@ -2632,23 +2646,30 @@ export const newUiTheme = Object.freeze({
       width: 32,
       height: 32,
       fontSize: 11,
-      backgroundColor: "#191c1f",
+      backgroundColor: "#0a0b0c",
+      borderWidth: 1,
+      borderColor: "#ffffff29",
       color: "#c2d2ca",
+      textAlign: 'center',
+      lineHeight: 30,
     }),
     aunAvatarSm: Object.freeze({
       width: 20,
       height: 20,
       fontSize: 9,
+      lineHeight: 18,
     }),
     aunAvatarMd: Object.freeze({
       width: 36,
       height: 36,
       fontSize: 12,
+      lineHeight: 34,
     }),
     aunAvatarLg: Object.freeze({
       width: 52,
       height: 52,
       fontSize: 14,
+      lineHeight: 50,
     }),
     aunTaskAccess: Object.freeze({
 
@@ -2659,8 +2680,8 @@ export const newUiTheme = Object.freeze({
     aunCard: Object.freeze({
       borderWidth: 1,
       borderColor: "#ffffff14",
-      borderRadius: 12,
-      backgroundColor: "#121416",
+      borderRadius: 16,
+      backgroundColor: "#0a0b0c",
       paddingTop: 16,
       paddingRight: 20,
       paddingBottom: 16,
@@ -2680,8 +2701,8 @@ export const newUiTheme = Object.freeze({
       paddingLeft: 16,
       borderWidth: 1,
       borderColor: "#ffffff14",
-      borderRadius: 12,
-      backgroundColor: "#121416",
+      borderRadius: 16,
+      backgroundColor: "#0a0b0c",
     }),
     aunTaskRowBody: Object.freeze({
       minWidth: 0,
@@ -2717,8 +2738,8 @@ export const newUiTheme = Object.freeze({
     aunSettingsList: Object.freeze({
       borderWidth: 1,
       borderColor: "#ffffff14",
-      borderRadius: 12,
-      backgroundColor: "#121416",
+      borderRadius: 16,
+      backgroundColor: "#0a0b0c",
     }),
     aunSettingsRow: Object.freeze({
       minHeight: 44,
@@ -2755,7 +2776,7 @@ export const newUiTheme = Object.freeze({
     }),
     aunCardGate: Object.freeze({
       borderColor: "#e0a128",
-      backgroundColor: "#191c1f",
+      backgroundColor: "#0a0b0c",
     }),
     aunCardHalted: Object.freeze({
       borderColor: "#d84f4f4d",
@@ -2777,7 +2798,7 @@ export const newUiTheme = Object.freeze({
       borderWidth: 1,
       borderColor: "#ffffff14",
       borderRadius: 8,
-      backgroundColor: "#121416",
+      backgroundColor: "#0a0b0c",
       color: "#f5fbf7",
     }),
     aunRowGate: Object.freeze({
@@ -2904,8 +2925,8 @@ export const newUiTheme = Object.freeze({
       minHeight: 32,
       borderRadius: 6,
       borderWidth: 1,
-      borderColor: "#ffffff29",
-      backgroundColor: "#191c1f",
+      borderColor: "#ffffff14",
+      backgroundColor: "#0a0b0c",
       color: "#f5fbf7",
     }),
     aunBtnPrimary: Object.freeze({
@@ -2914,7 +2935,7 @@ export const newUiTheme = Object.freeze({
       color: "#2bf27a",
     }),
     aunBtnDanger: Object.freeze({
-      backgroundColor: "#261a1c",
+      backgroundColor: "#0a0b0c",
       borderColor: "#d84f4f4d",
       color: "#e48989",
     }),
@@ -2931,7 +2952,7 @@ export const newUiTheme = Object.freeze({
       borderRadius: 6,
       borderWidth: 1,
       borderColor: "#ffffff14",
-      backgroundColor: "#17191b",
+      backgroundColor: "#0a0b0c",
       color: "#c2d2ca",
     }),
     aunTextarea: Object.freeze({
@@ -2992,6 +3013,7 @@ export const newUiTheme = Object.freeze({
     }),
     aunEventDot: Object.freeze({
       width: 18,
+      textAlign: 'center',
       fontSize: 11,
     }),
     aunEventBody: Object.freeze({
@@ -3131,6 +3153,7 @@ export const newUiTheme = Object.freeze({
     }),
     aunDiffNum: Object.freeze({
       width: 44,
+      textAlign: 'right',
       paddingRight: 12,
       color: "#718077",
     }),
@@ -3216,6 +3239,7 @@ export const newUiTheme = Object.freeze({
     }),
     aunTabbarIcon: Object.freeze({
       fontSize: 20,
+      lineHeight: 20,
     }),
     aunStateMapMobile: Object.freeze({
       paddingTop: 0,
@@ -3260,6 +3284,7 @@ export const newUiTheme = Object.freeze({
     aunSettingsSignout: Object.freeze({
       color: "#e48989",
       fontWeight: '600',
+      textAlign: 'left',
     }),
     aunAgentBack: Object.freeze({
       width: 28,
@@ -3367,6 +3392,7 @@ export const newUiTheme = Object.freeze({
       backgroundColor: "#10281d",
       color: "#f5fbf7",
       fontSize: 12,
+      textAlign: 'left',
     }),
     aunValidateRun: Object.freeze({
       width: 32,
@@ -3525,7 +3551,7 @@ export const newUiTheme = Object.freeze({
   }),
 });
 const auBoxKeys = new Set(["backgroundColor","borderWidth","borderColor","borderRadius","borderTopWidth","borderTopColor","borderRightWidth","borderRightColor","borderBottomWidth","borderBottomColor","borderLeftWidth","borderLeftColor","width","height","minHeight","minWidth","maxWidth","marginLeft","paddingHorizontal","paddingVertical","paddingTop","paddingRight","paddingBottom","paddingLeft","marginTop","marginRight","marginBottom","opacity","color"]);
-const auTextKeys = new Set(["color","fontSize","fontWeight","opacity","fontFamily","fontStyle","textTransform","letterSpacing"]);
+const auTextKeys = new Set(["color","fontSize","fontWeight","opacity","fontFamily","fontStyle","textTransform","letterSpacing","lineHeight","textAlign"]);
 function auPick(names, keys) {
   const out = {};
   for (const name of names) {

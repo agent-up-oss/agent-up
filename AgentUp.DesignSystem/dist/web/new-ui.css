@@ -1081,7 +1081,7 @@
   max-height: 36rem;
   padding: var(--au-space-5);
   color: var(--au-color-text-primary);
-  background: var(--au-color-surface);
+  background: var(--au-color-canvas);
   border: 1px solid var(--au-color-border-subtle);
   border-radius: var(--au-radius-xl);
   box-shadow: var(--au-shadow-md);
@@ -1804,14 +1804,15 @@
   height: var(--au-control-height);
 }
 .au-git-history { margin-left: auto; }
-/* Git and Files sit on the canvas black. A field, card or secondary button
-   there adds this class: no grey fill, one faint hairline. Green still marks
-   the primary action (Push, Commit) and nothing else. */
-.au-git-quiet {
+/* The canvas-black control. A field, card or secondary button on a black page
+   (Git, Files, the file page, sign-in) adds this class: no grey fill, one faint
+   hairline. Green still marks the primary action (Push, Commit, Save, Connect)
+   and nothing else. */
+.au-quiet {
   background: var(--au-color-canvas);
   border-color: var(--au-color-border-subtle);
 }
-.au-git-quiet:hover { background: var(--au-color-state-hover); }
+.au-quiet:hover { background: var(--au-color-state-hover); }
 .au-git-heading {
   display: flex;
   flex-direction: column;
@@ -1922,7 +1923,7 @@
   min-height: var(--au-control-height-compact);
   padding: var(--au-space-3) var(--au-space-4);
   color: var(--au-color-text-primary);
-  background: var(--au-color-surface-raised);
+  background: var(--au-color-canvas);
   border-bottom: 1px solid var(--au-color-border-subtle);
   border-radius: var(--au-radius-xl) var(--au-radius-xl) 0 0;
 }
@@ -2163,7 +2164,7 @@
   min-height: 16rem;
   min-width: 0;
   color: var(--au-color-text-primary);
-  background: var(--au-color-surface);
+  background: var(--au-color-canvas);
   border: 1px solid var(--au-color-border-subtle);
   border-radius: var(--au-radius-xl);
 }
@@ -2219,7 +2220,7 @@
   min-height: var(--au-control-height-compact);
   padding: var(--au-space-1) var(--au-space-4);
   color: var(--au-color-text-muted);
-  background: var(--au-color-surface-raised);
+  background: var(--au-color-canvas);
   border-top: 1px solid var(--au-color-border-subtle);
   border-radius: 0 0 var(--au-radius-xl) var(--au-radius-xl);
 }
@@ -2726,13 +2727,17 @@
   width: 2rem;
   height: 2rem;
   font-size: var(--au-font-size-ui-xs);
-  background: var(--au-color-surface-raised);
+  background: var(--au-color-canvas);
+  border: var(--au-stroke) solid var(--au-color-border-strong);
   color: var(--au-color-text-secondary);
+  /* A native Text does not centre on flex alone: the line fills the ring inside its hairline. */
+  text-align: center;
+  line-height: 1.875rem;
 }
 
-.aun-avatar--sm { width: 1.25rem; height: 1.25rem; font-size: 9px; }
-.aun-avatar--md { width: 2.25rem; height: 2.25rem; font-size: var(--au-font-size-ui-sm); }
-.aun-avatar--lg { width: 3.25rem; height: 3.25rem; font-size: var(--au-font-size-ui-lg); }
+.aun-avatar--sm { width: 1.25rem; height: 1.25rem; font-size: 9px; line-height: 1.125rem; }
+.aun-avatar--md { width: 2.25rem; height: 2.25rem; font-size: var(--au-font-size-ui-sm); line-height: 2.125rem; }
+.aun-avatar--lg { width: 3.25rem; height: 3.25rem; font-size: var(--au-font-size-ui-lg); line-height: 3.125rem; }
 
 .aun-task-access {
   display: flex;
@@ -2741,13 +2746,15 @@
   flex: 0 0 auto;
 }
 .aun-task-access .aun-avatar {
-  box-shadow: 0 0 0 2px var(--au-color-surface);
+  box-shadow: 0 0 0 2px var(--au-color-canvas);
 }
 
+/* Tasks, Settings and a member's Settings follow the Team page: canvas black, one faint
+ * hairline, an xl radius, no grey fill and no divider lines inside. */
 .aun-card {
   border: var(--au-stroke) solid var(--au-color-border-subtle);
-  border-radius: var(--au-radius-lg);
-  background: var(--au-color-surface);
+  border-radius: var(--au-radius-xl);
+  background: var(--au-color-canvas);
   padding: var(--au-space-4) var(--au-space-5);
 }
 
@@ -2766,8 +2773,8 @@
   min-height: 4rem;
   padding: var(--au-space-3) var(--au-space-4);
   border: var(--au-stroke) solid var(--au-color-border-subtle);
-  border-radius: var(--au-radius-lg);
-  background: var(--au-color-surface);
+  border-radius: var(--au-radius-xl);
+  background: var(--au-color-canvas);
 }
 .aun-task-row__body { display: flex; flex: 1 1 auto; flex-direction: column; gap: 2px; min-width: 0; }
 .aun-task-row__title {
@@ -2795,8 +2802,8 @@
 }
 .aun-settings__list {
   border: var(--au-stroke) solid var(--au-color-border-subtle);
-  border-radius: var(--au-radius-lg);
-  background: var(--au-color-surface);
+  border-radius: var(--au-radius-xl);
+  background: var(--au-color-canvas);
   overflow: hidden;
 }
 .aun-settings__row {
@@ -2806,7 +2813,6 @@
   min-height: var(--au-control-height);
   padding: var(--au-space-3) var(--au-space-4);
 }
-.aun-settings__row + .aun-settings__row { border-top: var(--au-stroke) solid var(--au-color-border-subtle); }
 .aun-settings__id {
   display: flex;
   flex: 1 1 auto;
@@ -2834,7 +2840,7 @@
 .aun-settings__field { display: flex; flex-direction: column; }
 .aun-settings__subs { display: flex; flex-direction: column; }
 
-.aun-card--gate { border-color: var(--au-color-status-warning); background: var(--au-color-surface-raised); }
+.aun-card--gate { border-color: var(--au-color-status-warning); background: var(--au-color-canvas); }
 .aun-card--halted { border-color: var(--au-color-border-danger); background: var(--au-color-surface-danger); }
 
 .aun-card__title { margin: 0 0 var(--au-space-3); font-size: var(--au-font-size-ui-md); font-weight: var(--au-weight-bold); }
@@ -2846,7 +2852,7 @@
   padding: var(--au-space-3) var(--au-space-4);
   border: var(--au-stroke) solid var(--au-color-border-subtle);
   border-radius: var(--au-radius-md);
-  background: var(--au-color-surface);
+  background: var(--au-color-canvas);
   text-decoration: none;
   color: var(--au-color-text-primary);
 }
@@ -2916,8 +2922,8 @@
   padding: var(--au-space-2) var(--au-space-3);
   min-height: var(--au-control-height-compact);
   border-radius: var(--au-radius-sm);
-  border: var(--au-stroke) solid var(--au-color-border-strong);
-  background: var(--au-color-surface-raised);
+  border: var(--au-stroke) solid var(--au-color-border-subtle);
+  background: var(--au-color-canvas);
   color: var(--au-color-text-primary);
   cursor: pointer;
   text-decoration: none;
@@ -2927,7 +2933,7 @@
   gap: var(--au-space-2);
 }
 
-.aun-btn:hover { background: var(--au-color-surface-hover); }
+.aun-btn:hover { background: var(--au-color-state-hover); }
 
 .aun-btn--primary {
   background: var(--au-color-surface-selected);
@@ -2936,7 +2942,7 @@
 }
 
 .aun-btn--danger {
-  background: var(--au-color-surface-danger);
+  background: var(--au-color-canvas);
   border-color: var(--au-color-border-danger);
   color: var(--au-color-text-danger);
 }
@@ -2951,7 +2957,7 @@
   padding: var(--au-space-2) var(--au-space-3);
   border-radius: var(--au-radius-sm);
   border: var(--au-stroke) solid var(--au-color-border-subtle);
-  background: var(--au-color-surface-input);
+  background: var(--au-color-canvas);
   color: var(--au-color-text-secondary);
 }
 
