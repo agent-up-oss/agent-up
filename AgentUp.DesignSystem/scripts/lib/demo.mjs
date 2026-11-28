@@ -110,6 +110,11 @@ export function applyDemo(catalog, demo) {
     ),
     'promptOverwrite',
   );
+  // The showcase is a phone, where a member, an application and a file open as sheets.
+  for (const head of ['mobile-agent-head', 'mobile-application-head', 'mobile-file-head']) {
+    const component = byId.get(head);
+    component.html = withoutWhen(component.html, 'stacked');
+  }
   fill('member-overview', 'overview', memberOverview(demo));
   const open = demo.open;
   fill('mobile-agent-head', 'member', memberHead(open));

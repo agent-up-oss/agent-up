@@ -14,10 +14,13 @@
 <body>
 <div class="aun-frame">
 <div class="aun-phone">
-      <header class="aun-phone__head"><div class="aun-agent-head">
-        <button type="button" class="aun-agent-back" data-au-action="back" aria-label="Go back">‹</button>
+      <header class="aun-phone__head"><div class="aun-agent-sheet-head">
+        <button type="button" class="au-sheet-grabber-row aun-agent-grabber" data-au-when="sheeted" data-au-action="back" aria-label="Back to the apps"><span class="au-sheet-grabber"></span></button>
+        <div class="aun-agent-head">
         <div class="aun-phone__head-copy" data-au-demo="application-name"><h1 class="au-page-title">Storefront</h1></div>
+        </div>
       </div></header>
+      <div class="aun-sheet-dock" data-au-slot="sheetDock"></div>
       <div class="aun-phone__body"><div class="aun-application" data-au-slot="application">
         <div class="au-storefront">
         <p class="au-field-label">Storefront</p>

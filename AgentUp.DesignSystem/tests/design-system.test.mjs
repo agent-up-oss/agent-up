@@ -876,7 +876,9 @@ test('new UI screens pair desktop and mobile instead of a chip per surface', asy
   assert.match(phoneApp.html, /aun-validate-beat/);
   assert.match(phoneApp.html, /aun-validate__menu/);
   assert.match(phoneApp.html, /aun-validate__sheet/);
-  assert.match(phoneApp.html, /Go back/);
+  // On a phone an open application is a sheet over its member: the grabber leads back to Apps.
+  assert.match(phoneApp.html, /aria-label="Back to the apps"/);
+  assert.doesNotMatch(phoneApp.html, /aun-agent-back/);
   assert.match(phoneApp.html, /aria-label="Run"/);
   assert.doesNotMatch(phoneApp.html, /au-mobile-tab-bar/);
   assert.doesNotMatch(phoneApp.html, /au-validation-glyph/);
@@ -1116,6 +1118,33 @@ test('the scene owns the board: groups, labels, grips, tones, and the empty copy
   assert.equal(texts(mount({ queue: [] })).some(word => word.startsWith('Nothing is queued')), true);
 });
 
+test('each prompt has its own small heading and no placeholder copy', async () => {
+  const assembled = newUiFromAssembled(await assembleNewUi());
+  const settings = assembled.scenes.find(item => item.id === 'mobile-agent-settings').html;
+  assert.match(settings, /<p class="au-field-label">System prompt<\/p>\s*<textarea[^>]*data-au-action="system-prompt"/);
+  assert.match(settings, /<p class="au-field-label">Customization prompt<\/p>\s*<textarea[^>]*data-au-action="customization-prompt"/);
+  assert.doesNotMatch(settings, /<textarea[^>]*placeholder=/);
+});
+
+test('a head offers the grabber in a sheet and the back chevron in a page', async () => {
+  const { createNewUiScene } = await import(new URL('./dist/native/new-ui-scene.js', root));
+  const h = (type, props, ...children) => ({ type, props: props ?? {}, children: children.flat() });
+  const Scene = createNewUiScene({ createElement: h }, { View: 'View', Text: 'Text', Pressable: 'Pressable', ScrollView: 'ScrollView', TextInput: 'TextInput' });
+  const labels = state => {
+    const found = [];
+    const walk = node => {
+      if (!node || typeof node !== 'object') return;
+      if (node.props?.accessibilityLabel === 'Back to files') found.push(JSON.stringify(node).includes('‹') ? 'chevron' : 'grabber');
+      for (const child of node.children ?? []) walk(child);
+    };
+    walk(Scene({ scene: 'mobile-agent-file', text: {}, state }));
+    return found;
+  };
+  assert.deepEqual(labels({ sheeted: '1' }), ['grabber']);
+  assert.deepEqual(labels({ stacked: '1' }), ['chevron']);
+  assert.deepEqual(labels({}), []);
+});
+
 test('prompt drafts reset when the team member changes', async () => {
   const { createNewUiScene } = await import(new URL('./dist/native/new-ui-scene.js', root));
   const h = (type, props, ...children) => ({ type, props: props ?? {}, children: children.flat() });
@@ -1135,7 +1164,7 @@ test('prompt drafts reset when the team member changes', async () => {
   const prompt = tree => {
     let found;
     walk(tree, node => {
-      if (node.type === 'TextInput' && node.props.placeholder === 'System prompt') found = node;
+      if (!found && node.type === 'TextInput' && node.props.multiline === true) found = node;
     });
     return found;
   };

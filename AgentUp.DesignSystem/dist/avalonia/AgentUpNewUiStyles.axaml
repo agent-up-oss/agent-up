@@ -5651,31 +5651,41 @@
     <Setter Property="FontWeight" Value="SemiBold"/>
     <Setter Property="Padding" Value="8,6,8,6"/>
   </Style>
-  <Style Selector="Border.aun-phone__head--sheet">
-    <Setter Property="Padding" Value="0,0,0,0"/>
+  <Style Selector="Border.aun-sheet-dock">
+    <Setter Property="Height" Value="0"/>
   </Style>
-  <Style Selector="TextBlock.aun-phone__head--sheet">
-    <Setter Property="Padding" Value="0,0,0,0"/>
+  <Style Selector="TextBlock.aun-sheet-dock">
+    <Setter Property="Height" Value="0"/>
   </Style>
   <Style Selector="Button.aun-agent-grabber">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
     <Setter Property="BorderThickness" Value="0"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
-    <Setter Property="Margin" Value="0,0,0,0"/>
+    <Setter Property="Padding" Value="0,0,0,4"/>
+    <Setter Property="Margin" Value="0,-8,0,4"/>
   </Style>
   <Style Selector="Button.aun-agent-grabber /template/ ContentPresenter">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
+    <Setter Property="Padding" Value="0,0,0,4"/>
   </Style>
   <Style Selector="Border.aun-agent-grabber">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
     <Setter Property="BorderThickness" Value="0"/>
     <Setter Property="BorderBrush" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
-    <Setter Property="Margin" Value="0,0,0,0"/>
+    <Setter Property="Padding" Value="0,0,0,4"/>
+    <Setter Property="Margin" Value="0,-8,0,4"/>
   </Style>
   <Style Selector="TextBlock.aun-agent-grabber">
     <Setter Property="Background" Value="{DynamicResource AgentUpColorTransparentBrush}"/>
-    <Setter Property="Margin" Value="0,0,0,0"/>
+    <Setter Property="Padding" Value="0,0,0,4"/>
+    <Setter Property="Margin" Value="0,-8,0,4"/>
+  </Style>
+  <Style Selector="Border.aun-settings__prompt">
+    <Setter Property="Padding" Value="16,12,16,12"/>
+  </Style>
+  <Style Selector="TextBlock.aun-settings__prompt">
+    <Setter Property="Padding" Value="16,12,16,12"/>
   </Style>
   <Style Selector="Border.aun-validate__player Border.aun-beat">
     <Setter Property="Opacity" Value="0"/>

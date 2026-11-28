@@ -310,6 +310,23 @@ public sealed class CommandCenterSceneTests
     }
 
     [Test]
+    public void Member_settings_show_the_default_system_prompt_until_it_is_edited()
+    {
+        var binding = CommandCenterScene.Bind(Input([], "agent-settings") with
+        {
+            OpenWorkspaceId = "bob",
+            SystemPrompt = "",
+            DefaultSystemPrompt = "Edit the files.",
+        });
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(binding.Text["systemPrompt"], Is.EqualTo("Edit the files."));
+            Assert.That(binding.Text["customizationPrompt"], Is.EqualTo(""));
+        });
+    }
+
+    [Test]
     public void Member_settings_bind_prompts_and_the_overwrite_warning()
     {
         var binding = CommandCenterScene.Bind(Input([], "agent-settings") with

@@ -164,7 +164,8 @@ public static class CommandCenterScene
         }
         binding.State["memberKind"] = input.MemberKind.Length > 0 ? input.MemberKind : "Author";
         binding.Text["memberId"] = input.OpenWorkspaceId ?? input.AuthTab;
-        binding.Text["systemPrompt"] = input.SystemPrompt;
+        // An unedited system prompt is the default for the member's type, so the field shows that.
+        binding.Text["systemPrompt"] = input.SystemPrompt.Length > 0 ? input.SystemPrompt : input.DefaultSystemPrompt;
         binding.Text["customizationPrompt"] = input.CustomizationPrompt;
         if (input.PromptOverwrite)
             binding.State["promptOverwrite"] = "1";

@@ -14,13 +14,14 @@
 <body>
 <div class="aun-frame">
 <div class="aun-phone">
-      <header class="aun-phone__head aun-phone__head--sheet"><div class="aun-agent-sheet-head">
-        <button type="button" class="au-sheet-grabber-row aun-agent-grabber" data-au-action="back" aria-label="Back to the team"><span class="au-sheet-grabber"></span></button>
+      <header class="aun-phone__head"><div class="aun-agent-sheet-head">
+        <button type="button" class="au-sheet-grabber-row aun-agent-grabber" data-au-when="sheeted" data-au-action="back" aria-label="Back to the team"><span class="au-sheet-grabber"></span></button>
         <div class="aun-agent-head">
         <div class="aun-phone__head-copy" data-au-demo="member"><h1 class="au-page-title">Bob</h1><span class="aun-phone__subtitle">feat/45-deliver</span></div>
         <button type="button" class="aun-agent-reload" data-au-action="reload">Reload</button>
         </div>
       </div></header>
+      <div class="aun-sheet-dock" data-au-slot="sheetDock"></div>
       <div class="aun-phone__body"><div class="aun-settings">
         <div class="aun-group">
           <p class="au-field-label">Type</p>
@@ -42,11 +43,13 @@
         <div class="aun-group">
           <p class="au-field-label">Prompts</p>
           <div class="aun-settings__list">
-            <div class="aun-settings__row">
-              <textarea class="aun-input aun-textarea" data-au-action="system-prompt" rows="8" placeholder="System prompt"></textarea>
+            <div class="aun-settings__prompt">
+              <p class="au-field-label">System prompt</p>
+              <textarea class="aun-input aun-textarea" data-au-action="system-prompt" rows="8"></textarea>
             </div>
-            <div class="aun-settings__row">
-              <textarea class="aun-input aun-textarea" data-au-action="customization-prompt" rows="4" placeholder="Customization"></textarea>
+            <div class="aun-settings__prompt">
+              <p class="au-field-label">Customization prompt</p>
+              <textarea class="aun-input aun-textarea" data-au-action="customization-prompt" rows="4"></textarea>
             </div>
             <div class="aun-settings__row">
               <button class="aun-btn aun-btn--primary" type="button" data-au-action="save-prompts">Save prompts</button>

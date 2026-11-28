@@ -29,6 +29,7 @@
   <section data-au-layout="mobile-command">
     <div data-au-use="phone">
       <header class="aun-phone__head" data-au-slot="head"></header>
+      <div data-au-slot="sheetDock"></div>
       <div class="aun-phone__body" data-au-slot="body"></div>
       <div class="aun-phone__dock" data-au-slot="dock"></div>
       <div data-au-slot="session"></div>
@@ -36,11 +37,13 @@
     </div>
   </section>
 
-  <!-- A team member is a sheet over the team: the grabber and head on top, the page, then the
-       member's own tabs as an app bar on the bottom edge. -->
+  <!-- A team member: the head, the page, then the member's own tabs as an app bar on the bottom
+       edge. On a phone it is a sheet over the team. `sheetDock` marks the bottom of the head, where
+       a sheet opened inside the page docks so the head stays in view. -->
   <section data-au-layout="mobile-agent">
     <div data-au-use="phone">
-      <header class="aun-phone__head aun-phone__head--sheet" data-au-slot="head"></header>
+      <header class="aun-phone__head" data-au-slot="head"></header>
+      <div data-au-slot="sheetDock"></div>
       <div class="aun-phone__body" data-au-slot="body"></div>
       <div data-au-slot="tabs"></div>
     </div>
@@ -49,7 +52,8 @@
   <!-- A member page that lays itself out to the edges, such as Git with its change sheet. -->
   <section data-au-layout="mobile-agent-page">
     <div data-au-use="phone">
-      <header class="aun-phone__head aun-phone__head--sheet" data-au-slot="head"></header>
+      <header class="aun-phone__head" data-au-slot="head"></header>
+      <div data-au-slot="sheetDock"></div>
       <div class="aun-phone__body aun-phone__body--page" data-au-slot="body"></div>
       <div data-au-slot="tabs"></div>
     </div>
@@ -143,42 +147,49 @@
 
   <section data-au-scene="mobile-application" data-au-platform="mobile" data-au-view="application" data-au-title="Agent · Application" data-au-layout="mobile-command">
     <div data-au-region="head" data-au-use="mobile-application-head"></div>
+    <div data-au-region="sheetDock" data-au-use="sheet-dock"></div>
     <div data-au-region="body" data-au-use="application-host"></div>
     <div data-au-region="dock" data-au-use="application-dock"></div>
   </section>
 
   <section data-au-scene="mobile-agent-overview" data-au-platform="mobile" data-au-view="apps" data-au-title="Agent · Overview" data-au-layout="mobile-agent">
     <div data-au-region="head" data-au-use="mobile-agent-head"></div>
+    <div data-au-region="sheetDock" data-au-use="sheet-dock"></div>
     <div data-au-region="tabs" data-au-use="mobile-tabs-apps"></div>
     <div data-au-region="body" data-au-use="mobile-apps-body"></div>
   </section>
 
   <section data-au-scene="mobile-chat" data-au-platform="mobile" data-au-view="chat" data-au-title="Agent · Chat" data-au-layout="mobile-agent">
     <div data-au-region="head" data-au-use="mobile-agent-head"></div>
+    <div data-au-region="sheetDock" data-au-use="sheet-dock"></div>
     <div data-au-region="tabs" data-au-use="mobile-tabs-chat"></div>
     <div data-au-region="body" data-au-use="mobile-chat"></div>
   </section>
 
   <section data-au-scene="mobile-agent-git" data-au-platform="mobile" data-au-view="git" data-au-title="Agent · Git" data-au-layout="mobile-agent-page">
     <div data-au-region="head" data-au-use="mobile-agent-head"></div>
+    <div data-au-region="sheetDock" data-au-use="sheet-dock"></div>
     <div data-au-region="tabs" data-au-use="mobile-tabs-git"></div>
     <div data-au-region="body" data-au-use="mobile-git-body"></div>
   </section>
 
   <section data-au-scene="mobile-agent-files" data-au-platform="mobile" data-au-view="files" data-au-title="Agent · Files" data-au-layout="mobile-agent">
     <div data-au-region="head" data-au-use="mobile-agent-head"></div>
+    <div data-au-region="sheetDock" data-au-use="sheet-dock"></div>
     <div data-au-region="tabs" data-au-use="mobile-tabs-files"></div>
     <div data-au-region="body" data-au-use="mobile-files-body"></div>
   </section>
 
   <section data-au-scene="mobile-agent-settings" data-au-platform="mobile" data-au-view="member-settings" data-au-title="Agent · Settings" data-au-layout="mobile-agent">
     <div data-au-region="head" data-au-use="mobile-agent-head"></div>
+    <div data-au-region="sheetDock" data-au-use="sheet-dock"></div>
     <div data-au-region="tabs" data-au-use="mobile-tabs-settings"></div>
     <div data-au-region="body" data-au-use="member-settings"></div>
   </section>
 
   <section data-au-scene="mobile-agent-file" data-au-platform="mobile" data-au-view="file" data-au-title="Agent · File" data-au-layout="mobile-command">
     <div data-au-region="head" data-au-use="mobile-file-head"></div>
+    <div data-au-region="sheetDock" data-au-use="sheet-dock"></div>
     <div data-au-region="body" data-au-use="mobile-file-body"></div>
   </section>
 
