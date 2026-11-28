@@ -31,6 +31,7 @@ CI replays every flow of both suites in Desktop · Journeys on a real Server and
 | Agents | Agent availability, remedies, start a session, transcript | covered | covered |
 | Agent transcript sheet | Open a tool call, edit, or thought in a bottom sheet, drag it to full height, drag it down to close | n/a | gap |
 | Autonomous loop / checklist | Agent summary line opens Settings, where the precondition checklist is | covered | covered |
+| Team member sheet | Open a team member as a full-screen sheet over the team, switch tabs in its bottom bar, draw the Git change sheet up over its head, drag the head down to return to the team | n/a | gap |
 | Team member / prompts | Edit system and customization prompts on member Settings; warn before a type change overwrites a modified system prompt | gap | gap |
 | Autonomous loop / activate | Activate after a satisfied checklist, typed terminal | gap | gap |
 | Forge review / hosting | Hosting strip notInstalled with bootstrap remedy | covered | covered |
@@ -57,6 +58,7 @@ Every `n/a` is a surface that does not exist on that client:
 - **Example Web app (Mobile).** That journey is an Application-surface flow against a hosted HTTP app, not Mobile chrome.
 - **Example API (Mobile).** API-backed pages are Application-surface flows, not Mobile chrome.
 - **Agent transcript sheet (Desktop).** Desktop opens a transcript entry in place. The bottom sheet is Mobile chrome on a phone-width surface; a wider Mobile web window unfolds in place like Desktop.
+- **Team member sheet (Desktop).** Desktop opens a team member in the command center's rail and tabs. The full-screen member sheet over the team is Mobile chrome.
 - **Installer (Mobile).** LocalInstaller is a desktop dashboard. It is not a Mobile surface. Desktop stays `blocked by #527`.
 
 Workspace lifecycle is not `n/a` on Mobile: the Apps dashboard exposes Start workspace and Stop workspace.

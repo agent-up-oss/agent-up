@@ -27,6 +27,7 @@ public sealed class QaCoverageMap
         "Agents",
         "Agent transcript sheet",
         "Autonomous loop / checklist",
+        "Team member sheet",
         "Team member / prompts",
         "Autonomous loop / activate",
         "Forge review / hosting",

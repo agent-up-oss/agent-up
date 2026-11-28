@@ -10,7 +10,7 @@ Files shows every file in a workspace's clone, not only the ones that changed. F
 
 <DocContract label="Chrome">Desktop Files tab · Mobile Files tab</DocContract>
 
-Files sits next to Git. On Desktop it is the **Files** tab after **Git**. On Mobile it is **Files** in the bottom bar after **Git**. In the command center it is the **Files** tab of an open team member.
+Files sits next to Git. On Desktop it is the **Files** tab after **Git**. On Mobile it is **Files** in the bottom bar after **Git**. In the command center it is the **Files** tab in an open team member's bottom bar.
 
 ## What the tree tells you
 
