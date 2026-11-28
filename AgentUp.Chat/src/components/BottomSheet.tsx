@@ -3,6 +3,7 @@ import { Animated, Easing, Modal, PanResponder, Platform, Pressable, ScrollView,
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { auBox, auText } from '@agent-up/design-system/native';
 import { useReducedMotion } from './Motion';
+import { useChatSheetHost } from './SheetHost';
 import type { SheetStatusTone } from '../providers/SheetProvider';
 import { detentHeight, draggedHeight, settleSheet, sheetDetents, sheetTakesDrag, type SheetDetent, type SheetRest } from '../providers/SheetProvider';
 
@@ -13,15 +14,31 @@ const closeMs = 200;
  * A sheet that rises from the bottom over a scrim to show one thing in full. It opens at half
  * height; dragging up - or tapping the grabber - takes it to full height, and dragging down, the
  * close button, the scrim or the system back gesture closes it. The host mounts it while something
- * is open and unmounts it from `onClose`, which runs once the sheet has slid away.
+ * is open and unmounts it from `onClose`, which runs once the sheet has slid away. A host that
+ * stacks sheets of its own provides `ChatSheetHostContext`, and the item opens there instead.
  */
-export function BottomSheet({ title, status, onClose, children, testID = 'agent-sheet' }: {
+export function BottomSheet({ title, status, onClose, children, testID = 'agent-sheet', diff }: {
   title: string;
+  /** A file edit as unified text, for a host that opens edits in a diff view of its own. */
+  diff?: { path?: string; unified: string };
   /** How the thing shown went, under the title, so the header reads as one unit. */
   status?: { tone: SheetStatusTone; text: string };
   onClose: () => void;
   children: ReactNode;
   testID?: string;
+}) {
+  const Host = useChatSheetHost();
+  if (Host) return <Host title={title} status={status} onClose={onClose} testID={testID} diff={diff}>{children}</Host>;
+  return <OwnSheet title={title} status={status} onClose={onClose} testID={testID}>{children}</OwnSheet>;
+}
+
+/** The chat's own sheet, for a host that stacks no sheets of its own. */
+function OwnSheet({ title, status, onClose, children, testID }: {
+  title: string;
+  status?: { tone: SheetStatusTone; text: string };
+  onClose: () => void;
+  children: ReactNode;
+  testID: string;
 }) {
   const window = useWindowDimensions();
   const insets = useSafeAreaInsets();
