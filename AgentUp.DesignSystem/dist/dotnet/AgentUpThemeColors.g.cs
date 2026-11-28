@@ -16,6 +16,12 @@ internal static class AgentUpThemeColors
     internal const string SurfaceSelectedSoft = "#11211b";
     internal const string SurfaceSelected = "#10281d";
     internal const string SurfaceSelectedStrong = "#0f3220";
+    internal const string DiffAdded = "#00b85017";
+    internal const string DiffAddedGutter = "#00b85029";
+    internal const string DiffAddedWord = "#00b8504d";
+    internal const string DiffDeleted = "#d84f4f1c";
+    internal const string DiffDeletedGutter = "#d84f4f30";
+    internal const string DiffDeletedWord = "#d84f4f57";
     internal const string BorderSubtle = "#ffffff14";
     internal const string BorderStrong = "#ffffff29";
     internal const string BorderSelected = "#00b85059";

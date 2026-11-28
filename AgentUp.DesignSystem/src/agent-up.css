@@ -37,6 +37,18 @@
   --au-color-surface-selected-strong: #0f3220;
 
   /*
+   * Diff tints. Alpha over the canvas, so a changed line reads as the code it is with a wash
+   * of meaning behind it. The line carries the faint wash, its line number a firmer one, and
+   * the words that actually changed inside it the strongest.
+   */
+  --au-color-diff-added: #00b85017;
+  --au-color-diff-added-gutter: #00b85029;
+  --au-color-diff-added-word: #00b8504d;
+  --au-color-diff-deleted: #d84f4f1c;
+  --au-color-diff-deleted-gutter: #d84f4f30;
+  --au-color-diff-deleted-word: #d84f4f57;
+
+  /*
    * Borders are hairlines in alpha, not fixed grays. An opaque line reads
    * 2.4x stronger on the canvas than on a raised surface; alpha composites,
    * so one token holds an even weight across the whole ramp.

@@ -38,12 +38,21 @@ test('Mobile and Desktop bind the file viewer instead of a plain text dump', asy
   assert.match(axaml, /Classes="au-overlay-panel au-file-viewer"/);
   assert.match(axaml, /x:Name="GitFileDiffLines"/);
   assert.doesNotMatch(axaml, /x:Name="GitFileDiffContent"/);
-  const mobile = await readFile(resolve(repository, 'AgentUp.Mobile/src/features/git/components/GitFileViewer.tsx'), 'utf8');
-  assert.match(mobile, /auBox\('fileViewer'\)/);
-  assert.match(mobile, /FlatList/);
+  // Mobile reads a change as the diff view: the code in place, folds, and words marked.
+  const mobile = await readFile(resolve(repository, 'AgentUp.Mobile/src/features/git/components/GitDiffView.tsx'), 'utf8');
+  assert.match(mobile, /auBox\('diffView'\)/);
+  assert.match(mobile, /auBox\('diffWordAdded'\)/);
+  assert.match(mobile, /auBox\('diffFold'\)/);
   const panel = await readFile(resolve(repository, 'AgentUp.Mobile/src/features/git/components/GitChangesPanel.tsx'), 'utf8');
-  assert.match(panel, /<GitFileViewer/);
+  assert.match(panel, /<GitDiffView/);
   assert.doesNotMatch(panel, /diffText/);
+});
+
+test('the diff view styles a changed word a step stronger than its line', async () => {
+  const { auBox } = await import(new URL('../dist/native/index.js', import.meta.url));
+  assert.ok(auBox('diffLineAdded').backgroundColor);
+  assert.notEqual(auBox('diffWordAdded').backgroundColor, auBox('diffLineAdded').backgroundColor);
+  assert.notEqual(auBox('diffWordDeleted').backgroundColor, auBox('diffLineDeleted').backgroundColor);
 });
 
 test('shared highlighter maps extensions and tokenizes keywords without a second palette', () => {

@@ -1381,6 +1381,47 @@ import { agentUpTheme } from '@agent-up/design-system/native';
     </article>
   </section>
 
+  <section data-au-surface="diff-view" data-au-title="Diff view" data-au-intro="One changed file read in place, the way a code host shows it. The code sits on the canvas with its line numbers; removed lines are washed red and added lines green, and the words a line actually changed are marked a step stronger. Unchanged stretches fold into a row that opens five lines at a time. On a phone it is a sheet docked under the page that opened it; wider, it is a page with a back button.">
+    <article data-au-component="diff-file" data-au-title="Diff file head" data-au-note="The file named the way an editor tab names it: its kind, its name, the folder it lives in faint, and how many lines it adds and removes. No status word: the counts and colours say it." data-au-avalonia="Border" data-au-class="au-diff-file">
+      <div class="au-diff-file">
+        <span class="au-diff-kind">TS</span>
+        <span class="au-diff-name">orders.ts</span>
+        <span class="au-diff-folder">apps/api</span>
+        <span class="au-diff-count-added">+2</span>
+        <span class="au-diff-count-deleted">−1</span>
+      </div>
+    </article>
+
+    <article data-au-component="diff-lines" data-au-title="Diff lines" data-au-note="Unchanged lines are plain code on the canvas. A removed line is washed red and numbered from the old file; an added line is washed green and numbered from the new one, each with a firmer wash and a 2px rule on its number. When a removed and an added line are the same line edited, only the words that changed are marked. Long lines scroll sideways under fixed numbers." data-au-avalonia="Border" data-au-class="au-diff-body">
+      <div class="au-diff-view">
+        <div class="au-diff-fold">
+          <span class="au-diff-fold-rule">⋯</span>
+          <span class="au-diff-fold-label">14 unmodified lines</span>
+          <button class="au-diff-expand" type="button">↑ 5</button>
+          <button class="au-diff-expand" type="button">All</button>
+        </div>
+        <div class="au-diff-body">
+          <div class="au-diff-line"><span class="au-diff-number">15</span><span class="au-diff-code"><span class="au-syntax-keyword">export function</span> <span class="au-syntax-function">listOrders</span>(store: <span class="au-syntax-type">Store</span>) {</span></div>
+          <div class="au-diff-line au-diff-line--deleted"><span class="au-diff-number au-diff-number--deleted">16</span><span class="au-diff-code">  <span class="au-syntax-keyword">return</span> store.orders.filter(order =&gt; order.<span class="au-diff-word--deleted">open</span>);</span></div>
+          <div class="au-diff-line au-diff-line--added"><span class="au-diff-number au-diff-number--added">16</span><span class="au-diff-code">  <span class="au-syntax-keyword">return</span> store.orders.filter(order =&gt; order.<span class="au-diff-word--added">status === 'open'</span>);</span></div>
+          <div class="au-diff-line au-diff-line--added"><span class="au-diff-number au-diff-number--added">17</span><span class="au-diff-code">  <span class="au-syntax-comment">// Packed orders stay open until they ship.</span></span></div>
+          <div class="au-diff-line"><span class="au-diff-number">18</span><span class="au-diff-code">}</span></div>
+        </div>
+        <div class="au-diff-fold">
+          <span class="au-diff-fold-rule">⋯</span>
+          <span class="au-diff-fold-label">31 unmodified lines</span>
+          <button class="au-diff-expand" type="button">↓ 5</button>
+          <button class="au-diff-expand" type="button">↑ 5</button>
+          <button class="au-diff-expand" type="button">All</button>
+        </div>
+      </div>
+    </article>
+
+    <article data-au-component="diff-note" data-au-title="Diff note" data-au-note="What the view says instead of lines: a binary file, a file with no text, a change that is gone. One quiet sentence on the canvas." data-au-avalonia="TextBlock" data-au-class="au-diff-note">
+      <p class="au-diff-note">This file is binary; Agent-Up does not render a text diff for it.</p>
+    </article>
+  </section>
+
   <section data-au-surface="file-viewer" data-au-title="File viewer" data-au-intro="A readonly inspection window for a Server-owned file or diff. The catalog owns chrome, gutter, line kinds, hunk markers, and syntax token colors. Clients virtualize the line list instead of dumping the file into one text node.">
     <article data-au-component="file-viewer" data-au-title="Inspection window" data-au-note="Compose the overlay panel. Header carries path and change status. Close returns to the change list. Do not turn this into an editor." data-au-avalonia="Border" data-au-class="au-file-viewer">
       <div class="au-overlay-panel au-file-viewer">
