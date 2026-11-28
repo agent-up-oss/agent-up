@@ -24,7 +24,8 @@ let sheetKeys = 0;
  * the peek; it never closes. `pageHeight` is the height of the page it rests on.
  *
  * Inside a sheet layer - a team member's sheet - the sheet is drawn in that layer rather than in the
- * page, so drawn up it covers the member's head and tab bar too. Elsewhere the page clips it.
+ * page, so drawn up it covers the member's tab bar too and docks right below the member's head.
+ * Elsewhere the page clips it.
  */
 export function GitChangeSheet({ pageHeight, count, children }: {
   pageHeight: number;
@@ -57,7 +58,6 @@ export function GitChangeSheet({ pageHeight, count, children }: {
   const rest = useCallback((target: GitChangeSheetDetent, velocity = 0) => {
     live.current.detent = target;
     setDetent(target);
-    layer?.setExpanded(key, target === 'full');
     // The gesture reports downward speed; the sheet's height grows upward.
     Animated.spring(shown, {
       toValue: gitChangeSheetHeight(target, live.current.detents),
@@ -68,7 +68,7 @@ export function GitChangeSheet({ pageHeight, count, children }: {
       overshootClamping: true,
       useNativeDriver: nativeDriver,
     }).start();
-  }, [shown, layer, key]);
+  }, [shown]);
 
   // A rotation, a keyboard or a resized window moves the detents; the sheet keeps its detent.
   useEffect(() => {
