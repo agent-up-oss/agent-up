@@ -125,7 +125,7 @@ runs:
         ANDROID_KEYSTORE_PASS: ${{ inputs.keystore-pass }}
         ANDROID_KEYALIAS_NAME: ${{ inputs.keyalias-name }}
         ANDROID_KEYALIAS_PASS: ${{ inputs.keyalias-pass }}
-      run: bundle exec fastlane android build
+      run: ./.github/scripts/retry-android-gradle.sh bundle exec fastlane android build
 
     - name: Prepare Android artifact
       shell: bash

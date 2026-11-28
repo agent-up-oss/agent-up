@@ -7,7 +7,8 @@
 # "could not resolve plugin artifact", with nothing wrong on our side. Gradle's own retry gives up
 # within about a second. These go into the Gradle user home as system properties, so they reach
 # the build JVM however Gradle is launched (fastlane, Detox, gradlew), and they only widen how long
-# Gradle keeps retrying a fetch that failed; a fetch that succeeds is unchanged.
+# Gradle keeps retrying a fetch that failed; a fetch that succeeds is unchanged. A miss that
+# outlives this window is retried by retry-android-gradle.sh after dropping Gradle's cached 404.
 set -euo pipefail
 
 gradle_home="${GRADLE_USER_HOME:-$HOME/.gradle}"
